@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// (c) 2019-2020, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package core
@@ -7,14 +7,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/constants"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile"
-	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/luxdefi/node/snow"
+	"github.com/luxdefi/subnet-evm/commontype"
+	"github.com/luxdefi/subnet-evm/constants"
+	"github.com/luxdefi/subnet-evm/core/rawdb"
+	"github.com/luxdefi/subnet-evm/core/state"
+	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/subnet-evm/precompile"
+	"github.com/luxdefi/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"

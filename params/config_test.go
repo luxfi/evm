@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// (c) 2019-2020, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -27,112 +27,304 @@
 package params
 
 import (
+	"encoding/json"
+	"math"
 	"math/big"
 	"reflect"
 	"testing"
+	"time"
+
+	"github.com/luxdefi/subnet-evm/precompile/contracts/nativeminter"
+	"github.com/luxdefi/subnet-evm/precompile/contracts/rewardmanager"
+	"github.com/luxdefi/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckCompatible(t *testing.T) {
 	type test struct {
-		stored, new                 *ChainConfig
-		blockHeight, blockTimestamp uint64
-		wantErr                     *ConfigCompatError
+		stored, new   *ChainConfig
+		headBlock     uint64
+		headTimestamp uint64
+		wantErr       *ConfigCompatError
 	}
 	tests := []test{
-		{stored: TestChainConfig, new: TestChainConfig, blockHeight: 0, blockTimestamp: 0, wantErr: nil},
-		{stored: TestChainConfig, new: TestChainConfig, blockHeight: 100, blockTimestamp: 1000, wantErr: nil},
+		{stored: TestChainConfig, new: TestChainConfig, headBlock: 0, headTimestamp: 0, wantErr: nil},
+		{stored: TestChainConfig, new: TestChainConfig, headBlock: 0, headTimestamp: uint64(time.Now().Unix()), wantErr: nil},
+		{stored: TestChainConfig, new: TestChainConfig, headBlock: 100, wantErr: nil},
 		{
-			stored:         &ChainConfig{EIP150Block: big.NewInt(10)},
-			new:            &ChainConfig{EIP150Block: big.NewInt(20)},
-			blockHeight:    9,
-			blockTimestamp: 90,
-			wantErr:        nil,
+			stored:        &ChainConfig{EIP150Block: big.NewInt(10)},
+			new:           &ChainConfig{EIP150Block: big.NewInt(20)},
+			headBlock:     9,
+			headTimestamp: 90,
+			wantErr:       nil,
 		},
 		{
-			stored:         TestChainConfig,
-			new:            &ChainConfig{HomesteadBlock: nil},
-			blockHeight:    3,
-			blockTimestamp: 30,
+			stored:        TestChainConfig,
+			new:           &ChainConfig{HomesteadBlock: nil},
+			headBlock:     3,
+			headTimestamp: 30,
 			wantErr: &ConfigCompatError{
-				What:         "Homestead fork block",
-				StoredConfig: big.NewInt(0),
-				NewConfig:    nil,
-				RewindTo:     0,
+				What:          "Homestead fork block",
+				StoredBlock:   big.NewInt(0),
+				NewBlock:      nil,
+				RewindToBlock: 0,
 			},
 		},
 		{
-			stored:         TestChainConfig,
-			new:            &ChainConfig{HomesteadBlock: big.NewInt(1)},
-			blockHeight:    3,
-			blockTimestamp: 30,
+			stored:        TestChainConfig,
+			new:           &ChainConfig{HomesteadBlock: big.NewInt(1)},
+			headBlock:     3,
+			headTimestamp: 30,
 			wantErr: &ConfigCompatError{
-				What:         "Homestead fork block",
-				StoredConfig: big.NewInt(0),
-				NewConfig:    big.NewInt(1),
-				RewindTo:     0,
+				What:          "Homestead fork block",
+				StoredBlock:   big.NewInt(0),
+				NewBlock:      big.NewInt(1),
+				RewindToBlock: 0,
 			},
 		},
 		{
-			stored:         &ChainConfig{HomesteadBlock: big.NewInt(30), EIP150Block: big.NewInt(10)},
-			new:            &ChainConfig{HomesteadBlock: big.NewInt(25), EIP150Block: big.NewInt(20)},
-			blockHeight:    25,
-			blockTimestamp: 250,
+			stored:        &ChainConfig{HomesteadBlock: big.NewInt(30), EIP150Block: big.NewInt(10)},
+			new:           &ChainConfig{HomesteadBlock: big.NewInt(25), EIP150Block: big.NewInt(20)},
+			headBlock:     25,
+			headTimestamp: 250,
 			wantErr: &ConfigCompatError{
-				What:         "EIP150 fork block",
-				StoredConfig: big.NewInt(10),
-				NewConfig:    big.NewInt(20),
-				RewindTo:     9,
+				What:          "EIP150 fork block",
+				StoredBlock:   big.NewInt(10),
+				NewBlock:      big.NewInt(20),
+				RewindToBlock: 9,
 			},
 		},
 		{
-			stored:         &ChainConfig{ConstantinopleBlock: big.NewInt(30)},
-			new:            &ChainConfig{ConstantinopleBlock: big.NewInt(30), PetersburgBlock: big.NewInt(30)},
-			blockHeight:    40,
-			blockTimestamp: 400,
-			wantErr:        nil,
+			stored:        &ChainConfig{ConstantinopleBlock: big.NewInt(30)},
+			new:           &ChainConfig{ConstantinopleBlock: big.NewInt(30), PetersburgBlock: big.NewInt(30)},
+			headBlock:     40,
+			headTimestamp: 400,
+			wantErr:       nil,
 		},
 		{
-			stored:         &ChainConfig{ConstantinopleBlock: big.NewInt(30)},
-			new:            &ChainConfig{ConstantinopleBlock: big.NewInt(30), PetersburgBlock: big.NewInt(31)},
-			blockHeight:    40,
-			blockTimestamp: 400,
+			stored:        &ChainConfig{ConstantinopleBlock: big.NewInt(30)},
+			new:           &ChainConfig{ConstantinopleBlock: big.NewInt(30), PetersburgBlock: big.NewInt(31)},
+			headBlock:     40,
+			headTimestamp: 400,
 			wantErr: &ConfigCompatError{
-				What:         "Petersburg fork block",
-				StoredConfig: nil,
-				NewConfig:    big.NewInt(31),
-				RewindTo:     30,
+				What:          "Petersburg fork block",
+				StoredBlock:   nil,
+				NewBlock:      big.NewInt(31),
+				RewindToBlock: 30,
 			},
 		},
 		{
-			stored:         TestChainConfig,
-			new:            TestPreSubnetEVMConfig,
-			blockHeight:    0,
-			blockTimestamp: 0,
+			stored:        TestChainConfig,
+			new:           TestPreSubnetEVMConfig,
+			headBlock:     0,
+			headTimestamp: 0,
 			wantErr: &ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
-				StoredConfig: big.NewInt(0),
-				NewConfig:    nil,
-				RewindTo:     0,
+				StoredTime:   utils.NewUint64(0),
+				NewTime:      nil,
+				RewindToTime: 0,
 			},
 		},
 		{
-			stored:         TestChainConfig,
-			new:            TestPreSubnetEVMConfig,
-			blockHeight:    10,
-			blockTimestamp: 100,
+			stored:        TestChainConfig,
+			new:           TestPreSubnetEVMConfig,
+			headBlock:     10,
+			headTimestamp: 100,
 			wantErr: &ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
-				StoredConfig: big.NewInt(0),
-				NewConfig:    nil,
-				RewindTo:     0,
+				StoredTime:   utils.NewUint64(0),
+				NewTime:      nil,
+				RewindToTime: 0,
 			},
 		},
 	}
 
 	for _, test := range tests {
-		err := test.stored.CheckCompatible(test.new, test.blockHeight, test.blockTimestamp)
+		err := test.stored.CheckCompatible(test.new, test.headBlock, test.headTimestamp)
 		if !reflect.DeepEqual(err, test.wantErr) {
-			t.Errorf("error mismatch:\nstored: %v\nnew: %v\nblockHeight: %v\nerr: %v\nwant: %v", test.stored, test.new, test.blockHeight, err, test.wantErr)
+			t.Errorf("error mismatch:\nstored: %v\nnew: %v\nblockHeight: %v\nerr: %v\nwant: %v", test.stored, test.new, test.headBlock, err, test.wantErr)
 		}
 	}
+}
+
+func TestConfigRules(t *testing.T) {
+	c := &ChainConfig{
+		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
+			SubnetEVMTimestamp: utils.NewUint64(500),
+		},
+	}
+
+	var stamp uint64
+	if r := c.LuxRules(big.NewInt(0), stamp); r.IsSubnetEVM {
+		t.Errorf("expected %v to not be subnet-evm", stamp)
+	}
+	stamp = 500
+	if r := c.LuxRules(big.NewInt(0), stamp); !r.IsSubnetEVM {
+		t.Errorf("expected %v to be subnet-evm", stamp)
+	}
+	stamp = math.MaxInt64
+	if r := c.LuxRules(big.NewInt(0), stamp); !r.IsSubnetEVM {
+		t.Errorf("expected %v to be subnet-evm", stamp)
+	}
+}
+
+func TestConfigUnmarshalJSON(t *testing.T) {
+	require := require.New(t)
+
+	testRewardManagerConfig := rewardmanager.NewConfig(
+		utils.NewUint64(1671542573),
+		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
+		nil,
+		nil,
+		&rewardmanager.InitialRewardConfig{
+			AllowFeeRecipients: true,
+		})
+
+	testContractNativeMinterConfig := nativeminter.NewConfig(
+		utils.NewUint64(0),
+		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
+		nil,
+		nil,
+		nil,
+	)
+
+	config := []byte(`
+	{
+		"chainId": 43214,
+		"allowFeeRecipients": true,
+		"rewardManagerConfig": {
+			"blockTimestamp": 1671542573,
+			"adminAddresses": [
+				"0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+			],
+			"initialRewardConfig": {
+				"allowFeeRecipients": true
+			}
+		},
+		"contractNativeMinterConfig": {
+			"blockTimestamp": 0,
+			"adminAddresses": [
+				"0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+			]
+		}
+	}
+	`)
+	c := ChainConfig{}
+	err := json.Unmarshal(config, &c)
+	require.NoError(err)
+
+	require.Equal(c.ChainID, big.NewInt(43214))
+	require.Equal(c.AllowFeeRecipients, true)
+
+	rewardManagerConfig, ok := c.GenesisPrecompiles[rewardmanager.ConfigKey]
+	require.True(ok)
+	require.Equal(rewardManagerConfig.Key(), rewardmanager.ConfigKey)
+	require.True(rewardManagerConfig.Equal(testRewardManagerConfig))
+
+	nativeMinterConfig := c.GenesisPrecompiles[nativeminter.ConfigKey]
+	require.Equal(nativeMinterConfig.Key(), nativeminter.ConfigKey)
+	require.True(nativeMinterConfig.Equal(testContractNativeMinterConfig))
+
+	// Marshal and unmarshal again and check that the result is the same
+	marshaled, err := json.Marshal(c)
+	require.NoError(err)
+	c2 := ChainConfig{}
+	err = json.Unmarshal(marshaled, &c2)
+	require.NoError(err)
+	require.Equal(c, c2)
+}
+
+func TestActivePrecompiles(t *testing.T) {
+	config := ChainConfig{
+		UpgradeConfig: UpgradeConfig{
+			PrecompileUpgrades: []PrecompileUpgrade{
+				{
+					nativeminter.NewConfig(utils.NewUint64(0), nil, nil, nil, nil), // enable at genesis
+				},
+				{
+					nativeminter.NewDisableConfig(utils.NewUint64(1)), // disable at timestamp 1
+				},
+			},
+		},
+	}
+
+	rules0 := config.LuxRules(common.Big0, 0)
+	require.True(t, rules0.IsPrecompileEnabled(nativeminter.Module.Address))
+
+	rules1 := config.LuxRules(common.Big0, 1)
+	require.False(t, rules1.IsPrecompileEnabled(nativeminter.Module.Address))
+}
+
+func TestChainConfigMarshalWithUpgrades(t *testing.T) {
+	config := ChainConfigWithUpgradesJSON{
+		ChainConfig: ChainConfig{
+			ChainID:             big.NewInt(1),
+			FeeConfig:           DefaultFeeConfig,
+			AllowFeeRecipients:  false,
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
+				SubnetEVMTimestamp: utils.NewUint64(0),
+				DUpgradeTimestamp:  utils.NewUint64(0),
+			},
+			GenesisPrecompiles: Precompiles{},
+		},
+		UpgradeConfig: UpgradeConfig{
+			PrecompileUpgrades: []PrecompileUpgrade{
+				{
+					Config: txallowlist.NewConfig(utils.NewUint64(100), nil, nil, nil),
+				},
+			},
+		},
+	}
+	result, err := json.Marshal(&config)
+	require.NoError(t, err)
+	expectedJSON := `{
+		"chainId": 1,
+		"feeConfig": {
+			"gasLimit": 8000000,
+			"targetBlockRate": 2,
+			"minBaseFee": 25000000000,
+			"targetGas": 15000000,
+			"baseFeeChangeDenominator": 36,
+			"minBlockGasCost": 0,
+			"maxBlockGasCost": 1000000,
+			"blockGasCostStep": 200000
+		},
+		"homesteadBlock": 0,
+		"eip150Block": 0,
+		"eip155Block": 0,
+		"eip158Block": 0,
+		"byzantiumBlock": 0,
+		"constantinopleBlock": 0,
+		"petersburgBlock": 0,
+		"istanbulBlock": 0,
+		"muirGlacierBlock": 0,
+		"subnetEVMTimestamp": 0,
+		"dUpgradeTimestamp": 0,
+		"upgrades": {
+			"precompileUpgrades": [
+				{
+					"txAllowListConfig": {
+						"blockTimestamp": 100
+					}
+				}
+			]
+		}
+	}`
+	require.JSONEq(t, expectedJSON, string(result))
+
+	var unmarshalled ChainConfigWithUpgradesJSON
+	err = json.Unmarshal(result, &unmarshalled)
+	require.NoError(t, err)
+	require.Equal(t, config, unmarshalled)
 }

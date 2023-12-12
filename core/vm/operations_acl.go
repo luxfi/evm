@@ -1,4 +1,4 @@
-// (c) 2019-2021, Ava Labs, Inc.
+// (c) 2019-2021, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -29,8 +29,8 @@ package vm
 import (
 	"errors"
 
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 )
@@ -45,7 +45,7 @@ import (
 // SLOAD_GAS 	800 	= WARM_STORAGE_READ_COST
 // SSTORE_RESET_GAS 	5000 	5000 - COLD_SLOAD_COST
 //
-//The other parameters defined in EIP 2200 are unchanged.
+// The other parameters defined in EIP 2200 are unchanged.
 // see gasSStoreEIP2200(...) in core/vm/gas_table.go for more info about how EIP 2200 is specified
 func gasSStoreEIP2929(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	// If we fail the minimum gas availability invariant, fail (0)

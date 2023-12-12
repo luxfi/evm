@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// (c) 2019-2020, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -185,11 +185,13 @@ func (n *Notifier) activate() error {
 func (n *Notifier) send(sub *Subscription, data json.RawMessage) error {
 	params, _ := json.Marshal(&subscriptionResult{ID: string(sub.ID), Result: data})
 	ctx := context.Background()
-	return n.h.conn.writeJSON(ctx, &jsonrpcMessage{
+
+	msg := &jsonrpcMessage{
 		Version: vsn,
 		Method:  n.namespace + notificationMethodSuffix,
 		Params:  params,
-	})
+	}
+	return n.h.conn.writeJSON(ctx, msg, false)
 }
 
 // A Subscription is created by a notifier and tied to that notifier. The client can use

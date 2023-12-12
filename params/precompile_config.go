@@ -1,4 +1,4 @@
-// (c) 2022 Ava Labs, Inc. All rights reserved.
+// (c) 2022 Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package params
@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/precompile"
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/luxdefi/subnet-evm/precompile"
+	"github.com/luxdefi/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/log"
 )
 

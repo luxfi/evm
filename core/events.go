@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// (c) 2019-2020, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -27,7 +27,7 @@
 package core
 
 import (
-	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/luxdefi/subnet-evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -36,7 +36,7 @@ type NewTxsEvent struct{ Txs []*types.Transaction }
 
 // NewTxPoolHeadEvent is posted when the pool receives a request to update
 // its head to [Block].
-type NewTxPoolHeadEvent struct{ Block *types.Block }
+type NewTxPoolHeadEvent struct{ Head *types.Header }
 
 // NewTxPoolReorgEvent is posted when the pool head is updated.
 type NewTxPoolReorgEvent struct{ Head *types.Header }

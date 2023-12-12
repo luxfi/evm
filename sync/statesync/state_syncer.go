@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// (c) 2021-2022, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package statesync
@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	syncclient "github.com/ava-labs/subnet-evm/sync/client"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/luxdefi/subnet-evm/core/state/snapshot"
+	"github.com/luxdefi/subnet-evm/ethdb"
+	syncclient "github.com/luxdefi/subnet-evm/sync/client"
+	"github.com/luxdefi/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"golang.org/x/sync/errgroup"
 )
@@ -28,8 +28,9 @@ type StateSyncerConfig struct {
 	Client                   syncclient.Client
 	DB                       ethdb.Database
 	BatchSize                int
-	MaxOutstandingCodeHashes int // Maximum number of code hashes in the code syncer queue
-	NumCodeFetchingWorkers   int // Number of code syncing threads
+	MaxOutstandingCodeHashes int    // Maximum number of code hashes in the code syncer queue
+	NumCodeFetchingWorkers   int    // Number of code syncing threads
+	RequestSize              uint16 // Number of leafs to request from a peer at a time
 }
 
 // stateSync keeps the state of the entire state sync operation.
@@ -82,7 +83,7 @@ func NewStateSyncer(config *StateSyncerConfig) (*stateSync, error) {
 		mainTrieDone: make(chan struct{}),
 		done:         make(chan error, 1),
 	}
-	ss.syncer = syncclient.NewCallbackLeafSyncer(config.Client, ss.segments)
+	ss.syncer = syncclient.NewCallbackLeafSyncer(config.Client, ss.segments, config.RequestSize)
 	ss.codeSyncer = newCodeSyncer(CodeSyncerConfig{
 		DB:                       config.DB,
 		Client:                   config.Client,

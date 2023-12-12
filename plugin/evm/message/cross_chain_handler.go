@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// (c) 2021-2022, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package message
@@ -7,11 +7,11 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/ava-labs/avalanchego/codec"
-	"github.com/ava-labs/avalanchego/ids"
+	"github.com/luxdefi/node/codec"
+	"github.com/luxdefi/node/ids"
 
-	"github.com/ava-labs/subnet-evm/internal/ethapi"
-	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/luxdefi/subnet-evm/internal/ethapi"
+	"github.com/luxdefi/subnet-evm/rpc"
 
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -43,19 +43,27 @@ func (c *crossChainHandler) HandleEthCallRequest(ctx context.Context, requesting
 	transactionArgs := ethapi.TransactionArgs{}
 	err := json.Unmarshal(ethCallRequest.RequestArgs, &transactionArgs)
 	if err != nil {
-		log.Debug("error occurred with JSON unmarshalling ethCallRequest.RequestArgs", "err", err)
+		log.Error("error occurred with JSON unmarshalling ethCallRequest.RequestArgs", "err", err)
 		return nil, nil
 	}
 
-	result, err := ethapi.DoCall(ctx, c.backend, transactionArgs, lastAcceptedBlockNumberOrHash, nil, c.backend.RPCEVMTimeout(), c.backend.RPCGasCap())
+	result, err := ethapi.DoCall(
+		ctx,
+		c.backend,
+		transactionArgs,
+		lastAcceptedBlockNumberOrHash,
+		nil,
+		nil,
+		c.backend.RPCEVMTimeout(),
+		c.backend.RPCGasCap())
 	if err != nil {
-		log.Debug("error occurred with EthCall", "err", err, "transactionArgs", ethCallRequest.RequestArgs, "blockNumberOrHash", lastAcceptedBlockNumberOrHash)
+		log.Error("error occurred with EthCall", "err", err, "transactionArgs", ethCallRequest.RequestArgs, "blockNumberOrHash", lastAcceptedBlockNumberOrHash)
 		return nil, nil
 	}
 
 	executionResult, err := json.Marshal(&result)
 	if err != nil {
-		log.Debug("error occurred with JSON marshalling result", "err", err)
+		log.Error("error occurred with JSON marshalling result", "err", err)
 		return nil, nil
 	}
 
@@ -65,7 +73,7 @@ func (c *crossChainHandler) HandleEthCallRequest(ctx context.Context, requesting
 
 	responseBytes, err := c.crossChainCodec.Marshal(Version, response)
 	if err != nil {
-		log.Warn("error occurred with marshalling EthCallResponse", "err", err, "EthCallResponse", response)
+		log.Error("error occurred with marshalling EthCallResponse", "err", err, "EthCallResponse", response)
 		return nil, nil
 	}
 

@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc.
+// (c) 2021-2022, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -29,8 +29,8 @@ package leveldb
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/ethdb/dbtest"
+	"github.com/luxdefi/subnet-evm/ethdb"
+	"github.com/luxdefi/subnet-evm/ethdb/dbtest"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
 )
@@ -46,5 +46,17 @@ func TestLevelDB(t *testing.T) {
 				db: db,
 			}
 		})
+	})
+}
+
+func BenchmarkLevelDB(b *testing.B) {
+	dbtest.BenchDatabaseSuite(b, func() ethdb.KeyValueStore {
+		db, err := leveldb.Open(storage.NewMemStorage(), nil)
+		if err != nil {
+			b.Fatal(err)
+		}
+		return &Database{
+			db: db,
+		}
 	})
 }

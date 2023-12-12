@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// (c) 2019-2020, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -95,6 +95,7 @@ func (abi ABI) Pack(name string, args ...interface{}) ([]byte, error) {
 // Returns the topics for the event including the event signature (if non-anonymous event) and
 // hashes derived from indexed arguments and the packed data of non-indexed args according to
 // the event ABI specification.
+// The order of arguments must match the order of the event definition.
 // https://docs.soliditylang.org/en/v0.8.17/abi-spec.html#indexed-event-encoding.
 // Note: PackEvent does not support array (fixed or dynamic-size) or struct types.
 func (abi ABI) PackEvent(name string, args ...interface{}) ([]common.Hash, []byte, error) {
@@ -181,7 +182,7 @@ func (abi ABI) getArguments(name string, data []byte) (Arguments, error) {
 	var args Arguments
 	if method, ok := abi.Methods[name]; ok {
 		if len(data)%32 != 0 {
-			return nil, fmt.Errorf("abi: improperly formatted output: %s - Bytes: [%+v]", string(data), data)
+			return nil, fmt.Errorf("abi: improperly formatted output: %q - Bytes: %+v", data, data)
 		}
 		args = method.Outputs
 	}
@@ -340,6 +341,17 @@ func (abi *ABI) EventByID(topic common.Hash) (*Event, error) {
 	return nil, fmt.Errorf("no event with id: %#x", topic.Hex())
 }
 
+// ErrorByID looks up an error by the 4-byte id,
+// returns nil if none found.
+func (abi *ABI) ErrorByID(sigdata [4]byte) (*Error, error) {
+	for _, errABI := range abi.Errors {
+		if bytes.Equal(errABI.ID[:4], sigdata[:]) {
+			return &errABI, nil
+		}
+	}
+	return nil, fmt.Errorf("no error with id: %#x", sigdata[:])
+}
+
 // HasFallback returns an indicator whether a fallback function is included.
 func (abi *ABI) HasFallback() bool {
 	return abi.Fallback.Type == Fallback
@@ -364,7 +376,10 @@ func UnpackRevert(data []byte) (string, error) {
 	if !bytes.Equal(data[:4], revertSelector) {
 		return "", errors.New("invalid data for unpacking")
 	}
-	typ, _ := NewType("string", "", nil)
+	typ, err := NewType("string", "", nil)
+	if err != nil {
+		return "", err
+	}
 	unpacked, err := (Arguments{{Type: typ}}).Unpack(data[4:])
 	if err != nil {
 		return "", err

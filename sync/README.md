@@ -27,7 +27,7 @@ State sync code is structured as follows:
   - `CodeRequestHandler`: handles requests for contract code
   - `BlockRequestHandler`: handles requests for blocks
   - _Note: There are response size and time limits in place so peers joining the network do not overload peers providing data.  Additionally, the engine tracks the CPU usage of each peer for such messsages and throttles inbound requests accordingly._
-- `sync/client`: Validates reponses from peers and provides support for syncing tries.
+- `sync/client`: Validates responses from peers and provides support for syncing tries.
 - `sync/statesync`: Uses `sync/client` to sync EVM related state: Accounts, storage tries, and contract code.
 - `plugin/evm/`: The engine expects the VM to implement `StateSyncableVM` interface,
   - `StateSyncServer`: Contains methods executed on nodes _serving_ state sync requests.
@@ -47,7 +47,7 @@ The above information is called a _state summary_, and each syncable block corre
 
 1. The engine calls `StateSyncEnabled`. The VM returns `true` to initiate state sync, or `false` to start  bootstrapping. In `subnet-evm`, this is controlled by the `state-sync-enabled` flag.
 1. The engine calls `GetOngoingSyncStateSummary`. If the VM has a previously interrupted sync to resume it returns that summary. Otherwise, it returns `ErrNotFound`.  By default, `subnet-evm` will resume an interrupted sync.
-1. The engine samples peers for their latest available summaries, then verifies the correctness and availablility of each sampled summary with validators. The messaging flow is documented [here](https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/block/README.md).
+1. The engine samples peers for their latest available summaries, then verifies the correctness and availablility of each sampled summary with validators. The messaging flow is documented [here](https://github.com/luxdefi/node/blob/master/snow/engine/snowman/block/README.md).
 1. The engine calls `Accept` on the chosen summary. The VM may return `false` to skip syncing to this summary (`subnet-evm` skips state sync for less than `defaultStateSyncMinBlocks = 300_000` blocks). If the VM decides to perform the sync, it must return `true` without blocking and fetch the state from its peers asynchronously.
 1. The VM sends `common.StateSyncDone` on the `toEngine` channel on completion.
 1. The engine calls `VM.SetState(Bootstrapping)`. Then, blocks after the syncable block are processed one by one.

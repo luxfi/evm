@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// (c) 2019-2020, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -30,6 +30,7 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/luxdefi/subnet-evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -51,10 +52,10 @@ func SlimAccount(nonce uint64, balance *big.Int, root common.Hash, codehash []by
 		Nonce:   nonce,
 		Balance: balance,
 	}
-	if root != emptyRoot {
+	if root != types.EmptyRootHash {
 		slim.Root = root[:]
 	}
-	if !bytes.Equal(codehash, emptyCode[:]) {
+	if !bytes.Equal(codehash, types.EmptyCodeHash[:]) {
 		slim.CodeHash = codehash
 	}
 	return slim
@@ -78,10 +79,10 @@ func FullAccount(data []byte) (Account, error) {
 		return Account{}, err
 	}
 	if len(account.Root) == 0 {
-		account.Root = emptyRoot[:]
+		account.Root = types.EmptyRootHash[:]
 	}
 	if len(account.CodeHash) == 0 {
-		account.CodeHash = emptyCode[:]
+		account.CodeHash = types.EmptyCodeHash[:]
 	}
 	return account, nil
 }

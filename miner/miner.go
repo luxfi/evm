@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// (c) 2019-2020, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -28,11 +28,13 @@
 package miner
 
 import (
-	"github.com/ava-labs/avalanchego/utils/timer/mockable"
-	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/luxdefi/node/utils/timer/mockable"
+	"github.com/luxdefi/subnet-evm/consensus"
+	"github.com/luxdefi/subnet-evm/core"
+	"github.com/luxdefi/subnet-evm/core/txpool"
+	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 )
@@ -40,12 +42,12 @@ import (
 // Backend wraps all methods required for mining.
 type Backend interface {
 	BlockChain() *core.BlockChain
-	TxPool() *core.TxPool
+	TxPool() *txpool.TxPool
 }
 
 // Config is the configuration parameters of mining.
 type Config struct {
-	Etherbase common.Address `toml:",omitempty"` // Public address for block mining rewards (default = first account)
+	Etherbase common.Address `toml:",omitempty"` // Public address for block mining rewards
 }
 
 type Miner struct {
@@ -62,8 +64,8 @@ func (miner *Miner) SetEtherbase(addr common.Address) {
 	miner.worker.setEtherbase(addr)
 }
 
-func (miner *Miner) GenerateBlock() (*types.Block, error) {
-	return miner.worker.commitNewWork()
+func (miner *Miner) GenerateBlock(predicateContext *precompileconfig.PredicateContext) (*types.Block, error) {
+	return miner.worker.commitNewWork(predicateContext)
 }
 
 // SubscribePendingLogs starts delivering logs from pending transactions

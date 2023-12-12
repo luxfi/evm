@@ -1,4 +1,4 @@
-// (c) 2020-2021, Ava Labs, Inc.
+// (c) 2020-2021, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -27,17 +27,19 @@
 package trie
 
 import (
-	"testing"
-
-	"github.com/ava-labs/subnet-evm/ethdb/memorydb"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/luxdefi/subnet-evm/core/rawdb"
+	"github.com/luxdefi/subnet-evm/ethdb"
+	"github.com/luxdefi/subnet-evm/trie/triedb/hashdb"
 )
 
-// Tests that the trie database returns a missing trie node error if attempting
-// to retrieve the meta root.
-func TestDatabaseMetarootFetch(t *testing.T) {
-	db := NewDatabase(memorydb.New())
-	if _, err := db.RawNode(common.Hash{}); err == nil {
-		t.Fatalf("metaroot retrieval succeeded")
+// newTestDatabase initializes the trie database with specified scheme.
+func newTestDatabase(diskdb ethdb.Database, scheme string) *Database {
+	db := prepare(diskdb, nil)
+	if scheme == rawdb.HashScheme {
+		db.backend = hashdb.New(diskdb, db.cleans, mptResolver{})
 	}
+	//} else {
+	//	db.backend = snap.New(diskdb, db.cleans, nil)
+	//}
+	return db
 }

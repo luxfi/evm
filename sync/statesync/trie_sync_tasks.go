@@ -1,4 +1,4 @@
-// (c) 2022, Ava Labs, Inc. All rights reserved.
+// (c) 2022, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package statesync
@@ -6,11 +6,11 @@ package statesync
 import (
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/sync/syncutils"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/luxdefi/subnet-evm/core/rawdb"
+	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/subnet-evm/ethdb"
+	"github.com/luxdefi/subnet-evm/sync/syncutils"
+	"github.com/luxdefi/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -110,7 +110,11 @@ func (s *storageTrieTask) IterateLeafs(seek common.Hash) ethdb.Iterator {
 
 func (s *storageTrieTask) OnStart() (bool, error) {
 	// check if this storage root is on disk
-	storageTrie, err := trie.New(common.Hash{}, s.root, s.sync.trieDB)
+	var firstAccount common.Hash
+	if len(s.accounts) > 0 {
+		firstAccount = s.accounts[0]
+	}
+	storageTrie, err := trie.New(trie.StorageTrieID(s.sync.root, s.root, firstAccount), s.sync.trieDB)
 	if err != nil {
 		return false, nil
 	}

@@ -1,4 +1,4 @@
-// (c) 2022, Ava Labs, Inc.
+// (c) 2022, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -48,7 +48,7 @@ func ReadCPUStats(stats *CPUStats) {
 	}
 	// requesting all cpu times will always return an array with only one time stats entry
 	timeStat := timeStats[0]
-	stats.GlobalTime = int64((timeStat.User + timeStat.Nice + timeStat.System) * cpu.ClocksPerSec)
-	stats.GlobalWait = int64((timeStat.Iowait) * cpu.ClocksPerSec)
+	stats.GlobalTime = timeStat.User + timeStat.Nice + timeStat.System
+	stats.GlobalWait = timeStat.Iowait
 	stats.LocalTime = getProcessCPUTime()
 }

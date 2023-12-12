@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// (c) 2019-2020, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -88,7 +88,7 @@ func NewError(name string, inputs Arguments) Error {
 	}
 }
 
-func (e *Error) String() string {
+func (e Error) String() string {
 	return e.str
 }
 

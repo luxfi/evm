@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// (c) 2021-2022, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package handlers
@@ -8,12 +8,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/ava-labs/avalanchego/codec"
-	"github.com/ava-labs/avalanchego/ids"
+	"github.com/luxdefi/node/codec"
+	"github.com/luxdefi/node/ids"
 
-	"github.com/ava-labs/subnet-evm/peer"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/sync/handlers/stats"
+	"github.com/luxdefi/subnet-evm/plugin/evm/message"
+	"github.com/luxdefi/subnet-evm/sync/handlers/stats"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -26,7 +25,6 @@ const parentLimit = uint16(64)
 // serving requested blocks starting at specified hash
 type BlockRequestHandler struct {
 	stats         stats.BlockRequestHandlerStats
-	network       peer.Network
 	blockProvider BlockProvider
 	codec         codec.Manager
 }
@@ -82,7 +80,7 @@ func (b *BlockRequestHandler) OnBlockRequest(ctx context.Context, nodeID ids.Nod
 
 		buf := new(bytes.Buffer)
 		if err := block.EncodeRLP(buf); err != nil {
-			log.Warn("failed to RLP encode block", "hash", block.Hash(), "height", block.NumberU64(), "err", err)
+			log.Error("failed to RLP encode block", "hash", block.Hash(), "height", block.NumberU64(), "err", err)
 			return nil, nil
 		}
 
@@ -102,7 +100,7 @@ func (b *BlockRequestHandler) OnBlockRequest(ctx context.Context, nodeID ids.Nod
 	}
 	responseBytes, err := b.codec.Marshal(message.Version, response)
 	if err != nil {
-		log.Warn("failed to marshal BlockResponse, dropping request", "nodeID", nodeID, "requestID", requestID, "hash", blockRequest.Hash, "parents", blockRequest.Parents, "blocksLen", len(response.Blocks), "err", err)
+		log.Error("failed to marshal BlockResponse, dropping request", "nodeID", nodeID, "requestID", requestID, "hash", blockRequest.Hash, "parents", blockRequest.Parents, "blocksLen", len(response.Blocks), "err", err)
 		return nil, nil
 	}
 

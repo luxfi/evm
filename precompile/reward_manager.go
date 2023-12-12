@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// (c) 2019-2020, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 // Code generated
@@ -13,9 +13,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/constants"
-	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/luxdefi/subnet-evm/accounts/abi"
+	"github.com/luxdefi/subnet-evm/constants"
+	"github.com/luxdefi/subnet-evm/vmerrs"
 
 	"github.com/ethereum/go-ethereum/common"
 )

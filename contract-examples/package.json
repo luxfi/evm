@@ -7,7 +7,7 @@
     "@types/chai": "^4.2.21",
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.7.1",
-    "avalanche": "^3.8.5",
+    "lux": "^3.8.5",
     "chai": "^4.3.4",
     "ethereum-waffle": "^3.4.0",
     "ethereumjs-tx": "^2.1.2",
@@ -20,7 +20,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "repository": "https://github.com/ava-labs/subnet-evm-contracts",
+  "repository": "https://github.com/luxdefi/subnet-evm-contracts",
   "license": "BSD-3-Clause",
   "scripts": {
     "compile": "npx hardhat compile",

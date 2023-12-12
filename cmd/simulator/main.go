@@ -1,4 +1,4 @@
-// (c) 2022, Ava Labs, Inc. All rights reserved.
+// (c) 2022, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package main
@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/cmd/simulator/worker"
+	"github.com/luxdefi/subnet-evm/cmd/simulator/worker"
 	"github.com/spf13/cobra"
 )
 

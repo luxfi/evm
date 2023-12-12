@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// (c) 2021-2022, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package statesync
@@ -8,13 +8,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/utils"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/ethdb/memorydb"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
-	"github.com/ava-labs/subnet-evm/sync/handlers"
-	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
+	"github.com/luxdefi/node/utils"
+	"github.com/luxdefi/subnet-evm/core/rawdb"
+	"github.com/luxdefi/subnet-evm/ethdb/memorydb"
+	"github.com/luxdefi/subnet-evm/plugin/evm/message"
+	statesyncclient "github.com/luxdefi/subnet-evm/sync/client"
+	"github.com/luxdefi/subnet-evm/sync/handlers"
+	handlerstats "github.com/luxdefi/subnet-evm/sync/handlers/stats"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"

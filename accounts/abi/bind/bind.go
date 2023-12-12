@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// (c) 2019-2020, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -32,7 +32,6 @@ package bind
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"go/format"
 	"regexp"
@@ -40,27 +39,21 @@ import (
 	"text/template"
 	"unicode"
 
-	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/luxdefi/subnet-evm/accounts/abi"
 	"github.com/ethereum/go-ethereum/log"
 )
 
-const (
-	setAdminFuncKey      = "setAdmin"
-	setEnabledFuncKey    = "setEnabled"
-	setNoneFuncKey       = "setNone"
-	readAllowListFuncKey = "readAllowList"
-)
+// BindHook is a callback function that can be used to customize the binding.
+type BindHook func(lang Lang, pkg string, types []string, contracts map[string]*TmplContract, structs map[string]*TmplStruct) (data interface{}, templateSource string, err error)
 
 // Lang is a target programming language selector to generate bindings for.
 type Lang int
 
 const (
 	LangGo Lang = iota
-	LangJava
-	LangObjC
 )
 
-func isKeyWord(arg string) bool {
+func IsKeyWord(arg string) bool {
 	switch arg {
 	case "break":
 	case "case":
@@ -101,13 +94,17 @@ func isKeyWord(arg string) bool {
 // to be used as is in client code, but rather as an intermediate struct which
 // enforces compile time type safety and naming convention opposed to having to
 // manually maintain hard coded strings that break on runtime.
-func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string, isPrecompile bool) (string, error) {
+func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string) (string, error) {
+	return BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, nil)
+}
+
+func BindHelper(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string, bindHook BindHook) (string, error) {
 	var (
 		// contracts is the map of each individual contract requested binding
-		contracts = make(map[string]*tmplContract)
+		contracts = make(map[string]*TmplContract)
 
 		// structs is the map of all redeclared structs shared by passed contracts.
-		structs = make(map[string]*tmplStruct)
+		structs = make(map[string]*TmplStruct)
 
 		// isLib is the map used to flag each encountered library as such
 		isLib = make(map[string]struct{})
@@ -128,11 +125,11 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 
 		// Extract the call and transact methods; events, struct definitions; and sort them alphabetically
 		var (
-			calls     = make(map[string]*tmplMethod)
-			transacts = make(map[string]*tmplMethod)
+			calls     = make(map[string]*TmplMethod)
+			transacts = make(map[string]*TmplMethod)
 			events    = make(map[string]*tmplEvent)
-			fallback  *tmplMethod
-			receive   *tmplMethod
+			fallback  *TmplMethod
+			receive   *TmplMethod
 
 			// identifiers are used to detect duplicated identifiers of functions
 			// and events. For all calls, transacts and events, abigen will generate
@@ -153,11 +150,18 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			// Normalize the method for capital cases and non-anonymous inputs/outputs
 			normalized := original
 			normalizedName := methodNormalizer[lang](alias(aliases, original.Name))
-
 			// Ensure there is no duplicated identifier
-			var identifiers = callIdentifiers
+			identifiers := callIdentifiers
 			if !original.IsConstant() {
 				identifiers = transactIdentifiers
+			}
+			// Name shouldn't start with a digit. It will make the generated code invalid.
+			if len(normalizedName) > 0 && unicode.IsDigit(rune(normalizedName[0])) {
+				normalizedName = fmt.Sprintf("M%s", normalizedName)
+				normalizedName = abi.ResolveNameConflict(normalizedName, func(name string) bool {
+					_, ok := identifiers[name]
+					return ok
+				})
 			}
 			if identifiers[normalizedName] {
 				return "", fmt.Errorf("duplicated identifier \"%s\"(normalized \"%s\"), use --alias for renaming", original.Name, normalizedName)
@@ -168,7 +172,7 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			normalized.Inputs = make([]abi.Argument, len(original.Inputs))
 			copy(normalized.Inputs, original.Inputs)
 			for j, input := range normalized.Inputs {
-				if input.Name == "" || isKeyWord(input.Name) {
+				if input.Name == "" || IsKeyWord(input.Name) {
 					normalized.Inputs[j].Name = fmt.Sprintf("arg%d", j)
 				}
 				if hasStruct(input.Type) {
@@ -178,11 +182,6 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			normalized.Outputs = make([]abi.Argument, len(original.Outputs))
 			copy(normalized.Outputs, original.Outputs)
 			for j, output := range normalized.Outputs {
-				if isPrecompile {
-					if output.Name == "" {
-						return "", fmt.Errorf("ABI outputs for %s require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs", normalized.Name)
-					}
-				}
 				if output.Name != "" {
 					normalized.Outputs[j].Name = capitalise(output.Name)
 				}
@@ -192,9 +191,9 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			}
 			// Append the methods to the call or transact lists
 			if original.IsConstant() {
-				calls[original.Name] = &tmplMethod{Original: original, Normalized: normalized, Structured: structured(original.Outputs)}
+				calls[original.Name] = &TmplMethod{Original: original, Normalized: normalized, Structured: structured(original.Outputs)}
 			} else {
-				transacts[original.Name] = &tmplMethod{Original: original, Normalized: normalized, Structured: structured(original.Outputs)}
+				transacts[original.Name] = &TmplMethod{Original: original, Normalized: normalized, Structured: structured(original.Outputs)}
 			}
 		}
 		for _, original := range evmABI.Events {
@@ -207,6 +206,14 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 
 			// Ensure there is no duplicated identifier
 			normalizedName := methodNormalizer[lang](alias(aliases, original.Name))
+			// Name shouldn't start with a digit. It will make the generated code invalid.
+			if len(normalizedName) > 0 && unicode.IsDigit(rune(normalizedName[0])) {
+				normalizedName = fmt.Sprintf("E%s", normalizedName)
+				normalizedName = abi.ResolveNameConflict(normalizedName, func(name string) bool {
+					_, ok := eventIdentifiers[name]
+					return ok
+				})
+			}
 			if eventIdentifiers[normalizedName] {
 				return "", fmt.Errorf("duplicated identifier \"%s\"(normalized \"%s\"), use --alias for renaming", original.Name, normalizedName)
 			}
@@ -217,7 +224,7 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			normalized.Inputs = make([]abi.Argument, len(original.Inputs))
 			copy(normalized.Inputs, original.Inputs)
 			for j, input := range normalized.Inputs {
-				if input.Name == "" || isKeyWord(input.Name) {
+				if input.Name == "" || IsKeyWord(input.Name) {
 					normalized.Inputs[j].Name = fmt.Sprintf("arg%d", j)
 				}
 				// Event is a bit special, we need to define event struct in binding,
@@ -238,17 +245,12 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		}
 		// Add two special fallback functions if they exist
 		if evmABI.HasFallback() {
-			fallback = &tmplMethod{Original: evmABI.Fallback}
+			fallback = &TmplMethod{Original: evmABI.Fallback}
 		}
 		if evmABI.HasReceive() {
-			receive = &tmplMethod{Original: evmABI.Receive}
+			receive = &TmplMethod{Original: evmABI.Receive}
 		}
-		// There is no easy way to pass arbitrary java objects to the Go side.
-		if len(structs) > 0 && lang == LangJava {
-			return "", errors.New("java binding for tuple arguments is not supported yet")
-		}
-
-		contracts[types[i]] = &tmplContract{
+		contracts[types[i]] = &TmplContract{
 			Type:        capitalise(types[i]),
 			InputABI:    strings.ReplaceAll(strippedABI, "\"", "\\\""),
 			InputBin:    strings.TrimPrefix(strings.TrimSpace(bytecodes[i]), "0x"),
@@ -291,19 +293,14 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		templateSource string
 	)
 
-	// Generate the contract template data according to contract type (precompile/non)
-	if isPrecompile {
-		if lang != LangGo {
-			return "", errors.New("only GoLang binding for precompiled contracts is supported yet")
+	// Generate the contract template data according to hook
+	if bindHook != nil {
+		var err error
+		data, templateSource, err = bindHook(lang, pkg, types, contracts, structs)
+		if err != nil {
+			return "", err
 		}
-
-		if len(contracts) != 1 {
-			return "", errors.New("cannot generate more than 1 contract")
-		}
-		precompileType := types[0]
-		firstContract := contracts[precompileType]
-		data, templateSource = createPrecompileDataAndTemplate(firstContract, structs)
-	} else {
+	} else { // default to generate contract binding
 		templateSource = tmplSource[lang]
 		data = &tmplData{
 			Package:   pkg,
@@ -316,11 +313,12 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 
 	funcs := map[string]interface{}{
 		"bindtype":      bindType[lang],
+		"bindtypenew":   bindTypeNew[lang],
 		"bindtopictype": bindTopicType[lang],
 		"namedtype":     namedType[lang],
 		"capitalise":    capitalise,
 		"decapitalise":  decapitalise,
-		"convertToNil":  convertToNil,
+		"mkList":        mkList,
 	}
 
 	// render the template
@@ -342,9 +340,12 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 
 // bindType is a set of type binders that convert Solidity types to some supported
 // programming language types.
-var bindType = map[Lang]func(kind abi.Type, structs map[string]*tmplStruct) string{
-	LangGo:   bindTypeGo,
-	LangJava: bindTypeJava,
+var bindType = map[Lang]func(kind abi.Type, structs map[string]*TmplStruct) string{
+	LangGo: bindTypeGo,
+}
+
+var bindTypeNew = map[Lang]func(kind abi.Type, structs map[string]*TmplStruct) string{
+	LangGo: bindTypeNewGo,
 }
 
 // bindBasicTypeGo converts basic solidity types(except array, slice and tuple) to Go ones.
@@ -371,10 +372,43 @@ func bindBasicTypeGo(kind abi.Type) string {
 	}
 }
 
+// bindNewTypeNewGo converts new types to Go ones.
+func bindTypeNewGo(kind abi.Type, structs map[string]*TmplStruct) string {
+	switch kind.T {
+	case abi.TupleTy:
+		return structs[kind.TupleRawName+kind.String()].Name + "{}"
+	case abi.ArrayTy:
+		return fmt.Sprintf("[%d]", kind.Size) + bindTypeGo(*kind.Elem, structs) + "{}"
+	case abi.SliceTy:
+		return "nil"
+	case abi.AddressTy:
+		return "common.Address{}"
+	case abi.IntTy, abi.UintTy:
+		parts := regexp.MustCompile(`(u)?int([0-9]*)`).FindStringSubmatch(kind.String())
+		switch parts[2] {
+		case "8", "16", "32", "64":
+			return "0"
+		}
+		return "new(big.Int)"
+	case abi.FixedBytesTy:
+		return fmt.Sprintf("[%d]byte", kind.Size) + "{}"
+	case abi.BytesTy:
+		return "[]byte{}"
+	case abi.FunctionTy:
+		return "[24]byte{}"
+	case abi.BoolTy:
+		return "false"
+	case abi.StringTy:
+		return `""`
+	default:
+		return "nil"
+	}
+}
+
 // bindTypeGo converts solidity types to Go ones. Since there is no clear mapping
 // from all Solidity types to Go ones (e.g. uint17), those that cannot be exactly
 // mapped will use an upscaled type (e.g. BigDecimal).
-func bindTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
+func bindTypeGo(kind abi.Type, structs map[string]*TmplStruct) string {
 	switch kind.T {
 	case abi.TupleTy:
 		return structs[kind.TupleRawName+kind.String()].Name
@@ -387,91 +421,15 @@ func bindTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
 	}
 }
 
-// bindBasicTypeJava converts basic solidity types(except array, slice and tuple) to Java ones.
-func bindBasicTypeJava(kind abi.Type) string {
-	switch kind.T {
-	case abi.AddressTy:
-		return "Address"
-	case abi.IntTy, abi.UintTy:
-		// Note that uint and int (without digits) are also matched,
-		// these are size 256, and will translate to BigInt (the default).
-		parts := regexp.MustCompile(`(u)?int([0-9]*)`).FindStringSubmatch(kind.String())
-		if len(parts) != 3 {
-			return kind.String()
-		}
-		// All unsigned integers should be translated to BigInt since gomobile doesn't
-		// support them.
-		if parts[1] == "u" {
-			return "BigInt"
-		}
-
-		namedSize := map[string]string{
-			"8":  "byte",
-			"16": "short",
-			"32": "int",
-			"64": "long",
-		}[parts[2]]
-
-		// default to BigInt
-		if namedSize == "" {
-			namedSize = "BigInt"
-		}
-		return namedSize
-	case abi.FixedBytesTy, abi.BytesTy:
-		return "byte[]"
-	case abi.BoolTy:
-		return "boolean"
-	case abi.StringTy:
-		return "String"
-	case abi.FunctionTy:
-		return "byte[24]"
-	default:
-		return kind.String()
-	}
-}
-
-// pluralizeJavaType explicitly converts multidimensional types to predefined
-// types in go side.
-func pluralizeJavaType(typ string) string {
-	switch typ {
-	case "boolean":
-		return "Bools"
-	case "String":
-		return "Strings"
-	case "Address":
-		return "Addresses"
-	case "byte[]":
-		return "Binaries"
-	case "BigInt":
-		return "BigInts"
-	}
-	return typ + "[]"
-}
-
-// bindTypeJava converts a Solidity type to a Java one. Since there is no clear mapping
-// from all Solidity types to Java ones (e.g. uint17), those that cannot be exactly
-// mapped will use an upscaled type (e.g. BigDecimal).
-func bindTypeJava(kind abi.Type, structs map[string]*tmplStruct) string {
-	switch kind.T {
-	case abi.TupleTy:
-		return structs[kind.TupleRawName+kind.String()].Name
-	case abi.ArrayTy, abi.SliceTy:
-		return pluralizeJavaType(bindTypeJava(*kind.Elem, structs))
-	default:
-		return bindBasicTypeJava(kind)
-	}
-}
-
 // bindTopicType is a set of type binders that convert Solidity types to some
 // supported programming language topic types.
-var bindTopicType = map[Lang]func(kind abi.Type, structs map[string]*tmplStruct) string{
-	LangGo:   bindTopicTypeGo,
-	LangJava: bindTopicTypeJava,
+var bindTopicType = map[Lang]func(kind abi.Type, structs map[string]*TmplStruct) string{
+	LangGo: bindTopicTypeGo,
 }
 
 // bindTopicTypeGo converts a Solidity topic type to a Go one. It is almost the same
 // functionality as for simple types, but dynamic types get converted to hashes.
-func bindTopicTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
+func bindTopicTypeGo(kind abi.Type, structs map[string]*TmplStruct) string {
 	bound := bindTypeGo(kind, structs)
 
 	// todo(rjl493456442) according solidity documentation, indexed event
@@ -486,34 +444,16 @@ func bindTopicTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
 	return bound
 }
 
-// bindTopicTypeJava converts a Solidity topic type to a Java one. It is almost the same
-// functionality as for simple types, but dynamic types get converted to hashes.
-func bindTopicTypeJava(kind abi.Type, structs map[string]*tmplStruct) string {
-	bound := bindTypeJava(kind, structs)
-
-	// todo(rjl493456442) according solidity documentation, indexed event
-	// parameters that are not value types i.e. arrays and structs are not
-	// stored directly but instead a keccak256-hash of an encoding is stored.
-	//
-	// We only convert strings and bytes to hash, still need to deal with
-	// array(both fixed-size and dynamic-size) and struct.
-	if bound == "String" || bound == "byte[]" {
-		bound = "Hash"
-	}
-	return bound
-}
-
 // bindStructType is a set of type binders that convert Solidity tuple types to some supported
 // programming language struct definition.
-var bindStructType = map[Lang]func(kind abi.Type, structs map[string]*tmplStruct) string{
-	LangGo:   bindStructTypeGo,
-	LangJava: bindStructTypeJava,
+var bindStructType = map[Lang]func(kind abi.Type, structs map[string]*TmplStruct) string{
+	LangGo: bindStructTypeGo,
 }
 
 // bindStructTypeGo converts a Solidity tuple type to a Go one and records the mapping
 // in the given map.
 // Notably, this function will resolve and record nested struct recursively.
-func bindStructTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
+func bindStructTypeGo(kind abi.Type, structs map[string]*TmplStruct) string {
 	switch kind.T {
 	case abi.TupleTy:
 		// We compose a raw struct name and a canonical parameter expression
@@ -542,7 +482,7 @@ func bindStructTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
 		}
 		name = capitalise(name)
 
-		structs[id] = &tmplStruct{
+		structs[id] = &TmplStruct{
 			Name:   name,
 			Fields: fields,
 		}
@@ -556,74 +496,10 @@ func bindStructTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
 	}
 }
 
-// bindStructTypeJava converts a Solidity tuple type to a Java one and records the mapping
-// in the given map.
-// Notably, this function will resolve and record nested struct recursively.
-func bindStructTypeJava(kind abi.Type, structs map[string]*tmplStruct) string {
-	switch kind.T {
-	case abi.TupleTy:
-		// We compose a raw struct name and a canonical parameter expression
-		// together here. The reason is before solidity v0.5.11, kind.TupleRawName
-		// is empty, so we use canonical parameter expression to distinguish
-		// different struct definition. From the consideration of backward
-		// compatibility, we concat these two together so that if kind.TupleRawName
-		// is not empty, it can have unique id.
-		id := kind.TupleRawName + kind.String()
-		if s, exist := structs[id]; exist {
-			return s.Name
-		}
-		var fields []*tmplField
-		for i, elem := range kind.TupleElems {
-			field := bindStructTypeJava(*elem, structs)
-			fields = append(fields, &tmplField{Type: field, Name: decapitalise(kind.TupleRawNames[i]), SolKind: *elem})
-		}
-		name := kind.TupleRawName
-		if name == "" {
-			name = fmt.Sprintf("Class%d", len(structs))
-		}
-		structs[id] = &tmplStruct{
-			Name:   name,
-			Fields: fields,
-		}
-		return name
-	case abi.ArrayTy, abi.SliceTy:
-		return pluralizeJavaType(bindStructTypeJava(*kind.Elem, structs))
-	default:
-		return bindBasicTypeJava(kind)
-	}
-}
-
 // namedType is a set of functions that transform language specific types to
 // named versions that may be used inside method names.
 var namedType = map[Lang]func(string, abi.Type) string{
-	LangGo:   func(string, abi.Type) string { panic("this shouldn't be needed") },
-	LangJava: namedTypeJava,
-}
-
-// namedTypeJava converts some primitive data types to named variants that can
-// be used as parts of method names.
-func namedTypeJava(javaKind string, solKind abi.Type) string {
-	switch javaKind {
-	case "byte[]":
-		return "Binary"
-	case "boolean":
-		return "Bool"
-	default:
-		parts := regexp.MustCompile(`(u)?int([0-9]*)(\[[0-9]*\])?`).FindStringSubmatch(solKind.String())
-		if len(parts) != 4 {
-			return javaKind
-		}
-		switch parts[2] {
-		case "8", "16", "32", "64":
-			if parts[3] == "" {
-				return capitalise(fmt.Sprintf("%sint%s", parts[1], parts[2]))
-			}
-			return capitalise(fmt.Sprintf("%sint%ss", parts[1], parts[2]))
-
-		default:
-			return javaKind
-		}
-	}
+	LangGo: func(string, abi.Type) string { panic("this shouldn't be needed") },
 }
 
 // alias returns an alias of the given string based on the aliasing rules
@@ -638,8 +514,7 @@ func alias(aliases map[string]string, n string) string {
 // methodNormalizer is a name transformer that modifies Solidity method names to
 // conform to target language naming conventions.
 var methodNormalizer = map[Lang]func(string) string{
-	LangGo:   abi.ToCamelCase,
-	LangJava: decapitalise,
+	LangGo: abi.ToCamelCase,
 }
 
 // capitalise makes a camel-case string which starts with an upper case character.
@@ -653,24 +528,6 @@ func decapitalise(input string) string {
 
 	goForm := abi.ToCamelCase(input)
 	return strings.ToLower(goForm[:1]) + goForm[1:]
-}
-
-// convertToNil converts any type to its proper nil form.
-func convertToNil(input abi.Type) string {
-	switch input.T {
-	case abi.IntTy, abi.UintTy:
-		return "big.NewInt(0)"
-	case abi.StringTy:
-		return "\"\""
-	case abi.BoolTy:
-		return "false"
-	case abi.AddressTy:
-		return "common.Address{}"
-	case abi.HashTy:
-		return "common.Hash{}"
-	default:
-		return "nil"
-	}
 }
 
 // structured checks whether a list of ABI data types has enough information to
@@ -711,44 +568,6 @@ func hasStruct(t abi.Type) bool {
 	}
 }
 
-func createPrecompileDataAndTemplate(contract *tmplContract, structs map[string]*tmplStruct) (interface{}, string) {
-	funcs := make(map[string]*tmplMethod)
-
-	for k, v := range contract.Transacts {
-		funcs[k] = v
-	}
-
-	for k, v := range contract.Calls {
-		funcs[k] = v
-	}
-	isAllowList := allowListEnabled(funcs)
-	if isAllowList {
-		// remove these functions as we will directly inherit AllowList
-		delete(funcs, readAllowListFuncKey)
-		delete(funcs, setAdminFuncKey)
-		delete(funcs, setEnabledFuncKey)
-		delete(funcs, setNoneFuncKey)
-	}
-
-	precompileContract := &tmplPrecompileContract{
-		tmplContract: contract,
-		AllowList:    isAllowList,
-		Funcs:        funcs,
-	}
-
-	data := &tmplPrecompileData{
-		Contract: precompileContract,
-		Structs:  structs,
-	}
-	return data, tmplSourcePrecompileGo
-}
-
-func allowListEnabled(funcs map[string]*tmplMethod) bool {
-	keys := []string{readAllowListFuncKey, setAdminFuncKey, setEnabledFuncKey, setNoneFuncKey}
-	for _, key := range keys {
-		if _, ok := funcs[key]; !ok {
-			return false
-		}
-	}
-	return true
+func mkList(args ...interface{}) []interface{} {
+	return args
 }

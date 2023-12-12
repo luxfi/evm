@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// (c) 2021-2022, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package handlers
@@ -7,14 +7,14 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethdb/memorydb"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/sync/handlers/stats"
+	"github.com/luxdefi/node/ids"
+	"github.com/luxdefi/subnet-evm/consensus/dummy"
+	"github.com/luxdefi/subnet-evm/core"
+	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/subnet-evm/ethdb/memorydb"
+	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/subnet-evm/plugin/evm/message"
+	"github.com/luxdefi/subnet-evm/sync/handlers/stats"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/assert"

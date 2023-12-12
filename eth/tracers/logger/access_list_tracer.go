@@ -18,10 +18,9 @@ package logger
 
 import (
 	"math/big"
-	"time"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
+	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/subnet-evm/core/vm"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -162,7 +161,7 @@ func (a *AccessListTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint6
 func (*AccessListTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
 }
 
-func (*AccessListTracer) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {}
+func (*AccessListTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {}
 
 func (*AccessListTracer) CaptureEnter(typ vm.OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
 }

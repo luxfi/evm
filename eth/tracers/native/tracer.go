@@ -1,4 +1,4 @@
-// (c) 2020-2021, Ava Labs, Inc.
+// (c) 2020-2021, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -48,7 +48,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/ava-labs/subnet-evm/eth/tracers"
+	"github.com/luxdefi/subnet-evm/eth/tracers"
 )
 
 // init registers itself this packages as a lookup for tracers.

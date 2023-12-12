@@ -1,4 +1,4 @@
-module github.com/ava-labs/subnet-evm/cmd/simulator
+module github.com/luxdefi/subnet-evm/cmd/simulator
 
 go 1.18
 

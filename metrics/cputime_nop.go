@@ -1,4 +1,4 @@
-// (c) 2022, Ava Labs, Inc.
+// (c) 2022, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -31,6 +31,6 @@ package metrics
 
 // getProcessCPUTime returns 0 on Windows as there is no system call to resolve
 // the actual process' CPU time.
-func getProcessCPUTime() int64 {
+func getProcessCPUTime() float64 {
 	return 0
 }

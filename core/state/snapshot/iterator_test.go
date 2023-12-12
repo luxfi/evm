@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// (c) 2019-2020, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -28,12 +28,13 @@ package snapshot
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"math/rand"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/luxdefi/subnet-evm/core/rawdb"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -56,7 +57,7 @@ func TestAccountIteratorBasics(t *testing.T) {
 		if rand.Intn(2) == 0 {
 			accStorage := make(map[common.Hash][]byte)
 			value := make([]byte, 32)
-			rand.Read(value)
+			crand.Read(value)
 			accStorage[randomHash()] = value
 			storage[h] = accStorage
 		}
@@ -88,7 +89,7 @@ func TestStorageIteratorBasics(t *testing.T) {
 
 		var nilstorage int
 		for i := 0; i < 100; i++ {
-			rand.Read(value)
+			crand.Read(value)
 			if rand.Intn(2) == 0 {
 				accStorage[randomHash()] = common.CopyBytes(value)
 			} else {
@@ -762,7 +763,7 @@ func TestStorageIteratorDeletions(t *testing.T) {
 // only spit out 200 values eventually.
 //
 // The value-fetching benchmark is easy on the binary iterator, since it never has to reach
-// down at any depth for retrieving the values -- all are on the toppmost layer
+// down at any depth for retrieving the values -- all are on the topmost layer
 //
 // BenchmarkAccountIteratorTraversal/binary_iterator_keys-6         	    2239	    483674 ns/op
 // BenchmarkAccountIteratorTraversal/binary_iterator_values-6       	    2403	    501810 ns/op

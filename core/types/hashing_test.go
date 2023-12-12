@@ -1,4 +1,4 @@
-// (c) 2019-2021, Ava Labs, Inc.
+// (c) 2019-2021, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -34,9 +34,9 @@ import (
 	mrand "math/rand"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/luxdefi/subnet-evm/core/rawdb"
+	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -229,9 +229,10 @@ func (d *hashToHumanReadable) Reset() {
 	d.data = make([]byte, 0)
 }
 
-func (d *hashToHumanReadable) Update(i []byte, i2 []byte) {
+func (d *hashToHumanReadable) Update(i []byte, i2 []byte) error {
 	l := fmt.Sprintf("%x %x\n", i, i2)
 	d.data = append(d.data, []byte(l)...)
+	return nil
 }
 
 func (d *hashToHumanReadable) Hash() common.Hash {

@@ -1,24 +1,43 @@
-// (c) 2019-2021, Ava Labs, Inc. All rights reserved.
+// (c) 2019-2021, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
 
 import (
-	"math/big"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/subnet-evm/utils"
 
-	"github.com/ava-labs/avalanchego/snow"
+	"github.com/luxdefi/node/snow"
 )
+
+func attemptAwait(t *testing.T, wg *sync.WaitGroup, delay time.Duration) {
+	ticker := make(chan struct{})
+
+	// Wait for [wg] and then close [ticket] to indicate that
+	// the wait group has finished.
+	go func() {
+		wg.Wait()
+		close(ticker)
+	}()
+
+	select {
+	case <-time.After(delay):
+		t.Fatal("Timed out waiting for wait group to complete")
+	case <-ticker:
+		// The wait group completed without issue
+	}
+}
 
 func TestBlockBuilderShutsDown(t *testing.T) {
 	shutdownChan := make(chan struct{})
 	wg := &sync.WaitGroup{}
 	config := *params.TestChainConfig
-	config.SubnetEVMTimestamp = big.NewInt(time.Now().Add(time.Hour).Unix())
+
+	config.SubnetEVMTimestamp = utils.TimeToNewUint64(time.Now().Add(time.Hour))
 
 	builder := &blockBuilder{
 		ctx:          snow.DefaultContextTest(),

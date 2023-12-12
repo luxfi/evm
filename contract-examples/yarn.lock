@@ -1161,9 +1161,9 @@ available-typed-arrays@^1.0.5:
   resolved "https://registry.yarnpkg.com/available-typed-arrays/-/available-typed-arrays-1.0.5.tgz#92f95616501069d07d10edb2fc37d3e1c65123b7"
   integrity sha512-DMD0KiN46eipeziST1LPP/STfDU0sufISXmjSgvVsoU2tqxctQeASejWcfNtxYKqETM1UxQ8sp2OrSBWpHY6sw==
 
-avalanche@^3.8.5:
+lux@^3.8.5:
   version "3.15.1"
-  resolved "https://registry.yarnpkg.com/avalanche/-/avalanche-3.15.1.tgz#a316ef3e94fdd21b39e86366e07659f69f767cc7"
+  resolved "https://registry.yarnpkg.com/lux/-/lux-3.15.1.tgz#a316ef3e94fdd21b39e86366e07659f69f767cc7"
   integrity sha512-vlKym4WpG4feNQp6S6XyHogeu+IGtClxALOQSCPNoYlhm4UXSw91XfbgwwIningoo1/PhVGhW0IBMuw5VM8w3g==
   dependencies:
     assert "2.0.0"

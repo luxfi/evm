@@ -1,4 +1,4 @@
-// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// (c) 2019-2022, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package commontype
@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/luxdefi/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -16,8 +16,8 @@ import (
 //
 // The dynamic fee algorithm simply increases fees when the network is operating at a utilization level above the target and decreases fees
 // when the network is operating at a utilization level below the target.
-// This struct is used by params.Config and precompile.FeeConfigManager
-// any modification of this struct has direct affect on the precompiled contract
+// This struct is used by Genesis and Fee Manager precompile.
+// Any modification of this struct has direct affect on the precompiled contract
 // and changes should be carefully handled in the precompiled contract code.
 type FeeConfig struct {
 	// GasLimit sets the max amount of gas consumed per block.
@@ -61,6 +61,23 @@ var EmptyFeeConfig = FeeConfig{}
 
 // Verify checks fields of this config to ensure a valid fee configuration is provided.
 func (f *FeeConfig) Verify() error {
+	switch {
+	case f.GasLimit == nil:
+		return fmt.Errorf("gasLimit cannot be nil")
+	case f.MinBaseFee == nil:
+		return fmt.Errorf("minBaseFee cannot be nil")
+	case f.TargetGas == nil:
+		return fmt.Errorf("targetGas cannot be nil")
+	case f.BaseFeeChangeDenominator == nil:
+		return fmt.Errorf("baseFeeChangeDenominator cannot be nil")
+	case f.MinBlockGasCost == nil:
+		return fmt.Errorf("minBlockGasCost cannot be nil")
+	case f.MaxBlockGasCost == nil:
+		return fmt.Errorf("maxBlockGasCost cannot be nil")
+	case f.BlockGasCostStep == nil:
+		return fmt.Errorf("blockGasCostStep cannot be nil")
+	}
+
 	switch {
 	case f.GasLimit.Cmp(common.Big0) != 1:
 		return fmt.Errorf("gasLimit = %d cannot be less than or equal to 0", f.GasLimit)

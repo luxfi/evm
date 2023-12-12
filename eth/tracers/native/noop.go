@@ -1,4 +1,4 @@
-// (c) 2020-2021, Ava Labs, Inc.
+// (c) 2020-2021, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -29,15 +29,14 @@ package native
 import (
 	"encoding/json"
 	"math/big"
-	"time"
 
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/tracers"
+	"github.com/luxdefi/subnet-evm/core/vm"
+	"github.com/luxdefi/subnet-evm/eth/tracers"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 func init() {
-	register("noopTracer", newNoopTracer)
+	tracers.DefaultDirectory.Register("noopTracer", newNoopTracer, false)
 }
 
 // noopTracer is a go implementation of the Tracer interface which
@@ -54,7 +53,7 @@ func (t *noopTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Ad
 }
 
 // CaptureEnd is called after the call finishes to finalize the tracing.
-func (t *noopTracer) CaptureEnd(output []byte, gasUsed uint64, _ time.Duration, err error) {
+func (t *noopTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
 }
 
 // CaptureState implements the EVMLogger interface to trace a single step of VM execution.

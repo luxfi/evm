@@ -1,4 +1,4 @@
-// (c) 2019-2021, Ava Labs, Inc.
+// (c) 2019-2021, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -26,13 +26,15 @@
 
 package state
 
-import "github.com/ava-labs/subnet-evm/metrics"
+import "github.com/luxdefi/subnet-evm/metrics"
 
 var (
-	accountUpdatedMeter        = metrics.NewRegisteredMeter("state/update/account", nil)
-	storageUpdatedMeter        = metrics.NewRegisteredMeter("state/update/storage", nil)
-	accountDeletedMeter        = metrics.NewRegisteredMeter("state/delete/account", nil)
-	storageDeletedMeter        = metrics.NewRegisteredMeter("state/delete/storage", nil)
-	accountTrieCommittedMeter  = metrics.NewRegisteredMeter("state/commit/accountnodes", nil)
-	storageTriesCommittedMeter = metrics.NewRegisteredMeter("state/commit/storagenodes", nil)
+	accountUpdatedMeter      = metrics.NewRegisteredMeter("state/update/account", nil)
+	storageUpdatedMeter      = metrics.NewRegisteredMeter("state/update/storage", nil)
+	accountDeletedMeter      = metrics.NewRegisteredMeter("state/delete/account", nil)
+	storageDeletedMeter      = metrics.NewRegisteredMeter("state/delete/storage", nil)
+	accountTrieUpdatedMeter  = metrics.NewRegisteredMeter("state/update/accountnodes", nil)
+	storageTriesUpdatedMeter = metrics.NewRegisteredMeter("state/update/storagenodes", nil)
+	accountTrieDeletedMeter  = metrics.NewRegisteredMeter("state/delete/accountnodes", nil)
+	storageTriesDeletedMeter = metrics.NewRegisteredMeter("state/delete/storagenodes", nil)
 )

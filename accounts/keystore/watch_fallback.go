@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// (c) 2019-2020, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -32,8 +32,14 @@
 
 package keystore
 
-type watcher struct{ running bool }
+type watcher struct {
+	running  bool
+	runEnded bool
+}
 
 func newWatcher(*accountCache) *watcher { return new(watcher) }
 func (*watcher) start()                 {}
 func (*watcher) close()                 {}
+
+// enabled returns false on systems not supported.
+func (*watcher) enabled() bool { return false }

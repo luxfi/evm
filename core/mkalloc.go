@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// (c) 2019-2020, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -28,12 +28,10 @@
 // +build none
 
 /*
+The mkalloc tool creates the genesis allocation constants in genesis_alloc.go
+It outputs a const declaration that contains an RLP-encoded list of (address, balance) tuples.
 
-   The mkalloc tool creates the genesis allocation constants in genesis_alloc.go
-   It outputs a const declaration that contains an RLP-encoded list of (address, balance) tuples.
-
-       go run mkalloc.go genesis.json
-
+	go run mkalloc.go genesis.json
 */
 package main
 
@@ -45,7 +43,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/ava-labs/subnet-evm/core"
+	"github.com/luxdefi/subnet-evm/core"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 

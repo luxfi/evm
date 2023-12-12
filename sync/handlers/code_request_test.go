@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// (c) 2021-2022, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package handlers
@@ -8,13 +8,13 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/luxdefi/subnet-evm/params"
 
-	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/ethdb/memorydb"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/sync/handlers/stats"
+	"github.com/luxdefi/node/ids"
+	"github.com/luxdefi/subnet-evm/core/rawdb"
+	"github.com/luxdefi/subnet-evm/ethdb/memorydb"
+	"github.com/luxdefi/subnet-evm/plugin/evm/message"
+	"github.com/luxdefi/subnet-evm/sync/handlers/stats"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"
@@ -94,7 +94,7 @@ func TestCodeRequestHandler(t *testing.T) {
 			responseBytes, err := codeRequestHandler.OnCodeRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
 			assert.NoError(t, err)
 
-			// If the expected resposne is empty, assert that the handler returns an empty response and return early.
+			// If the expected response is empty, assert that the handler returns an empty response and return early.
 			if len(expectedResponse) == 0 {
 				assert.Len(t, responseBytes, 0, "expected response to be empty")
 				return

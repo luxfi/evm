@@ -1,4 +1,4 @@
-// (c) 2022, Ava Labs, Inc.
+// (c) 2022, Lux Partners Limited.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -33,10 +33,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/tracers"
-	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/luxdefi/subnet-evm/accounts/abi"
+	"github.com/luxdefi/subnet-evm/core/vm"
+	"github.com/luxdefi/subnet-evm/eth/tracers"
+	"github.com/luxdefi/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )

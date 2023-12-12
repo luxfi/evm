@@ -1,10 +1,12 @@
-// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// (c) 2019-2022, Lux Partners Limited. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package peer
 
 import (
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"context"
+
+	"github.com/luxdefi/subnet-evm/plugin/evm/message"
 )
 
 var _ message.ResponseHandler = &waitingResponseHandler{}
@@ -16,6 +18,16 @@ var _ message.ResponseHandler = &waitingResponseHandler{}
 type waitingResponseHandler struct {
 	responseChan chan []byte // blocking channel with response bytes
 	failed       bool        // whether the original request is failed
+}
+
+// newWaitingResponseHandler returns new instance of the waitingResponseHandler
+func newWaitingResponseHandler() *waitingResponseHandler {
+	return &waitingResponseHandler{
+		// Make buffer length 1 so that OnResponse can complete
+		// even if no goroutine is waiting on the channel (i.e.
+		// the context of a request is cancelled.)
+		responseChan: make(chan []byte, 1),
+	}
 }
 
 // OnResponse passes the response bytes to the responseChan and closes the channel
@@ -32,7 +44,14 @@ func (w *waitingResponseHandler) OnFailure() error {
 	return nil
 }
 
-// newWaitingResponseHandler returns new instance of the waitingResponseHandler
-func newWaitingResponseHandler() *waitingResponseHandler {
-	return &waitingResponseHandler{responseChan: make(chan []byte)}
+func (waitingHandler *waitingResponseHandler) WaitForResult(ctx context.Context) ([]byte, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case response := <-waitingHandler.responseChan:
+		if waitingHandler.failed {
+			return nil, ErrRequestFailed
+		}
+		return response, nil
+	}
 }
