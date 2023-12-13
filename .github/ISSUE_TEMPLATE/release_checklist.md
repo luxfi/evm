@@ -18,8 +18,8 @@ Link the relevant documentation PRs for this release.
 
 **Checklist**
 - [ ] Update version in scripts/versions.sh and plugin/evm/version.go
-- [ ] Bump LuxGo dependency for RPCChainVM Compatibility
+- [ ] Bump Luxd dependency for RPCChainVM Compatibility
 - [ ] Add new entry in compatibility.json for RPCChainVM Compatibility
-- [ ] Update LuxGo compatibility in README
+- [ ] Update Luxd compatibility in README
 - [ ] Bump cmd/simulator go mod (if needed)
 - [ ] Confirm goreleaser job has successfully generated binaries by checking the releases page

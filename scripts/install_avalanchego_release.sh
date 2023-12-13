@@ -17,7 +17,7 @@ source "$SUBNET_EVM_PATH"/scripts/constants.sh
 GOARCH=$(go env GOARCH)
 GOOS=$(go env GOOS)
 BASEDIR=${BASEDIR:-"/tmp/node-release"}
-LUXGO_BUILD_PATH=${LUXGO_BUILD_PATH:-${BASEDIR}/node}
+LUXD_BUILD_PATH=${LUXD_BUILD_PATH:-${BASEDIR}/node}
 
 mkdir -p ${BASEDIR}
 
@@ -29,7 +29,7 @@ if [[ ${GOOS} == "darwin" ]]; then
   AVAGO_DOWNLOAD_PATH=${BASEDIR}/node-macos-${LUX_VERSION}.zip
 fi
 
-BUILD_DIR=${LUXGO_BUILD_PATH}-${LUX_VERSION}
+BUILD_DIR=${LUXD_BUILD_PATH}-${LUX_VERSION}
 
 extract_archive() {
   mkdir -p ${BUILD_DIR}
@@ -100,7 +100,7 @@ else
     COMMIT=$(git rev-parse HEAD)
 
     # use the commit hash instead of the branch name or tag
-    BUILD_DIR=${LUXGO_BUILD_PATH}-${COMMIT}
+    BUILD_DIR=${LUXD_BUILD_PATH}-${COMMIT}
 
     # if the build-directory doesn't exist, build node
     if [[ ! -d ${BUILD_DIR} ]]; then
@@ -115,14 +115,14 @@ else
   fi
 fi
 
-LUXGO_PATH=${LUXGO_BUILD_PATH}/node
-LUXGO_PLUGIN_DIR=${LUXGO_BUILD_PATH}/plugins
+LUXD_PATH=${LUXD_BUILD_PATH}/node
+LUXD_PLUGIN_DIR=${LUXD_BUILD_PATH}/plugins
 
-mkdir -p ${LUXGO_BUILD_PATH}
+mkdir -p ${LUXD_BUILD_PATH}
 
-cp ${BUILD_DIR}/node ${LUXGO_PATH}
+cp ${BUILD_DIR}/node ${LUXD_PATH}
 
 
-echo "Installed LuxGo release ${LUX_VERSION}"
-echo "LuxGo Path: ${LUXGO_PATH}"
-echo "Plugin Dir: ${LUXGO_PLUGIN_DIR}"
+echo "Installed Luxd release ${LUX_VERSION}"
+echo "Luxd Path: ${LUXD_PATH}"
+echo "Plugin Dir: ${LUXD_PLUGIN_DIR}"

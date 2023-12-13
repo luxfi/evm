@@ -139,7 +139,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	require.NoError(err)
 	err = manager.SetupNetwork(
 		ctx,
-		config.LuxGoExecPath,
+		config.LuxdExecPath,
 		[]*rpcpb.BlockchainSpec{
 			{
 				VmName:      evm.IDStr,
