@@ -48,7 +48,7 @@ func PackMintInput(address common.Address, amount *big.Int) ([]byte, error) {
 	// function selector (4 bytes) + input(hash for address + hash for amount)
 	res := make([]byte, contract.SelectorLen+mintInputLen)
 	err := contract.PackOrderedHashesWithSelector(res, mintSignature, []common.Hash{
-		address.Hash(),
+		common.BytesToHash(address.Bytes())
 		common.BigToHash(amount),
 	})
 

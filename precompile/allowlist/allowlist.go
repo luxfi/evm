@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/luxdefi/subnet-evm/precompile/contract"
 	"github.com/luxdefi/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 // AllowList is an abstraction that allows other precompiles to manage
@@ -52,7 +52,7 @@ var (
 // at [precompileAddr]
 func GetAllowListStatus(state contract.StateDB, precompileAddr common.Address, address common.Address) Role {
 	// Generate the state key for [address]
-	addressKey := address.Hash()
+	addressKey := common.BytesToHash(address.Bytes())
 	return Role(state.GetState(precompileAddr, addressKey))
 }
 
@@ -61,7 +61,7 @@ func GetAllowListStatus(state contract.StateDB, precompileAddr common.Address, a
 // assumes [role] has already been verified as valid.
 func SetAllowListRole(stateDB contract.StateDB, precompileAddr, address common.Address, role Role) {
 	// Generate the state key for [address]
-	addressKey := address.Hash()
+	addressKey := common.BytesToHash(address.Bytes())
 	// Assign [role] to the address
 	// This stores the [role] in the contract storage with address [precompileAddr]
 	// and [addressKey] hash. It means that any reusage of the [addressKey] for different value
@@ -90,7 +90,8 @@ func PackModifyAllowList(address common.Address, role Role) ([]byte, error) {
 		return nil, fmt.Errorf("cannot pack modify list input with invalid role: %s", role)
 	}
 
-	input = append(input, address.Hash().Bytes()...)
+	addressKey := common.BytesToHash(address.Bytes())
+	input = append(input, addressKey.Bytes()...)
 	return input, nil
 }
 
@@ -98,7 +99,8 @@ func PackModifyAllowList(address common.Address, role Role) ([]byte, error) {
 func PackReadAllowList(address common.Address) []byte {
 	input := make([]byte, 0, contract.SelectorLen+common.HashLength)
 	input = append(input, readAllowListSignature...)
-	input = append(input, address.Hash().Bytes()...)
+	addressKey := common.BytesToHash(address.Bytes())
+	input = append(input, addressKey.Bytes()...)
 	return input
 }
 
