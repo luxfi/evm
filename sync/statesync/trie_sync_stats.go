@@ -9,7 +9,7 @@ import (
 	"time"
 
 	utils_math "github.com/luxdefi/node/utils/math"
-	"github.com/luxdefi/subnet-evm/metrics"
+	"github.com/luxdefi/evm/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )

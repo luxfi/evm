@@ -32,12 +32,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 )
 

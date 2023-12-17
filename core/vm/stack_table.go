@@ -27,7 +27,7 @@
 package vm
 
 import (
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/params"
 )
 
 func minSwapStack(n int) int {

@@ -10,10 +10,10 @@ import (
 	"github.com/luxdefi/node/codec"
 	"github.com/luxdefi/node/ids"
 
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
-	"github.com/luxdefi/subnet-evm/sync/handlers/stats"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/plugin/evm/message"
+	"github.com/luxdefi/evm/sync/handlers/stats"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )

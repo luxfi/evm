@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/luxdefi/subnet-evm/metrics"
+	"github.com/luxdefi/evm/metrics"
 )
 
 func TestGatherer(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 )
 
 func subnetEVMFlagSet() *flag.FlagSet {
-	fs := flag.NewFlagSet("subnet-evm", flag.ContinueOnError)
+	fs := flag.NewFlagSet("evm", flag.ContinueOnError)
 
 	fs.Bool(versionKey, false, "If true, print version and quit")
 

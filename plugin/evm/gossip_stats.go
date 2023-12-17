@@ -3,7 +3,7 @@
 
 package evm
 
-import "github.com/luxdefi/subnet-evm/metrics"
+import "github.com/luxdefi/evm/metrics"
 
 var _ GossipStats = &gossipStats{}
 

@@ -37,7 +37,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/accounts"
+	"github.com/luxdefi/evm/accounts"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"

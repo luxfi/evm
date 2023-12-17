@@ -13,12 +13,12 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/precompile/precompileconfig"
-	"github.com/luxdefi/subnet-evm/predicate"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/precompile/precompileconfig"
+	"github.com/luxdefi/evm/predicate"
 
 	"github.com/luxdefi/node/ids"
 	"github.com/luxdefi/node/snow/choices"

@@ -30,8 +30,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/ethdb/memorydb"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/common"
 )
 

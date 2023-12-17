@@ -36,14 +36,14 @@ import (
 	"path"
 	"strings"
 
-	"github.com/luxdefi/subnet-evm/consensus/dummy"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/eth/tracers/logger"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/tests"
+	"github.com/luxdefi/evm/consensus/dummy"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/eth/tracers/logger"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -256,8 +256,8 @@ func Transition(ctx *cli.Context) error {
 		return NewError(ErrorJson, fmt.Errorf("failed signing transactions: %v", err))
 	}
 	// Sanity check, to not `panic` in state_transition
-	// NOTE: IsLondon replaced with IsSubnetEVM here
-	if chainConfig.IsSubnetEVM(prestate.Env.Timestamp) {
+	// NOTE: IsLondon replaced with IsEVM here
+	if chainConfig.IsEVM(prestate.Env.Timestamp) {
 		if prestate.Env.BaseFee != nil {
 			// Already set, base fee has precedent over parent base fee.
 		} else if prestate.Env.ParentBaseFee != nil && prestate.Env.Number != 0 {
@@ -285,7 +285,7 @@ func Transition(ctx *cli.Context) error {
 	// NOTE: Removed isMerged logic here.
 	// isMerged := chainConfig.TerminalTotalDifficulty != nil && chainConfig.TerminalTotalDifficulty.BitLen() == 0
 	if prestate.Env.Random != nil {
-		// NOTE: subnet-evm continues to return the difficulty value for the RANDOM opcode,
+		// NOTE: evm continues to return the difficulty value for the RANDOM opcode,
 		// so for testing if Random is set in the environment, we copy it to difficulty instead.
 		prestate.Env.Difficulty = prestate.Env.Random
 	}

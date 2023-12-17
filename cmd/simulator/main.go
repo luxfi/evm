@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/cmd/simulator/worker"
+	"github.com/luxdefi/evm/cmd/simulator/worker"
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +53,7 @@ var (
 func newCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:        "simulator",
-		Short:      "Load simulator for subnet-evm + C-chain",
+		Short:      "Load simulator for evm + C-chain",
 		SuggestFor: []string{"simulators"},
 		Run:        runFunc,
 	}

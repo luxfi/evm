@@ -4,7 +4,7 @@
 package evm
 
 import (
-	"github.com/luxdefi/subnet-evm/ethdb"
+	"github.com/luxdefi/evm/ethdb"
 
 	"github.com/luxdefi/node/database"
 )

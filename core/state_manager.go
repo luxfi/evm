@@ -31,8 +31,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/ethdb"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/ethdb"
 	"github.com/ethereum/go-ethereum/common"
 )
 

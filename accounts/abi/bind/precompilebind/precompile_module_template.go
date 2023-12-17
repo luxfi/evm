@@ -13,9 +13,9 @@ package {{.Package}}
 import (
 	"fmt"
 
-	"github.com/luxdefi/subnet-evm/precompile/precompileconfig"
-	"github.com/luxdefi/subnet-evm/precompile/contract"
-	"github.com/luxdefi/subnet-evm/precompile/modules"
+	"github.com/luxdefi/evm/precompile/precompileconfig"
+	"github.com/luxdefi/evm/precompile/contract"
+	"github.com/luxdefi/evm/precompile/modules"
 
 	"github.com/ethereum/go-ethereum/common"
 )

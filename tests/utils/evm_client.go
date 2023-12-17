@@ -11,9 +11,9 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/ethclient"
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/ethclient"
+	"github.com/luxdefi/evm/params"
 
 	"github.com/ethereum/go-ethereum/common"
 )

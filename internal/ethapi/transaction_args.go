@@ -33,10 +33,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -168,9 +168,9 @@ func (args *TransactionArgs) setFeeDefaults(ctx context.Context, b feeBackend) e
 	}
 	// Now attempt to fill in default value depending on whether London is active or not.
 	head := b.CurrentHeader()
-	if b.ChainConfig().IsSubnetEVM(head.Time) {
+	if b.ChainConfig().IsEVM(head.Time) {
 		// London is active, set maxPriorityFeePerGas and maxFeePerGas.
-		if err := args.setSubnetEVMFeeDefault(ctx, head, b); err != nil {
+		if err := args.setEVMFeeDefault(ctx, head, b); err != nil {
 			return err
 		}
 	} else {
@@ -188,8 +188,8 @@ func (args *TransactionArgs) setFeeDefaults(ctx context.Context, b feeBackend) e
 	return nil
 }
 
-// setSubnetEVMFeeDefault fills in reasonable default fee values for unspecified fields.
-func (args *TransactionArgs) setSubnetEVMFeeDefault(ctx context.Context, head *types.Header, b feeBackend) error {
+// setEVMFeeDefault fills in reasonable default fee values for unspecified fields.
+func (args *TransactionArgs) setEVMFeeDefault(ctx context.Context, head *types.Header, b feeBackend) error {
 	// Set maxPriorityFeePerGas if it is missing.
 	if args.MaxPriorityFeePerGas == nil {
 		tip, err := b.SuggestGasTipCap(ctx)

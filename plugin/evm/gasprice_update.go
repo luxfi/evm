@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/params"
 )
 
 type gasPriceUpdater struct {
@@ -38,13 +38,13 @@ func (vm *VM) handleGasPriceUpdates() {
 
 // start handles the appropriate gas price and minimum fee updates required by [gpu.chainConfig]
 func (gpu *gasPriceUpdater) start() {
-	// Updates to the minimum gas price as of Subnet EVM if it's already in effect or starts a goroutine to enable it at the correct time
-	if disabled := gpu.handleUpdate(gpu.setter.SetGasPrice, gpu.chainConfig.SubnetEVMTimestamp, big.NewInt(0)); disabled {
+	// Updates to the minimum gas price as of EVM if it's already in effect or starts a goroutine to enable it at the correct time
+	if disabled := gpu.handleUpdate(gpu.setter.SetGasPrice, gpu.chainConfig.EVMTimestamp, big.NewInt(0)); disabled {
 		return
 	}
 	minBaseFee := gpu.chainConfig.FeeConfig.MinBaseFee
-	// Updates to the minimum gas price as of Subnet EVM if it's already in effect or starts a goroutine to enable it at the correct time
-	gpu.handleUpdate(gpu.setter.SetMinFee, gpu.chainConfig.SubnetEVMTimestamp, minBaseFee)
+	// Updates to the minimum gas price as of EVM if it's already in effect or starts a goroutine to enable it at the correct time
+	gpu.handleUpdate(gpu.setter.SetMinFee, gpu.chainConfig.EVMTimestamp, minBaseFee)
 }
 
 // handleUpdate handles calling update(price) at the appropriate time based on

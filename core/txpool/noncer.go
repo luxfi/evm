@@ -29,7 +29,7 @@ package txpool
 import (
 	"sync"
 
-	"github.com/luxdefi/subnet-evm/core/state"
+	"github.com/luxdefi/evm/core/state"
 	"github.com/ethereum/go-ethereum/common"
 )
 

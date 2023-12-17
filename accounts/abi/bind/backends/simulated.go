@@ -34,23 +34,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/eth"
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/eth"
+	"github.com/luxdefi/evm/vmerrs"
 
-	"github.com/luxdefi/subnet-evm/accounts/abi"
-	"github.com/luxdefi/subnet-evm/accounts/abi/bind"
-	"github.com/luxdefi/subnet-evm/consensus/dummy"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/bloombits"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/eth/filters"
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/interfaces"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/accounts/abi"
+	"github.com/luxdefi/evm/accounts/abi/bind"
+	"github.com/luxdefi/evm/consensus/dummy"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/bloombits"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/eth/filters"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/interfaces"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -650,7 +650,7 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call interfaces.Cal
 		return nil, errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified")
 	}
 	head := b.blockchain.CurrentHeader()
-	if !b.blockchain.Config().IsSubnetEVM(head.Time) {
+	if !b.blockchain.Config().IsEVM(head.Time) {
 		// If there's no basefee, then it must be a non-1559 execution
 		if call.GasPrice == nil {
 			call.GasPrice = new(big.Int)

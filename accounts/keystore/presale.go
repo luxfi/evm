@@ -35,7 +35,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/luxdefi/subnet-evm/accounts"
+	"github.com/luxdefi/evm/accounts"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/pbkdf2"

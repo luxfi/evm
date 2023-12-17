@@ -34,13 +34,13 @@ import (
 	"sync"
 
 	"github.com/luxdefi/node/utils/timer/mockable"
-	"github.com/luxdefi/subnet-evm/commontype"
-	"github.com/luxdefi/subnet-evm/consensus/dummy"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/precompile/contracts/feemanager"
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/commontype"
+	"github.com/luxdefi/evm/consensus/dummy"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/precompile/contracts/feemanager"
+	"github.com/luxdefi/evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/lru"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -220,7 +220,7 @@ func NewOracle(backend OracleBackend, config Config) (*Oracle, error) {
 }
 
 // EstimateBaseFee returns an estimate of what the base fee will be on a block
-// produced at the current time. If SubnetEVM has not been activated, it may
+// produced at the current time. If EVM has not been activated, it may
 // return a nil value and a nil error.
 func (oracle *Oracle) EstimateBaseFee(ctx context.Context) (*big.Int, error) {
 	_, baseFee, err := oracle.suggestDynamicFees(ctx)

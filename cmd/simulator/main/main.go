@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/luxdefi/subnet-evm/cmd/simulator/config"
-	"github.com/luxdefi/subnet-evm/cmd/simulator/load"
+	"github.com/luxdefi/evm/cmd/simulator/config"
+	"github.com/luxdefi/evm/cmd/simulator/load"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/spf13/pflag"
 )

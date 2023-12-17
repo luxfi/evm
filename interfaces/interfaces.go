@@ -32,7 +32,7 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 

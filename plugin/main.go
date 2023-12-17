@@ -7,11 +7,11 @@ import (
 	"fmt"
 
 	"github.com/luxdefi/node/version"
-	"github.com/luxdefi/subnet-evm/plugin/evm"
-	"github.com/luxdefi/subnet-evm/plugin/runner"
+	"github.com/luxdefi/evm/plugin/evm"
+	"github.com/luxdefi/evm/plugin/runner"
 )
 
 func main() {
-	versionString := fmt.Sprintf("Subnet-EVM/%s [Luxd=%s, rpcchainvm=%d]", evm.Version, version.Current, version.RPCChainVMProtocol)
+	versionString := fmt.Sprintf("EVM/%s [Luxd=%s, rpcchainvm=%d]", evm.Version, version.Current, version.RPCChainVMProtocol)
 	runner.Run(versionString)
 }

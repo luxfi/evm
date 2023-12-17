@@ -23,21 +23,21 @@ import (
 	"github.com/luxdefi/node/vms/platformvm"
 	luxWarp "github.com/luxdefi/node/vms/platformvm/warp"
 	"github.com/luxdefi/node/vms/platformvm/warp/payload"
-	"github.com/luxdefi/subnet-evm/cmd/simulator/key"
-	"github.com/luxdefi/subnet-evm/cmd/simulator/load"
-	"github.com/luxdefi/subnet-evm/cmd/simulator/metrics"
-	"github.com/luxdefi/subnet-evm/cmd/simulator/txs"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/ethclient"
-	"github.com/luxdefi/subnet-evm/interfaces"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/plugin/evm"
-	"github.com/luxdefi/subnet-evm/predicate"
-	"github.com/luxdefi/subnet-evm/tests/utils"
-	"github.com/luxdefi/subnet-evm/tests/utils/runner"
-	warpBackend "github.com/luxdefi/subnet-evm/warp"
-	"github.com/luxdefi/subnet-evm/warp/aggregator"
-	"github.com/luxdefi/subnet-evm/x/warp"
+	"github.com/luxdefi/evm/cmd/simulator/key"
+	"github.com/luxdefi/evm/cmd/simulator/load"
+	"github.com/luxdefi/evm/cmd/simulator/metrics"
+	"github.com/luxdefi/evm/cmd/simulator/txs"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/ethclient"
+	"github.com/luxdefi/evm/interfaces"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/plugin/evm"
+	"github.com/luxdefi/evm/predicate"
+	"github.com/luxdefi/evm/tests/utils"
+	"github.com/luxdefi/evm/tests/utils/runner"
+	warpBackend "github.com/luxdefi/evm/warp"
+	"github.com/luxdefi/evm/warp/aggregator"
+	"github.com/luxdefi/evm/x/warp"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -102,7 +102,7 @@ var _ = ginkgo.DescribeTable("[Warp]", func(gen func() *warpTest) {
 
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "subnet-evm warp e2e test")
+	ginkgo.RunSpecs(t, "evm warp e2e test")
 }
 
 func toWebsocketURI(uri string, blockchainID string) string {
@@ -112,7 +112,7 @@ func toWebsocketURI(uri string, blockchainID string) string {
 // BeforeSuite starts the default network and adds 10 new nodes as validators with BLS keys
 // registered on the P-Chain.
 // Adds two disjoint sets of 5 of the new validator nodes to validate two new subnets with a
-// a single Subnet-EVM blockchain.
+// a single EVM blockchain.
 var _ = ginkgo.BeforeSuite(func() {
 	ctx := context.Background()
 	require := require.New(ginkgo.GinkgoT())
@@ -287,7 +287,7 @@ func (w *warpTest) initClients() {
 }
 
 func (w *warpTest) getBlockHashAndNumberFromTxReceipt(ctx context.Context, client ethclient.Client, tx *types.Transaction) (common.Hash, uint64) {
-	// This uses the Subnet-EVM client to fetch a block from Coreth (when testing the C-Chain), so we use this
+	// This uses the EVM client to fetch a block from Coreth (when testing the C-Chain), so we use this
 	// workaround to get the correct block hash. Note the client recalculates the block hash locally, which results
 	// in a different block hash due to small differences in the block format.
 	require := require.New(ginkgo.GinkgoT())

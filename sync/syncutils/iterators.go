@@ -4,8 +4,8 @@
 package syncutils
 
 import (
-	"github.com/luxdefi/subnet-evm/core/state/snapshot"
-	"github.com/luxdefi/subnet-evm/ethdb"
+	"github.com/luxdefi/evm/core/state/snapshot"
+	"github.com/luxdefi/evm/ethdb"
 )
 
 var (

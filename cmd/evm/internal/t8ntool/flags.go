@@ -30,8 +30,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/tests"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/tests"
 	"github.com/urfave/cli/v2"
 )
 

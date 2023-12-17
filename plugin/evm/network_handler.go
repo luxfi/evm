@@ -8,14 +8,14 @@ import (
 
 	"github.com/luxdefi/node/codec"
 	"github.com/luxdefi/node/ids"
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/metrics"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
-	syncHandlers "github.com/luxdefi/subnet-evm/sync/handlers"
-	syncStats "github.com/luxdefi/subnet-evm/sync/handlers/stats"
-	"github.com/luxdefi/subnet-evm/trie"
-	"github.com/luxdefi/subnet-evm/warp"
-	warpHandlers "github.com/luxdefi/subnet-evm/warp/handlers"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/metrics"
+	"github.com/luxdefi/evm/plugin/evm/message"
+	syncHandlers "github.com/luxdefi/evm/sync/handlers"
+	syncStats "github.com/luxdefi/evm/sync/handlers/stats"
+	"github.com/luxdefi/evm/trie"
+	"github.com/luxdefi/evm/warp"
+	warpHandlers "github.com/luxdefi/evm/warp/handlers"
 )
 
 var _ message.RequestHandler = &networkHandler{}

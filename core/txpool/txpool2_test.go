@@ -30,9 +30,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"

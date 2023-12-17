@@ -34,14 +34,14 @@ import (
 	"sort"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state/snapshot"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/metrics"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/predicate"
-	"github.com/luxdefi/subnet-evm/trie"
-	"github.com/luxdefi/subnet-evm/trie/trienode"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state/snapshot"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/metrics"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/predicate"
+	"github.com/luxdefi/evm/trie"
+	"github.com/luxdefi/evm/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -1170,7 +1170,7 @@ func (s *StateDB) commit(deleteEmptyObjects bool, snaps *snapshot.Tree, blockHas
 // - Add coinbase to access list (EIP-3651/DUpgrade)
 // - Reset transient storage (EIP-1153)
 func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dst *common.Address, precompiles []common.Address, list types.AccessList) {
-	if rules.IsSubnetEVM {
+	if rules.IsEVM {
 		// Clear out any leftover from previous executions
 		al := newAccessList()
 		s.accessList = al

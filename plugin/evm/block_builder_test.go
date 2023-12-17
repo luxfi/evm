@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/utils"
 
 	"github.com/luxdefi/node/snow"
 )
@@ -37,7 +37,7 @@ func TestBlockBuilderShutsDown(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	config := *params.TestChainConfig
 
-	config.SubnetEVMTimestamp = utils.TimeToNewUint64(time.Now().Add(time.Hour))
+	config.EVMTimestamp = utils.TimeToNewUint64(time.Now().Add(time.Hour))
 
 	builder := &blockBuilder{
 		ctx:          snow.DefaultContextTest(),

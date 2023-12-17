@@ -15,7 +15,7 @@ import (
 	"github.com/luxdefi/node/ids"
 	"github.com/luxdefi/node/utils/logging"
 	"github.com/luxdefi/node/utils/wrappers"
-	"github.com/luxdefi/subnet-evm/plugin/evm"
+	"github.com/luxdefi/evm/plugin/evm"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"

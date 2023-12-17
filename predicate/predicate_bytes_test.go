@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/luxdefi/node/utils"
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/params"
 	"github.com/stretchr/testify/require"
 )
 

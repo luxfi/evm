@@ -1,11 +1,11 @@
 # ref. https://goreleaser.com/customization/build/
 builds:
-  - id: subnet-evm
+  - id: evm
     main: ./plugin
-    binary: subnet-evm
+    binary: evm
     flags:
       - -v
-    ldflags: -X github.com/luxdefi/subnet-evm/plugin/evm.Version=v{{.Version}}
+    ldflags: -X github.com/luxdefi/evm/plugin/evm.Version=v{{.Version}}
     goos:
       - linux
       - darwin
@@ -34,4 +34,4 @@ release:
   # Default is extracted from the origin remote URL or empty if its private hosted.
   github:
     owner: luxdefi
-    name: subnet-evm
+    name: evm

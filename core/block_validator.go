@@ -29,11 +29,11 @@ package core
 import (
 	"fmt"
 
-	"github.com/luxdefi/subnet-evm/consensus"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/trie"
+	"github.com/luxdefi/evm/consensus"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/trie"
 )
 
 // BlockValidator is responsible for validating block headers, uncles and

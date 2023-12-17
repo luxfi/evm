@@ -34,8 +34,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/luxdefi/subnet-evm/accounts/abi/bind"
-	"github.com/luxdefi/subnet-evm/internal/flags"
+	"github.com/luxdefi/evm/accounts/abi/bind"
+	"github.com/luxdefi/evm/internal/flags"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common/compiler"
 	"github.com/ethereum/go-ethereum/crypto"

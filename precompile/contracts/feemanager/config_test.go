@@ -7,11 +7,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/commontype"
-	"github.com/luxdefi/subnet-evm/precompile/allowlist"
-	"github.com/luxdefi/subnet-evm/precompile/precompileconfig"
-	"github.com/luxdefi/subnet-evm/precompile/testutils"
-	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/luxdefi/evm/commontype"
+	"github.com/luxdefi/evm/precompile/allowlist"
+	"github.com/luxdefi/evm/precompile/precompileconfig"
+	"github.com/luxdefi/evm/precompile/testutils"
+	"github.com/luxdefi/evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"go.uber.org/mock/gomock"
 )

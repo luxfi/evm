@@ -32,9 +32,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/core/bloombits"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/core/bloombits"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 )
 

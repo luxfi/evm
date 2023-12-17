@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/utils"
-	"github.com/luxdefi/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/luxdefi/evm/utils"
+	"github.com/luxdefi/evm/vmerrs"
 )
 
 const (
@@ -157,8 +157,10 @@ func SetContractNativeMinterStatus(stateDB StateDB, address common.Address, role
 func PackMintInput(address common.Address, amount *big.Int) ([]byte, error) {
 	// function selector (4 bytes) + input(hash for address + hash for amount)
 	res := make([]byte, selectorLen+mintInputLen)
+
+	addressKey := common.BytesToHash(address.Bytes())
 	packOrderedHashesWithSelector(res, mintSignature, []common.Hash{
-		address.Hash(),
+		addressKey,
 		common.BigToHash(amount),
 	})
 

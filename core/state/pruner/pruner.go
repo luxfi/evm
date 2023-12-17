@@ -37,11 +37,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state/snapshot"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/trie"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state/snapshot"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -435,7 +435,7 @@ const warningLog = `
 WARNING!
 
 The clean trie cache is not found. Please delete it by yourself after the
-pruning. Remember don't start the Subnet-EVM without deleting the clean trie cache
+pruning. Remember don't start the EVM without deleting the clean trie cache
 otherwise the entire database may be damaged!
 
 Check the configuration option "offline-pruning-enabled" for more details.

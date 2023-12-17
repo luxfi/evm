@@ -36,13 +36,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/commontype"
-	"github.com/luxdefi/subnet-evm/consensus/dummy"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/metrics"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/precompile"
+	"github.com/luxdefi/evm/commontype"
+	"github.com/luxdefi/evm/consensus/dummy"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/metrics"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/precompile"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
 	"github.com/ethereum/go-ethereum/event"
@@ -105,7 +105,7 @@ var (
 var (
 	evictionInterval      = time.Minute      // Time interval to check for evictable transactions
 	statsReportInterval   = 8 * time.Second  // Time interval to report transaction pool stats
-	baseFeeUpdateInterval = 10 * time.Second // Time interval at which to schedule a base fee update for the tx pool after SubnetEVM is enabled
+	baseFeeUpdateInterval = 10 * time.Second // Time interval at which to schedule a base fee update for the tx pool after EVM is enabled
 )
 
 var (
@@ -1314,7 +1314,7 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 	// because of another transaction (e.g. higher gas price).
 	if reset != nil {
 		pool.demoteUnexecutables()
-		if reset.newHead != nil && pool.chainconfig.IsSubnetEVM(new(big.Int).SetUint64(reset.newHead.Time)) {
+		if reset.newHead != nil && pool.chainconfig.IsEVM(new(big.Int).SetUint64(reset.newHead.Time)) {
 			if err := pool.updateBaseFeeAt(reset.newHead); err != nil {
 				log.Error("error at updating base fee in tx pool", "error", err)
 			}
@@ -1441,10 +1441,10 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 
 	// when we reset txPool we should explicitly check if fee struct for min base fee has changed
 	// so that we can correctly drop txs with < minBaseFee from tx pool.
-	// TODO: this should be checking IsSubnetEVM since we also support minimumFee for SubnetEVM
+	// TODO: this should be checking IsEVM since we also support minimumFee for EVM
 	// without requiring FeeConfigManager is enabled.
 	// This is already being set by SetMinFee when gas price updater starts.
-	// However tests are currently failing if we change this check to IsSubnetEVM.
+	// However tests are currently failing if we change this check to IsEVM.
 	if pool.chainconfig.IsFeeConfigManager(new(big.Int).SetUint64(newHead.Time)) {
 		feeConfig, _, err := pool.chain.GetFeeConfigAt(newHead)
 		if err != nil {
@@ -1463,9 +1463,9 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	next := new(big.Int).Add(newHead.Number, big.NewInt(1))
 	pool.istanbul = pool.chainconfig.IsIstanbul(next)
 
-	isSubnetEVM := pool.chainconfig.IsSubnetEVM(new(big.Int).SetUint64(newHead.Time))
-	pool.eip2718 = isSubnetEVM
-	pool.eip1559 = isSubnetEVM
+	isEVM := pool.chainconfig.IsEVM(new(big.Int).SetUint64(newHead.Time))
+	pool.eip2718 = isEVM
+	pool.eip1559 = isEVM
 }
 
 // promoteExecutables moves transactions that have become processable from the
@@ -1732,13 +1732,13 @@ func (pool *TxPool) demoteUnexecutables() {
 }
 
 func (pool *TxPool) startPeriodicFeeUpdate() {
-	if pool.chainconfig.SubnetEVMTimestamp == nil {
+	if pool.chainconfig.EVMTimestamp == nil {
 		return
 	}
 
 	// Call updateBaseFee here to ensure that there is not a [baseFeeUpdateInterval] delay
-	// when starting up in Subnet EVM before the base fee is updated.
-	if time.Now().After(time.Unix(pool.chainconfig.SubnetEVMTimestamp.Int64(), 0)) {
+	// when starting up in EVM before the base fee is updated.
+	if time.Now().After(time.Unix(pool.chainconfig.EVMTimestamp.Int64(), 0)) {
 		pool.updateBaseFee()
 	}
 
@@ -1751,7 +1751,7 @@ func (pool *TxPool) periodicBaseFeeUpdate() {
 
 	// Sleep until its time to start the periodic base fee update or the tx pool is shutting down
 	select {
-	case <-time.After(time.Until(time.Unix(pool.chainconfig.SubnetEVMTimestamp.Int64(), 0))):
+	case <-time.After(time.Until(time.Unix(pool.chainconfig.EVMTimestamp.Int64(), 0))):
 	case <-pool.generalShutdownChan:
 		return // Return early if shutting down
 	}

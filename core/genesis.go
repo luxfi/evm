@@ -36,12 +36,12 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/trie"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -326,7 +326,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 	if g.Difficulty == nil {
 		head.Difficulty = params.GenesisDifficulty
 	}
-	if g.Config != nil && g.Config.IsSubnetEVM(0) {
+	if g.Config != nil && g.Config.IsEVM(0) {
 		if g.BaseFee != nil {
 			head.BaseFee = g.BaseFee
 		} else {

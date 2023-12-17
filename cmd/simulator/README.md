@@ -1,13 +1,13 @@
 # Load Simulator
 
-When building developing your own blockchain using `subnet-evm`, you may want to analyze how your fee parameterization behaves and/or how many resources your VM uses under different load patterns. For this reason, we developed `cmd/simulator`. `cmd/simulator` lets you drive arbitrary load across any number of [endpoints] with a user-specified `keys` directory (insecure) `timeout`, `workers`, `max-fee-cap`, and `max-tip-cap`.
+When building developing your own blockchain using `evm`, you may want to analyze how your fee parameterization behaves and/or how many resources your VM uses under different load patterns. For this reason, we developed `cmd/simulator`. `cmd/simulator` lets you drive arbitrary load across any number of [endpoints] with a user-specified `keys` directory (insecure) `timeout`, `workers`, `max-fee-cap`, and `max-tip-cap`.
 
 ## Building the Load Simulator
 
 To build the load simulator, navigate to the base of the simulator directory:
 
 ```bash
-cd $GOPATH/src/github.com/luxdefi/subnet-evm/cmd/simulator
+cd $GOPATH/src/github.com/luxdefi/evm/cmd/simulator
 ```
 
 Build the simulator:
@@ -28,7 +28,7 @@ This should give the following output:
 v0.1.0
 ```
 
-To run the load simulator, you must first start an EVM based network. The load simulator works on both the C-Chain and Subnet-EVM, so we will start a single node network and run the load simulator on the C-Chain.
+To run the load simulator, you must first start an EVM based network. The load simulator works on both the C-Chain and EVM, so we will start a single node network and run the load simulator on the C-Chain.
 
 To start a single node network, follow the instructions from the Luxd [README](https://github.com/luxdefi/node#building-node) to build from source.
 

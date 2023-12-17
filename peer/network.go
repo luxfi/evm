@@ -23,8 +23,8 @@ import (
 	"github.com/luxdefi/node/utils/set"
 	"github.com/luxdefi/node/version"
 
-	"github.com/luxdefi/subnet-evm/peer/stats"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
+	"github.com/luxdefi/evm/peer/stats"
+	"github.com/luxdefi/evm/plugin/evm/message"
 )
 
 // Minimum amount of time to handle a request

@@ -34,9 +34,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/ethdb/leveldb"
-	"github.com/luxdefi/subnet-evm/ethdb/memorydb"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/ethdb/leveldb"
+	"github.com/luxdefi/evm/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/olekukonko/tablewriter"

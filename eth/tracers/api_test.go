@@ -39,18 +39,18 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/consensus"
-	"github.com/luxdefi/subnet-evm/consensus/dummy"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/eth/tracers/logger"
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/internal/ethapi"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/consensus"
+	"github.com/luxdefi/evm/consensus/dummy"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/eth/tracers/logger"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/internal/ethapi"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -226,7 +226,7 @@ func TestTraceCall(t *testing.T) {
 	// Initialize test accounts
 	accounts := newAccounts(3)
 	genesis := &core.Genesis{
-		Config: params.TestSubnetEVMConfig, // TODO: go-ethereum has not enabled Shanghai yet, so we use SubnetEVM here so tests pass.
+		Config: params.TestEVMConfig, // TODO: go-ethereum has not enabled Shanghai yet, so we use EVM here so tests pass.
 		Alloc: core.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[1].addr: {Balance: big.NewInt(params.Ether)},
@@ -493,7 +493,7 @@ func TestTracingWithOverrides(t *testing.T) {
 	accounts := newAccounts(3)
 	storageAccount := common.Address{0x13, 37}
 	genesis := &core.Genesis{
-		Config: params.TestSubnetEVMConfig, // TODO: go-ethereum has not enabled Shanghai yet, so we use SubnetEVM here so tests pass.
+		Config: params.TestEVMConfig, // TODO: go-ethereum has not enabled Shanghai yet, so we use EVM here so tests pass.
 		Alloc: core.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[1].addr: {Balance: big.NewInt(params.Ether)},

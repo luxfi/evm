@@ -19,17 +19,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/tests"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
 
 	// Force-load the native, to trigger registration
-	"github.com/luxdefi/subnet-evm/eth/tracers"
+	"github.com/luxdefi/evm/eth/tracers"
 )
 
 // flatCallTrace is the result of a callTracerParity run.

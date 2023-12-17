@@ -11,9 +11,9 @@ import (
 	"github.com/luxdefi/node/ids"
 	"github.com/luxdefi/node/vms/platformvm/warp"
 	"github.com/luxdefi/node/vms/platformvm/warp/payload"
-	"github.com/luxdefi/subnet-evm/peer"
-	"github.com/luxdefi/subnet-evm/warp/aggregator"
-	"github.com/luxdefi/subnet-evm/warp/validators"
+	"github.com/luxdefi/evm/peer"
+	"github.com/luxdefi/evm/warp/aggregator"
+	"github.com/luxdefi/evm/warp/validators"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 )

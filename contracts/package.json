@@ -1,5 +1,5 @@
 {
-  "name": "@avalabs/subnet-evm-contracts",
+  "name": "@avalabs/evm-contracts",
   "devDependencies": {
     "@types/chai": "^4.3.5",
     "@types/mocha": "^9.0.0",
@@ -14,7 +14,7 @@
   "module": "dist/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/luxdefi/subnet-evm.git",
+    "url": "https://github.com/luxdefi/evm.git",
     "directory": "contracts"
   },
   "license": "BSD-3-Clause",

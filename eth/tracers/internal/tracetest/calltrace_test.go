@@ -34,20 +34,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/eth/tracers"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/tests"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/eth/tracers"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/rlp"
 
 	// Force-load native, to trigger registration
-	_ "github.com/luxdefi/subnet-evm/eth/tracers/native"
+	_ "github.com/luxdefi/evm/eth/tracers/native"
 )
 
 type callContext struct {
@@ -364,7 +364,7 @@ func TestInternals(t *testing.T) {
 					Balance: big.NewInt(500000000000000),
 				},
 			}, false)
-		evm := vm.NewEVM(context, txContext, statedb, params.TestPreSubnetEVMConfig, vm.Config{Tracer: tc.tracer})
+		evm := vm.NewEVM(context, txContext, statedb, params.TestPreEVMConfig, vm.Config{Tracer: tc.tracer})
 		msg := &core.Message{
 			To:                &to,
 			From:              origin,

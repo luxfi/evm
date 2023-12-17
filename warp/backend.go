@@ -15,7 +15,7 @@ import (
 	"github.com/luxdefi/node/utils/crypto/bls"
 	luxWarp "github.com/luxdefi/node/vms/platformvm/warp"
 	"github.com/luxdefi/node/vms/platformvm/warp/payload"
-	"github.com/luxdefi/subnet-evm/ethdb"
+	"github.com/luxdefi/evm/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 )
 

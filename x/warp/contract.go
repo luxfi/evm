@@ -9,10 +9,10 @@ import (
 
 	"github.com/luxdefi/node/vms/platformvm/warp"
 	"github.com/luxdefi/node/vms/platformvm/warp/payload"
-	"github.com/luxdefi/subnet-evm/accounts/abi"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/precompile/contract"
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/accounts/abi"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/precompile/contract"
+	"github.com/luxdefi/evm/vmerrs"
 
 	_ "embed"
 

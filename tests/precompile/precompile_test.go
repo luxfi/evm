@@ -11,7 +11,7 @@ import (
 	"github.com/onsi/gomega"
 
 	// Import the solidity package, so that ginkgo maps out the tests declared within the package
-	"github.com/luxdefi/subnet-evm/tests/precompile/solidity"
+	"github.com/luxdefi/evm/tests/precompile/solidity"
 )
 
 func TestE2E(t *testing.T) {
@@ -20,5 +20,5 @@ func TestE2E(t *testing.T) {
 	}
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	solidity.RegisterAsyncTests()
-	ginkgo.RunSpecs(t, "subnet-evm precompile ginkgo test suite")
+	ginkgo.RunSpecs(t, "evm precompile ginkgo test suite")
 }

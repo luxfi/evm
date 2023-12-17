@@ -31,9 +31,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/luxdefi/subnet-evm/accounts"
-	"github.com/luxdefi/subnet-evm/accounts/external"
-	"github.com/luxdefi/subnet-evm/accounts/keystore"
+	"github.com/luxdefi/evm/accounts"
+	"github.com/luxdefi/evm/accounts/external"
+	"github.com/luxdefi/evm/accounts/keystore"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -60,7 +60,7 @@ type Config struct {
 	// InsecureUnlockAllowed allows user to unlock accounts in unsafe http environment.
 	InsecureUnlockAllowed bool `toml:",omitempty"`
 
-	SubnetEVMVersion string
+	EVMVersion string
 }
 
 // ExtRPCEnabled returns the indicator whether node enables the external
@@ -95,7 +95,7 @@ func (c *Config) GetKeyStoreDir() (string, bool, error) {
 	isEphemeral := false
 	if keydir == "" {
 		// There is no datadir.
-		keydir, err = os.MkdirTemp("", "subnet-evm-keystore")
+		keydir, err = os.MkdirTemp("", "evm-keystore")
 		isEphemeral = true
 	}
 

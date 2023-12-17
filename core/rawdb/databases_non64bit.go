@@ -31,7 +31,7 @@ package rawdb
 import (
 	"errors"
 
-	"github.com/luxdefi/subnet-evm/ethdb"
+	"github.com/luxdefi/evm/ethdb"
 )
 
 // Pebble is unsuported on 32bit architecture

@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/core/txpool"
-	"github.com/luxdefi/subnet-evm/eth"
+	"github.com/luxdefi/evm/core/txpool"
+	"github.com/luxdefi/evm/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/cast"
 )
@@ -85,7 +85,7 @@ type Config struct {
 	// Airdrop
 	AirdropFile string `json:"airdrop"`
 
-	// Subnet EVM APIs
+	// EVM APIs
 	SnowmanAPIEnabled bool   `json:"snowman-api-enabled"`
 	WarpAPIEnabled    bool   `json:"warp-api-enabled"`
 	AdminAPIEnabled   bool   `json:"admin-api-enabled"`

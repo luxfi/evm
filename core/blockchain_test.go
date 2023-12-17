@@ -10,15 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/consensus/dummy"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/state/pruner"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/eth/tracers/logger"
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/consensus/dummy"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/state/pruner"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/eth/tracers/logger"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fsnotify/fsnotify"
@@ -880,7 +880,7 @@ func TestTxLookupBlockChain(t *testing.T) {
 func TestCreateThenDeletePreByzantium(t *testing.T) {
 	// We want to use pre-byzantium rules where we have intermediate state roots
 	// between transactions.
-	config := *params.TestPreSubnetEVMConfig
+	config := *params.TestPreEVMConfig
 	config.ByzantiumBlock = nil
 	config.ConstantinopleBlock = nil
 	config.PetersburgBlock = nil

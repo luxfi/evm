@@ -29,7 +29,7 @@ package bloombits
 import (
 	"errors"
 
-	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/evm/core/types"
 )
 
 var (

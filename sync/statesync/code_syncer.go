@@ -11,10 +11,10 @@ import (
 
 	"github.com/luxdefi/node/ids"
 	"github.com/luxdefi/node/utils/set"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
-	statesyncclient "github.com/luxdefi/subnet-evm/sync/client"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/plugin/evm/message"
+	statesyncclient "github.com/luxdefi/evm/sync/client"
 
 	"github.com/ethereum/go-ethereum/common"
 )

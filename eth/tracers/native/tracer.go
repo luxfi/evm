@@ -48,7 +48,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/luxdefi/subnet-evm/eth/tracers"
+	"github.com/luxdefi/evm/eth/tracers"
 )
 
 // init registers itself this packages as a lookup for tracers.

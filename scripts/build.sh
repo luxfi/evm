@@ -23,7 +23,7 @@ version_lt() {
 }
 
 if version_lt "$(go_version)" "$go_version_minimum"; then
-    echo "SubnetEVM requires Go >= $go_version_minimum, Go $(go_version) found." >&2
+    echo "EVM requires Go >= $go_version_minimum, Go $(go_version) found." >&2
     exit 1
 fi
 
@@ -44,10 +44,10 @@ if [[ $# -eq 1 ]]; then
 elif [[ $# -eq 0 ]]; then
     BINARY_PATH="$GOPATH/src/github.com/luxdefi/node/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
 else
-    echo "Invalid arguments to build subnet-evm. Requires zero (default location) or one argument to specify binary location."
+    echo "Invalid arguments to build evm. Requires zero (default location) or one argument to specify binary location."
     exit 1
 fi
 
-# Build Subnet EVM, which is run as a subprocess
-echo "Building Subnet EVM @ GitCommit: $SUBNET_EVM_COMMIT at $BINARY_PATH"
-go build -ldflags "-X github.com/luxdefi/subnet-evm/plugin/evm.GitCommit=$SUBNET_EVM_COMMIT $STATIC_LD_FLAGS" -o "$BINARY_PATH" "plugin/"*.go
+# Build EVM, which is run as a subprocess
+echo "Building EVM @ GitCommit: $SUBNET_EVM_COMMIT at $BINARY_PATH"
+go build -ldflags "-X github.com/luxdefi/evm/plugin/evm.GitCommit=$SUBNET_EVM_COMMIT $STATIC_LD_FLAGS" -o "$BINARY_PATH" "plugin/"*.go

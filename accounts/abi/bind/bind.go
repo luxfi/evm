@@ -39,7 +39,7 @@ import (
 	"text/template"
 	"unicode"
 
-	"github.com/luxdefi/subnet-evm/accounts/abi"
+	"github.com/luxdefi/evm/accounts/abi"
 	"github.com/ethereum/go-ethereum/log"
 )
 

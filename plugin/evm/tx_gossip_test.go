@@ -24,7 +24,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/evm/core/types"
 )
 
 func TestTxGossip(t *testing.T) {

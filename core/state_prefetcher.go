@@ -29,11 +29,11 @@ package core
 import (
 	"sync/atomic"
 
-	"github.com/luxdefi/subnet-evm/consensus"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/consensus"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/params"
 )
 
 // statePrefetcher is a basic Prefetcher, which blindly executes a block on top

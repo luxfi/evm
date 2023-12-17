@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/luxdefi/subnet-evm/metrics"
+	"github.com/luxdefi/evm/metrics"
 
 	"github.com/prometheus/client_golang/prometheus"
 

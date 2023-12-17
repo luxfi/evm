@@ -27,7 +27,7 @@
 package vm
 
 import (
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -72,7 +72,7 @@ func NewEVMInterpreter(evm *EVM) *EVMInterpreter {
 	switch {
 	case evm.chainRules.IsDUpgrade:
 		table = &dUpgradeInstructionSet
-	case evm.chainRules.IsSubnetEVM:
+	case evm.chainRules.IsEVM:
 		table = &subnetEVMInstructionSet
 	case evm.chainRules.IsIstanbul:
 		table = &istanbulInstructionSet

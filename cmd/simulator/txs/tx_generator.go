@@ -8,8 +8,8 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/ethclient"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/ethclient"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 

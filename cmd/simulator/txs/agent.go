@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/cmd/simulator/metrics"
+	"github.com/luxdefi/evm/cmd/simulator/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )

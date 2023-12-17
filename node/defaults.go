@@ -27,7 +27,7 @@
 package node
 
 import (
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/rpc"
 )
 
 const (

@@ -33,10 +33,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/precompile/contract"
-	"github.com/luxdefi/subnet-evm/precompile/modules"
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/precompile/contract"
+	"github.com/luxdefi/evm/precompile/modules"
+	"github.com/luxdefi/evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -169,7 +169,7 @@ func init() {
 // ActivePrecompiles returns the precompiles enabled with the current configuration.
 func ActivePrecompiles(rules params.Rules) []common.Address {
 	switch {
-	case rules.IsSubnetEVM:
+	case rules.IsEVM:
 		return PrecompiledAddressesBerlin
 	case rules.IsIstanbul:
 		return PrecompiledAddressesIstanbul

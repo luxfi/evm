@@ -27,8 +27,8 @@
 package runtime
 
 import (
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/vm"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/vm"
 )
 
 func NewEnv(cfg *Config) *vm.EVM {

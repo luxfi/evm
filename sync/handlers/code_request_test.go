@@ -8,13 +8,13 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/params"
 
 	"github.com/luxdefi/node/ids"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/ethdb/memorydb"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
-	"github.com/luxdefi/subnet-evm/sync/handlers/stats"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/ethdb/memorydb"
+	"github.com/luxdefi/evm/plugin/evm/message"
+	"github.com/luxdefi/evm/sync/handlers/stats"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"

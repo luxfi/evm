@@ -29,8 +29,8 @@ package vm
 import (
 	"errors"
 
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 )

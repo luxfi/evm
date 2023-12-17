@@ -26,7 +26,7 @@
 
 package state
 
-import "github.com/luxdefi/subnet-evm/metrics"
+import "github.com/luxdefi/evm/metrics"
 
 var (
 	accountUpdatedMeter      = metrics.NewRegisteredMeter("state/update/account", nil)

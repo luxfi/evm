@@ -33,10 +33,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/accounts/abi/bind"
-	"github.com/luxdefi/subnet-evm/accounts/abi/bind/backends"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/evm/accounts/abi/bind"
+	"github.com/luxdefi/evm/accounts/abi/bind/backends"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )

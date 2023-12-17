@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/precompile/precompileconfig"
-	"github.com/luxdefi/subnet-evm/precompile/testutils"
-	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/precompile/precompileconfig"
+	"github.com/luxdefi/evm/precompile/testutils"
+	"github.com/luxdefi/evm/utils"
 	"go.uber.org/mock/gomock"
 )
 

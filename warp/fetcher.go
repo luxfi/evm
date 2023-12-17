@@ -11,7 +11,7 @@ import (
 	"github.com/luxdefi/node/utils/crypto/bls"
 	luxWarp "github.com/luxdefi/node/vms/platformvm/warp"
 	"github.com/luxdefi/node/vms/platformvm/warp/payload"
-	"github.com/luxdefi/subnet-evm/warp/aggregator"
+	"github.com/luxdefi/evm/warp/aggregator"
 )
 
 var _ aggregator.SignatureGetter = (*apiFetcher)(nil)

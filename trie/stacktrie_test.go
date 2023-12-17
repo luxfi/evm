@@ -31,7 +31,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/core/rawdb"
+	"github.com/luxdefi/evm/core/rawdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )

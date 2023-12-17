@@ -30,11 +30,11 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -74,7 +74,7 @@ func setDefaults(cfg *Config) {
 			IstanbulBlock:       new(big.Int),
 			MuirGlacierBlock:    new(big.Int),
 			MandatoryNetworkUpgrades: params.MandatoryNetworkUpgrades{
-				SubnetEVMTimestamp: new(uint64),
+				EVMTimestamp: new(uint64),
 			},
 		}
 	}

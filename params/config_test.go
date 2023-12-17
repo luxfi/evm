@@ -34,10 +34,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/precompile/contracts/nativeminter"
-	"github.com/luxdefi/subnet-evm/precompile/contracts/rewardmanager"
-	"github.com/luxdefi/subnet-evm/precompile/contracts/txallowlist"
-	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/luxdefi/evm/precompile/contracts/nativeminter"
+	"github.com/luxdefi/evm/precompile/contracts/rewardmanager"
+	"github.com/luxdefi/evm/precompile/contracts/txallowlist"
+	"github.com/luxdefi/evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
@@ -117,11 +117,11 @@ func TestCheckCompatible(t *testing.T) {
 		},
 		{
 			stored:        TestChainConfig,
-			new:           TestPreSubnetEVMConfig,
+			new:           TestPreEVMConfig,
 			headBlock:     0,
 			headTimestamp: 0,
 			wantErr: &ConfigCompatError{
-				What:         "SubnetEVM fork block timestamp",
+				What:         "EVM fork block timestamp",
 				StoredTime:   utils.NewUint64(0),
 				NewTime:      nil,
 				RewindToTime: 0,
@@ -129,11 +129,11 @@ func TestCheckCompatible(t *testing.T) {
 		},
 		{
 			stored:        TestChainConfig,
-			new:           TestPreSubnetEVMConfig,
+			new:           TestPreEVMConfig,
 			headBlock:     10,
 			headTimestamp: 100,
 			wantErr: &ConfigCompatError{
-				What:         "SubnetEVM fork block timestamp",
+				What:         "EVM fork block timestamp",
 				StoredTime:   utils.NewUint64(0),
 				NewTime:      nil,
 				RewindToTime: 0,
@@ -152,21 +152,21 @@ func TestCheckCompatible(t *testing.T) {
 func TestConfigRules(t *testing.T) {
 	c := &ChainConfig{
 		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(500),
+			EVMTimestamp: utils.NewUint64(500),
 		},
 	}
 
 	var stamp uint64
-	if r := c.LuxRules(big.NewInt(0), stamp); r.IsSubnetEVM {
-		t.Errorf("expected %v to not be subnet-evm", stamp)
+	if r := c.LuxRules(big.NewInt(0), stamp); r.IsEVM {
+		t.Errorf("expected %v to not be evm", stamp)
 	}
 	stamp = 500
-	if r := c.LuxRules(big.NewInt(0), stamp); !r.IsSubnetEVM {
-		t.Errorf("expected %v to be subnet-evm", stamp)
+	if r := c.LuxRules(big.NewInt(0), stamp); !r.IsEVM {
+		t.Errorf("expected %v to be evm", stamp)
 	}
 	stamp = math.MaxInt64
-	if r := c.LuxRules(big.NewInt(0), stamp); !r.IsSubnetEVM {
-		t.Errorf("expected %v to be subnet-evm", stamp)
+	if r := c.LuxRules(big.NewInt(0), stamp); !r.IsEVM {
+		t.Errorf("expected %v to be evm", stamp)
 	}
 }
 
@@ -273,7 +273,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 			IstanbulBlock:       big.NewInt(0),
 			MuirGlacierBlock:    big.NewInt(0),
 			MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
-				SubnetEVMTimestamp: utils.NewUint64(0),
+				EVMTimestamp: utils.NewUint64(0),
 				DUpgradeTimestamp:  utils.NewUint64(0),
 			},
 			GenesisPrecompiles: Precompiles{},

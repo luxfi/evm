@@ -6,7 +6,7 @@ package evm
 import (
 	"github.com/luxdefi/node/chains/atomic"
 	"github.com/luxdefi/node/ids"
-	"github.com/luxdefi/subnet-evm/precompile/precompileconfig"
+	"github.com/luxdefi/evm/precompile/precompileconfig"
 )
 
 var _ precompileconfig.SharedMemoryWriter = &sharedMemoryWriter{}

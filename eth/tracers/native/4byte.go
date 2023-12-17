@@ -32,8 +32,8 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/eth/tracers"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/eth/tracers"
 	"github.com/ethereum/go-ethereum/common"
 )
 

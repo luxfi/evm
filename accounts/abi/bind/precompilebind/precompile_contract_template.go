@@ -2,7 +2,7 @@
 // See the file LICENSE for licensing terms.
 package precompilebind
 
-import "github.com/luxdefi/subnet-evm/accounts/abi/bind"
+import "github.com/luxdefi/evm/accounts/abi/bind"
 
 // tmplPrecompileData is the data structure required to fill the binding template.
 type tmplPrecompileData struct {
@@ -32,12 +32,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/accounts/abi"
+	"github.com/luxdefi/evm/accounts/abi"
 	{{- if .Contract.AllowList}}
-	"github.com/luxdefi/subnet-evm/precompile/allowlist"
+	"github.com/luxdefi/evm/precompile/allowlist"
 	{{- end}}
-	"github.com/luxdefi/subnet-evm/precompile/contract"
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/precompile/contract"
+	"github.com/luxdefi/evm/vmerrs"
 
 	_ "embed"
 

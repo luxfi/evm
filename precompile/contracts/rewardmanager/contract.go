@@ -11,11 +11,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/luxdefi/subnet-evm/accounts/abi"
-	"github.com/luxdefi/subnet-evm/constants"
-	"github.com/luxdefi/subnet-evm/precompile/allowlist"
-	"github.com/luxdefi/subnet-evm/precompile/contract"
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/accounts/abi"
+	"github.com/luxdefi/evm/constants"
+	"github.com/luxdefi/evm/precompile/allowlist"
+	"github.com/luxdefi/evm/precompile/contract"
+	"github.com/luxdefi/evm/vmerrs"
 
 	"github.com/ethereum/go-ethereum/common"
 )

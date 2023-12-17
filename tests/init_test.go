@@ -39,7 +39,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/params"
 )
 
 func readJSON(reader io.Reader, value interface{}) error {

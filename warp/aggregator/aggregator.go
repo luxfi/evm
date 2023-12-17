@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/params"
 
 	"github.com/ethereum/go-ethereum/log"
 

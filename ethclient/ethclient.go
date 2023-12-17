@@ -35,10 +35,10 @@ import (
 	"math/big"
 
 	"github.com/luxdefi/node/ids"
-	"github.com/luxdefi/subnet-evm/accounts/abi/bind"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/interfaces"
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/accounts/abi/bind"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/interfaces"
+	"github.com/luxdefi/evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )

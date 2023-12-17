@@ -30,8 +30,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/trie"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 )

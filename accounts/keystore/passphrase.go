@@ -47,7 +47,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/luxdefi/subnet-evm/accounts"
+	"github.com/luxdefi/evm/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"

@@ -32,7 +32,7 @@ package core
 import (
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/evm/core/types"
 )
 
 // verifyNoGaps checks that there are no gaps after the initial set of blocks in

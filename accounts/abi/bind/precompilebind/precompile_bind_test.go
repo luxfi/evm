@@ -35,7 +35,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/accounts/abi/bind"
+	"github.com/luxdefi/evm/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
@@ -452,8 +452,8 @@ var bindTests = []struct {
 		`"github.com/stretchr/testify/require"
 		 "math/big"
 		 "github.com/ethereum/go-ethereum/common"
-		 "github.com/luxdefi/subnet-evm/core/state"
-		 "github.com/luxdefi/subnet-evm/precompile/allowlist"
+		 "github.com/luxdefi/evm/core/state"
+		 "github.com/luxdefi/evm/precompile/allowlist"
 		`,
 		`
 			testGreeting := "test"
@@ -587,7 +587,7 @@ func TestPrecompileBind(t *testing.T) {
 		t.Fatalf("failed to convert binding test to modules: %v\n%s", err, out)
 	}
 	pwd, _ := os.Getwd()
-	replacer := exec.Command(gocmd, "mod", "edit", "-x", "-require", "github.com/luxdefi/subnet-evm@v0.0.0", "-replace", "github.com/luxdefi/subnet-evm="+filepath.Join(pwd, "..", "..", "..", "..")) // Repo root
+	replacer := exec.Command(gocmd, "mod", "edit", "-x", "-require", "github.com/luxdefi/evm@v0.0.0", "-replace", "github.com/luxdefi/evm="+filepath.Join(pwd, "..", "..", "..", "..")) // Repo root
 	replacer.Dir = pkg
 	if out, err := replacer.CombinedOutput(); err != nil {
 		t.Fatalf("failed to replace binding test dependency to current source tree: %v\n%s", err, out)

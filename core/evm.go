@@ -29,10 +29,10 @@ package core
 import (
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/consensus"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/predicate"
+	"github.com/luxdefi/evm/consensus"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/predicate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	//"github.com/ethereum/go-ethereum/log"

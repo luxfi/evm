@@ -37,8 +37,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/metrics"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/syndtr/goleveldb/leveldb"

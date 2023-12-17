@@ -6,7 +6,7 @@ package stats
 import (
 	"time"
 
-	"github.com/luxdefi/subnet-evm/metrics"
+	"github.com/luxdefi/evm/metrics"
 )
 
 // RequestHandlerStats provides the interface for metrics for both app requests and cross chain requests.

@@ -29,18 +29,18 @@ package core
 import (
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/commontype"
-	"github.com/luxdefi/subnet-evm/consensus"
-	"github.com/luxdefi/subnet-evm/constants"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/state/snapshot"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/precompile/contracts/feemanager"
-	"github.com/luxdefi/subnet-evm/precompile/contracts/rewardmanager"
-	"github.com/luxdefi/subnet-evm/trie"
+	"github.com/luxdefi/evm/commontype"
+	"github.com/luxdefi/evm/consensus"
+	"github.com/luxdefi/evm/constants"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/state/snapshot"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/precompile/contracts/feemanager"
+	"github.com/luxdefi/evm/precompile/contracts/rewardmanager"
+	"github.com/luxdefi/evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 )
@@ -384,7 +384,7 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 // If fee recipients are allowed, returns true in the second return value.
 func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
 	config := bc.Config()
-	if !config.IsSubnetEVM(parent.Time) {
+	if !config.IsEVM(parent.Time) {
 		return constants.BlackholeAddr, false, nil
 	}
 

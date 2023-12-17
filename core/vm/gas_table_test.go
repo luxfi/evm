@@ -33,11 +33,11 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
@@ -161,9 +161,9 @@ func TestCreateGas(t *testing.T) {
 				config.ExtraEips = []int{3860}
 			}
 
-			// Note: we use TestSubnetEVMConfig instead of AllEthashProtocolChanges (upstream)
+			// Note: we use TestEVMConfig instead of AllEthashProtocolChanges (upstream)
 			// because it is the last fork before the activation of EIP-3860
-			vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestSubnetEVMConfig, config)
+			vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestEVMConfig, config)
 			var startGas = uint64(testGas)
 			ret, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, startGas, new(big.Int))
 			if err != nil {

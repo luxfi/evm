@@ -10,8 +10,8 @@ import (
 	"github.com/luxdefi/node/codec"
 	"github.com/luxdefi/node/ids"
 	"github.com/luxdefi/node/utils/crypto/bls"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
-	"github.com/luxdefi/subnet-evm/warp"
+	"github.com/luxdefi/evm/plugin/evm/message"
+	"github.com/luxdefi/evm/warp"
 	"github.com/ethereum/go-ethereum/log"
 )
 

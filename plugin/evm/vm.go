@@ -22,39 +22,39 @@ import (
 	nodeConstants "github.com/luxdefi/node/utils/constants"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/luxdefi/subnet-evm/commontype"
-	"github.com/luxdefi/subnet-evm/constants"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/txpool"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/eth"
-	"github.com/luxdefi/subnet-evm/eth/ethconfig"
-	"github.com/luxdefi/subnet-evm/metrics"
-	subnetEVMPrometheus "github.com/luxdefi/subnet-evm/metrics/prometheus"
-	"github.com/luxdefi/subnet-evm/miner"
-	"github.com/luxdefi/subnet-evm/node"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/peer"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
-	"github.com/luxdefi/subnet-evm/rpc"
-	statesyncclient "github.com/luxdefi/subnet-evm/sync/client"
-	"github.com/luxdefi/subnet-evm/sync/client/stats"
-	"github.com/luxdefi/subnet-evm/trie"
-	"github.com/luxdefi/subnet-evm/warp"
-	warpValidators "github.com/luxdefi/subnet-evm/warp/validators"
+	"github.com/luxdefi/evm/commontype"
+	"github.com/luxdefi/evm/constants"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/txpool"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/eth"
+	"github.com/luxdefi/evm/eth/ethconfig"
+	"github.com/luxdefi/evm/metrics"
+	subnetEVMPrometheus "github.com/luxdefi/evm/metrics/prometheus"
+	"github.com/luxdefi/evm/miner"
+	"github.com/luxdefi/evm/node"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/peer"
+	"github.com/luxdefi/evm/plugin/evm/message"
+	"github.com/luxdefi/evm/rpc"
+	statesyncclient "github.com/luxdefi/evm/sync/client"
+	"github.com/luxdefi/evm/sync/client/stats"
+	"github.com/luxdefi/evm/trie"
+	"github.com/luxdefi/evm/warp"
+	warpValidators "github.com/luxdefi/evm/warp/validators"
 
 	// Force-load tracer engine to trigger registration
 	//
 	// We must import this package (not referenced elsewhere) so that the native "callTracer"
 	// is added to a map of client-accessible tracers. In geth, this is done
 	// inside of cmd/geth.
-	_ "github.com/luxdefi/subnet-evm/eth/tracers/js"
-	_ "github.com/luxdefi/subnet-evm/eth/tracers/native"
+	_ "github.com/luxdefi/evm/eth/tracers/js"
+	_ "github.com/luxdefi/evm/eth/tracers/native"
 
-	"github.com/luxdefi/subnet-evm/precompile/precompileconfig"
+	"github.com/luxdefi/evm/precompile/precompileconfig"
 	// Force-load precompiles to trigger registration
-	_ "github.com/luxdefi/subnet-evm/precompile/registry"
+	_ "github.com/luxdefi/evm/precompile/registry"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -149,8 +149,8 @@ var (
 	errInvalidBlock                  = errors.New("invalid block")
 	errInvalidNonce                  = errors.New("invalid nonce")
 	errUnclesUnsupported             = errors.New("uncles unsupported")
-	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
-	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
+	errNilBaseFeeEVM           = errors.New("nil base fee is invalid after subnetEVM")
+	errNilBlockGasCostEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
 	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
 )
 
@@ -240,7 +240,7 @@ type VM struct {
 
 	bootstrapped bool
 
-	logger SubnetEVMLogger
+	logger EVMLogger
 	// State sync server and client
 	StateSyncServer
 	StateSyncClient
@@ -286,7 +286,7 @@ func (vm *VM) Initialize(
 	}
 	vm.logger = subnetEVMLogger
 
-	log.Info("Initializing Subnet EVM VM", "Version", Version, "Config", vm.config)
+	log.Info("Initializing EVM VM", "Version", Version, "Config", vm.config)
 
 	if len(fxs) > 0 {
 		return errUnsupportedFXs
@@ -323,7 +323,7 @@ func (vm *VM) Initialize(
 	}
 
 	if g.Config == nil {
-		g.Config = params.SubnetEVMDefaultChainConfig
+		g.Config = params.EVMDefaultChainConfig
 	}
 
 	mandatoryNetworkUpgrades, enforce := getMandatoryNetworkUpgrades(chainCtx.NetworkID)
@@ -507,7 +507,7 @@ func (vm *VM) initializeMetrics() error {
 
 func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
 	nodecfg := &node.Config{
-		SubnetEVMVersion:      Version,
+		EVMVersion:      Version,
 		KeyStoreDir:           vm.config.KeystoreDirectory,
 		ExternalSigner:        vm.config.KeystoreExternalSigner,
 		InsecureUnlockAllowed: vm.config.KeystoreInsecureUnlockAllowed,
@@ -756,7 +756,7 @@ func (vm *VM) Shutdown(context.Context) error {
 	vm.eth.Stop()
 	log.Info("Ethereum backend stop completed")
 	vm.shutdownWg.Wait()
-	log.Info("Subnet-EVM Shutdown completed")
+	log.Info("EVM Shutdown completed")
 	return nil
 }
 
@@ -914,7 +914,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 			return nil, fmt.Errorf("failed to register service for admin API due to %w", err)
 		}
 		apis[adminEndpoint] = adminAPI
-		enabledAPIs = append(enabledAPIs, "subnet-evm-admin")
+		enabledAPIs = append(enabledAPIs, "evm-admin")
 	}
 
 	if vm.config.SnowmanAPIEnabled {

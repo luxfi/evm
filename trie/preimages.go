@@ -29,8 +29,8 @@ package trie
 import (
 	"sync"
 
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/ethdb"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/ethdb"
 	"github.com/ethereum/go-ethereum/common"
 )
 

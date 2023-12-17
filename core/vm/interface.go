@@ -29,8 +29,8 @@ package vm
 import (
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/params"
 	"github.com/ethereum/go-ethereum/common"
 )
 

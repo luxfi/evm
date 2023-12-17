@@ -29,9 +29,9 @@ package core
 import (
 	"sync/atomic"
 
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
 )
 
 // Validator is an interface which defines the standard for block validation. It

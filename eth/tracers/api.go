@@ -38,16 +38,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/consensus"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/eth/tracers/logger"
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/internal/ethapi"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/consensus"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/eth/tracers/logger"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/internal/ethapi"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
@@ -1048,8 +1048,8 @@ func overrideConfig(original *params.ChainConfig, override *params.ChainConfig) 
 	*copy = *original
 	canon := true
 
-	if timestamp := override.SubnetEVMTimestamp; timestamp != nil {
-		copy.SubnetEVMTimestamp = timestamp
+	if timestamp := override.EVMTimestamp; timestamp != nil {
+		copy.EVMTimestamp = timestamp
 		canon = false
 	}
 	if timestamp := override.DUpgradeTimestamp; timestamp != nil {

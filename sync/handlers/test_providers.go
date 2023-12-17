@@ -4,8 +4,8 @@
 package handlers
 
 import (
-	"github.com/luxdefi/subnet-evm/core/state/snapshot"
-	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/evm/core/state/snapshot"
+	"github.com/luxdefi/evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 

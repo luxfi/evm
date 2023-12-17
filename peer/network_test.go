@@ -19,7 +19,7 @@ import (
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
+	"github.com/luxdefi/evm/plugin/evm/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

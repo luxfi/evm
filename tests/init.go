@@ -31,8 +31,8 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/utils"
 )
 
 // Forks table defines supported forks and their chain config.
@@ -154,7 +154,7 @@ var Forks = map[string]*params.ChainConfig{
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(5),
 	},
-	"Pre-SubnetEVM": {
+	"Pre-EVM": {
 		ChainID:             big.NewInt(1),
 		HomesteadBlock:      big.NewInt(0),
 		EIP150Block:         big.NewInt(0),
@@ -166,7 +166,7 @@ var Forks = map[string]*params.ChainConfig{
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 	},
-	"SubnetEVM": {
+	"EVM": {
 		ChainID:             big.NewInt(1),
 		HomesteadBlock:      big.NewInt(0),
 		EIP150Block:         big.NewInt(0),
@@ -177,7 +177,7 @@ var Forks = map[string]*params.ChainConfig{
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MandatoryNetworkUpgrades: params.MandatoryNetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
+			EVMTimestamp: utils.NewUint64(0),
 		},
 	},
 	"DUpgrade": {
@@ -191,7 +191,7 @@ var Forks = map[string]*params.ChainConfig{
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MandatoryNetworkUpgrades: params.MandatoryNetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
+			EVMTimestamp: utils.NewUint64(0),
 			DUpgradeTimestamp:  utils.NewUint64(0),
 		},
 	},

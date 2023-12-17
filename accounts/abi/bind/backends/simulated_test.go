@@ -37,12 +37,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/accounts/abi"
-	"github.com/luxdefi/subnet-evm/accounts/abi/bind"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/interfaces"
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/accounts/abi"
+	"github.com/luxdefi/evm/accounts/abi/bind"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/interfaces"
+	"github.com/luxdefi/evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -1225,7 +1225,7 @@ Example contract to test event emission:
 		function Call() public { emit Called(); }
 	}
 */
-// The fork tests are commented out because transactions are not indexed in subnet-evm until they are marked
+// The fork tests are commented out because transactions are not indexed in evm until they are marked
 // as accepted, which breaks the logic of these tests.
 // const callableAbi = "[{\"anonymous\":false,\"inputs\":[],\"name\":\"Called\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"Call\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 

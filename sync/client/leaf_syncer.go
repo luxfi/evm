@@ -9,8 +9,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
-	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/luxdefi/evm/plugin/evm/message"
+	"github.com/luxdefi/evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/sync/errgroup"

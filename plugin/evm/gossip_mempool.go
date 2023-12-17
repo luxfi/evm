@@ -13,9 +13,9 @@ import (
 
 	"github.com/luxdefi/node/network/p2p/gossip"
 
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/txpool"
-	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/txpool"
+	"github.com/luxdefi/evm/core/types"
 )
 
 var (

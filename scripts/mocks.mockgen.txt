@@ -1,2 +1,2 @@
-github.com/luxdefi/subnet-evm/precompile/precompileconfig=Predicater,Config,ChainConfig,Accepter=precompile/precompileconfig/mocks.go
-github.com/luxdefi/subnet-evm/precompile/contract=BlockContext,AccessibleState=precompile/contract/mocks.go
+github.com/luxdefi/evm/precompile/precompileconfig=Predicater,Config,ChainConfig,Accepter=precompile/precompileconfig/mocks.go
+github.com/luxdefi/evm/precompile/contract=BlockContext,AccessibleState=precompile/contract/mocks.go

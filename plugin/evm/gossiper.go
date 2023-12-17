@@ -10,7 +10,7 @@ import (
 
 	"github.com/luxdefi/node/codec"
 
-	"github.com/luxdefi/subnet-evm/peer"
+	"github.com/luxdefi/evm/peer"
 
 	"github.com/luxdefi/node/cache"
 	"github.com/luxdefi/node/ids"
@@ -20,11 +20,11 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/txpool"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/txpool"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/plugin/evm/message"
 )
 
 const (
@@ -74,7 +74,7 @@ type pushGossiper struct {
 }
 
 // createGossiper constructs and returns a pushGossiper or noopGossiper
-// based on whether vm.chainConfig.SubnetEVMTimestamp is set
+// based on whether vm.chainConfig.EVMTimestamp is set
 func (vm *VM) createGossiper(stats GossipStats) Gossiper {
 	net := &pushGossiper{
 		ctx:             vm.ctx,

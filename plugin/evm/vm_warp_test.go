@@ -22,16 +22,16 @@ import (
 	"github.com/luxdefi/node/vms/components/chain"
 	luxWarp "github.com/luxdefi/node/vms/platformvm/warp"
 	"github.com/luxdefi/node/vms/platformvm/warp/payload"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/eth/tracers"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
-	"github.com/luxdefi/subnet-evm/precompile/contract"
-	"github.com/luxdefi/subnet-evm/predicate"
-	subnetEVMUtils "github.com/luxdefi/subnet-evm/utils"
-	"github.com/luxdefi/subnet-evm/x/warp"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/eth/tracers"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/plugin/evm/message"
+	"github.com/luxdefi/evm/precompile/contract"
+	"github.com/luxdefi/evm/predicate"
+	subnetEVMUtils "github.com/luxdefi/evm/utils"
+	"github.com/luxdefi/evm/x/warp"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
@@ -586,7 +586,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 }
 
 func TestMessageSignatureRequestsToVM(t *testing.T) {
-	_, vm, _, appSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	_, vm, _, appSender := GenesisVM(t, true, genesisJSONEVM, "", "")
 
 	defer func() {
 		err := vm.Shutdown(context.Background())
@@ -646,7 +646,7 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 }
 
 func TestBlockSignatureRequestsToVM(t *testing.T) {
-	_, vm, _, appSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	_, vm, _, appSender := GenesisVM(t, true, genesisJSONEVM, "", "")
 
 	defer func() {
 		err := vm.Shutdown(context.Background())

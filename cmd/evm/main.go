@@ -32,8 +32,8 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/luxdefi/subnet-evm/cmd/evm/internal/t8ntool"
-	"github.com/luxdefi/subnet-evm/internal/flags"
+	"github.com/luxdefi/evm/cmd/evm/internal/t8ntool"
+	"github.com/luxdefi/evm/internal/flags"
 	"github.com/urfave/cli/v2"
 )
 

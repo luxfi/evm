@@ -13,9 +13,9 @@ import (
 
 	"github.com/luxdefi/node/ids"
 
-	"github.com/luxdefi/subnet-evm/ethdb/memorydb"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/sync/client/stats"
+	"github.com/luxdefi/evm/ethdb/memorydb"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/sync/client/stats"
 
 	"github.com/luxdefi/node/codec"
 	"github.com/luxdefi/node/version"
@@ -24,11 +24,11 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/peer"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
-	"github.com/luxdefi/subnet-evm/trie"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/peer"
+	"github.com/luxdefi/evm/plugin/evm/message"
+	"github.com/luxdefi/evm/trie"
 )
 
 const (

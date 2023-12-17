@@ -36,7 +36,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/accounts"
+	"github.com/luxdefi/evm/accounts"
 	"github.com/cespare/cp"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"

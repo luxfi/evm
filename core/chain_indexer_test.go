@@ -35,8 +35,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 

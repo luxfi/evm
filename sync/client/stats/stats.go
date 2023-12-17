@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/metrics"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
+	"github.com/luxdefi/evm/metrics"
+	"github.com/luxdefi/evm/plugin/evm/message"
 )
 
 var (

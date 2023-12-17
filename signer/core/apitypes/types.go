@@ -32,7 +32,7 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )

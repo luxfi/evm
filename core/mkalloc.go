@@ -43,7 +43,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/luxdefi/subnet-evm/core"
+	"github.com/luxdefi/evm/core"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 

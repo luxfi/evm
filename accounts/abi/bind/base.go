@@ -34,9 +34,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/luxdefi/subnet-evm/accounts/abi"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/interfaces"
+	"github.com/luxdefi/evm/accounts/abi"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/interfaces"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"

@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/tests/utils"
+	"github.com/luxdefi/evm/tests/utils"
 	ginkgo "github.com/onsi/ginkgo/v2"
 )
 

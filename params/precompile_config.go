@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/precompile"
-	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/luxdefi/evm/precompile"
+	"github.com/luxdefi/evm/utils"
 	"github.com/ethereum/go-ethereum/log"
 )
 

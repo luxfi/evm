@@ -34,9 +34,9 @@ import (
 
 	"github.com/dop251/goja"
 
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/eth/tracers"
-	jsassets "github.com/luxdefi/subnet-evm/eth/tracers/js/internal/tracers"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/eth/tracers"
+	jsassets "github.com/luxdefi/evm/eth/tracers/js/internal/tracers"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"

@@ -30,9 +30,9 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/rpc"
 	lru "github.com/hashicorp/golang-lru"
 )
 

@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/luxdefi/subnet-evm/precompile/modules"
-	"github.com/luxdefi/subnet-evm/precompile/precompileconfig"
-	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/luxdefi/evm/precompile/modules"
+	"github.com/luxdefi/evm/precompile/precompileconfig"
+	"github.com/luxdefi/evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 

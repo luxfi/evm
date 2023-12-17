@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/luxdefi/node/utils/formatting"
-	"github.com/luxdefi/subnet-evm/core"
+	"github.com/luxdefi/evm/core"
 	"github.com/ethereum/go-ethereum/common"
 )
 

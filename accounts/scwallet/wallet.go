@@ -43,9 +43,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/accounts"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/interfaces"
+	"github.com/luxdefi/evm/accounts"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/interfaces"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"

@@ -13,9 +13,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/luxdefi/subnet-evm/accounts/abi"
-	"github.com/luxdefi/subnet-evm/constants"
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/accounts/abi"
+	"github.com/luxdefi/evm/constants"
+	"github.com/luxdefi/evm/vmerrs"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -219,7 +219,8 @@ func EnableAllowFeeRecipients(stateDB StateDB) {
 
 // DisableRewardAddress disables rewards and burns them by sending to Blackhole Address.
 func DisableFeeRewards(stateDB StateDB) {
-	stateDB.SetState(RewardManagerAddress, rewardAddressStorageKey, constants.BlackholeAddr.Hash())
+	blackholdAddrHash := common.BytesToHash(constants.BlackholeAddr.Bytes())
+	stateDB.SetState(RewardManagerAddress, rewardAddressStorageKey, blackholdAddrHash)
 }
 
 func allowFeeRecipients(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -306,7 +307,8 @@ func StoreRewardAddress(stateDB StateDB, val common.Address) error {
 	if val == (common.Address{}) {
 		return ErrEmptyRewardAddress
 	}
-	stateDB.SetState(RewardManagerAddress, rewardAddressStorageKey, val.Hash())
+	valHash := common.BytesToHash(val.Bytes())
+	stateDB.SetState(RewardManagerAddress, rewardAddressStorageKey, valHash)
 	return nil
 }
 

@@ -17,8 +17,8 @@ import (
 	"github.com/luxdefi/node/snow/engine/snowman/block"
 	"github.com/luxdefi/node/utils/crypto/bls"
 	luxWarp "github.com/luxdefi/node/vms/platformvm/warp"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
-	"github.com/luxdefi/subnet-evm/warp"
+	"github.com/luxdefi/evm/plugin/evm/message"
+	"github.com/luxdefi/evm/warp"
 	"github.com/stretchr/testify/require"
 )
 

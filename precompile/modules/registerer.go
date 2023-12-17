@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/luxdefi/subnet-evm/constants"
-	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/luxdefi/evm/constants"
+	"github.com/luxdefi/evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 

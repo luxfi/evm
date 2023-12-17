@@ -38,12 +38,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/commontype"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/trie"
+	"github.com/luxdefi/evm/commontype"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
@@ -64,7 +64,7 @@ func init() {
 
 	cpy := *params.TestChainConfig
 	eip1559Config = &cpy
-	eip1559Config.SubnetEVMTimestamp = common.Big0
+	eip1559Config.EVMTimestamp = common.Big0
 }
 
 type testBlockChain struct {

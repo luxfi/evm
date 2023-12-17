@@ -12,8 +12,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/cmd/simulator/key"
-	"github.com/luxdefi/subnet-evm/cmd/simulator/metrics"
+	"github.com/luxdefi/evm/cmd/simulator/key"
+	"github.com/luxdefi/evm/cmd/simulator/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"

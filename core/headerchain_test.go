@@ -32,12 +32,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/consensus"
-	"github.com/luxdefi/subnet-evm/consensus/dummy"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/consensus"
+	"github.com/luxdefi/evm/consensus/dummy"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/params"
 	"github.com/ethereum/go-ethereum/common"
 )
 

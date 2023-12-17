@@ -31,8 +31,8 @@ package pebble
 import (
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/ethdb/dbtest"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/ethdb/dbtest"
 	"github.com/cockroachdb/pebble"
 	"github.com/cockroachdb/pebble/vfs"
 )

@@ -32,16 +32,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/commontype"
-	"github.com/luxdefi/subnet-evm/consensus/dummy"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/precompile/contracts/feemanager"
-	"github.com/luxdefi/subnet-evm/rpc"
-	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/luxdefi/evm/commontype"
+	"github.com/luxdefi/evm/consensus/dummy"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/precompile/contracts/feemanager"
+	"github.com/luxdefi/evm/rpc"
+	"github.com/luxdefi/evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
@@ -328,10 +328,10 @@ func TestSuggestTipCapMinGas(t *testing.T) {
 	}, defaultOracleConfig())
 }
 
-// Regression test to ensure that SuggestPrice does not panic with activation of Subnet EVM
+// Regression test to ensure that SuggestPrice does not panic with activation of EVM
 // Note: support for gas estimation without activated hard forks has been deprecated, but we still
 // ensure that the call does not panic.
-func TestSuggestGasPriceSubnetEVM(t *testing.T) {
+func TestSuggestGasPriceEVM(t *testing.T) {
 	config := Config{
 		Blocks:     20,
 		Percentile: 60,

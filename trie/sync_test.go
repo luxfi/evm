@@ -29,10 +29,10 @@ package trie
 import (
 	"fmt"
 
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/trie/trienode"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
 )
 

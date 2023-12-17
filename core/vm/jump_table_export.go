@@ -17,7 +17,7 @@
 package vm
 
 import (
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/params"
 )
 
 // LookupInstructionSet returns the instructionset for the fork configured by
@@ -26,8 +26,8 @@ func LookupInstructionSet(rules params.Rules) (JumpTable, error) {
 	switch {
 	case rules.IsDUpgrade:
 		return newDUpgradeInstructionSet(), nil
-	case rules.IsSubnetEVM:
-		return newSubnetEVMInstructionSet(), nil
+	case rules.IsEVM:
+		return newEVMInstructionSet(), nil
 	case rules.IsIstanbul:
 		return newIstanbulInstructionSet(), nil
 	case rules.IsConstantinople:

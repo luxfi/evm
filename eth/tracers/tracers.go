@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/core/vm"
+	"github.com/luxdefi/evm/core/vm"
 	"github.com/ethereum/go-ethereum/common"
 )
 

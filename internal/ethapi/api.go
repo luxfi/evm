@@ -35,20 +35,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/accounts"
-	"github.com/luxdefi/subnet-evm/accounts/abi"
-	"github.com/luxdefi/subnet-evm/accounts/keystore"
-	"github.com/luxdefi/subnet-evm/accounts/scwallet"
-	"github.com/luxdefi/subnet-evm/commontype"
-	"github.com/luxdefi/subnet-evm/consensus"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/eth/tracers/logger"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/rpc"
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/accounts"
+	"github.com/luxdefi/evm/accounts/abi"
+	"github.com/luxdefi/evm/accounts/keystore"
+	"github.com/luxdefi/evm/accounts/scwallet"
+	"github.com/luxdefi/evm/commontype"
+	"github.com/luxdefi/evm/consensus"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/eth/tracers/logger"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/rpc"
+	"github.com/luxdefi/evm/vmerrs"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -135,7 +135,7 @@ func (s *EthereumAPI) FeeHistory(ctx context.Context, blockCount math.HexOrDecim
 // Syncing allows the caller to determine whether the chain is syncing or not.
 // In geth, the response is either a map representing an ethereum.SyncProgress
 // struct or "false" (indicating the chain is not syncing).
-// In subnet-evm, node prevents API calls unless bootstrapping is complete,
+// In evm, node prevents API calls unless bootstrapping is complete,
 // so we always return false here for API compatibility.
 func (s *EthereumAPI) Syncing() (interface{}, error) {
 	return false, nil
@@ -773,7 +773,7 @@ func (s *BlockChainAPI) GetHeaderByNumber(ctx context.Context, number rpc.BlockN
 	header, err := s.b.HeaderByNumber(ctx, number)
 	if header != nil && err == nil {
 		response := s.rpcMarshalHeader(ctx, header)
-		// subnet-evm has no notion of a pending block
+		// evm has no notion of a pending block
 		// if number == rpc.PendingBlockNumber {
 		// 	// Pending header need to nil out a few fields
 		// 	for _, field := range []string{"hash", "nonce", "miner"} {
@@ -803,7 +803,7 @@ func (s *BlockChainAPI) GetBlockByNumber(ctx context.Context, number rpc.BlockNu
 	block, err := s.b.BlockByNumber(ctx, number)
 	if block != nil && err == nil {
 		response, err := s.rpcMarshalBlock(ctx, block, true, fullTx)
-		// subnet-evm has no notion of a pending block
+		// evm has no notion of a pending block
 		// if err == nil && number == rpc.PendingBlockNumber {
 		// 	// Pending blocks need to nil out a few fields
 		// 	for _, field := range []string{"hash", "nonce", "miner"} {
@@ -1377,7 +1377,7 @@ func RPCMarshalBlock(block *types.Block, inclTx bool, fullTx bool, config *param
 // a `BlockchainAPI`.
 func (s *BlockChainAPI) rpcMarshalHeader(ctx context.Context, header *types.Header) map[string]interface{} {
 	fields := RPCMarshalHeader(header)
-	// Note: Subnet-EVM enforces that the difficulty of a block is always 1, such that the total difficulty of a block
+	// Note: EVM enforces that the difficulty of a block is always 1, such that the total difficulty of a block
 	// will be equivalent to its height.
 	fields["totalDifficulty"] = (*hexutil.Big)(header.Number)
 	return fields
@@ -1391,7 +1391,7 @@ func (s *BlockChainAPI) rpcMarshalBlock(ctx context.Context, b *types.Block, inc
 		return nil, err
 	}
 	if inclTx {
-		// Note: Subnet-EVM enforces that the difficulty of a block is always 1, such that the total difficulty of a block
+		// Note: EVM enforces that the difficulty of a block is always 1, such that the total difficulty of a block
 		// will be equivalent to its height.
 		fields["totalDifficulty"] = (*hexutil.Big)(b.Number())
 	}
@@ -1476,7 +1476,7 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 
 // NewRPCTransaction returns a pending transaction that will serialize to the RPC representation
 // Note: in go-ethereum this function is called NewRPCPendingTransaction.
-// In subnet-evm, we have renamed it to NewRPCTransaction as it is used for accepted transactions as well.
+// In evm, we have renamed it to NewRPCTransaction as it is used for accepted transactions as well.
 func NewRPCTransaction(tx *types.Transaction, current *types.Header, baseFee *big.Int, config *params.ChainConfig) *RPCTransaction {
 	var (
 		blockNumber = uint64(0)

@@ -29,7 +29,7 @@ package vm
 import (
 	"fmt"
 
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/params"
 )
 
 type (
@@ -62,7 +62,7 @@ var (
 	byzantiumInstructionSet        = newByzantiumInstructionSet()
 	constantinopleInstructionSet   = newConstantinopleInstructionSet()
 	istanbulInstructionSet         = newIstanbulInstructionSet()
-	subnetEVMInstructionSet        = newSubnetEVMInstructionSet()
+	subnetEVMInstructionSet        = newEVMInstructionSet()
 	dUpgradeInstructionSet         = newDUpgradeInstructionSet()
 )
 
@@ -88,17 +88,17 @@ func validate(jt JumpTable) JumpTable {
 }
 
 // newDUpgradeInstructionSet returns the frontier, homestead, byzantium,
-// constantinople, istanbul, petersburg, subnet-evm, d-upgrade instructions.
+// constantinople, istanbul, petersburg, evm, d-upgrade instructions.
 func newDUpgradeInstructionSet() JumpTable {
-	instructionSet := newSubnetEVMInstructionSet()
+	instructionSet := newEVMInstructionSet()
 	enable3855(&instructionSet) // PUSH0 instruction
 	enable3860(&instructionSet) // Limit and meter initcode
 	return validate(instructionSet)
 }
 
-// newSubnetEVMInstructionSet returns the frontier, homestead, byzantium,
-// constantinople, istanbul, petersburg, subnet-evm instructions.
-func newSubnetEVMInstructionSet() JumpTable {
+// newEVMInstructionSet returns the frontier, homestead, byzantium,
+// constantinople, istanbul, petersburg, evm instructions.
+func newEVMInstructionSet() JumpTable {
 	instructionSet := newIstanbulInstructionSet()
 	enable2929(&instructionSet)
 	enable3198(&instructionSet) // Base fee opcode https://eips.ethereum.org/EIPS/eip-3198

@@ -33,7 +33,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/luxdefi/subnet-evm/core/types"
+	"github.com/luxdefi/evm/core/types"
 )
 
 type blockAndState struct {

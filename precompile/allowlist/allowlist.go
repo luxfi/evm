@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/luxdefi/subnet-evm/precompile/contract"
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/precompile/contract"
+	"github.com/luxdefi/evm/vmerrs"
 )
 
 // AllowList is an abstraction that allows other precompiles to manage

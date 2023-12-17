@@ -34,27 +34,27 @@ import (
 	"time"
 
 	"github.com/luxdefi/node/utils/timer/mockable"
-	"github.com/luxdefi/subnet-evm/accounts"
-	"github.com/luxdefi/subnet-evm/consensus"
-	"github.com/luxdefi/subnet-evm/consensus/dummy"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/bloombits"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state/pruner"
-	"github.com/luxdefi/subnet-evm/core/txpool"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/eth/ethconfig"
-	"github.com/luxdefi/subnet-evm/eth/filters"
-	"github.com/luxdefi/subnet-evm/eth/gasprice"
-	"github.com/luxdefi/subnet-evm/eth/tracers"
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/internal/ethapi"
-	"github.com/luxdefi/subnet-evm/internal/shutdowncheck"
-	"github.com/luxdefi/subnet-evm/miner"
-	"github.com/luxdefi/subnet-evm/node"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/accounts"
+	"github.com/luxdefi/evm/consensus"
+	"github.com/luxdefi/evm/consensus/dummy"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/bloombits"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state/pruner"
+	"github.com/luxdefi/evm/core/txpool"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/eth/ethconfig"
+	"github.com/luxdefi/evm/eth/filters"
+	"github.com/luxdefi/evm/eth/gasprice"
+	"github.com/luxdefi/evm/eth/tracers"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/internal/ethapi"
+	"github.com/luxdefi/evm/internal/shutdowncheck"
+	"github.com/luxdefi/evm/miner"
+	"github.com/luxdefi/evm/node"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -172,7 +172,7 @@ func New(
 
 	if !config.SkipBcVersionCheck {
 		if bcVersion != nil && *bcVersion > core.BlockChainVersion {
-			return nil, fmt.Errorf("database version is v%d, Subnet-EVM %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
+			return nil, fmt.Errorf("database version is v%d, EVM %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
 		} else if bcVersion == nil || *bcVersion < core.BlockChainVersion {
 			log.Warn("Upgrade blockchain database version", "from", dbVer, "to", core.BlockChainVersion)
 			rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)

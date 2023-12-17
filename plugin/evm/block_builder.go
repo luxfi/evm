@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/luxdefi/node/utils/timer"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/txpool"
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/txpool"
+	"github.com/luxdefi/evm/params"
 
 	"github.com/luxdefi/node/snow"
 	commonEng "github.com/luxdefi/node/snow/engine/common"

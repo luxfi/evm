@@ -6,8 +6,8 @@ package params
 import (
 	"encoding/json"
 
-	"github.com/luxdefi/subnet-evm/precompile/modules"
-	"github.com/luxdefi/subnet-evm/precompile/precompileconfig"
+	"github.com/luxdefi/evm/precompile/modules"
+	"github.com/luxdefi/evm/precompile/precompileconfig"
 )
 
 type Precompiles map[string]precompileconfig.Config

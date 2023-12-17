@@ -38,17 +38,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/cmd/evm/internal/compiler"
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/rawdb"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/core/vm"
-	"github.com/luxdefi/subnet-evm/core/vm/runtime"
-	"github.com/luxdefi/subnet-evm/eth/tracers/logger"
-	"github.com/luxdefi/subnet-evm/internal/flags"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/trie"
+	"github.com/luxdefi/evm/cmd/evm/internal/compiler"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/rawdb"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/core/vm"
+	"github.com/luxdefi/evm/core/vm/runtime"
+	"github.com/luxdefi/evm/eth/tracers/logger"
+	"github.com/luxdefi/evm/internal/flags"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/trie"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -248,7 +248,7 @@ func runCmd(ctx *cli.Context) error {
 	if chainConfig != nil {
 		runtimeConfig.ChainConfig = chainConfig
 	} else {
-		runtimeConfig.ChainConfig = params.SubnetEVMDefaultChainConfig // NOTE: Replaced AllEthashProtocolChanges with SubnetEVMDefaultChainConfig here
+		runtimeConfig.ChainConfig = params.EVMDefaultChainConfig // NOTE: Replaced AllEthashProtocolChanges with EVMDefaultChainConfig here
 	}
 
 	var hexInput []byte

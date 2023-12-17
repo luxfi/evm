@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/luxdefi/evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"

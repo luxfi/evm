@@ -6,12 +6,12 @@ package rewardmanager
 import (
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/constants"
-	"github.com/luxdefi/subnet-evm/core/state"
-	"github.com/luxdefi/subnet-evm/precompile/allowlist"
-	"github.com/luxdefi/subnet-evm/precompile/contract"
-	"github.com/luxdefi/subnet-evm/precompile/testutils"
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/constants"
+	"github.com/luxdefi/evm/core/state"
+	"github.com/luxdefi/evm/precompile/allowlist"
+	"github.com/luxdefi/evm/precompile/contract"
+	"github.com/luxdefi/evm/precompile/testutils"
+	"github.com/luxdefi/evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )

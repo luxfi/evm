@@ -4,9 +4,9 @@
 package feemanager
 
 import (
-	"github.com/luxdefi/subnet-evm/commontype"
-	"github.com/luxdefi/subnet-evm/precompile/allowlist"
-	"github.com/luxdefi/subnet-evm/precompile/precompileconfig"
+	"github.com/luxdefi/evm/commontype"
+	"github.com/luxdefi/evm/precompile/allowlist"
+	"github.com/luxdefi/evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 )
 

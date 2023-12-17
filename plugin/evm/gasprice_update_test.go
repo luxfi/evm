@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/params"
+	"github.com/luxdefi/evm/params"
 )
 
 type mockGasPriceSetter struct {
@@ -60,9 +60,9 @@ func TestUpdateGasPriceShutsDown(t *testing.T) {
 	shutdownChan := make(chan struct{})
 	wg := &sync.WaitGroup{}
 	config := *params.TestChainConfig
-	// Set SubnetEVMBlockTime one hour in the future so that it will
+	// Set EVMBlockTime one hour in the future so that it will
 	// create a goroutine waiting for an hour before updating the gas price
-	config.SubnetEVMTimestamp = big.NewInt(time.Now().Add(time.Hour).Unix())
+	config.EVMTimestamp = big.NewInt(time.Now().Add(time.Hour).Unix())
 
 	gpu := &gasPriceUpdater{
 		setter:       &mockGasPriceSetter{price: big.NewInt(1)},
@@ -94,11 +94,11 @@ func TestUpdateGasPriceInitializesPrice(t *testing.T) {
 	attemptAwait(t, wg, time.Millisecond)
 
 	if gpu.setter.(*mockGasPriceSetter).price.Cmp(big.NewInt(0)) != 0 {
-		t.Fatalf("Expected price to match minimum base fee for subnet-evm")
+		t.Fatalf("Expected price to match minimum base fee for evm")
 	}
 
 	if minFee := gpu.setter.(*mockGasPriceSetter).minFee; minFee == nil || minFee.Cmp(params.DefaultFeeConfig.MinBaseFee) != 0 {
-		t.Fatalf("Expected min fee to match minimum fee for subnet-evm, but found: %d", minFee)
+		t.Fatalf("Expected min fee to match minimum fee for evm, but found: %d", minFee)
 	}
 }
 
@@ -106,7 +106,7 @@ func TestUpdateGasPriceUpdatesPrice(t *testing.T) {
 	shutdownChan := make(chan struct{})
 	wg := &sync.WaitGroup{}
 	config := *params.TestChainConfig
-	config.SubnetEVMTimestamp = big.NewInt(time.Now().Add(1 * time.Second).Unix())
+	config.EVMTimestamp = big.NewInt(time.Now().Add(1 * time.Second).Unix())
 
 	gpu := &gasPriceUpdater{
 		setter:       &mockGasPriceSetter{price: big.NewInt(1)},
@@ -117,13 +117,13 @@ func TestUpdateGasPriceUpdatesPrice(t *testing.T) {
 
 	gpu.start()
 
-	// Confirm Subnet EVM settings are applied at the very end.
+	// Confirm EVM settings are applied at the very end.
 	attemptAwait(t, wg, 5*time.Second)
 	price, minFee := gpu.setter.(*mockGasPriceSetter).GetStatus()
 	if price.Cmp(big.NewInt(0)) != 0 {
-		t.Fatalf("Expected price to match minimum base fee for subnet-evm")
+		t.Fatalf("Expected price to match minimum base fee for evm")
 	}
 	if minFee == nil || minFee.Cmp(params.DefaultFeeConfig.MinBaseFee) != 0 {
-		t.Fatalf("Expected min fee to match minimum fee for subnet-evm, but found: %d", minFee)
+		t.Fatalf("Expected min fee to match minimum fee for evm, but found: %d", minFee)
 	}
 }

@@ -29,8 +29,8 @@ package leveldb
 import (
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/ethdb"
-	"github.com/luxdefi/subnet-evm/ethdb/dbtest"
+	"github.com/luxdefi/evm/ethdb"
+	"github.com/luxdefi/evm/ethdb/dbtest"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
 )

@@ -35,9 +35,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/luxdefi/subnet-evm/accounts/abi"
-	"github.com/luxdefi/subnet-evm/accounts/abi/bind"
-	"github.com/luxdefi/subnet-evm/precompile/allowlist"
+	"github.com/luxdefi/evm/accounts/abi"
+	"github.com/luxdefi/evm/accounts/abi/bind"
+	"github.com/luxdefi/evm/precompile/allowlist"
 )
 
 // BindedFiles contains the generated binding file contents.

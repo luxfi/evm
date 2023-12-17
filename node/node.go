@@ -27,8 +27,8 @@
 package node
 
 import (
-	"github.com/luxdefi/subnet-evm/accounts"
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/accounts"
+	"github.com/luxdefi/evm/rpc"
 )
 
 // Node is a container on which services can be registered.

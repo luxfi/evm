@@ -34,9 +34,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/metrics"
-	"github.com/luxdefi/subnet-evm/trie/trienode"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/metrics"
+	"github.com/luxdefi/evm/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"

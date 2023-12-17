@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	"github.com/luxdefi/node/snow"
-	"github.com/luxdefi/subnet-evm/commontype"
+	"github.com/luxdefi/evm/commontype"
 	"github.com/ethereum/go-ethereum/common"
 )
 

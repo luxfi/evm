@@ -6,7 +6,7 @@ package precompile
 import (
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/utils"
+	"github.com/luxdefi/evm/utils"
 )
 
 // UpgradeableConfig contains the timestamp for the upgrade along with

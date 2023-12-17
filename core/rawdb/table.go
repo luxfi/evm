@@ -27,7 +27,7 @@
 package rawdb
 
 import (
-	"github.com/luxdefi/subnet-evm/ethdb"
+	"github.com/luxdefi/evm/ethdb"
 )
 
 // table is a wrapper around a database that prefixes each key access with a pre-

@@ -10,8 +10,8 @@ import (
 	"github.com/luxdefi/node/codec"
 	"github.com/luxdefi/node/ids"
 
-	"github.com/luxdefi/subnet-evm/internal/ethapi"
-	"github.com/luxdefi/subnet-evm/rpc"
+	"github.com/luxdefi/evm/internal/ethapi"
+	"github.com/luxdefi/evm/rpc"
 
 	"github.com/ethereum/go-ethereum/log"
 )

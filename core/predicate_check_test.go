@@ -9,9 +9,9 @@ import (
 
 	"github.com/luxdefi/node/snow/engine/snowman/block"
 	"github.com/luxdefi/node/utils/set"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/precompile/precompileconfig"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"

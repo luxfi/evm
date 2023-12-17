@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxdefi/subnet-evm/precompile"
+	"github.com/luxdefi/evm/precompile"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )

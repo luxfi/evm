@@ -35,9 +35,9 @@ import (
 
 	_ "embed"
 
-	"github.com/luxdefi/subnet-evm/accounts/abi/bind"
-	"github.com/luxdefi/subnet-evm/accounts/abi/bind/precompilebind"
-	"github.com/luxdefi/subnet-evm/internal/flags"
+	"github.com/luxdefi/evm/accounts/abi/bind"
+	"github.com/luxdefi/evm/accounts/abi/bind/precompilebind"
+	"github.com/luxdefi/evm/internal/flags"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
@@ -66,7 +66,7 @@ var (
 	}
 )
 
-var app = flags.NewApp("subnet-evm precompile generator tool")
+var app = flags.NewApp("evm precompile generator tool")
 
 func init() {
 	app.Name = "precompilegen"

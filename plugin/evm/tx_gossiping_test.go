@@ -23,10 +23,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/luxdefi/subnet-evm/core"
-	"github.com/luxdefi/subnet-evm/core/types"
-	"github.com/luxdefi/subnet-evm/params"
-	"github.com/luxdefi/subnet-evm/plugin/evm/message"
+	"github.com/luxdefi/evm/core"
+	"github.com/luxdefi/evm/core/types"
+	"github.com/luxdefi/evm/params"
+	"github.com/luxdefi/evm/plugin/evm/message"
 )
 
 func fundAddressByGenesis(addrs []common.Address) (string, error) {
@@ -72,8 +72,8 @@ func getValidTxs(key *ecdsa.PrivateKey, count int, gasPrice *big.Int) []*types.T
 }
 
 // show that locally issued eth txs are gossiped
-// Note: channel through which subnet-evm mempool push txs to vm is injected here
-// to ease up UT, which target only VM behaviors in response to subnet-evm mempool
+// Note: channel through which evm mempool push txs to vm is injected here
+// to ease up UT, which target only VM behaviors in response to evm mempool
 // signals
 func TestMempoolTxsAddedTxsGossipedAfterActivation(t *testing.T) {
 	t.Skip("FLAKY")
@@ -145,7 +145,7 @@ func TestMempoolTxsAddedTxsGossipedAfterActivation(t *testing.T) {
 	// Notify VM about eth txs
 	errs := vm.txPool.AddRemotesSync(ethTxs[:2])
 	for _, err := range errs {
-		assert.NoError(err, "failed adding subnet-evm tx to mempool")
+		assert.NoError(err, "failed adding evm tx to mempool")
 	}
 
 	// Gossip txs again (shouldn't gossip hashes)
@@ -155,7 +155,7 @@ func TestMempoolTxsAddedTxsGossipedAfterActivation(t *testing.T) {
 	errs = vm.txPool.AddRemotesSync(ethTxs)
 	assert.Contains(errs[0].Error(), "already known")
 	assert.Contains(errs[1].Error(), "already known")
-	assert.NoError(errs[2], "failed adding subnet-evm tx to mempool")
+	assert.NoError(errs[2], "failed adding evm tx to mempool")
 
 	attemptAwait(t, &wg, 5*time.Second)
 }
@@ -208,7 +208,7 @@ func TestMempoolTxsAddedTxsGossipedAfterActivationChunking(t *testing.T) {
 	// Notify VM about eth txs
 	errs := vm.txPool.AddRemotesSync(txs)
 	for _, err := range errs {
-		assert.NoError(err, "failed adding subnet-evm tx to mempool")
+		assert.NoError(err, "failed adding evm tx to mempool")
 	}
 
 	attemptAwait(t, &wg, 5*time.Second)
@@ -259,7 +259,7 @@ func TestMempoolTxsAppGossipHandling(t *testing.T) {
 	// prepare a tx
 	tx := getValidTxs(key, 1, common.Big1)[0]
 
-	// show that unknown subnet-evm hashes is requested
+	// show that unknown evm hashes is requested
 	txBytes, err := rlp.EncodeToBytes([]*types.Transaction{tx})
 	assert.NoError(err)
 	msg := message.TxsGossip{
@@ -302,7 +302,7 @@ func TestMempoolTxsRegossipSingleAccount(t *testing.T) {
 	// Notify VM about eth txs
 	errs := vm.txPool.AddRemotesSync(txs)
 	for _, err := range errs {
-		assert.NoError(err, "failed adding subnet-evm tx to remote mempool")
+		assert.NoError(err, "failed adding evm tx to remote mempool")
 	}
 
 	// Only 1 transaction will be regossiped for an address (should be lowest
@@ -349,11 +349,11 @@ func TestMempoolTxsRegossip(t *testing.T) {
 	// Notify VM about eth txs
 	errs := vm.txPool.AddRemotesSync(ethTxs[:10])
 	for _, err := range errs {
-		assert.NoError(err, "failed adding subnet-evm tx to remote mempool")
+		assert.NoError(err, "failed adding evm tx to remote mempool")
 	}
 	errs = vm.txPool.AddLocals(ethTxs[10:])
 	for _, err := range errs {
-		assert.NoError(err, "failed adding subnet-evm tx to local mempool")
+		assert.NoError(err, "failed adding evm tx to local mempool")
 	}
 
 	// We expect 16 transactions (the default max number of transactions to
@@ -405,10 +405,10 @@ func TestMempoolTxsPriorityRegossip(t *testing.T) {
 
 	// Notify VM about eth txs
 	for _, err := range vm.txPool.AddRemotesSync(txs) {
-		assert.NoError(err, "failed adding subnet-evm tx to remote mempool")
+		assert.NoError(err, "failed adding evm tx to remote mempool")
 	}
 	for _, err := range vm.txPool.AddRemotesSync(txs2) {
-		assert.NoError(err, "failed adding subnet-evm tx 2 to remote mempool")
+		assert.NoError(err, "failed adding evm tx 2 to remote mempool")
 	}
 
 	// 10 transactions will be regossiped for a priority address (others ignored)

@@ -14,12 +14,12 @@ import (
 	"testing"
 	"math/big"
 
-	"github.com/luxdefi/subnet-evm/core/state"
+	"github.com/luxdefi/evm/core/state"
 	{{- if .Contract.AllowList}}
-	"github.com/luxdefi/subnet-evm/precompile/allowlist"
+	"github.com/luxdefi/evm/precompile/allowlist"
 	{{- end}}
-	"github.com/luxdefi/subnet-evm/precompile/testutils"
-	"github.com/luxdefi/subnet-evm/vmerrs"
+	"github.com/luxdefi/evm/precompile/testutils"
+	"github.com/luxdefi/evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
