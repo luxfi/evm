@@ -10,9 +10,9 @@ require (
 	github.com/cockroachdb/pebble v1.0.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.5.0
-	github.com/docker/docker v1.6.2
+	github.com/docker/docker v24.0.7+incompatible
 	github.com/dop251/goja v0.0.0-20231027120936-b396bb4c349d
-	github.com/ethereum/go-ethereum v1.10.26
+	github.com/ethereum/go-ethereum v1.13.5
 	github.com/fjl/memsize v0.0.2
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
@@ -26,6 +26,7 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.2.4
 	github.com/kylelemons/godebug v1.1.0
+	github.com/luxdefi/evm/cmd/simulator v0.0.0-20231217020722-fd08c47bd97c
 	github.com/luxdefi/netrunner v1.7.7
 	github.com/luxdefi/node v1.10.21
 	github.com/mattn/go-colorable v0.1.13
@@ -166,5 +167,6 @@ require (
 	google.golang.org/grpc v1.60.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gotest.tools/v3 v3.5.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
