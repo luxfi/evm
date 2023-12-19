@@ -47,7 +47,7 @@ require (
 	github.com/urfave/cli/v2 v2.26.0
 	go.uber.org/goleak v1.3.0
 	go.uber.org/mock v0.3.0
-	golang.org/x/crypto v0.16.0
+	golang.org/x/crypto v0.17.0
 	golang.org/x/sync v0.5.0
 	golang.org/x/sys v0.15.0
 	golang.org/x/text v0.14.0
