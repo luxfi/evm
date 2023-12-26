@@ -32,12 +32,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxdefi/node/snow"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/luxdefi/evm/commontype"
 	"github.com/luxdefi/evm/precompile/modules"
 	"github.com/luxdefi/evm/precompile/precompileconfig"
 	"github.com/luxdefi/evm/utils"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/luxdefi/node/snow"
 )
 
 const maxJSONLen = 64 * 1024 * 1024 // 64MB
@@ -91,7 +91,7 @@ var (
 	}
 
 	TestChainConfig = &ChainConfig{
-		LuxContext:    LuxContext{snow.DefaultContextTest()},
+		LuxContext:          LuxContext{snow.DefaultContextTest()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
@@ -105,15 +105,15 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
-			EVMTimestamp: utils.NewUint64(0),
-			DUpgradeTimestamp:  utils.NewUint64(0),
+			EVMTimestamp:      utils.NewUint64(0),
+			DUpgradeTimestamp: utils.NewUint64(0),
 		},
 		GenesisPrecompiles: Precompiles{},
 		UpgradeConfig:      UpgradeConfig{},
 	}
 
 	TestEVMConfig = &ChainConfig{
-		LuxContext:    LuxContext{snow.DefaultContextTest()},
+		LuxContext:          LuxContext{snow.DefaultContextTest()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
@@ -134,7 +134,7 @@ var (
 	}
 
 	TestPreEVMConfig = &ChainConfig{
-		LuxContext:         LuxContext{snow.DefaultContextTest()},
+		LuxContext:               LuxContext{snow.DefaultContextTest()},
 		ChainID:                  big.NewInt(1),
 		FeeConfig:                DefaultFeeConfig,
 		AllowFeeRecipients:       false,
@@ -716,8 +716,8 @@ type Rules struct {
 	IsCancun                                                bool
 
 	// Rules for Lux releases
-	IsEVM bool
-	IsDUpgrade  bool
+	IsEVM      bool
+	IsDUpgrade bool
 
 	// ActivePrecompiles maps addresses to stateful precompiled contracts that are enabled
 	// for this rule set.
