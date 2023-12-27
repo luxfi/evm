@@ -9,7 +9,7 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/cockroachdb/pebble v1.0.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/deckarep/golang-set/v2 v2.5.0
+	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/dop251/goja v0.0.0-20231027120936-b396bb4c349d
 	github.com/ethereum/go-ethereum v1.13.8
