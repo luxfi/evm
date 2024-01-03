@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.5
 
 require (
-	github.com/VictoriaMetrics/fastcache v1.10.0
+	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/cespare/cp v1.1.1
 	github.com/cockroachdb/pebble v1.0.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -13,7 +13,6 @@ require (
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/dop251/goja v0.0.0-20231027120936-b396bb4c349d
 	github.com/ethereum/go-ethereum v1.13.8
-	github.com/fjl/memsize v0.0.2
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-cmd/cmd v1.4.2
@@ -22,15 +21,11 @@ require (
 	github.com/gorilla/websocket v1.5.1
 	github.com/hashicorp/go-bexpr v0.1.13
 	github.com/hashicorp/golang-lru v1.0.2
-	github.com/holiman/big v0.0.0-20221017200358-a027dc42d04e
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.2.4
 	github.com/kylelemons/godebug v1.1.0
 	github.com/luxdefi/netrunner v1.7.7
-	github.com/luxdefi/node v1.10.17
 	github.com/luxdefi/node v1.10.21
-	github.com/mattn/go-colorable v0.1.13
-	github.com/mattn/go-isatty v0.0.20
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.30.0
@@ -44,7 +39,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a
 	github.com/tyler-smith/go-bip39 v1.1.0
-	github.com/urfave/cli/v2 v2.27.0
+	github.com/urfave/cli/v2 v2.27.1
 	go.uber.org/goleak v1.3.0
 	go.uber.org/mock v0.4.0
 	golang.org/x/crypto v0.17.0
@@ -53,7 +48,6 @@ require (
 	golang.org/x/text v0.14.0
 	golang.org/x/time v0.5.0
 	google.golang.org/protobuf v1.32.0
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
@@ -92,6 +86,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/ethereum/c-kzg-4844 v0.4.0 // indirect
+	github.com/fjl/memsize v0.0.2 // indirect
 	github.com/gballet/go-verkle v0.1.1-0.20231031103413-a67434b50f46 // indirect
 	github.com/getsentry/sentry-go v0.25.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
@@ -112,6 +107,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/holiman/big v0.0.0-20221017200358-a027dc42d04e // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/influxdata/influxdb-client-go/v2 v2.13.0 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c // indirect
@@ -123,6 +119,8 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/luxdefi/coreth v0.12.17 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/pointerstructure v1.2.1 // indirect
@@ -167,6 +165,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231212172506-995d672761c0 // indirect
 	google.golang.org/grpc v1.60.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.5.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
