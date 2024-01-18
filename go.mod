@@ -28,7 +28,7 @@ require (
 	github.com/luxdefi/node v1.10.21
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo/v2 v2.13.2
-	github.com/onsi/gomega v1.30.0
+	github.com/onsi/gomega v1.31.0
 	github.com/prometheus/client_golang v1.18.0
 	github.com/prometheus/client_model v0.5.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
