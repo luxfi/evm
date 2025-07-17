@@ -3,8 +3,8 @@ module github.com/luxfi/evm
 go 1.23.9
 
 replace (
-	github.com/luxfi/node => /Users/z/work/lux/node
 	github.com/luxfi/geth => /Users/z/work/lux/geth
+	github.com/luxfi/node => /Users/z/work/lux/node
 )
 
 require (
@@ -42,9 +42,11 @@ require (
 	golang.org/x/crypto v0.36.0
 	golang.org/x/exp v0.0.0-20241215155358-4a5509556b9e
 	golang.org/x/mod v0.25.0
-	golang.org/x/sync v0.12.0
+	golang.org/x/sync v0.16.0
 	golang.org/x/time v0.9.0
 	golang.org/x/tools v0.29.0
 	google.golang.org/protobuf v1.35.2
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
+
+require github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61 // indirect
