@@ -3,8 +3,8 @@ module github.com/luxfi/evm
 go 1.23.9
 
 replace (
-	github.com/luxfi/node => /Users/z/work/lux/node
 	github.com/luxfi/geth => /Users/z/work/lux/geth
+	github.com/luxfi/node => /Users/z/work/lux/node
 )
 
 require (
@@ -27,7 +27,7 @@ require (
 	github.com/luxfi/node v1.11.10
 	github.com/mattn/go-colorable v0.1.13
 	github.com/mattn/go-isatty v0.0.20
-	github.com/onsi/ginkgo/v2 v2.13.1
+	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/client_model v0.3.0
 	github.com/spf13/cast v1.5.0
@@ -44,7 +44,16 @@ require (
 	golang.org/x/mod v0.25.0
 	golang.org/x/sync v0.12.0
 	golang.org/x/time v0.9.0
-	golang.org/x/tools v0.29.0
-	google.golang.org/protobuf v1.35.2
+	golang.org/x/tools v0.31.0
+	google.golang.org/protobuf v1.36.5
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
+)
+
+require (
+	github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61 // indirect
+	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
+	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6 // indirect
+	go.uber.org/automaxprocs v1.6.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
 )
