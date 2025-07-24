@@ -13,6 +13,8 @@ import (
 	"github.com/luxfi/geth/common"
 	gethparams "github.com/luxfi/geth/params"
 	upgrade "github.com/luxfi/node/upgrade"
+	jsoncodec "github.com/luxfi/node/utils/jsoncodec"
+	chains "github.com/luxfi/node/chains"
 	constants "github.com/luxfi/node/utils/constants"
 )
 
@@ -121,7 +123,7 @@ type UpgradeConfig struct {
 
 // LuxContext provides Lux specific context directly into the EVM.
 type LuxContext struct {
-	ConsensusCtx *upgrade.ChainContext
+	ConsensusCtx *chains.ChainContext
 }
 
 type ChainConfig struct {
@@ -169,14 +171,14 @@ func (c *ChainConfig) Description() string {
 	banner += c.NetworkUpgrades.Description()
 	banner += "\n"
 
-	upgradeConfigBytes, err := upgrade.Marshal(c.UpgradeConfig)
+	upgradeConfigBytes, err := jsoncodec.Marshal(c.UpgradeConfig)
 	if err != nil {
 		upgradeConfigBytes = []byte("cannot marshal UpgradeConfig")
 	}
 	banner += fmt.Sprintf("Upgrade Config: %s", string(upgradeConfigBytes))
 	banner += "\n"
 
-	feeBytes, err := upgrade.Marshal(c.FeeConfig)
+	feeBytes, err := jsoncodec.Marshal(c.FeeConfig)
 	if err != nil {
 		feeBytes = []byte("cannot marshal FeeConfig")
 	}
@@ -221,7 +223,7 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 	// Alias ChainConfigExtra to avoid recursion
 	type _ChainConfigExtra ChainConfig
 	tmp := _ChainConfigExtra{}
-	if err := upgrade.Unmarshal(data, &tmp); err != nil {
+	if err := jsoncodec.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
 
@@ -229,7 +231,7 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 	*c = ChainConfig(tmp)
 
 	// Unmarshal inlined PrecompileUpgrade
-	return upgrade.Unmarshal(data, &c.GenesisPrecompiles)
+	return jsoncodec.Unmarshal(data, &c.GenesisPrecompiles)
 }
 
 // MarshalJSON returns the JSON encoding of c.
@@ -237,27 +239,27 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 func (c *ChainConfig) MarshalJSON() ([]byte, error) {
 	// Alias ChainConfigExtra to avoid recursion
 	type _ChainConfigExtra ChainConfig
-	tmp, err := upgrade.Marshal(_ChainConfigExtra(*c))
+	tmp, err := jsoncodec.Marshal(_ChainConfigExtra(*c))
 	if err != nil {
 		return nil, err
 	}
 
 	// To include PrecompileUpgrades, we unmarshal the json representing c
 	// then directly add the corresponding keys to the interfaces.
-   raw := make(map[string]upgrade.RawMessage)
-	if err := upgrade.Unmarshal(tmp, &raw); err != nil {
+	raw := make(map[string]jsoncodec.RawMessage)
+	if err := jsoncodec.Unmarshal(tmp, &raw); err != nil {
 		return nil, err
 	}
 
 	for key, value := range c.GenesisPrecompiles {
-		conf, err := upgrade.Marshal(value)
+		conf, err := jsoncodec.Marshal(value)
 		if err != nil {
 			return nil, err
 		}
 		raw[key] = conf
 	}
 
-	return upgrade.Marshal(raw)
+	return jsoncodec.Marshal(raw)
 }
 
 type fork struct {
