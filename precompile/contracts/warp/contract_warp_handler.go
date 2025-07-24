@@ -3,19 +3,17 @@
 
 package warp
 
-import "github.com/luxfi/evm/interfaces"
-
 import (
 	"fmt"
 	"math"
 	"github.com/luxfi/evm/utils"
-	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/evm/predicate"
 	"github.com/luxfi/geth/common"
 	ethmath "github.com/luxfi/geth/common/math"
 	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/vmerrs"
 )
 
 var (
@@ -44,7 +42,7 @@ func init() {
 
 type messageHandler interface {
 	packFailed() []byte
-	handleMessage(msg *interfaces.Message) ([]byte, error)
+	handleMessage(msg *interfaces.WarpSignedMessage) ([]byte, error)
 }
 
 func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, suppliedGas uint64, handler messageHandler) ([]byte, uint64, error) {
@@ -71,7 +69,7 @@ func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, s
 
 	// Note: we charge for the size of the message during both predicate verification and each time the message is read during
 	// EVM execution because each execution incurs an additional read cost.
-	msgBytesGas, overflow := ethinterfaces.SafeMul(GasCostPerWarpMessageBytes, uint64(len(predicateBytes)))
+	msgBytesGas, overflow := interfaces.SafeMul(GasCostPerWarpMessageBytes, uint64(len(predicateBytes)))
 	if overflow {
 		return nil, 0, vm.ErrOutOfGas
 	}
@@ -101,7 +99,7 @@ func (addressedPayloadHandler) packFailed() []byte {
 	return getVerifiedWarpMessageInvalidOutput
 }
 
-func (addressedPayloadHandler) handleMessage(warpMessage *interfaces.Message) ([]byte, error) {
+func (addressedPayloadHandler) handleMessage(warpMessage *interfaces.WarpSignedMessage) ([]byte, error) {
 	addressedPayload, err := interfaces.ParseAddressedCall(warpMessage.UnsignedMessage.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errInvalidAddressedPayload, err)
@@ -122,7 +120,7 @@ func (blockHashHandler) packFailed() []byte {
 	return getVerifiedWarpBlockHashInvalidOutput
 }
 
-func (blockHashHandler) handleMessage(warpMessage *interfaces.Message) ([]byte, error) {
+func (blockHashHandler) handleMessage(warpMessage *interfaces.WarpSignedMessage) ([]byte, error) {
 	blockHashPayload, err := interfaces.ParseHash(warpMessage.UnsignedMessage.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errInvalidBlockHashPayload, err)

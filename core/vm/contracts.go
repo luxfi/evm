@@ -31,21 +31,30 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 
 	gethparams "github.com/luxfi/geth/params"
-	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/evm/precompile/modules"
 	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
-	gethmath "github.com/luxfi/geth/common/math"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/crypto/blake2b"
 	// "github.com/luxfi/geth/crypto/bls12381" // TODO: Add this to geth
 	"github.com/luxfi/geth/crypto/bn256"
 	"github.com/luxfi/geth/crypto/kzg4844"
 	"golang.org/x/crypto/ripemd160"
+)
+
+// Native asset precompile addresses
+var (
+	// Deprecated genesis contract address (0x0100000000000000000000000000000000000000)
+	genesisContractAddr    = common.HexToAddress("0x0100000000000000000000000000000000000000")
+	// Native asset balance precompile (0x0100000000000000000000000000000000000001)
+	NativeAssetBalanceAddr = common.HexToAddress("0x0100000000000000000000000000000000000001")
+	// Native asset call precompile (0x0100000000000000000000000000000000000002)
+	NativeAssetCallAddr    = common.HexToAddress("0x0100000000000000000000000000000000000002")
 )
 
 // PrecompiledContract is the basic interface for native Go contracts. The implementation
@@ -105,8 +114,8 @@ var PrecompiledContractsApricotPhase2 = map[common.Address]contract.StatefulPrec
 	common.BytesToAddress([]byte{8}): newWrappedPrecompiledContract(&bn256PairingIstanbul{}),
 	common.BytesToAddress([]byte{9}): newWrappedPrecompiledContract(&blake2F{}),
 	genesisContractAddr:              &deprecatedContract{},
-	NativeAssetBalanceAddr:           &nativeAssetBalance{gasCost: params.AssetBalanceApricot},
-	NativeAssetCallAddr:              &nativeAssetCall{gasCost: params.AssetCallApricot},
+	NativeAssetBalanceAddr:           &nativeAssetBalance{gasCost: 2474},
+	NativeAssetCallAddr:              &nativeAssetCall{gasCost: 9000},
 }
 
 // PrecompiledContractsApricotPhasePre6 contains the default set of pre-compiled Ethereum
@@ -139,8 +148,8 @@ var PrecompiledContractsApricotPhase6 = map[common.Address]contract.StatefulPrec
 	common.BytesToAddress([]byte{8}): newWrappedPrecompiledContract(&bn256PairingIstanbul{}),
 	common.BytesToAddress([]byte{9}): newWrappedPrecompiledContract(&blake2F{}),
 	genesisContractAddr:              &deprecatedContract{},
-	NativeAssetBalanceAddr:           &nativeAssetBalance{gasCost: params.AssetBalanceApricot},
-	NativeAssetCallAddr:              &nativeAssetCall{gasCost: params.AssetCallApricot},
+	NativeAssetBalanceAddr:           &nativeAssetBalance{gasCost: 2474},
+	NativeAssetCallAddr:              &nativeAssetCall{gasCost: 9000},
 }
 
 // PrecompiledContractsBanff contains the default set of pre-compiled Ethereum
@@ -261,20 +270,18 @@ func init() {
 
 // ActivePrecompiles returns the precompiles enabled with the current configuration.
 func ActivePrecompiles(rules gethparams.Rules) []common.Address {
-	switch {
-	case rules.IsCancun:
+	// For Lux, we simplify by always using the latest precompiles
+	// All legacy Avalanche upgrades are considered activated
+	if rules.IsCancun {
 		return PrecompiledAddressesCancun
-	case rules.IsBanff:
-		return PrecompiledAddressesBanff
-	case rules.IsApricotPhase2:
-		return PrecompiledAddressesApricotPhase2
-	case rules.IsIstanbul:
-		return PrecompiledAddressesIstanbul
-	case rules.IsByzantium:
-		return PrecompiledAddressesByzantium
-	default:
-		return PrecompiledAddressesHomestead
 	}
+	if rules.IsIstanbul {
+		return PrecompiledAddressesIstanbul
+	}
+	if rules.IsByzantium {
+		return PrecompiledAddressesByzantium
+	}
+	return PrecompiledAddressesHomestead
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
@@ -480,7 +487,12 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 		gas = gas.Div(gas, big8)
 		gas.Mul(gas, gas)
 
-		gas.Mul(gas, math.BigMax(adjExpLen, big1))
+		// Use max(adjExpLen, 1)
+		maxVal := new(big.Int).Set(adjExpLen)
+		if maxVal.Cmp(big1) < 0 {
+			maxVal = big1
+		}
+		gas.Mul(gas, maxVal)
 		// 2. Different divisor (`GQUADDIVISOR`) (3)
 		gas.Div(gas, big3)
 		if gas.BitLen() > 64 {
@@ -493,7 +505,12 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 		return gas.Uint64()
 	}
 	gas = modexpMultComplexity(gas)
-	gas.Mul(gas, math.BigMax(adjExpLen, big1))
+	// Use max(adjExpLen, 1)
+	maxVal := new(big.Int).Set(adjExpLen)
+	if maxVal.Cmp(big1) < 0 {
+		maxVal = big1
+	}
+	gas.Mul(gas, maxVal)
 	gas.Div(gas, big20)
 
 	if gas.BitLen() > 64 {

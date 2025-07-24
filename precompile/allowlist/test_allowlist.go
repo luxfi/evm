@@ -10,7 +10,7 @@ import (
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/precompile/testutils"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/vmerrs"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -472,7 +472,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: ModifyAllowListGasCost,
 			ReadOnly:    true,
-			ExpectedErr: vm.ErrWriteProtection.Error(),
+			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"admin set no role insufficient gas": {
 			Caller:     TestAdminAddr,
@@ -485,7 +485,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: ModifyAllowListGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"no role read allow list": {
 			Caller:     TestNoRoleAddr,
@@ -534,7 +534,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				return input
 			}, SuppliedGas: ReadAllowListGasCost - 1,
 			ReadOnly:    true,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"initial config sets admins": {
 			Config: mkConfigWithAllowList(

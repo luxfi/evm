@@ -129,12 +129,12 @@ func calculateFeeSpeeds(
 	fastFeePerc *big.Int,
 ) feeSpeeds {
 	// Cap the fee to keep slow and normal options reasonable during fee spikes.
-	cappedFee := math.BigMin(estimate, maxFee)
+	cappedFee := BigMin(estimate, maxFee)
 
 	slowFee := new(big.Int).Set(cappedFee)
 	slowFee.Mul(slowFee, slowFeePerc)
 	slowFee.Div(slowFee, bigFeeDenominator)
-	slowFee = math.BigMax(slowFee, minFee)
+	slowFee = BigMax(slowFee, minFee)
 
 	normalFee := cappedFee
 

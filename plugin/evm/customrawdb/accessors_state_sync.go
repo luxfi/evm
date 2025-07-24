@@ -6,7 +6,6 @@ package customrawdb
 import (
 	"encoding/binary"
 	
-	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/geth/common"
 	ethrawdb "github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/geth/ethdb"
@@ -160,7 +159,7 @@ func packSyncStorageTrieKey(root common.Hash, account common.Hash) []byte {
 // WriteSyncPerformed logs an entry in `db` indicating the VM state synced to `blockNumber`.
 func WriteSyncPerformed(db ethdb.KeyValueWriter, blockNumber uint64) error {
 	syncPerformedPrefixLen := len(syncPerformedPrefix)
-	bytes := make([]byte, syncPerformedPrefixLen+wrappers.LongLen)
+	bytes := make([]byte, syncPerformedPrefixLen+8) // 8 bytes for uint64
 	copy(bytes[:syncPerformedPrefixLen], syncPerformedPrefix)
 	binary.BigEndian.PutUint64(bytes[syncPerformedPrefixLen:], blockNumber)
 	return db.Put(bytes, []byte{0x01})

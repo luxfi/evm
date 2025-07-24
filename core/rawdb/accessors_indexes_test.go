@@ -22,13 +22,12 @@ import (
 	"testing"
 
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/internal/blocktest"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/rlp"
 )
 
-var newTestHasher = blocktest.NewHasher
+var newTestHasher = NewTestHasher
 
 // Tests that positional lookup metadata can be stored and retrieved.
 func TestLookupStorage(t *testing.T) {
