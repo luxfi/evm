@@ -9,6 +9,9 @@ import (
 
 	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/warp/aggregator"
+	"github.com/luxfi/node/utils/crypto/bls"
+	"github.com/luxfi/node/vms/platformvm/warp"
+	"github.com/luxfi/node/vms/platformvm/warp/payload"
 )
 
 var _ aggregator.SignatureGetter = (*apiFetcher)(nil)
@@ -23,27 +26,27 @@ func NewAPIFetcher(clients map[interfaces.NodeID]Client) *apiFetcher {
 	}
 }
 
-func (f *apiFetcher) GetSignature(ctx context.Context, nodeID interfaces.NodeID, unsignedWarpMessage *interfaces.UnsignedMessage) (*interfaces.Signature, error) {
+func (f *apiFetcher) GetSignature(ctx context.Context, nodeID interfaces.NodeID, unsignedWarpMessage *warp.UnsignedMessage) (*bls.Signature, error) {
 	client, ok := f.clients[nodeID]
 	if !ok {
 		return nil, fmt.Errorf("no warp client for nodeID: %s", nodeID)
 	}
 	var signatureBytes []byte
-	parsedPayload, err := interfaces.Parse(unsignedWarpMessage.Payload)
+	parsedPayload, err := payload.Parse(unsignedWarpMessage.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse unsigned message payload: %w", err)
 	}
 	switch p := parsedPayload.(type) {
-	case *interfaces.AddressedCall:
-		signatureBytes, err = client.GetMessageSignature(ctx, unsignedWarpMessage.ID())
-	case *interfaces.Hash:
-		signatureBytes, err = client.GetBlockSignature(ctx, p.Hash)
+	case *payload.AddressedCall:
+		signatureBytes, err = client.GetMessageSignature(ctx, interfaces.ID(unsignedWarpMessage.ID()))
+	case *payload.Hash:
+		signatureBytes, err = client.GetBlockSignature(ctx, interfaces.ID(p.Hash))
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	signature, err := interfaces.SignatureFromBytes(signatureBytes)
+	signature, err := bls.SignatureFromBytes(signatureBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse signature from client %s: %w", nodeID, err)
 	}
