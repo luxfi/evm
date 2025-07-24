@@ -17,40 +17,20 @@
 package vm
 
 import (
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/params"
 )
 
 // LookupInstructionSet returns the instruction set for the fork configured by
 // the rules.
 func LookupInstructionSet(rules params.Rules) (JumpTable, error) {
-	switch {
-	case rules.IsCancun:
+	// For Lux v1, all upgrades are active from genesis
+	// Use the most modern instruction set available
+	if rules.IsCancun {
+		// Use Cancun if available (latest Ethereum fork)
 		return newCancunInstructionSet(), nil
-	case rules.IsDurango:
-		return newDurangoInstructionSet(), nil
-	case rules.IsApricotPhase3, rules.IsApricotPhase4,
-		rules.IsApricotPhase5, rules.IsApricotPhasePre6,
-		rules.IsApricotPhase6, rules.IsApricotPhasePost6,
-		rules.IsBanff, rules.IsCortina:
-		return newApricotPhase3InstructionSet(), nil
-	case rules.IsApricotPhase2:
-		return newApricotPhase2InstructionSet(), nil
-	case rules.IsApricotPhase1:
-		return newApricotPhase1InstructionSet(), nil
-	case rules.IsIstanbul:
-		return newIstanbulInstructionSet(), nil
-	case rules.IsConstantinople:
-		return newConstantinopleInstructionSet(), nil
-	case rules.IsByzantium:
-		return newByzantiumInstructionSet(), nil
-	case rules.IsEIP158:
-		return newSpuriousDragonInstructionSet(), nil
-	case rules.IsEIP150:
-		return newTangerineWhistleInstructionSet(), nil
-	case rules.IsHomestead:
-		return newHomesteadInstructionSet(), nil
 	}
-	return newFrontierInstructionSet(), nil
+	// Otherwise use Durango (latest Avalanche fork, includes all prior upgrades)
+	return newDurangoInstructionSet(), nil
 }
 
 // Stack returns the minimum and maximum stack requirements.

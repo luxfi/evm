@@ -8,9 +8,6 @@ import (
 	"fmt"
 
 	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/warp/aggregator"
 )
 

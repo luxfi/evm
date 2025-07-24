@@ -15,8 +15,7 @@ import (
 	"time"
 	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/sync/client/stats"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/peer"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/log"
@@ -46,7 +45,7 @@ var (
 	errHashMismatch           = errors.New("hash does not match expected value")
 	errInvalidRangeProof      = errors.New("failed to verify range proof")
 	errTooManyLeaves          = errors.New("response contains more than requested leaves")
-	errUnmarshalResponse      = errors.New("failed to unmarshal response")
+	ErrUnmarshalResponse      = errors.New("failed to unmarshal response")
 	errInvalidCodeResponseLen = errors.New("number of code bytes in response does not match requested hashes")
 	errMaxCodeSizeExceeded    = errors.New("max code size exceeded")
 )
@@ -118,7 +117,7 @@ func (c *client) GetLeafs(ctx context.Context, req message.LeafsRequest) (messag
 	return data.(message.LeafsResponse), nil
 }
 
-// parseLeafsResponse validates given object as message.LeafsResponse
+// ParseLeafsResponse validates given object as message.LeafsResponse
 // assumes reqIntf is of type message.LeafsRequest
 // returns a non-nil error if the request should be retried
 // returns error when:
@@ -127,9 +126,9 @@ func (c *client) GetLeafs(ctx context.Context, req message.LeafsRequest) (messag
 // - first and last key in the response is not within the requested start and end range
 // - response keys are not in increasing order
 // - proof validation failed
-func parseLeafsResponse(codec interfaces.Codec, reqIntf message.Request, data []byte) (interface{}, int, error) {
+func ParseLeafsResponse(codec interfaces.Codec, reqIntf message.Request, data []byte) (interface{}, int, error) {
 	var leafsResponse message.LeafsResponse
-	if _, err := interfaces.Unmarshal(data, &leafsResponse); err != nil {
+	if err := interfaces.Unmarshal(codec, data, &leafsResponse); err != nil {
 		return nil, 0, err
 	}
 
@@ -204,8 +203,8 @@ func (c *client) GetBlocks(ctx context.Context, hash common.Hash, height uint64,
 // returns a non-nil error if the request should be retried
 func (c *client) parseBlocks(codec interfaces.Codec, req message.Request, data []byte) (interface{}, int, error) {
 	var response message.BlockResponse
-	if _, err := interfaces.Unmarshal(data, &response); err != nil {
-		return nil, 0, fmt.Errorf("%s: %w", errUnmarshalResponse, err)
+	if err := interfaces.Unmarshal(codec, data, &response); err != nil {
+		return nil, 0, fmt.Errorf("%s: %w", ErrUnmarshalResponse, err)
 	}
 	if len(response.Blocks) == 0 {
 		return nil, 0, errEmptyResponse
@@ -223,7 +222,7 @@ func (c *client) parseBlocks(codec interfaces.Codec, req message.Request, data [
 	for i, blkBytes := range response.Blocks {
 		block, err := c.blockParser.ParseEthBlock(blkBytes)
 		if err != nil {
-			return nil, 0, fmt.Errorf("%s: %w", errUnmarshalResponse, err)
+			return nil, 0, fmt.Errorf("%s: %w", ErrUnmarshalResponse, err)
 		}
 
 		if interfaces.Hash() != hash {
@@ -249,12 +248,12 @@ func (c *client) GetCode(ctx context.Context, hashes []common.Hash) ([][]byte, e
 	return data.([][]byte), nil
 }
 
-// parseCode validates given object as a code object
+// ParseCode validates given object as a code object
 // assumes req is of type message.CodeRequest
 // returns a non-nil error if the request should be retried
-func parseCode(codec interfaces.Codec, req message.Request, data []byte) (interface{}, int, error) {
+func ParseCode(codec interfaces.Codec, req message.Request, data []byte) (interface{}, int, error) {
 	var response message.CodeResponse
-	if _, err := interfaces.Unmarshal(data, &response); err != nil {
+	if err := interfaces.Unmarshal(codec, data, &response); err != nil {
 		return nil, 0, err
 	}
 
@@ -332,7 +331,7 @@ func (c *client) get(ctx context.Context, request message.Request, parseFn parse
 
 		if err != nil {
 			ctx := make([]interface{}, 0, 8)
-			if nodeID != interfaces.EmptyIDNodeID {
+			if nodeID != (interfaces.NodeID{}) {
 				ctx = append(ctx, "nodeID", nodeID)
 			}
 			ctx = append(ctx, "attempt", attempt, "request", request, "err", err)

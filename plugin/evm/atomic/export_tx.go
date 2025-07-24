@@ -24,7 +24,6 @@ import (
 	"github.com/luxfi/node/utils/set"
 	"github.com/luxfi/node/utils/wrappers"
 	"github.com/luxfi/node/vms/components/lux"
-	"github.com/luxfi/node/vms/components/verify"
 	"github.com/luxfi/node/vms/secp256k1fx"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/log"
@@ -89,23 +88,20 @@ func (utx *UnsignedExportTx) Verify(
 	}
 
 	// Make sure that the tx has a valid peer chain ID
-	if rules.IsApricotPhase5 {
-		// Note that SameSubnet verifies that [tx.DestinationChain] isn't this
-		// chain's ID
-		if err := verify.SameSubnet(context.TODO(), ctx, utx.DestinationChain); err != nil {
-			return ErrWrongChainID
-		}
-	} else {
-		if utx.DestinationChain != ctx.XChainID {
-			return ErrWrongChainID
-		}
+	// Verify that destination chain isn't this chain
+	if utx.DestinationChain == ctx.ChainID {
+		return ErrWrongChainID
+	}
+	// Allow exports to X-Chain and P-Chain (in same subnet)
+	if utx.DestinationChain != ctx.XChainID && utx.DestinationChain != constants.PlatformChainID {
+		return ErrWrongChainID
 	}
 
 	for _, in := range utx.Ins {
 		if err := in.Verify(); err != nil {
 			return err
 		}
-		if rules.IsBanff && in.AssetID != ctx.LUXAssetID {
+		if in.AssetID != ctx.LUXAssetID {
 			return ErrExportNonLUXInputBanff
 		}
 	}
@@ -118,14 +114,14 @@ func (utx *UnsignedExportTx) Verify(
 		if assetID != ctx.LUXAssetID && utx.DestinationChain == constants.PlatformChainID {
 			return ErrWrongChainID
 		}
-		if rules.IsBanff && assetID != ctx.LUXAssetID {
+		if assetID != ctx.LUXAssetID {
 			return ErrExportNonLUXOutputBanff
 		}
 	}
 	if !lux.IsSortedTransferableOutputs(utx.ExportedOutputs, Codec) {
 		return ErrOutputsNotSorted
 	}
-	if rules.IsApricotPhase1 && !luxutils.IsSortedAndUnique(utx.Ins) {
+	if !luxutils.IsSortedAndUnique(utx.Ins) {
 		return ErrInputsNotSortedUnique
 	}
 
@@ -195,22 +191,16 @@ func (utx *UnsignedExportTx) SemanticVerify(
 
 	// Check the transaction consumes and produces the right amounts
 	fc := lux.NewFlowChecker()
-	switch {
-	// Apply dynamic fees to export transactions as of Apricot Phase 3
-	case rules.IsApricotPhase3:
-		gasUsed, err := stx.GasUsed(rules.IsApricotPhase5)
-		if err != nil {
-			return err
-		}
-		txFee, err := CalculateDynamicFee(gasUsed, baseFee)
-		if err != nil {
-			return err
-		}
-		fc.Produce(ctx.LUXAssetID, txFee)
-	// Apply fees to export transactions before Apricot Phase 3
-	default:
-		fc.Produce(ctx.LUXAssetID, ap0.AtomicTxFee)
+	// Apply dynamic fees to export transactions
+	gasUsed, err := stx.GasUsed(true) // Always use current gas calculation
+	if err != nil {
+		return err
 	}
+	txFee, err := CalculateDynamicFee(gasUsed, baseFee)
+	if err != nil {
+		return err
+	}
+	fc.Produce(ctx.LUXAssetID, txFee)
 	for _, out := range utx.ExportedOutputs {
 		fc.Produce(out.AssetID(), out.Output().Amount())
 	}
@@ -242,7 +232,10 @@ func (utx *UnsignedExportTx) SemanticVerify(
 		if err != nil {
 			return err
 		}
-		if input.Address != pubKey.EthAddress() {
+		// Convert ethereum common.Address to luxfi/geth common.Address
+		ethAddr := pubKey.EthAddress()
+		expectedAddr := common.Address(ethAddr)
+		if input.Address != expectedAddr {
 			return errPublicKeySignatureMismatch
 		}
 	}
@@ -325,35 +318,26 @@ func NewExportTx(
 		luxNeeded = amount
 	}
 
-	switch {
-	case rules.IsApricotPhase3:
-		utx := &UnsignedExportTx{
-			NetworkID:        ctx.NetworkID,
-			BlockchainID:     ctx.ChainID,
-			DestinationChain: chainID,
-			Ins:              ins,
-			ExportedOutputs:  outs,
-		}
-		tx := &Tx{UnsignedAtomicTx: utx}
-		if err := tx.Sign(Codec, nil); err != nil {
-			return nil, err
-		}
-
-		var cost uint64
-		cost, err = tx.GasUsed(rules.IsApricotPhase5)
-		if err != nil {
-			return nil, err
-		}
-
-		luxIns, luxSigners, err = GetSpendableLUXWithFee(ctx, state, keys, luxNeeded, cost, baseFee)
-	default:
-		var newLuxNeeded uint64
-		newLuxNeeded, err = math.Add64(luxNeeded, ap0.AtomicTxFee)
-		if err != nil {
-			return nil, errOverflowExport
-		}
-		luxIns, luxSigners, err = GetSpendableFunds(ctx, state, keys, ctx.LUXAssetID, newLuxNeeded)
+	// Always use dynamic fees (former ApricotPhase3+ path)
+	utx := &UnsignedExportTx{
+		NetworkID:        ctx.NetworkID,
+		BlockchainID:     ctx.ChainID,
+		DestinationChain: chainID,
+		Ins:              ins,
+		ExportedOutputs:  outs,
 	}
+	tx := &Tx{UnsignedAtomicTx: utx}
+	if err := tx.Sign(Codec, nil); err != nil {
+		return nil, err
+	}
+
+	var cost uint64
+	cost, err = tx.GasUsed(true) // Always use current gas calculation
+	if err != nil {
+		return nil, err
+	}
+
+	luxIns, luxSigners, err = GetSpendableLUXWithFee(ctx, state, keys, luxNeeded, cost, baseFee)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't generate tx inputs/signers: %w", err)
 	}
@@ -364,14 +348,14 @@ func NewExportTx(
 	SortEVMInputsAndSigners(ins, signers)
 
 	// Create the transaction
-	utx := &UnsignedExportTx{
+	utx = &UnsignedExportTx{
 		NetworkID:        ctx.NetworkID,
 		BlockchainID:     ctx.ChainID,
 		DestinationChain: chainID,
 		Ins:              ins,
 		ExportedOutputs:  outs,
 	}
-	tx := &Tx{UnsignedAtomicTx: utx}
+	tx = &Tx{UnsignedAtomicTx: utx}
 	if err := tx.Sign(Codec, signers); err != nil {
 		return nil, err
 	}
@@ -433,7 +417,9 @@ func GetSpendableFunds(
 		if amount == 0 {
 			break
 		}
-		addr := key.EthAddress()
+		ethAddr := key.EthAddress()
+		// Convert ethereum address to luxfi/geth address
+		addr := common.Address(ethAddr)
 		var balance uint64
 		if assetID == ctx.LUXAssetID {
 			// If the asset is LUX, we divide by the x2cRate to convert back to the correct
@@ -516,7 +502,9 @@ func GetSpendableLUXWithFee(
 
 		additionalFee := newFee - prevFee
 
-		addr := key.EthAddress()
+		ethAddr := key.EthAddress()
+		// Convert ethereum address to luxfi/geth address
+		addr := common.Address(ethAddr)
 		// Since the asset is LUX, we divide by the x2cRate to convert back to
 		// the correct denomination of LUX that can be exported.
 		balance := new(uint256.Int).Div(state.GetBalance(addr), X2CRate).Uint64()

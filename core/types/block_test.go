@@ -32,7 +32,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/luxfi/geth/internal/blocktest"
 	"github.com/luxfi/geth/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/math"
@@ -337,7 +336,7 @@ func makeBenchBlock() *Block {
 			Extra:      []byte("benchmark uncle"),
 		}
 	}
-	return NewBlock(header, txs, uncles, receipts, blocktest.NewHasher())
+	return NewBlock(header, txs, uncles, receipts, NewTestHasher())
 }
 
 func TestAP4BlockEncoding(t *testing.T) {
