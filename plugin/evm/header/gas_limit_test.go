@@ -7,9 +7,10 @@ import (
 	"testing"
 
 	"github.com/luxfi/evm/core/types"
-	ethparams "github.com/luxfi/evm/params"
+	evmparams "github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/params/extras"
+	"github.com/luxfi/geth/params"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,8 +50,8 @@ func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
 
-			config := &extras.ChainConfig{
-				NetworkUpgrades: test.upgrades,
+			config := &evmparams.ChainConfig{
+				MandatoryNetworkUpgrades: test.upgrades,
 			}
 			got, err := GasLimit(config, feeConfig, test.parent, test.timestamp)
 			require.ErrorIs(err, test.wantErr)
@@ -105,10 +106,10 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			name:     "pre_subnet_evm_too_low",
 			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
-				GasLimit: ethparams.MinGasLimit,
+				GasLimit: params.MinGasLimit,
 			},
 			header: &types.Header{
-				GasLimit: ethparams.MinGasLimit - 1,
+				GasLimit: params.MinGasLimit - 1,
 			},
 			want: errInvalidGasLimit,
 		},
@@ -116,10 +117,10 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			name:     "pre_subnet_evm_too_high",
 			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
-				GasLimit: ethparams.MaxGasLimit,
+				GasLimit: params.MaxGasLimit,
 			},
 			header: &types.Header{
-				GasLimit: ethparams.MaxGasLimit + 1,
+				GasLimit: params.MaxGasLimit + 1,
 			},
 			want: errInvalidGasLimit,
 		},
@@ -127,18 +128,18 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			name:     "pre_subnet_evm_too_large",
 			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
-				GasLimit: ethparams.MinGasLimit,
+				GasLimit: params.MinGasLimit,
 			},
 			header: &types.Header{
-				GasLimit: ethparams.MaxGasLimit,
+				GasLimit: params.MaxGasLimit,
 			},
 			want: errInvalidGasLimit,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			config := &extras.ChainConfig{
-				NetworkUpgrades: test.upgrades,
+			config := &evmparams.ChainConfig{
+				MandatoryNetworkUpgrades: test.upgrades,
 			}
 			err := VerifyGasLimit(config, feeConfig, test.parent, test.header)
 			require.ErrorIs(t, err, test.want)
@@ -174,8 +175,8 @@ func GasCapacityTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
 
-			config := &extras.ChainConfig{
-				NetworkUpgrades: test.upgrades,
+			config := &evmparams.ChainConfig{
+				MandatoryNetworkUpgrades: test.upgrades,
 			}
 			got, err := GasCapacity(config, feeConfig, test.parent, test.timestamp)
 			require.ErrorIs(err, test.wantErr)

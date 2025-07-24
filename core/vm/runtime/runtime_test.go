@@ -546,8 +546,8 @@ func TestEip2929Cases(t *testing.T) {
 			byte(vm.STOP),
 		}
 		// prettyPrint("This checks `EXT`(codehash,codesize,balance) of precompiles, which should be `100`, "+
-			"and later checks the same operations twice against some non-precompiles. "+
-			"Those are cheaper second time they are accessed. Lastly, it checks the `BALANCE` of `origin` and `this`.", code)
+		//	"and later checks the same operations twice against some non-precompiles. "+
+		//	"Those are cheaper second time they are accessed. Lastly, it checks the `BALANCE` of `origin` and `this`.", code)
 	}
 
 	{ // EXTCODECOPY
@@ -565,7 +565,7 @@ func TestEip2929Cases(t *testing.T) {
 			byte(vm.STOP),
 		}
 		// prettyPrint("This checks `extcodecopy( 0xff,0,0,0,0)` twice, (should be expensive first time), "+
-			"and then does `extcodecopy( this,0,0,0,0)`.", code)
+		//	"and then does `extcodecopy( this,0,0,0,0)`.", code)
 	}
 
 	{ // SLOAD + SSTORE
@@ -585,7 +585,7 @@ func TestEip2929Cases(t *testing.T) {
 			byte(vm.PUSH1), 0x01, byte(vm.SLOAD), // SLOAD( 0x1)
 		}
 		// prettyPrint("This checks `sload( 0x1)` followed by `sstore(loc: 0x01, val:0x11)`, then 'naked' sstore:"+
-			"`sstore(loc: 0x02, val:0x11)` twice, and `sload(0x2)`, `sload(0x1)`. ", code)
+		//	"`sstore(loc: 0x02, val:0x11)` twice, and `sload(0x2)`, `sload(0x1)`. ", code)
 	}
 	{ // Call variants
 		code := []byte{

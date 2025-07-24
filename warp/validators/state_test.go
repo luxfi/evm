@@ -6,8 +6,7 @@ package validators
 import (
 	"context"
 	"testing"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
+	
 	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/utils"
 	"github.com/stretchr/testify/require"

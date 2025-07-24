@@ -8,11 +8,11 @@ import (
 	"fmt"
 
 	"github.com/luxfi/evm/warp/messages"
-
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/node/ids"
+	"github.com/luxfi/node/utils/crypto/bls"
+	"github.com/luxfi/node/vms/platformvm/warp"
+	"github.com/luxfi/node/vms/platformvm/warp/payload"
+	"github.com/luxfi/node/database"
 )
 
 const (
@@ -21,75 +21,63 @@ const (
 )
 
 // Verify verifies the signature of the message
-// It also implements the interfaces.Verifier interface
-func (b *backend) Verify(ctx context.Context, unsignedMessage *interfaces.UnsignedMessage, _ []byte) *core.AppError {
+// It also implements the warp.Verifier interface
+func (b *backend) Verify(ctx context.Context, unsignedMessage *warp.UnsignedMessage, _ []byte) error {
 	messageID := unsignedMessage.ID()
 	// Known on-chain messages should be signed
 	if _, err := b.GetMessage(messageID); err == nil {
 		return nil
 	} else if err != database.ErrNotFound {
-		return &core.AppError{
-			Code:    ParseErrCode,
-			Message: fmt.Sprintf("failed to get message %s: %s", messageID, err.Error()),
-		}
+		return fmt.Errorf("failed to get message %s: %w", messageID, err)
 	}
 
-	parsed, err := interfaces.Parse(unsignedMessage.Payload)
+	parsed, err := payload.Parse(unsignedMessage.Payload)
 	if err != nil {
 		b.stats.IncMessageParseFail()
-		return &core.AppError{
-			Code:    ParseErrCode,
-			Message: "failed to parse payload: " + err.Error(),
-		}
+		return fmt.Errorf("failed to parse payload: %w", err)
 	}
 
 	switch p := parsed.(type) {
-	case *interfaces.AddressedCall:
+	case *payload.AddressedCall:
 		return b.verifyOffchainAddressedCall(p)
-	case *interfaces.Hash:
-		return b.verifyBlockMessage(ctx, p)
+	case *payload.Hash:
+		return b.verifyBlockMessage(ctx, p.Bytes())
 	default:
 		b.stats.IncMessageParseFail()
-		return &core.AppError{
-			Code:    ParseErrCode,
-			Message: fmt.Sprintf("unknown payload type: %T", p),
-		}
+		return fmt.Errorf("unknown payload type: %T", p)
 	}
 }
 
 // verifyBlockMessage returns nil if blockHashPayload contains the ID
 // of an accepted block indicating it should be signed by the VM.
-func (b *backend) verifyBlockMessage(ctx context.Context, blockHashPayload *interfaces.Hash) *core.AppError {
-	blockID := blockHashPayload.Hash
-	_, err := b.blockClient.GetAcceptedBlock(ctx, blockID)
+func (b *backend) verifyBlockMessage(ctx context.Context, blockHashPayload []byte) error {
+	if len(blockHashPayload) != 32 {
+		return fmt.Errorf("invalid block hash length: expected 32, got %d", len(blockHashPayload))
+	}
+	blockID, err := ids.ToID(blockHashPayload)
+	if err != nil {
+		return fmt.Errorf("failed to parse block ID: %w", err)
+	}
+	_, err = b.blockClient.GetAcceptedBlock(ctx, blockID)
 	if err != nil {
 		b.stats.IncBlockValidationFail()
-		return &core.AppError{
-			Code:    VerifyErrCode,
-			Message: fmt.Sprintf("failed to get block %s: %s", blockID, err.Error()),
-		}
+		return fmt.Errorf("failed to get block %s: %w", blockID, err)
 	}
 
 	return nil
 }
 
 // verifyOffchainAddressedCall verifies the addressed call message
-func (b *backend) verifyOffchainAddressedCall(addressedCall *interfaces.AddressedCall) *core.AppError {
+func (b *backend) verifyOffchainAddressedCall(addressedCall *payload.AddressedCall) error {
 	// Further, parse the payload to see if it is a known type.
 	parsed, err := messages.Parse(addressedCall.Payload)
 	if err != nil {
 		b.stats.IncMessageParseFail()
-		return &core.AppError{
-			Code:    ParseErrCode,
-			Message: "failed to parse addressed call message: " + err.Error(),
-		}
+		return fmt.Errorf("failed to parse addressed call message: %w", err)
 	}
 
 	if len(addressedCall.SourceAddress) != 0 {
-		return &core.AppError{
-			Code:    VerifyErrCode,
-			Message: "source address should be empty for offchain addressed messages",
-		}
+		return fmt.Errorf("source address should be empty for offchain addressed messages")
 	}
 
 	switch p := parsed.(type) {
@@ -100,25 +88,15 @@ func (b *backend) verifyOffchainAddressedCall(addressedCall *interfaces.Addresse
 		}
 	default:
 		b.stats.IncMessageParseFail()
-		return &core.AppError{
-			Code:    ParseErrCode,
-			Message: fmt.Sprintf("unknown message type: %T", p),
-		}
+		return fmt.Errorf("unknown message type: %T", p)
 	}
 
 	return nil
 }
 
-func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) *core.AppError {
+func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) error {
 	// FIXME: GetValidatorAndUptime method doesn't exist in interfaces.State interface
 	// vdr, currentUptime, _, err := b.validatorReader.GetValidatorAndUptime(uptimeMsg.ValidationID)
-	var err error
-	if err == nil {
-		err = fmt.Errorf("GetValidatorAndUptime not implemented")
-	}
 	b.stats.IncUptimeValidationFail()
-	return &core.AppError{
-		Code:    VerifyErrCode,
-		Message: fmt.Sprintf("uptime verification not implemented: %s", err.Error()),
-	}
+	return fmt.Errorf("uptime verification not implemented")
 }

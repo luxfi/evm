@@ -17,7 +17,7 @@ import (
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/vmerrs"
 )
 
 const (
@@ -82,7 +82,7 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 		return nil, 0, err
 	}
 	if readOnly {
-		return nil, remainingGas, vm.ErrWriteProtection
+		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 	// no input provided for this function
 
@@ -196,7 +196,7 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 		return nil, 0, err
 	}
 	if readOnly {
-		return nil, remainingGas, vm.ErrWriteProtection
+		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 	// attempts to unpack [input] into the arguments to the SetRewardAddressInput.
 	// Assumes that [input] does not include selector
@@ -273,7 +273,7 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 		return nil, 0, err
 	}
 	if readOnly {
-		return nil, remainingGas, vm.ErrWriteProtection
+		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 	// no input provided for this function
 

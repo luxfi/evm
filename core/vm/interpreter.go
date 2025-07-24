@@ -65,32 +65,14 @@ type EVMInterpreter struct {
 // NewEVMInterpreter returns a new instance of the Interpreter.
 func NewEVMInterpreter(evm *EVM) *EVMInterpreter {
 	// If jump table was not initialised we set the default one.
+	// For Lux v1, all upgrades are active from genesis, so we use the most modern instruction set
 	var table *JumpTable
-	switch {
-	case evm.chainRules.IsCancun:
+	if evm.chainRules.IsCancun {
+		// Use Cancun if available (latest Ethereum fork)
 		table = &cancunInstructionSet
-	case evm.chainRules.IsDurango:
+	} else {
+		// Otherwise use Durango (latest Avalanche fork, includes all prior upgrades)
 		table = &durangoInstructionSet
-	case evm.chainRules.IsApricotPhase3:
-		table = &apricotPhase3InstructionSet
-	case evm.chainRules.IsApricotPhase2:
-		table = &apricotPhase2InstructionSet
-	case evm.chainRules.IsApricotPhase1:
-		table = &apricotPhase1InstructionSet
-	case evm.chainRules.IsIstanbul:
-		table = &istanbulInstructionSet
-	case evm.chainRules.IsConstantinople:
-		table = &constantinopleInstructionSet
-	case evm.chainRules.IsByzantium:
-		table = &byzantiumInstructionSet
-	case evm.chainRules.IsEIP158:
-		table = &spuriousDragonInstructionSet
-	case evm.chainRules.IsEIP150:
-		table = &tangerineWhistleInstructionSet
-	case evm.chainRules.IsHomestead:
-		table = &homesteadInstructionSet
-	default:
-		table = &frontierInstructionSet
 	}
 	var extraEips []int
 	if len(evm.Config.ExtraEips) > 0 {

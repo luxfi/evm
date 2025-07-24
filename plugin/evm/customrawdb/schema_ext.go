@@ -4,7 +4,6 @@
 package customrawdb
 
 import (
-	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/geth/common"
 )
 
@@ -51,7 +50,7 @@ var (
 	syncPerformedPrefix = []byte("sync_performed")
 	// syncPerformedKeyLength is the length of the key for the sync performed metadata key,
 	// and is equal to [syncPerformedPrefix] + block number as uint64.
-	syncPerformedKeyLength = len(syncPerformedPrefix) + wrappers.LongLen
+	syncPerformedKeyLength = len(syncPerformedPrefix) + 8 // 8 bytes for uint64
 )
 
 // upgradeConfigKey = upgradeConfigPrefix + hash

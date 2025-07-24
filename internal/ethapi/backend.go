@@ -34,7 +34,7 @@ import (
 
 	"github.com/luxfi/geth/accounts"
 	"github.com/luxfi/geth/consensus"
-	"github.com/luxfi/geth/core"
+	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/bloombits"
 	"github.com/luxfi/geth/core/state"
 	"github.com/luxfi/geth/core/types"

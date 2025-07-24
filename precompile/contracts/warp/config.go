@@ -9,7 +9,6 @@ import (
 	"fmt"
 	
 	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/predicate"
 	warpValidators "github.com/luxfi/evm/warp/validators"
@@ -25,9 +24,9 @@ const (
 )
 
 var (
-	_ precompileinterfaces.Config     = &Config{}
-	_ precompileinterfaces.Predicater = &Config{}
-	_ precompileinterfaces.Accepter   = &Config{}
+	_ precompileconfig.Config     = &Config{}
+	_ precompileconfig.Predicater = &Config{}
+	_ precompileconfig.Accepter   = &Config{}
 )
 
 var (
@@ -44,10 +43,10 @@ var (
 	errCannotRetrieveValidatorSet = errors.New("cannot retrieve validator set")
 )
 
-// Config implements the precompileinterfaces.Config interface and
+// Config implements the precompileconfig.Config interface and
 // adds specific configuration for Warp.
 type Config struct {
-	precompileinterfaces.Upgrade
+	precompileconfig.Upgrade
 	QuorumNumerator              uint64 `json:"quorumNumerator"`
 	RequirePrimaryNetworkSigners bool   `json:"requirePrimaryNetworkSigners"`
 }
@@ -56,7 +55,7 @@ type Config struct {
 // Warp with the given quorum numerator.
 func NewConfig(blockTimestamp *uint64, quorumNumerator uint64, requirePrimaryNetworkSigners bool) *Config {
 	return &Config{
-		Upgrade:                      precompileinterfaces.Upgrade{BlockTimestamp: blockTimestamp},
+		Upgrade:                      precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 		QuorumNumerator:              quorumNumerator,
 		RequirePrimaryNetworkSigners: requirePrimaryNetworkSigners,
 	}
@@ -72,19 +71,19 @@ func NewDefaultConfig(blockTimestamp *uint64) *Config {
 // that disables Warp.
 func NewDisableConfig(blockTimestamp *uint64) *Config {
 	return &Config{
-		Upgrade: precompileinterfaces.Upgrade{
+		Upgrade: precompileconfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
 	}
 }
 
-// Key returns the key for the Warp precompileinterfaces.
+// Key returns the key for the Warp precompileconfig.
 // This should be the same key as used in the precompile module.
 func (*Config) Key() string { return ConfigKey }
 
 // Verify tries to verify Config and returns an error accordingly.
-func (c *Config) Verify(chainConfig precompileinterfaces.ChainConfig) error {
+func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	if c.Timestamp() != nil {
 		// If Warp attempts to activate before Durango, fail verification
 		timestamp := *c.Timestamp()
@@ -104,7 +103,7 @@ func (c *Config) Verify(chainConfig precompileinterfaces.ChainConfig) error {
 }
 
 // Equal returns true if [s] is a [*Config] and it has been configured identical to [c].
-func (c *Config) Equal(s precompileinterfaces.Config) bool {
+func (c *Config) Equal(s precompileconfig.Config) bool {
 	// typecast before comparison
 	other, ok := (s).(*Config)
 	if !ok {
@@ -114,7 +113,7 @@ func (c *Config) Equal(s precompileinterfaces.Config) bool {
 	return equals && c.QuorumNumerator == other.QuorumNumerator
 }
 
-func (c *Config) Accept(acceptCtx *precompileinterfaces.AcceptContext, blockHash common.Hash, blockNumber uint64, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
+func (c *Config) Accept(acceptCtx *precompileconfig.AcceptContext, blockHash common.Hash, blockNumber uint64, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
 	unsignedMessage, err := UnpackSendWarpEventDataToMessage(logData)
 	if err != nil {
 		return fmt.Errorf("failed to parse warp log data into unsigned message (TxHash: %s, LogIndex: %d): %w", txHash, logIndex, err)
@@ -183,7 +182,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 }
 
 // VerifyPredicate returns whether the predicate described by [predicateBytes] passes verification.
-func (c *Config) VerifyPredicate(predicateContext *precompileinterfaces.PredicateContext, predicateBytes []byte) error {
+func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateContext, predicateBytes []byte) error {
 	unpackedPredicateBytes, err := predicate.UnpackPredicate(predicateBytes)
 	if err != nil {
 		return fmt.Errorf("%w: %w", errInvalidPredicateBytes, err)

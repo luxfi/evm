@@ -25,7 +25,7 @@ type signatureTest struct {
 	stateF       func(*gomock.Controller) interfaces.State
 	quorumNum    uint64
 	quorumDen    uint64
-	msgF         func(*require.Assertions) *interfaces.Message
+	msgF         func(*require.Assertions) *interfaces.WarpSignedMessage
 	verifyErr    error
 	canonicalErr error
 }
@@ -43,7 +43,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 1,
 			quorumDen: 2,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -70,7 +70,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 1,
 			quorumDen: 2,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -108,7 +108,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 1,
 			quorumDen: 2,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -138,7 +138,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 1,
 			quorumDen: 2,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -169,7 +169,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 1,
 			quorumDen: 2,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -203,7 +203,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 1,
 			quorumDen: 1,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -250,7 +250,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 1,
 			quorumDen: 2,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -285,7 +285,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 1,
 			quorumDen: 2,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -321,7 +321,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 3,
 			quorumDen: 5,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -368,7 +368,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 3,
 			quorumDen: 5,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -410,7 +410,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 3,
 			quorumDen: 5,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -459,7 +459,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 1,
 			quorumDen: 2,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -505,7 +505,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 2,
 			quorumDen: 3,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -567,7 +567,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 1,
 			quorumDen: 3,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
@@ -630,7 +630,7 @@ func TestSignatureVerification(t *testing.T) {
 			},
 			quorumNum: 2,
 			quorumDen: 3,
-			msgF: func(require *require.Assertions) *interfaces.Message {
+			msgF: func(require *require.Assertions) *interfaces.WarpSignedMessage {
 				unsignedMsg, err := interfaces.NewUnsignedMessage(
 					networkID,
 					sourceChainID,
