@@ -7,7 +7,8 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
-	ethparams "github.com/luxfi/evm/params"
+	ethparams "github.com/luxfi/geth/params"
+	ethtypes "github.com/luxfi/geth/core/types"
 	"github.com/holiman/uint256"
 	"github.com/luxfi/evm/params"
 )
@@ -78,7 +79,15 @@ func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, d
 	ethRules := ethparams.Rules{
 		ChainID: rules.ChainID,
 	}
-	s.vmStateDB.Prepare(ethRules, sender, coinbase, dst, precompiles, list)
+	// Convert our AccessList to geth AccessList
+	var ethList ethtypes.AccessList
+	for _, tuple := range list {
+		ethList = append(ethList, ethtypes.AccessTuple{
+			Address: tuple.Address,
+			StorageKeys: tuple.StorageKeys,
+		})
+	}
+	s.vmStateDB.Prepare(ethRules, sender, coinbase, dst, precompiles, ethList)
 }
 
 // GetLogData returns the underlying topics and data from each log included in the [StateDB].

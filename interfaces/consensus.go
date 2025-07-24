@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/evm/core/types"
 )
 
 // ChainHeaderReader defines methods needed to access the local blockchain during header verification.
@@ -27,6 +27,12 @@ type ChainHeaderReader interface {
 
 	// GetTd retrieves the total difficulty from the database by hash and number.
 	GetTd(hash common.Hash, number uint64) *big.Int
+
+	// GetCoinbaseAt returns the configured coinbase address at the given timestamp
+	GetCoinbaseAt(timestamp uint64) common.Address
+
+	// GetFeeConfigAt returns the fee configuration at the given timestamp
+	GetFeeConfigAt(timestamp uint64) (FeeConfig, error)
 }
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -57,11 +63,11 @@ type Engine interface {
 
 	// Finalize runs any post-transaction state modifications and assembles the final block.
 	Finalize(chain ChainHeaderReader, header *types.Header, state StateDB, txs []*types.Transaction,
-		uncles []*types.Header, withdrawals []*types.Withdrawal) (*types.Block, error)
+		uncles []*types.Header) (*types.Block, error)
 
 	// FinalizeAndAssemble runs any post-transaction state modifications and assembles the final block.
 	FinalizeAndAssemble(chain ChainHeaderReader, header *types.Header, state StateDB, txs []*types.Transaction,
-		uncles []*types.Header, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error)
+		uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error)
 
 	// Seal generates a new sealing request for the given input block and pushes it to the sealer.
 	Seal(chain ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error
@@ -90,4 +96,20 @@ type ChainConfig interface {
 	GetMuirGlacierBlock() *big.Int
 	GetBerlinBlock() *big.Int
 	GetLondonBlock() *big.Int
+	
+	// Fork checking methods
+	IsCancun(num *big.Int, time uint64) bool
+}
+
+// FeeConfig represents the fee configuration
+type FeeConfig interface {
+	// Basic getters for fee configuration
+	GetGasLimit() *big.Int
+	GetTargetBlockRate() uint64
+	GetMinBaseFee() *big.Int
+	GetTargetGas() *big.Int
+	GetBaseFeeChangeDenominator() *big.Int
+	GetMinBlockGasCost() *big.Int
+	GetMaxBlockGasCost() *big.Int
+	GetBlockGasCostStep() *big.Int
 }

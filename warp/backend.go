@@ -12,7 +12,6 @@ import (
 	"github.com/luxfi/node/vms/platformvm/warp"
 	"github.com/luxfi/node/database"
 	"github.com/luxfi/node/cache/lru"
-	"github.com/luxfi/node/utils/crypto/bls"
 	log "github.com/luxfi/geth/log"
 )
 
