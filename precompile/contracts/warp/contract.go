@@ -8,13 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/accounts/abi"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/math"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/vmerrs"
 )
 
 const (
@@ -240,7 +240,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		return nil, 0, err
 	}
 	if readOnly {
-		return nil, remainingGas, vm.ErrWriteProtection
+		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 	// unpack the arguments
 	payloadData, err := UnpackSendWarpMessageInput(input)

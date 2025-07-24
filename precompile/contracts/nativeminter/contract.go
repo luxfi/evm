@@ -13,7 +13,7 @@ import (
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/vmerrs"
 	"github.com/holiman/uint256"
 )
 
@@ -83,7 +83,7 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 	}
 
 	if readOnly {
-		return nil, remainingGas, vm.ErrWriteProtection
+		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 
 	useStrictMode := !contract.IsDurangoActivated(accessibleState)

@@ -15,7 +15,7 @@ import (
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/vmerrs"
 )
 
 const (
@@ -211,7 +211,7 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 	}
 
 	if readOnly {
-		return nil, remainingGas, vm.ErrWriteProtection
+		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 
 	// do not use strict mode after Durango

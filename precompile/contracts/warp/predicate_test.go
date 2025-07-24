@@ -142,13 +142,13 @@ type signatureTest struct {
 	stateF    func(*gomock.Controller) interfaces.State
 	quorumNum uint64
 	quorumDen uint64
-	msgF      func(*require.Assertions) *interfaces.Message
+	msgF      func(*require.Assertions) *interfaces.WarpSignedMessage
 	err       error
 }
 
 // createWarpMessage constructs a signed warp message using the global variable [unsignedMsg]
 // and the first [numKeys] signatures from [blsSignatures]
-func createWarpMessage(numKeys int) *interfaces.Message {
+func createWarpMessage(numKeys int) *interfaces.WarpSignedMessage {
 	aggregateSignature, err := interfaces.AggregateSignatures(blsSignatures[0:numKeys])
 	if err != nil {
 		panic(err)

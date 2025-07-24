@@ -404,7 +404,7 @@ func (s *PersonalAccountAPI) UnlockAccount(ctx context.Context, addr common.Addr
 		return false, errors.New("account unlock with HTTP access is forbidden")
 	}
 
-	const max = uint64(time.Duration(math.MaxInt64) / time.Second)
+	const max = uint64(time.Duration(MaxInt64) / time.Second)
 	var d time.Duration
 	if duration == nil {
 		d = 300 * time.Second

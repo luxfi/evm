@@ -30,10 +30,9 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/constants"
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/core/headerutil"
 	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/precompile/contract"
@@ -76,17 +75,11 @@ type (
 
 func (evm *EVM) precompile(addr common.Address) (contract.StatefulPrecompiledContract, bool) {
 	var precompiles map[common.Address]contract.StatefulPrecompiledContract
+	// For Lux, we simplify precompile selection
+	// All legacy Avalanche upgrades are considered activated
 	switch {
 	case evm.chainRules.IsCancun:
 		precompiles = PrecompiledContractsCancun
-	case evm.chainRules.IsBanff:
-		precompiles = PrecompiledContractsBanff
-	case evm.chainRules.IsApricotPhase6:
-		precompiles = PrecompiledContractsApricotPhase6
-	case evm.chainRules.IsApricotPhasePre6:
-		precompiles = PrecompiledContractsApricotPhasePre6
-	case evm.chainRules.IsApricotPhase2:
-		precompiles = PrecompiledContractsApricotPhase2
 	case evm.chainRules.IsIstanbul:
 		precompiles = PrecompiledContractsIstanbul
 	case evm.chainRules.IsByzantium:
@@ -277,14 +270,9 @@ func (evm *EVM) Cancelled() bool {
 	return evm.abort.Load()
 }
 
-// GetConsensusContext returns the evm's consensus.Context.
-func (evm *EVM) GetConsensusContext() *consensus.Context {
-	return evm.chainConfig.ConsensusCtx
-}
-
 // GetStateDB returns the evm's StateDB
 func (evm *EVM) GetStateDB() contract.StateDB {
-	return evm.StateDB
+	return NewStateDBAdapter(evm.StateDB)
 }
 
 // GetBlockContext returns the evm's BlockContext
@@ -571,9 +559,8 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	evm.StateDB.SetNonce(caller.Address(), nonce+1)
 	// We add this to the access list _before_ taking a snapshot. Even if the creation fails,
 	// the access-list change should not be rolled back
-	if evm.chainRules.IsApricotPhase2 {
-		evm.StateDB.AddAddressToAccessList(address)
-	}
+	// All upgrades are active in Lux v1, always add to access list
+	evm.StateDB.AddAddressToAccessList(address)
 	// Ensure there's no existing contract already at the designated address
 	contractHash := evm.StateDB.GetCodeHash(address)
 	if evm.StateDB.GetNonce(address) != 0 || (contractHash != (common.Hash{}) && contractHash != types.EmptyCodeHash) {
@@ -608,7 +595,8 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 
 	// Reject code starting with 0xEF if EIP-3541 is enabled.
-	if err == nil && len(ret) >= 1 && ret[0] == 0xEF && evm.chainRules.IsApricotPhase3 {
+	// All upgrades are active in Lux v1, always check for EVM bytecode prefix  
+	if err == nil && len(ret) >= 1 && ret[0] == 0xEF {
 		err = vmerrs.ErrInvalidCode
 	}
 
@@ -687,7 +675,7 @@ func (evm *EVM) NativeAssetCall(caller common.Address, input []byte, suppliedGas
 
 	// Note: it is not possible for a negative assetAmount to be passed in here due to the fact that decoding a
 	// byte slice into a *big.Int type will always return a positive value.
-	if assetAmount.Sign() != 0 && !evm.Context.CanTransferMC(evm.StateDB, caller, to, assetID, assetAmount) {
+	if assetAmount.Sign() != 0 && !evm.Context.CanTransferMC(evm.StateDB, caller, to, common.Hash(assetID), assetAmount) {
 		return nil, remainingGas, vmerrs.ErrInsufficientBalance
 	}
 
@@ -706,7 +694,7 @@ func (evm *EVM) NativeAssetCall(caller common.Address, input []byte, suppliedGas
 	defer func() { evm.depth-- }()
 
 	// Send [assetAmount] of [assetID] to [to] address
-	evm.Context.TransferMultiCoin(evm.StateDB, caller, to, assetID, assetAmount)
+	evm.Context.TransferMultiCoin(evm.StateDB, caller, to, common.Hash(assetID), assetAmount)
 	ret, remainingGas, err = evm.Call(AccountRef(caller), to, callData, remainingGas, new(uint256.Int))
 
 	// When an error was returned by the EVM or when setting the creation code

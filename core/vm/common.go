@@ -30,7 +30,6 @@ import (
 	"math"
 	
 	"github.com/luxfi/geth/common"
-	gethmath "github.com/luxfi/geth/common/math"
 	"github.com/holiman/uint256"
 )
 

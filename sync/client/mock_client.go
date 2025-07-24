@@ -1,13 +1,15 @@
 // (c) 2021-2022, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+//go:build evm_node
+// +build evm_node
+
 package statesyncclient
 
 import (
 	"context"
 	"fmt"
 	"sync/atomic"
-	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/plugin/evm/message"
@@ -61,7 +63,7 @@ func (ml *MockClient) GetLeafs(ctx context.Context, request message.LeafsRequest
 		return message.LeafsResponse{}, err
 	}
 
-	leafResponseIntf, numLeaves, err := parseLeafsResponse(ml.codec, request, response)
+	leafResponseIntf, numLeaves, err := ParseLeafsResponse(ml.codec, request, response)
 	if err != nil {
 		return message.LeafsResponse{}, err
 	}
@@ -88,7 +90,7 @@ func (ml *MockClient) GetCode(ctx context.Context, hashes []common.Hash) ([][]by
 		return nil, err
 	}
 
-	codeBytesIntf, lenCode, err := parseCode(ml.codec, request, response)
+	codeBytesIntf, lenCode, err := ParseCode(ml.codec, request, response)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +144,7 @@ type testBlockParser struct{}
 func (t *testBlockParser) ParseEthBlock(b []byte) (*types.Block, error) {
 	block := new(types.Block)
 	if err := rlp.DecodeBytes(b, block); err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnmarshalResponse, err)
+		return nil, fmt.Errorf("%s: %w", ErrUnmarshalResponse, err)
 	}
 
 	return block, nil

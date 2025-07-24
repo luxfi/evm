@@ -7,9 +7,10 @@ package aggregator
 import (
 	context "context"
 	reflect "reflect"
-	bls "github.com/luxfi/evm/interfaces"
-	ids "github.com/luxfi/evm/interfaces"
-	warp "github.com/luxfi/evm/interfaces"
+	
+	"github.com/luxfi/evm/interfaces"
+	bls "github.com/luxfi/node/utils/crypto/bls"
+	warp "github.com/luxfi/node/vms/platformvm/warp"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -38,10 +39,10 @@ func (m *MockSignatureGetter) EXPECT() *MockSignatureGetterMockRecorder {
 }
 
 // GetSignature mocks base method.
-func (m *MockSignatureGetter) GetSignature(ctx context.Context, nodeID interfaces.NodeID, unsignedWarpMessage *interfaces.UnsignedMessage) (*interfaces.Signature, error) {
+func (m *MockSignatureGetter) GetSignature(ctx context.Context, nodeID interfaces.NodeID, unsignedWarpMessage *warp.UnsignedMessage) (*bls.Signature, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSignature", ctx, nodeID, unsignedWarpMessage)
-	ret0, _ := ret[0].(*interfaces.Signature)
+	ret0, _ := ret[0].(*bls.Signature)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

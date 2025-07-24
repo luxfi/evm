@@ -11,7 +11,7 @@ import (
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/vmerrs"
 )
 
 // AllowList is an abstraction that allows other precompiles to manage
@@ -97,7 +97,7 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 		}
 
 		if readOnly {
-			return nil, remainingGas, vm.ErrWriteProtection
+			return nil, remainingGas, vmerrs.ErrWriteProtection
 		}
 
 		stateDB := evm.GetStateDB()

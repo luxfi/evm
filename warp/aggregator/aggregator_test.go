@@ -7,20 +7,23 @@ import (
 	"context"
 	"errors"
 	"testing"
+	
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
+	
+	"github.com/luxfi/node/ids"
+	"github.com/luxfi/node/utils/crypto/bls"
+	"github.com/luxfi/node/utils/crypto/bls/signer/localsigner"
+	"github.com/luxfi/node/vms/platformvm/warp"
 )
 
-func newValidator(t testing.TB, weight uint64) (*interfaces.SecretKey, *interfaces.Validator) {
-	sk, err := interfaces.NewSecretKey()
+func newValidator(t testing.TB, weight uint64) (*localsigner.LocalSigner, *warp.Validator) {
+	sk, err := localsigner.New()
 	require.NoError(t, err)
-	pk := interfaces.PublicFromSecretKey(sk)
-	return sk, &interfaces.Validator{
+	pk := sk.PublicKey()
+	return sk, &warp.Validator{
 		PublicKey:      pk,
-		PublicKeyBytes: interfaces.PublicKeyToCompressedBytes(pk),
+		PublicKeyBytes: bls.PublicKeyToCompressedBytes(pk),
 		Weight:         weight,
 		NodeIDs:        []ids.NodeID{ids.GenerateTestNodeID()},
 	}
@@ -28,7 +31,7 @@ func newValidator(t testing.TB, weight uint64) (*interfaces.SecretKey, *interfac
 
 func TestAggregateSignatures(t *testing.T) {
 	errTest := errors.New("test error")
-	unsignedMsg := &interfaces.UnsignedMessage{
+	unsignedMsg := &warp.UnsignedMessage{
 		NetworkID:     1338,
 		SourceChainID: ids.ID{'y', 'e', 'e', 't'},
 		Payload:       []byte("hello world"),
@@ -40,10 +43,13 @@ func TestAggregateSignatures(t *testing.T) {
 	vdr1sk, vdr1 := newValidator(t, vdrWeight)
 	vdr2sk, vdr2 := newValidator(t, vdrWeight+1)
 	vdr3sk, vdr3 := newValidator(t, vdrWeight-1)
-	sig1 := interfaces.Sign(vdr1sk, unsignedMsg.Bytes())
-	sig2 := interfaces.Sign(vdr2sk, unsignedMsg.Bytes())
-	sig3 := interfaces.Sign(vdr3sk, unsignedMsg.Bytes())
-	vdrToSig := map[*interfaces.Validator]*interfaces.Signature{
+	sig1, err := vdr1sk.Sign(unsignedMsg.Bytes())
+	require.NoError(t, err)
+	sig2, err := vdr2sk.Sign(unsignedMsg.Bytes())
+	require.NoError(t, err)
+	sig3, err := vdr3sk.Sign(unsignedMsg.Bytes())
+	require.NoError(t, err)
+	vdrToSig := map[*warp.Validator]*bls.Signature{
 		vdr1: sig1,
 		vdr2: sig2,
 		vdr3: sig3,
@@ -52,8 +58,7 @@ func TestAggregateSignatures(t *testing.T) {
 	require.NoError(t, err)
 	nonVdrSig, err := nonVdrSk.Sign(unsignedMsg.Bytes())
 	require.NoError(t, err)
-	nonVdrSig := interfaces.Sign(nonVdrSk, unsignedMsg.Bytes())
-	vdrs := []*interfaces.Validator{
+	vdrs := []*warp.Validator{
 		{
 			PublicKey: vdr1.PublicKey,
 			NodeIDs:   []ids.NodeID{nodeID1},
@@ -75,9 +80,9 @@ func TestAggregateSignatures(t *testing.T) {
 		name                  string
 		contextWithCancelFunc func() (context.Context, context.CancelFunc)
 		aggregatorFunc        func(*gomock.Controller, context.CancelFunc) *Aggregator
-		unsignedMsg           *interfaces.UnsignedMessage
+		unsignedMsg           *warp.UnsignedMessage
 		quorumNum             uint64
-		expectedSigners       []*interfaces.Validator
+		expectedSigners       []*warp.Validator
 		expectedErr           error
 	}
 
@@ -94,7 +99,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   1,
-			expectedErr: interfaces.ErrInsufficientWeight,
+			expectedErr: warp.ErrInsufficientWeight,
 		},
 		{
 			name: "1/3 validators reply with signature; insufficient weight",
@@ -110,7 +115,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   35, // Require >1/3 of weight
-			expectedErr: interfaces.ErrInsufficientWeight,
+			expectedErr: warp.ErrInsufficientWeight,
 		},
 		{
 			name: "2/3 validators reply with signature; insufficient weight",
@@ -126,7 +131,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   69, // Require >2/3 of weight
-			expectedErr: interfaces.ErrInsufficientWeight,
+			expectedErr: warp.ErrInsufficientWeight,
 		},
 		{
 			name: "2/3 validators reply with signature; sufficient weight",
@@ -142,7 +147,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       65, // Require <2/3 of weight
-			expectedSigners: []*interfaces.Validator{vdr1, vdr2},
+			expectedSigners: []*warp.Validator{vdr1, vdr2},
 			expectedErr:     nil,
 		},
 		{
@@ -159,7 +164,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       100, // Require all weight
-			expectedSigners: []*interfaces.Validator{vdr1, vdr2, vdr3},
+			expectedSigners: []*warp.Validator{vdr1, vdr2, vdr3},
 			expectedErr:     nil,
 		},
 		{
@@ -176,7 +181,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       64,
-			expectedSigners: []*interfaces.Validator{vdr2, vdr3},
+			expectedSigners: []*warp.Validator{vdr2, vdr3},
 			expectedErr:     nil,
 		},
 		{
@@ -193,7 +198,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   1,
-			expectedErr: interfaces.ErrInsufficientWeight,
+			expectedErr: warp.ErrInsufficientWeight,
 		},
 		{
 			name: "3/3 validators reply with signature; 2 invalid signatures; insufficient weight",
@@ -209,7 +214,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   40,
-			expectedErr: interfaces.ErrInsufficientWeight,
+			expectedErr: warp.ErrInsufficientWeight,
 		},
 		{
 			name: "1/3 validators reply with signature; 1 invalid signature; 1 error; sufficient weight",
@@ -225,7 +230,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       30,
-			expectedSigners: []*interfaces.Validator{vdr3},
+			expectedSigners: []*warp.Validator{vdr3},
 			expectedErr:     nil,
 		},
 		{
@@ -240,7 +245,7 @@ func TestAggregateSignatures(t *testing.T) {
 				// because the parent context is canceled.
 				client := NewMockSignatureGetter(ctrl)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).DoAndReturn(
-					func(ctx context.Context, _ ids.NodeID, _ *interfaces.UnsignedMessage) (*interfaces.Signature, error) {
+					func(ctx context.Context, _ ids.NodeID, _ *warp.UnsignedMessage) (*bls.Signature, error) {
 						<-ctx.Done()
 						err := ctx.Err()
 						require.ErrorIs(t, err, context.Canceled)
@@ -248,7 +253,7 @@ func TestAggregateSignatures(t *testing.T) {
 					},
 				).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).DoAndReturn(
-					func(ctx context.Context, _ ids.NodeID, _ *interfaces.UnsignedMessage) (*interfaces.Signature, error) {
+					func(ctx context.Context, _ ids.NodeID, _ *warp.UnsignedMessage) (*bls.Signature, error) {
 						<-ctx.Done()
 						err := ctx.Err()
 						require.ErrorIs(t, err, context.Canceled)
@@ -256,7 +261,7 @@ func TestAggregateSignatures(t *testing.T) {
 					},
 				).MaxTimes(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).DoAndReturn(
-					func(ctx context.Context, _ ids.NodeID, _ *interfaces.UnsignedMessage) (*interfaces.Signature, error) {
+					func(ctx context.Context, _ ids.NodeID, _ *warp.UnsignedMessage) (*bls.Signature, error) {
 						<-ctx.Done()
 						err := ctx.Err()
 						require.ErrorIs(t, err, context.Canceled)
@@ -267,8 +272,8 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       60, // Require 2/3 validators
-			expectedSigners: []*interfaces.Validator{vdr1, vdr2},
-			expectedErr:     interfaces.ErrInsufficientWeight,
+			expectedSigners: []*warp.Validator{vdr1, vdr2},
+			expectedErr:     warp.ErrInsufficientWeight,
 		},
 		{
 			name: "context cancels halfway through signature fetching",
@@ -279,14 +284,14 @@ func TestAggregateSignatures(t *testing.T) {
 			aggregatorFunc: func(ctrl *gomock.Controller, cancel context.CancelFunc) *Aggregator {
 				client := NewMockSignatureGetter(ctrl)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).DoAndReturn(
-					func(ctx context.Context, _ ids.NodeID, _ *interfaces.UnsignedMessage) (*interfaces.Signature, error) {
+					func(ctx context.Context, _ ids.NodeID, _ *warp.UnsignedMessage) (*bls.Signature, error) {
 						// cancel the context and return the signature
 						cancel()
 						return sig1, nil
 					},
 				).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).DoAndReturn(
-					func(ctx context.Context, _ ids.NodeID, _ *interfaces.UnsignedMessage) (*interfaces.Signature, error) {
+					func(ctx context.Context, _ ids.NodeID, _ *warp.UnsignedMessage) (*bls.Signature, error) {
 						// Should not be able to grab another signature since context was cancelled in another go routine
 						<-ctx.Done()
 						err := ctx.Err()
@@ -295,7 +300,7 @@ func TestAggregateSignatures(t *testing.T) {
 					},
 				).MaxTimes(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).DoAndReturn(
-					func(ctx context.Context, _ ids.NodeID, _ *interfaces.UnsignedMessage) (*interfaces.Signature, error) {
+					func(ctx context.Context, _ ids.NodeID, _ *warp.UnsignedMessage) (*bls.Signature, error) {
 						// Should not be able to grab another signature since context was cancelled in another go routine
 						<-ctx.Done()
 						err := ctx.Err()
@@ -307,7 +312,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       33, // 1/3 Should have gotten one signature before cancellation
-			expectedSigners: []*interfaces.Validator{vdr1},
+			expectedSigners: []*warp.Validator{vdr1},
 			expectedErr:     nil,
 		},
 		{
@@ -322,7 +327,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).DoAndReturn(
 					// The aggregator will receive sig1 and sig2 which is sufficient weight,
 					// so the remaining outstanding goroutine should be cancelled.
-					func(ctx context.Context, _ ids.NodeID, _ *interfaces.UnsignedMessage) (*interfaces.Signature, error) {
+					func(ctx context.Context, _ ids.NodeID, _ *warp.UnsignedMessage) (*bls.Signature, error) {
 						<-ctx.Done()
 						err := ctx.Err()
 						require.ErrorIs(t, err, context.Canceled)
@@ -333,7 +338,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       60, // Require 2/3 validators
-			expectedSigners: []*interfaces.Validator{vdr1, vdr2},
+			expectedSigners: []*warp.Validator{vdr1, vdr2},
 			expectedErr:     nil,
 		},
 	}
@@ -365,15 +370,15 @@ func TestAggregateSignatures(t *testing.T) {
 			require.Equal(expectedSigWeight, res.SignatureWeight)
 			require.Equal(vdr1.Weight+vdr2.Weight+vdr3.Weight, res.TotalWeight)
 
-			expectedSigs := []*interfaces.Signature{}
+			expectedSigs := []*bls.Signature{}
 			for _, vdr := range tt.expectedSigners {
 				expectedSigs = append(expectedSigs, vdrToSig[vdr])
 			}
-			expectedSig, err := interfaces.AggregateSignatures(expectedSigs)
+			expectedSig, err := bls.AggregateSignatures(expectedSigs)
 			require.NoError(err)
-			gotBLSSig, ok := res.Message.Signature.(*interfaces.BitSetSignature)
+			gotBLSSig, ok := res.Message.Signature.(*warp.BitSetSignature)
 			require.True(ok)
-			require.Equal(interfaces.SignatureToBytes(expectedSig), gotBLSSig.Signature[:])
+			require.Equal(bls.SignatureToBytes(expectedSig), gotBLSSig.Signature[:])
 
 			numSigners, err := res.Message.Signature.NumSigners()
 			require.NoError(err)
