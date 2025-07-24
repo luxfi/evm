@@ -8,12 +8,12 @@ import (
 	"context"
 	"sync"
 	"time"
-	"github.com/luxfi/evm/interfaces"
+	
 	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/core/state/snapshot"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/ethdb"
-	"github.com/luxfi/evm/ethdb/memorydb"
+	"github.com/luxfi/geth/ethdb/memorydb"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/sync/handlers/stats"
 	"github.com/luxfi/evm/sync/syncutils"
@@ -151,7 +151,7 @@ func (lrh *LeafsRequestHandler) OnLeafsRequest(ctx context.Context, nodeID inter
 		return nil, nil
 	}
 
-	responseBytes, err := lrh.interfaces.Marshal(message.Version, leafsResponse)
+	responseBytes, err := lrh.codec.Marshal(leafsResponse)
 	if err != nil {
 		log.Debug("failed to marshal LeafsResponse, dropping request", "nodeID", nodeID, "requestID", requestID, "request", leafsRequest, "err", err)
 		return nil, nil
