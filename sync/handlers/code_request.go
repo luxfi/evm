@@ -6,7 +6,7 @@ package handlers
 import (
 	"context"
 	"time"
-	"github.com/luxfi/evm/interfaces"
+	
 	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/geth/ethdb"
@@ -71,7 +71,7 @@ func (n *CodeRequestHandler) OnCodeRequest(_ context.Context, nodeID interfaces.
 	}
 
 	codeResponse := message.CodeResponse{Data: codeBytes}
-	responseBytes, err := n.interfaces.Marshal(message.Version, codeResponse)
+	responseBytes, err := n.codec.Marshal(codeResponse)
 	if err != nil {
 		log.Error("could not marshal CodeResponse, dropping request", "nodeID", nodeID, "requestID", requestID, "request", codeRequest, "err", err)
 		return nil, nil
