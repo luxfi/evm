@@ -1,14 +1,38 @@
-// manager is a no-op stub that allows the EVM library to compile without node-level dependencies.
+//go:build node_validators
+
 package validators
 
-// manager is a no-op stubbed validator manager.
-type manager struct{}
+import (
+	"github.com/luxfi/node/ids"
+	"github.com/luxfi/node/consensus"
+	"github.com/luxfi/node/consensus/validators"
+	"github.com/luxfi/node/database"
+	"github.com/luxfi/node/utils/timer/mockable"
+)
 
-// NewManager returns a stub manager so the EVM library can compile without node-level dependencies.
+// manager wraps the consensus validator manager for EVM usage
+type manager struct {
+	validators.Manager
+	ctx      *consensus.Context
+	subnetID ids.ID
+	chainID  ids.ID
+	db       database.Database
+	clock    *mockable.Clock
+}
+
+// NewManager returns the actual validator manager implementation.
 func NewManager(
-	ctx interface{},
-	db interface{},
-	clock interface{},
+	ctx *consensus.Context,
+	db database.Database,
+	clock *mockable.Clock,
 ) (*manager, error) {
-	return nil, nil
+	m := validators.NewManager()
+	return &manager{
+		Manager:   m,
+		ctx:       ctx,
+		subnetID:  ctx.SubnetID,
+		chainID:   ctx.ChainID,
+		db:        db,
+		clock:     clock,
+	}, nil
 }

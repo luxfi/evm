@@ -46,7 +46,6 @@ type weightedIterator struct {
 func (it *weightedIterator) Cmp(other *weightedIterator) int {
 	// Order the iterators primarily by the account hashes
 	var keyI, keyJ common.Hash
-	var err error
 	if ai, ok := it.it.(AccountIterator); ok {
 		keyI, _ = ai.Account()
 	} else {
@@ -154,7 +153,12 @@ func (fi *fastIterator) init() {
 				break
 			}
 			// The iterator is still alive, check for collisions with previous ones
-			hash := it.it.Hash()
+			var hash common.Hash
+			if ai, ok := it.it.(AccountIterator); ok {
+				hash, _ = ai.Account()
+			} else {
+				hash, _ = it.it.(StorageIterator).Slot()
+			}
 			if other, exist := positioned[hash]; !exist {
 				positioned[hash] = i
 				break
@@ -194,9 +198,9 @@ func (fi *fastIterator) Next() bool {
 		// do the sorting already
 		fi.initiated = true
 		if fi.account {
-			fi.curAccount = fi.iterators[0].it.(AccountIterator).Account()
+			_, fi.curAccount = fi.iterators[0].it.(AccountIterator).Account()
 		} else {
-			fi.curSlot = fi.iterators[0].it.(StorageIterator).Slot()
+			_, fi.curSlot = fi.iterators[0].it.(StorageIterator).Slot()
 		}
 		if innerErr := fi.iterators[0].it.Error(); innerErr != nil {
 			fi.fail = innerErr
@@ -220,9 +224,9 @@ func (fi *fastIterator) Next() bool {
 			return false // exhausted
 		}
 		if fi.account {
-			fi.curAccount = fi.iterators[0].it.(AccountIterator).Account()
+			_, fi.curAccount = fi.iterators[0].it.(AccountIterator).Account()
 		} else {
-			fi.curSlot = fi.iterators[0].it.(StorageIterator).Slot()
+			_, fi.curSlot = fi.iterators[0].it.(StorageIterator).Slot()
 		}
 		if innerErr := fi.iterators[0].it.Error(); innerErr != nil {
 			fi.fail = innerErr
@@ -258,8 +262,8 @@ func (fi *fastIterator) next(idx int) bool {
 	// We next-ed the iterator at 'idx', now we may have to re-sort that element
 	cur := fi.iterators[idx]
 	nextIt := fi.iterators[idx+1]
-	var curKey, nextKey common.Hash
 	// Determine keys via Account()/Slot()
+	var curKey, nextKey common.Hash
 	if ai, ok := cur.it.(AccountIterator); ok {
 		curKey, _ = ai.Account()
 	} else {
@@ -365,21 +369,55 @@ func (fi *fastIterator) Release() {
 // Debug is a convenience helper during testing
 func (fi *fastIterator) Debug() {
 	for _, it := range fi.iterators {
-		fmt.Printf("[p=%v v=%v] ", it.priority, it.it.Hash()[0])
+		var hash common.Hash
+		if ai, ok := it.it.(AccountIterator); ok {
+			hash, _ = ai.Account()
+		} else {
+			hash, _ = it.it.(StorageIterator).Slot()
+		}
+		fmt.Printf("[p=%v v=%v] ", it.priority, hash[0])
 	}
 	fmt.Println()
+}
+
+// fastAccountIterator is a wrapper around fastIterator that implements AccountIterator
+type fastAccountIterator struct {
+	*fastIterator
+}
+
+// Account returns the current account hash and data
+func (it *fastAccountIterator) Account() (common.Hash, []byte) {
+	return it.Hash(), it.fastIterator.Account()
+}
+
+// fastStorageIterator is a wrapper around fastIterator that implements StorageIterator
+type fastStorageIterator struct {
+	*fastIterator
+}
+
+// Slot returns the current slot hash and data
+func (it *fastStorageIterator) Slot() (common.Hash, []byte) {
+	return it.Hash(), it.fastIterator.Slot()
 }
 
 // newFastAccountIterator creates a new hierarchical account iterator with one
 // element per diff layer. The returned combo iterator can be used to walk over
 // the entire snapshot diff stack simultaneously.
 func newFastAccountIterator(tree *Tree, root common.Hash, seek common.Hash, holdsTreeLock bool) (AccountIterator, error) {
-	return newFastIterator(tree, root, common.Hash{}, seek, true, holdsTreeLock)
+	fi, err := newFastIterator(tree, root, common.Hash{}, seek, true, holdsTreeLock)
+	if err != nil {
+		return nil, err
+	}
+	return &fastAccountIterator{fi}, nil
 }
 
 // newFastStorageIterator creates a new hierarchical storage iterator with one
 // element per diff layer. The returned combo iterator can be used to walk over
 // the entire snapshot diff stack simultaneously.
 func newFastStorageIterator(tree *Tree, root common.Hash, account common.Hash, seek common.Hash, holdsTreeLock bool) (StorageIterator, error) {
-	return newFastIterator(tree, root, account, seek, false, holdsTreeLock)
+	fi, err := newFastIterator(tree, root, account, seek, false, holdsTreeLock)
+	if err != nil {
+		return nil, err
+	}
+	return &fastStorageIterator{fi}, nil
 }

@@ -50,7 +50,7 @@ func newTrieReader(stateRoot, owner common.Hash, db database.NodeDatabase) (*tri
 		}
 		return &trieReader{owner: owner}, nil
 	}
-	reader, err := db.Reader(stateRoot)
+	reader, err := db.NodeReader(stateRoot)
 	if err != nil {
 		return nil, &MissingNodeError{Owner: owner, NodeHash: stateRoot, err: err}
 	}
