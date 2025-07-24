@@ -53,7 +53,7 @@ import (
 	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/internal/blocktest"
 	"github.com/luxfi/geth/params"
-	"github.com/luxfi/evm/plugin/evm/upgrade/ap3"
+	"github.com/luxfi/evm/upgrade/ap3"
 	"github.com/luxfi/geth/rpc"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"

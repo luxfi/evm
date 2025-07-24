@@ -39,7 +39,7 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/plugin/evm/customrawdb"
-	"github.com/luxfi/evm/plugin/evm/upgrade/legacy"
+	"github.com/luxfi/evm/upgrade/legacy"
 	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/geth/common"

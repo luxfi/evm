@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/luxfi/evm/commontype"
+	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
 	gethparams "github.com/luxfi/geth/params"
-	"github.com/luxfi/evm/commontype"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/utils"
+	upgrade "github.com/luxfi/node/upgrade"
+	constants "github.com/luxfi/node/utils/constants"
 )
 
 var (
@@ -31,69 +32,69 @@ var (
 
 	EVMDefaultChainConfig = &ChainConfig{
 		FeeConfig:          DefaultFeeConfig,
-		NetworkUpgrades:    getDefaultNetworkUpgrades(interfaces.GetConfig(constants.MainnetID)),
+		NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.MainnetID)),
 		GenesisPrecompiles: Precompiles{},
 	}
 
 	TestChainConfig = &ChainConfig{
-		LuxContext:   LuxContext{ConsensusCtx: utils.TestConsensusContext()},
+		LuxContext:         LuxContext{ConsensusCtx: utils.TestConsensusContext()},
 		FeeConfig:          DefaultFeeConfig,
-		NetworkUpgrades:    getDefaultNetworkUpgrades(interfaces.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
+		NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
 		GenesisPrecompiles: Precompiles{},
 	}
 
 	TestPreEVMChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
 		c.NetworkUpgrades = NetworkUpgrades{
-			EVMTimestamp: utils.TimeToNewUint64(interfaces.UnscheduledActivationTime),
-			DurangoTimestamp:   utils.TimeToNewUint64(interfaces.UnscheduledActivationTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(interfaces.UnscheduledActivationTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(interfaces.UnscheduledActivationTime),
+			EVMTimestamp:     utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
+			DurangoTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
+			EtnaTimestamp:    utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
+			FortunaTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
 		}
 	})
 
 	TestEVMChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
 		c.NetworkUpgrades = NetworkUpgrades{
-			EVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(interfaces.UnscheduledActivationTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(interfaces.UnscheduledActivationTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(interfaces.UnscheduledActivationTime),
+			EVMTimestamp:     utils.NewUint64(0),
+			DurangoTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
+			EtnaTimestamp:    utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
+			FortunaTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
 		}
 	})
 
 	TestDurangoChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
 		c.NetworkUpgrades = NetworkUpgrades{
-			EVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(interfaces.InitiallyActiveTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(interfaces.UnscheduledActivationTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(interfaces.UnscheduledActivationTime),
+			EVMTimestamp:     utils.NewUint64(0),
+			DurangoTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			EtnaTimestamp:    utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
+			FortunaTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
 		}
 	})
 
 	TestEtnaChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
 		c.NetworkUpgrades = NetworkUpgrades{
-			EVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(interfaces.InitiallyActiveTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(interfaces.InitiallyActiveTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(interfaces.UnscheduledActivationTime),
+			EVMTimestamp:     utils.NewUint64(0),
+			DurangoTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			EtnaTimestamp:    utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			FortunaTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
 		}
 	})
 
 	TestFortunaChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
 		c.NetworkUpgrades = NetworkUpgrades{
-			EVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(interfaces.InitiallyActiveTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(interfaces.InitiallyActiveTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(interfaces.InitiallyActiveTime),
+			EVMTimestamp:     utils.NewUint64(0),
+			DurangoTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			EtnaTimestamp:    utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			FortunaTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
 		}
 	})
 
 	TestGraniteChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
 		c.NetworkUpgrades = NetworkUpgrades{
-			EVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(interfaces.InitiallyActiveTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(interfaces.InitiallyActiveTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(interfaces.InitiallyActiveTime),
-			GraniteTimestamp:   utils.TimeToNewUint64(interfaces.InitiallyActiveTime),
+			EVMTimestamp:     utils.NewUint64(0),
+			DurangoTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			EtnaTimestamp:    utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			FortunaTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			GraniteTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
 		}
 	})
 )
@@ -111,7 +112,7 @@ type UpgradeConfig struct {
 	// Config for timestamps that enable network upgrades.
 	NetworkUpgradeOverrides *NetworkUpgrades `json:"networkUpgradeOverrides,omitempty"`
 
-	// Config for modifying state as a network interfaces.
+// Config for modifying state as a network interfaces.
 	StateUpgrades []StateUpgrade `json:"stateUpgrades,omitempty"`
 
 	// Config for enabling and disabling precompiles as network upgrades.
@@ -120,7 +121,7 @@ type UpgradeConfig struct {
 
 // LuxContext provides Lux specific context directly into the EVM.
 type LuxContext struct {
-	ConsensusCtx *interfaces.ChainContext
+	ConsensusCtx *upgrade.ChainContext
 }
 
 type ChainConfig struct {
@@ -168,14 +169,14 @@ func (c *ChainConfig) Description() string {
 	banner += c.NetworkUpgrades.Description()
 	banner += "\n"
 
-	upgradeConfigBytes, err := interfaces.Marshal(c.UpgradeConfig)
+	upgradeConfigBytes, err := upgrade.Marshal(c.UpgradeConfig)
 	if err != nil {
 		upgradeConfigBytes = []byte("cannot marshal UpgradeConfig")
 	}
 	banner += fmt.Sprintf("Upgrade Config: %s", string(upgradeConfigBytes))
 	banner += "\n"
 
-	feeBytes, err := interfaces.Marshal(c.FeeConfig)
+	feeBytes, err := upgrade.Marshal(c.FeeConfig)
 	if err != nil {
 		feeBytes = []byte("cannot marshal FeeConfig")
 	}
@@ -220,7 +221,7 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 	// Alias ChainConfigExtra to avoid recursion
 	type _ChainConfigExtra ChainConfig
 	tmp := _ChainConfigExtra{}
-	if err := interfaces.Unmarshal(data, &tmp); err != nil {
+	if err := upgrade.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
 
@@ -228,7 +229,7 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 	*c = ChainConfig(tmp)
 
 	// Unmarshal inlined PrecompileUpgrade
-	return interfaces.Unmarshal(data, &c.GenesisPrecompiles)
+	return upgrade.Unmarshal(data, &c.GenesisPrecompiles)
 }
 
 // MarshalJSON returns the JSON encoding of c.
@@ -236,27 +237,27 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 func (c *ChainConfig) MarshalJSON() ([]byte, error) {
 	// Alias ChainConfigExtra to avoid recursion
 	type _ChainConfigExtra ChainConfig
-	tmp, err := interfaces.Marshal(_ChainConfigExtra(*c))
+	tmp, err := upgrade.Marshal(_ChainConfigExtra(*c))
 	if err != nil {
 		return nil, err
 	}
 
 	// To include PrecompileUpgrades, we unmarshal the json representing c
 	// then directly add the corresponding keys to the interfaces.
-	raw := make(map[string]interfaces.RawMessage)
-	if err := interfaces.Unmarshal(tmp, &raw); err != nil {
+   raw := make(map[string]upgrade.RawMessage)
+	if err := upgrade.Unmarshal(tmp, &raw); err != nil {
 		return nil, err
 	}
 
 	for key, value := range c.GenesisPrecompiles {
-		conf, err := interfaces.Marshal(value)
+		conf, err := upgrade.Marshal(value)
 		if err != nil {
 			return nil, err
 		}
 		raw[key] = conf
 	}
 
-	return interfaces.Marshal(raw)
+	return upgrade.Marshal(raw)
 }
 
 type fork struct {

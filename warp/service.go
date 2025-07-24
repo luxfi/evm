@@ -1,6 +1,9 @@
 // (c) 2023, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+//go:build evm_node
+// +build evm_node
+
 package warp
 
 import (
@@ -10,7 +13,7 @@ import (
 	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/peer"
+	"github.com/luxfi/evm/internal/stub"
 	"github.com/luxfi/evm/warp/aggregator"
 	"github.com/luxfi/evm/warp/validators"
 	"github.com/luxfi/geth/common/hexutil"

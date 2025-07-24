@@ -15,75 +15,72 @@ import (
 	"strings"
 	"sync"
 	"time"
+
 	// Node consensus imports
-	"github.com/luxfi/node/consensus"
-	"github.com/luxfi/node/consensus/engine/linear/block"
-	"github.com/luxfi/node/consensus/linear"
-	"github.com/luxfi/node/database"
-	"github.com/luxfi/node/ids"
-	"github.com/luxfi/node/utils/constants"
-	"github.com/luxfi/node/utils/crypto/secp256k1"
-	"github.com/luxfi/node/utils/formatting"
-	"github.com/luxfi/node/utils/logging"
-	"github.com/luxfi/node/utils/math"
-	"github.com/luxfi/node/utils/metric"
-	"github.com/luxfi/node/utils/set"
-	"github.com/luxfi/node/utils/timer/mockable"
-	"github.com/luxfi/node/utils/units"
-	"github.com/luxfi/node/utils/wrappers"
-	"github.com/luxfi/node/vms/registry"
-	commonEng "github.com/luxfi/node/consensus/engine/core"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/luxfi/evm/commontype"
+	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/constants"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/geth/eth"
-	"github.com/luxfi/geth/eth/ethconfig"
-	"github.com/luxfi/geth/metrics"
 	evmPrometheus "github.com/luxfi/evm/metrics/prometheus"
 	"github.com/luxfi/evm/miner"
-	"github.com/luxfi/geth/node"
 	"github.com/luxfi/evm/params"
-	"github.com/luxfi/evm/peer"
+	"github.com/luxfi/evm/params/extras"
+	"github.com/luxfi/evm/internal/stub"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/rpc"
 	statesyncclient "github.com/luxfi/evm/sync/client"
 	"github.com/luxfi/evm/sync/client/stats"
-	"github.com/luxfi/geth/trie"
+	"github.com/luxfi/evm/triedb/hashdb"
 	"github.com/luxfi/evm/warp"
-	warpValidators "github.com/luxfi/evm/warp/validators"
+	"github.com/luxfi/geth/eth"
+	"github.com/luxfi/geth/eth/ethconfig"
+	"github.com/luxfi/geth/metrics"
+	"github.com/luxfi/geth/node"
+	"github.com/luxfi/geth/triedb"
+	"github.com/luxfi/node/cache/lru"
+	"github.com/luxfi/node/cache/metercacher"
+	"github.com/luxfi/node/consensus"
+	commonEng "github.com/luxfi/node/consensus/engine/core"
+	"github.com/luxfi/node/consensus/engine/linear/block"
+	"github.com/luxfi/node/database"
+	"github.com/luxfi/node/ids"
+	"github.com/luxfi/node/utils/constants"
+	"github.com/luxfi/node/utils/metric"
+	"github.com/luxfi/node/utils/timer/mockable"
+	"github.com/luxfi/node/utils/units"
+	"github.com/prometheus/client_golang/prometheus"
+
 	// Force-load tracer engine to trigger registration
 	//
 	// We must import this package (not referenced elsewhere) so that the native "callTracer"
 	// is added to a map of client-accessible tracers. In geth, this is done
 	// inside of cmd/geth.
+
 	_ "github.com/luxfi/geth/eth/tracers/js"
 	_ "github.com/luxfi/geth/eth/tracers/native"
-	"github.com/luxfi/evm/precompile/precompileconfig"
+
 	// Force-load precompiles to trigger registration
+	luxRPC "github.com/gorilla/rpc/v2"
 	_ "github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/log"
 	"github.com/luxfi/geth/rlp"
-	luxRPC "github.com/gorilla/rpc/v2"
+
 	// Additional node imports
-	"github.com/luxfi/node/chains/atomic"
+	evmValidators "github.com/luxfi/evm/plugin/evm/validators"
 	"github.com/luxfi/node/codec"
 	"github.com/luxfi/node/consensus/validators"
-	"github.com/luxfi/node/database/prefixdb"
 	"github.com/luxfi/node/network/p2p"
-	"github.com/luxfi/node/network/p2p/lip118"
 	"github.com/luxfi/node/network/p2p/gossip"
-	evmValidators "github.com/luxfi/evm/plugin/evm/validators"
+	"github.com/luxfi/node/network/p2p/lp118"
 	"github.com/luxfi/node/utils"
 	"github.com/luxfi/node/utils/json"
 	"github.com/luxfi/node/utils/perms"
 	"github.com/luxfi/node/utils/profiler"
-	"github.com/luxfi/node/version"
 	"github.com/luxfi/node/vms/components/chain"
 )
 
@@ -147,8 +144,8 @@ var (
 	errInvalidBlock                  = errors.New("invalid block")
 	errInvalidNonce                  = errors.New("invalid nonce")
 	errUnclesUnsupported             = errors.New("uncles unsupported")
-	errNilBaseFeeEVM           = errors.New("nil base fee is invalid after evm")
-	errNilBlockGasCostEVM      = errors.New("nil blockGasCost is invalid after evm")
+	errNilBaseFeeEVM                 = errors.New("nil base fee is invalid after evm")
+	errNilBlockGasCostEVM            = errors.New("nil blockGasCost is invalid after evm")
 	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
 	errInitializingLogger            = errors.New("failed to initialize logger")
 )
@@ -546,7 +543,7 @@ func (vm *VM) Initialize(
 	go vm.ctx.Log.RecoverAndPanic(vm.startContinuousProfiler)
 
 	// Add p2p warp message warpHandler
-	warpHandler := lip118.NewCachedHandler(meteredCache, vm.warpBackend, vm.ctx.WarpSigner)
+	warpHandler := lp118.NewCachedHandler(meteredCache, vm.warpBackend, vm.ctx.WarpSigner)
 	vm.Network.AddHandler(p2p.SignatureRequestHandlerID, warpHandler)
 
 	vm.setAppRequestHandlers()
@@ -583,7 +580,7 @@ func (vm *VM) initializeMetrics() error {
 
 func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethinterfaces.Config) error {
 	nodecfg := &node.Config{
-		EVMVersion:      Version,
+		EVMVersion:            Version,
 		KeyStoreDir:           vm.config.KeystoreDirectory,
 		ExternalSigner:        vm.config.KeystoreExternalSigner,
 		InsecureUnlockAllowed: vm.config.KeystoreInsecureUnlockAllowed,
@@ -926,7 +923,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 		log.Debug("Building block without context")
 	}
 	predicateCtx := &precompileinterfaces.PredicateContext{
-		ConsensusCtx:            vm.ctx,
+		ConsensusCtx:       vm.ctx,
 		ProposerVMBlockCtx: proposerVMBlockCtx,
 	}
 
