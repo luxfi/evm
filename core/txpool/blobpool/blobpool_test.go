@@ -55,8 +55,8 @@ import (
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/plugin/evm/header"
-	"github.com/luxfi/evm/plugin/evm/upgrade/legacy"
-	"github.com/luxfi/evm/plugin/evm/upgrade/subnetevm"
+	"github.com/luxfi/evm/upgrade/legacy"
+	"github.com/luxfi/evm/upgrade/subnetevm"
 	"github.com/holiman/billy"
 	"github.com/holiman/uint256"
 )
