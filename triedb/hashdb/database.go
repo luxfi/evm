@@ -40,6 +40,7 @@ import (
 	"github.com/luxfi/geth/log"
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/geth/rlp"
+	"github.com/luxfi/geth/triedb/database"
 	"github.com/luxfi/evm/trie/trienode"
 	"github.com/luxfi/evm/utils"
 )
@@ -736,7 +737,7 @@ func (db *Database) Scheme() string {
 
 // Reader retrieves a node reader belonging to the given state root.
 // An error will be returned if the requested state is not available.
-func (db *Database) Reader(root common.Hash) (*reader, error) {
+func (db *Database) NodeReader(root common.Hash) (database.NodeReader, error) {
 	if _, err := db.node(root); err != nil {
 		return nil, fmt.Errorf("state %#x is not available, %v", root, err)
 	}

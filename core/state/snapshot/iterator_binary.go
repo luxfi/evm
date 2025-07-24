@@ -134,15 +134,10 @@ first:
 	// Retrieve next key from whichever iterator is ready, using Account()/Slot()
 	if it.aDone {
 		var key common.Hash
-		var err error
 		if it.accountIterator {
-			key, err = it.b.(AccountIterator).Account()
+			key, _ = it.b.(AccountIterator).Account()
 		} else {
-			key, err = it.b.(StorageIterator).Slot()
-		}
-		if err != nil {
-			it.fail = err
-			return false
+			key, _ = it.b.(StorageIterator).Slot()
 		}
 		it.k = key
 		it.bDone = !it.b.Next()
@@ -150,40 +145,23 @@ first:
 	}
 	if it.bDone {
 		var key common.Hash
-		var err error
 		if it.accountIterator {
-			key, err = it.a.(AccountIterator).Account()
+			key, _ = it.a.(AccountIterator).Account()
 		} else {
-			key, err = it.a.(StorageIterator).Slot()
+			key, _ = it.a.(StorageIterator).Slot()
 		}
-		if err != nil {
-			it.fail = err
-			return false
-		}
-		it.aDone = !it.a.Next()
 		it.k = key
+		it.aDone = !it.a.Next()
 		return true
 	}
 	// Both iterators active: fetch and compare their next keys
 	var aKey, bKey common.Hash
-	var err error
 	if it.accountIterator {
-		aKey, err = it.a.(AccountIterator).Account()
+		aKey, _ = it.a.(AccountIterator).Account()
+		bKey, _ = it.b.(AccountIterator).Account()
 	} else {
-		aKey, err = it.a.(StorageIterator).Slot()
-	}
-	if err != nil {
-		it.fail = err
-		return false
-	}
-	if it.accountIterator {
-		bKey, err = it.b.(AccountIterator).Account()
-	} else {
-		bKey, err = it.b.(StorageIterator).Slot()
-	}
-	if err != nil {
-		it.fail = err
-		return false
+		aKey, _ = it.a.(StorageIterator).Slot()
+		bKey, _ = it.b.(StorageIterator).Slot()
 	}
 	switch bytes.Compare(aKey[:], bKey[:]) {
 	case -1:

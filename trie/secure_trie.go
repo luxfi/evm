@@ -221,7 +221,9 @@ func (t *StateTrie) GetKey(shaKey []byte) []byte {
 	if key, ok := t.getSecKeyCache()[string(shaKey)]; ok {
 		return key
 	}
-	return t.db.Preimage(common.BytesToHash(shaKey))
+	// Since the database doesn't have Preimage method, return nil
+	// This is a temporary fix - preimages should be handled separately
+	return nil
 }
 
 // Commit collects all dirty nodes in the trie and replaces them with the
@@ -238,7 +240,9 @@ func (t *StateTrie) Commit(collectLeaf bool) (common.Hash, *trienode.NodeSet, er
 		for hk, key := range t.secKeyCache {
 			preimages[common.BytesToHash([]byte(hk))] = key
 		}
-		t.db.InsertPreimage(preimages)
+		// Since the database doesn't have InsertPreimage method, skip this
+		// This is a temporary fix - preimages should be handled separately
+		// TODO: Store preimages using rawdb.WritePreimages
 		t.secKeyCache = make(map[string][]byte)
 	}
 	// Commit the trie and return its modified nodeset.

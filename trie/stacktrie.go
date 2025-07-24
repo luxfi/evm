@@ -446,7 +446,9 @@ func (t *StackTrie) hash(st *stNode, path []byte) {
 	// Skip committing if the node is on the left boundary and stackTrie is
 	// configured to filter the boundary.
 	if t.options.SkipLeftBoundary && bytes.HasPrefix(t.first, path) {
-		if t.options.boundaryGauge != nil {
+		// Check if boundaryGauge is set before using it
+		var nilGauge metrics.Gauge
+		if t.options.boundaryGauge != nilGauge {
 			t.options.boundaryGauge.Inc(1)
 		}
 		return
@@ -454,7 +456,9 @@ func (t *StackTrie) hash(st *stNode, path []byte) {
 	// Skip committing if the node is on the right boundary and stackTrie is
 	// configured to filter the boundary.
 	if t.options.SkipRightBoundary && bytes.HasPrefix(t.last, path) {
-		if t.options.boundaryGauge != nil {
+		// Check if boundaryGauge is set before using it
+		var nilGauge metrics.Gauge
+		if t.options.boundaryGauge != nilGauge {
 			t.options.boundaryGauge.Inc(1)
 		}
 		return
