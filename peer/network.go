@@ -1,6 +1,9 @@
 // (c) 2019-2022, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+//go:build evm_node
+// +build evm_node
+
 package peer
 
 import (
@@ -9,43 +12,40 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
 	"golang.org/x/sync/semaphore"
+
+	coreinterfaces "github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/log"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/utils"
-	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/peer/stats"
 	"github.com/luxfi/evm/plugin/evm/message"
+	"github.com/luxfi/evm/utils"
+	version "github.com/luxfi/node/version"
 )
 
 // Minimum amount of time to handle a request
 const minRequestHandlingDuration = 100 * time.Millisecond
 
 var (
-	errAcquiringSemaphore                      = errors.New("error acquiring semaphore")
-	errExpiredRequest                          = errors.New("expired request")
-	_                     Network              = &network{}
-	_                     interfaces.Connector = &network{}
-	_                     core.AppHandler      = &network{}
+	errAcquiringSemaphore                           = errors.New("error acquiring semaphore")
+	errExpiredRequest                               = errors.New("expired request")
+	_                     Network                   = &network{}
+	_                     coreinterfaces.Connector  = &network{}
+	_                     coreinterfaces.AppHandler = &network{}
 )
 
 type Network interface {
-	interfaces.Connector
-	core.AppHandler
+	coreinterfaces.Connector
+	coreinterfaces.AppHandler
 
 	// SendAppRequestAny synchronously sends request to an arbitrary peer with a
 	// node version greater than or equal to minVersion.
 	// Returns the ID of the chosen peer, and an error if the request could not
 	// be sent to a peer with the desired [minVersion].
-	SendAppRequestAny(ctx context.Context, minVersion *interfaces.Application, message []byte, handler message.ResponseHandler) (interfaces.NodeID, error)
+	SendAppRequestAny(ctx context.Context, minVersion *version.Application, message []byte, handler message.ResponseHandler) (coreinterfaces.NodeID, error)
 
 	// SendAppRequest sends message to given nodeID, notifying handler when there's a response or timeout
-	SendAppRequest(ctx context.Context, nodeID interfaces.NodeID, message []byte, handler message.ResponseHandler) error
+	SendAppRequest(ctx context.Context, nodeID coreinterfaces.NodeID, message []byte, handler message.ResponseHandler) error
 
 	// Shutdown stops all peer channel listeners and marks the node to have stopped
 	// n.Start() can be called again but the peers will have to be reconnected
@@ -60,7 +60,7 @@ type Network interface {
 
 	// TrackBandwidth should be called for each valid request with the bandwidth
 	// (length of response divided by request time), and with 0 if the response is invalid.
-	TrackBandwidth(nodeID interfaces.NodeID, bandwidth float64)
+	TrackBandwidth(nodeID coreinterfaces.NodeID, bandwidth float64)
 
 	// NewClient returns a client to send messages with for the given protocol
 	NewClient(protocol uint64, options ...interfaces.ClientOption) *interfaces.Client
@@ -72,15 +72,15 @@ type Network interface {
 // each peer in linear fashion
 type network struct {
 	lock                       sync.RWMutex                       // lock for mutating state of this Network struct
-	self                       interfaces.NodeID                         // NodeID of this node
+	self                       interfaces.NodeID                  // NodeID of this node
 	requestIDGen               uint32                             // requestID counter used to track outbound requests
 	outstandingRequestHandlers map[uint32]message.ResponseHandler // maps node requestID => message.ResponseHandler
 	activeAppRequests          *semaphore.Weighted                // controls maximum number of active outbound requests
 	activeCrossChainRequests   *semaphore.Weighted                // controls maximum number of active outbound cross chain requests
 	p2pNetwork                 *interfaces.Network
 	appSender                  core.AppSender                   // node AppSender for sending messages
-	codec                      interfaces.Codec                    // Codec used for parsing messages
-	crossChainCodec            interfaces.Codec                    // Codec used for parsing cross chain messages
+	codec                      interfaces.Codec                 // Codec used for parsing messages
+	crossChainCodec            interfaces.Codec                 // Codec used for parsing cross chain messages
 	appRequestHandler          message.RequestHandler           // maps request type => handler
 	crossChainRequestHandler   message.CrossChainRequestHandler // maps cross chain request type => handler
 	gossipHandler              message.GossipHandler            // maps gossip type => handler

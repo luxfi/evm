@@ -45,10 +45,20 @@ type weightedIterator struct {
 
 func (it *weightedIterator) Cmp(other *weightedIterator) int {
 	// Order the iterators primarily by the account hashes
-	hashI := it.it.Hash()
-	hashJ := other.it.Hash()
+	var keyI, keyJ common.Hash
+	var err error
+	if ai, ok := it.it.(AccountIterator); ok {
+		keyI, _ = ai.Account()
+	} else {
+		keyI, _ = it.it.(StorageIterator).Slot()
+	}
+	if bi, ok := other.it.(AccountIterator); ok {
+		keyJ, _ = bi.Account()
+	} else {
+		keyJ, _ = other.it.(StorageIterator).Slot()
+	}
 
-	switch bytes.Compare(hashI[:], hashJ[:]) {
+	switch bytes.Compare(keyI[:], keyJ[:]) {
 	case -1:
 		return -1
 	case 1:
@@ -246,15 +256,25 @@ func (fi *fastIterator) next(idx int) bool {
 		return true
 	}
 	// We next-ed the iterator at 'idx', now we may have to re-sort that element
-	var (
-		cur, next         = fi.iterators[idx], fi.iterators[idx+1]
-		curHash, nextHash = cur.it.Hash(), next.it.Hash()
-	)
-	if diff := bytes.Compare(curHash[:], nextHash[:]); diff < 0 {
+	cur := fi.iterators[idx]
+	nextIt := fi.iterators[idx+1]
+	var curKey, nextKey common.Hash
+	// Determine keys via Account()/Slot()
+	if ai, ok := cur.it.(AccountIterator); ok {
+		curKey, _ = ai.Account()
+	} else {
+		curKey, _ = cur.it.(StorageIterator).Slot()
+	}
+	if ai, ok := nextIt.it.(AccountIterator); ok {
+		nextKey, _ = ai.Account()
+	} else {
+		nextKey, _ = nextIt.it.(StorageIterator).Slot()
+	}
+	if diff := bytes.Compare(curKey[:], nextKey[:]); diff < 0 {
 		// It is still in correct place
 		return true
-	} else if diff == 0 && cur.priority < next.priority {
-		// So still in correct place, but we need to iterate on the next
+	} else if diff == 0 && cur.priority < nextIt.priority {
+		// Still correct, but advance the next one
 		fi.next(idx + 1)
 		return true
 	}
@@ -272,8 +292,14 @@ func (fi *fastIterator) next(idx int) bool {
 			// Can always place an elem last
 			return true
 		}
-		nextHash := fi.iterators[n+1].it.Hash()
-		if diff := bytes.Compare(curHash[:], nextHash[:]); diff < 0 {
+		// Compare against the next iterator for conflict detection
+		var adjKey common.Hash
+		if ai, ok := fi.iterators[n+1].it.(AccountIterator); ok {
+			adjKey, _ = ai.Account()
+		} else {
+			adjKey, _ = fi.iterators[n+1].it.(StorageIterator).Slot()
+		}
+		if diff := bytes.Compare(curKey[:], adjKey[:]); diff < 0 {
 			return true
 		} else if diff > 0 {
 			return false
@@ -305,8 +331,14 @@ func (fi *fastIterator) Error() error {
 }
 
 // Hash returns the current key
+// Hash returns the key of the current item in the iterator.
 func (fi *fastIterator) Hash() common.Hash {
-	return fi.iterators[0].it.Hash()
+	if ai, ok := fi.iterators[0].it.(AccountIterator); ok {
+		key, _ := ai.Account()
+		return key
+	}
+	key, _ := fi.iterators[0].it.(StorageIterator).Slot()
+	return key
 }
 
 // Account returns the current account blob.

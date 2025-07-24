@@ -1,6 +1,9 @@
 // (c) 2021-2022, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+//go:build evm_node
+// +build evm_node
+
 package statesyncclient
 
 import (
@@ -21,7 +24,7 @@ import (
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/ethdb"
 	ethparams "github.com/luxfi/evm/params"
-	"github.com/luxfi/evm/peer"
+	"github.com/luxfi/evm/internal/stub"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/geth/trie"
 )

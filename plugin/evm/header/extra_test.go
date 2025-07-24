@@ -10,7 +10,7 @@ import (
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/plugin/evm/customtypes"
-	"github.com/luxfi/evm/plugin/evm/upgrade/subnetevm"
+	"github.com/luxfi/evm/upgrade/subnetevm"
 	"github.com/luxfi/evm/utils"
 	"github.com/stretchr/testify/require"
 )
