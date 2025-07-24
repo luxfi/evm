@@ -11,8 +11,8 @@ import (
 	"slices"
 
 	"github.com/luxfi/geth/params"
-	"github.com/luxfi/evm/plugin/evm/upgrade/ap0"
-	"github.com/luxfi/evm/plugin/evm/upgrade/ap5"
+	"github.com/luxfi/evm/upgrade/ap0"
+	"github.com/luxfi/evm/upgrade/ap5"
 	"github.com/holiman/uint256"
 
 	"github.com/luxfi/node/chains/atomic"

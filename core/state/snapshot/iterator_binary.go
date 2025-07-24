@@ -131,29 +131,74 @@ func (it *binaryIterator) Next() bool {
 		return false
 	}
 first:
+	// Retrieve next key from whichever iterator is ready, using Account()/Slot()
 	if it.aDone {
-		it.k = it.b.Hash()
+		var key common.Hash
+		var err error
+		if it.accountIterator {
+			key, err = it.b.(AccountIterator).Account()
+		} else {
+			key, err = it.b.(StorageIterator).Slot()
+		}
+		if err != nil {
+			it.fail = err
+			return false
+		}
+		it.k = key
 		it.bDone = !it.b.Next()
 		return true
 	}
 	if it.bDone {
-		it.k = it.a.Hash()
+		var key common.Hash
+		var err error
+		if it.accountIterator {
+			key, err = it.a.(AccountIterator).Account()
+		} else {
+			key, err = it.a.(StorageIterator).Slot()
+		}
+		if err != nil {
+			it.fail = err
+			return false
+		}
 		it.aDone = !it.a.Next()
+		it.k = key
 		return true
 	}
-	nextA, nextB := it.a.Hash(), it.b.Hash()
-	if diff := bytes.Compare(nextA[:], nextB[:]); diff < 0 {
+	// Both iterators active: fetch and compare their next keys
+	var aKey, bKey common.Hash
+	var err error
+	if it.accountIterator {
+		aKey, err = it.a.(AccountIterator).Account()
+	} else {
+		aKey, err = it.a.(StorageIterator).Slot()
+	}
+	if err != nil {
+		it.fail = err
+		return false
+	}
+	if it.accountIterator {
+		bKey, err = it.b.(AccountIterator).Account()
+	} else {
+		bKey, err = it.b.(StorageIterator).Slot()
+	}
+	if err != nil {
+		it.fail = err
+		return false
+	}
+	switch bytes.Compare(aKey[:], bKey[:]) {
+	case -1:
 		it.aDone = !it.a.Next()
-		it.k = nextA
+		it.k = aKey
 		return true
-	} else if diff == 0 {
-		// Now we need to advance one of them
+	case 0:
+		// tie: advance a
 		it.aDone = !it.a.Next()
 		goto first
+	default:
+		it.bDone = !it.b.Next()
+		it.k = bKey
+		return true
 	}
-	it.bDone = !it.b.Next()
-	it.k = nextB
-	return true
 }
 
 // Error returns any failure that occurred during iteration, which might have

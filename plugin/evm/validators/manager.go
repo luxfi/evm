@@ -1,6 +1,9 @@
 // Copyright (C) 2019-2024, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+//go:build !evm_novalidators
+// +build !evm_novalidators
+
 package validators
 
 import (
@@ -9,16 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	luxuptime "github.com/luxfi/evm/interfaces"
-	luxvalidators "github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
+	coreinterfaces "github.com/luxfi/evm/interfaces"
 	validators "github.com/luxfi/evm/plugin/evm/validators/state"
 	stateinterfaces "github.com/luxfi/evm/plugin/evm/validators/state/interfaces"
 	"github.com/luxfi/evm/plugin/evm/validators/uptime"
 	uptimeinterfaces "github.com/luxfi/evm/plugin/evm/validators/uptime/interfaces"
+	"github.com/luxfi/node/ids"
 
 	"github.com/luxfi/evm/log"
 )
@@ -28,7 +27,7 @@ const (
 )
 
 type manager struct {
-	chainCtx *interfaces.ChainContext
+	chainCtx *coreinterfaces.ChainContext
 	stateinterfaces.State
 	uptimeinterfaces.PausableManager
 }
@@ -36,18 +35,21 @@ type manager struct {
 // NewManager returns a new validator manager
 // that manages the validator state and the uptime manager.
 // Manager is not thread safe and should be used with the VM locked.
+// NewManager returns a new validator manager that manages the validator state
+// and the uptime manager. Manager is not thread safe and should be used with the
+// VM locked.
 func NewManager(
-	ctx *interfaces.ChainContext,
-	db interfaces.Database,
-	clock *interfaces.MockableTimer,
+	ctx *coreinterfaces.ChainContext,
+	db coreinterfaces.Database,
+	clock *coreinterfaces.MockableTimer,
 ) (*manager, error) {
-	validatorState, err := interfaces.NewState(db)
+	validatorState, err := coreinterfaces.NewState(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize validator state: %w", err)
 	}
 
-	// Initialize uptime manager
-	uptimeManager := uptime.NewPausableManager(luxuptime.NewManager(validatorState, clock))
+	// Initialize uptime manager on the validator state.
+	uptimeManager := uptime.NewPausableManager(uptime.NewManager(validatorState, clock))
 	validatorState.RegisterListener(uptimeManager)
 
 	return &manager{

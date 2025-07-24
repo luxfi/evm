@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/utils"
 	gethparams "github.com/luxfi/geth/params"
+	upgrade "github.com/luxfi/node/upgrade"
 )
 
 var errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
@@ -91,7 +91,7 @@ func (n *NetworkUpgrades) forkOrder() []fork {
 
 // SetDefaults sets the default values for the network upgrades.
 // This overrides deactivating the network upgrade by providing a timestamp of nil value.
-func (n *NetworkUpgrades) SetDefaults(agoUpgrades interfaces.Config) {
+func (n *NetworkUpgrades) SetDefaults(agoUpgrades upgrade.Config) {
 	defaults := getDefaultNetworkUpgrades(agoUpgrades)
 	// If the network upgrade is not set, set it to the default value.
 	// If the network upgrade is set to 0, we also treat it as nil and set it default.
@@ -113,7 +113,7 @@ func (n *NetworkUpgrades) SetDefaults(agoUpgrades interfaces.Config) {
 }
 
 // verifyNetworkUpgrades checks that the network upgrades are well formed.
-func (n *NetworkUpgrades) verifyNetworkUpgrades(agoUpgrades interfaces.Config) error {
+func (n *NetworkUpgrades) verifyNetworkUpgrades(agoUpgrades upgrade.Config) error {
 	defaults := getDefaultNetworkUpgrades(agoUpgrades)
 	if err := verifyWithDefault(n.EVMTimestamp, defaults.EVMTimestamp); err != nil {
 		return fmt.Errorf("EVM fork block timestamp is invalid: %w", err)
@@ -192,32 +192,32 @@ func (n *NetworkUpgrades) Description() string {
 }
 
 type LuxRules struct {
-	IsEVM bool
-	IsDurango   bool
-	IsEtna      bool
-	IsFortuna   bool
-	IsGranite   bool
+	IsEVM     bool
+	IsDurango bool
+	IsEtna    bool
+	IsFortuna bool
+	IsGranite bool
 }
 
 func (n *NetworkUpgrades) GetLuxRules(time uint64) LuxRules {
 	return LuxRules{
-		IsEVM: n.IsEVM(time),
-		IsDurango:   n.IsDurango(time),
-		IsEtna:      n.IsEtna(time),
-		IsFortuna:   n.IsFortuna(time),
-		IsGranite:   n.IsGranite(time),
+		IsEVM:     n.IsEVM(time),
+		IsDurango: n.IsDurango(time),
+		IsEtna:    n.IsEtna(time),
+		IsFortuna: n.IsFortuna(time),
+		IsGranite: n.IsGranite(time),
 	}
 }
 
 // getDefaultNetworkUpgrades returns the network upgrades for the specified luxd upgrades.
 // Nil values are used to indicate optional upgrades.
-func getDefaultNetworkUpgrades(agoUpgrade interfaces.Config) NetworkUpgrades {
+func getDefaultNetworkUpgrades(agoUpgrade upgrade.Config) NetworkUpgrades {
 	return NetworkUpgrades{
-		EVMTimestamp: utils.NewUint64(0),
-		DurangoTimestamp:   utils.TimeToNewUint64(agoUpgrade.DurangoTime),
-		EtnaTimestamp:      utils.TimeToNewUint64(agoUpgrade.EtnaTime),
-		FortunaTimestamp:   nil, // Fortuna is optional and has no effect on EVM
-		GraniteTimestamp:   nil, // Granite is optional and has no effect on EVM
+		EVMTimestamp:     utils.NewUint64(0),
+		DurangoTimestamp: utils.TimeToNewUint64(agoUpgrade.DurangoTime),
+		EtnaTimestamp:    utils.TimeToNewUint64(agoUpgrade.EtnaTime),
+		FortunaTimestamp: nil, // Fortuna is optional and has no effect on EVM
+		GraniteTimestamp: nil, // Granite is optional and has no effect on EVM
 	}
 }
 

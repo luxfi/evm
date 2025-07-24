@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/plugin/evm/validators/interfaces"
+	validatorinterfaces "github.com/luxfi/evm/plugin/evm/validators/interfaces"
 	stateinterfaces "github.com/luxfi/evm/plugin/evm/validators/state/interfaces"
+	"github.com/luxfi/node/ids"
 )
 
 type RLocker interface {
@@ -18,24 +18,26 @@ type RLocker interface {
 }
 
 type lockedReader struct {
-	manager interfaces.Manager
+	manager validatorinterfaces.Manager
 	lock    RLocker
 }
 
+// NewLockedValidatorReader returns a ValidatorReader that holds the given lock
+// while accessing validator state.
 func NewLockedValidatorReader(
-	manager interfaces.Manager,
+	manager validatorinterfaces.Manager,
 	lock RLocker,
-) interfaces.ValidatorReader {
+) validatorinterfaces.ValidatorReader {
 	return &lockedReader{
-		lock:    lock,
 		manager: manager,
+		lock:    lock,
 	}
 }
 
 // GetValidatorAndUptime returns the calculated uptime of the validator specified by validationID
 // and the last updated time.
 // GetValidatorAndUptime holds the lock while performing the operation and can be called concurrently.
-func (l *lockedReader) GetValidatorAndUptime(validationID interfaces.ID) (stateinterfaces.Validator, time.Duration, time.Time, error) {
+func (l *lockedReader) GetValidatorAndUptime(validationID ids.ID) (stateinterfaces.Validator, time.Duration, time.Time, error) {
 	l.lock.RLock()
 	defer l.lock.RUnlock()
 
