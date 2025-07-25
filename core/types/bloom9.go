@@ -72,6 +72,13 @@ func (b *Bloom) Add(d []byte) {
 	b.add(d, make([]byte, 6))
 }
 
+// Or performs a bitwise OR operation with another bloom filter.
+func (b *Bloom) Or(other *Bloom) {
+	for i := range b {
+		b[i] |= other[i]
+	}
+}
+
 // add is internal version of Add, which takes a scratch buffer for reuse (needs to be at least 6 bytes)
 func (b *Bloom) add(d []byte, buf []byte) {
 	i1, v1, i2, v2, i3, v3 := bloomValues(d, buf)
@@ -123,6 +130,17 @@ func CreateBloom(receipts Receipts) Bloom {
 		}
 	}
 	return bin
+}
+
+// MergeBloom merges the precomputed bloom filters in the Receipts without
+// recomputing them from the logs. This saves a significant amount of CPU
+// for large blocks.
+func MergeBloom(receipts Receipts) Bloom {
+	var bloom Bloom
+	for _, receipt := range receipts {
+		bloom.Or(&receipt.Bloom)
+	}
+	return bloom
 }
 
 // LogsBloom returns the bloom bytes for the given logs

@@ -6,6 +6,8 @@ package interfaces
 import (
 	"context"
 	"time"
+	
+	"github.com/luxfi/evm/iface"
 )
 
 // Logger provides logging functionality
@@ -146,26 +148,8 @@ type BoundedBuffer interface {
 	Close()
 }
 
-// Bits provides a bit set interface
-type Bits interface {
-	// Add adds a bit to the set
-	Add(i int)
-	
-	// Contains checks if a bit is in the set
-	Contains(i int) bool
-	
-	// Remove removes a bit from the set
-	Remove(i int)
-	
-	// Clear clears all bits
-	Clear()
-	
-	// Len returns the number of bits set
-	Len() int
-	
-	// Bytes returns the byte representation
-	Bytes() []byte
-}
+// Bits is an alias to iface.Bits
+type Bits = iface.Bits
 
 // GenericSet provides a generic set interface
 type GenericSet[T comparable] interface {

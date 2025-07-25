@@ -6,7 +6,7 @@ package deployerallowlist
 import (
 	"fmt"
 	"github.com/luxfi/evm/precompile/contract"
-	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
 )
@@ -19,17 +19,17 @@ const ConfigKey = "contractDeployerAllowListConfig"
 
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000000")
 
-var Module = modules.Module{
-	ConfigKey:    ConfigKey,
-	Address:      ContractAddress,
-	Contract:     ContractDeployerAllowListPrecompile,
-	Configurator: &configurator{},
-}
+var Module = registry.NewModule(
+	ConfigKey,
+	ContractAddress,
+	ContractDeployerAllowListPrecompile,
+	&configurator{},
+)
 
 type configurator struct{}
 
 func init() {
-	if err := modules.RegisterModule(Module); err != nil {
+	if err := registry.RegisterModule(Module); err != nil {
 		panic(err)
 	}
 }

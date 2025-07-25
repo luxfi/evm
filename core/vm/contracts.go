@@ -36,7 +36,7 @@ import (
 
 	gethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/evm/precompile/contract"
-	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
@@ -260,8 +260,8 @@ func init() {
 
 	// Ensure that this package will panic during init if there is a conflict present with the declared
 	// precompile addresses.
-	for _, module := range modules.RegisteredModules() {
-		address := module.Address
+	for _, module := range registry.RegisteredModules() {
+		address := module.Address()
 		if _, ok := PrecompileAllNativeAddresses[address]; ok {
 			panic(fmt.Errorf("precompile address collides with existing native address: %s", address))
 		}

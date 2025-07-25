@@ -34,9 +34,9 @@ import (
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/core/headerutil"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/precompile/contract"
-	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/predicate"
 	"github.com/luxfi/evm/vmerrs"
@@ -58,7 +58,7 @@ func IsProhibited(addr common.Address) bool {
 		return true
 	}
 
-	return modules.ReservedAddress(addr)
+	return registry.ReservedAddress(addr)
 }
 
 type (
@@ -96,8 +96,8 @@ func (evm *EVM) precompile(addr common.Address) (contract.StatefulPrecompiledCon
 
 	// Otherwise, check the chain rules for the additionally configured precompiles.
 	if _, ok = evm.chainRules.ActivePrecompiles[addr]; ok {
-		module, ok := modules.GetPrecompileModuleByAddress(addr)
-		return module.Contract, ok
+		module, ok := registry.GetPrecompileModuleByAddress(addr)
+		return module.Contract().(contract.StatefulPrecompiledContract), ok
 	}
 
 	return nil, false
@@ -127,7 +127,7 @@ type BlockContext struct {
 	// Extra is the extra field from the block header.
 	Extra []byte
 	// ConsensusContext is the context for consensus-related operations
-	ConsensusContext *interfaces.ChainContext
+	ConsensusContext *iface.ChainContext
 
 	// Block information
 	Coinbase    common.Address // Provides information for COINBASE
@@ -656,7 +656,7 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 func (evm *EVM) GetChainConfig() precompileconfig.ChainConfig { return evm.chainConfig }
 
 // GetConsensusContext implements AccessibleState
-func (evm *EVM) GetConsensusContext() *interfaces.ChainContext { return evm.Context.ConsensusContext }
+func (evm *EVM) GetConsensusContext() *iface.ChainContext { return evm.Context.ConsensusContext }
 
 func (evm *EVM) NativeAssetCall(caller common.Address, input []byte, suppliedGas uint64, gasCost uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if suppliedGas < gasCost {

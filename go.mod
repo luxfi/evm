@@ -10,6 +10,9 @@ replace github.com/luxfi/node => ../node
 // Replace go-ethereum with our fork
 replace github.com/luxfi/geth => ../geth
 
+// Replace warp with local version
+replace github.com/luxfi/warp => ../warp
+
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.5
 	github.com/cespare/cp v0.1.0
@@ -31,9 +34,9 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
 	github.com/kylelemons/godebug v1.1.0
-	github.com/luxfi/geth v0.15.41
-	github.com/luxfi/netrunner v1.6.0
+	github.com/luxfi/geth v1.14.12
 	github.com/luxfi/node v0.0.0-00010101000000-000000000000
+	github.com/luxfi/warp v0.0.0-00010101000000-000000000000
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
 	github.com/olekukonko/tablewriter v0.0.5
@@ -95,11 +98,9 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
-	github.com/google/btree v1.1.2 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6 // indirect
 	github.com/google/renameio/v2 v2.0.0 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
@@ -123,7 +124,6 @@ require (
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.1 // indirect
 	github.com/pion/transport/v3 v3.0.1 // indirect
-	github.com/pires/go-proxyproto v0.6.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
@@ -167,3 +167,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/luxfi/db => ../db

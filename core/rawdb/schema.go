@@ -107,8 +107,8 @@ var (
 	// BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
 	BloomBitsIndexPrefix = []byte("iB")
 
-	preimageCounter    = metrics.NewRegisteredCounter("db/preimage/total", nil)
-	preimageHitCounter = metrics.NewRegisteredCounter("db/preimage/hits", nil)
+	preimageCounter    = metrics.GetOrRegisterCounter("db/preimage/total", nil)
+	preimageHitCounter = metrics.GetOrRegisterCounter("db/preimage/hits", nil)
 
 	// State sync progress keys and prefixes
 	syncRootKey            = []byte("sync_root")     // indicates the root of the main account trie currently being synced

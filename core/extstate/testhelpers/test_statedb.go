@@ -17,5 +17,7 @@ func NewTestStateDB(t testing.TB) contract.StateDB {
 	db := rawdb.NewMemoryDatabase()
 	statedb, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
 	require.NoError(t, err)
-	return extstate.New(statedb)
+	// Wrap the statedb with an adapter to handle the AddBalance signature difference
+	adapter := NewStateDBAdapter(statedb)
+	return extstate.New(adapter)
 }
