@@ -15,7 +15,7 @@ import (
 
 	uint256 "github.com/holiman/uint256"
 	types "github.com/luxfi/evm/core/types"
-	interfaces "github.com/luxfi/evm/interfaces"
+	iface "github.com/luxfi/evm/iface"
 	precompileconfig "github.com/luxfi/evm/precompile/precompileconfig"
 	common "github.com/luxfi/geth/common"
 	gomock "go.uber.org/mock/gomock"
@@ -140,10 +140,10 @@ func (mr *MockAccessibleStateMockRecorder) GetChainConfig() *gomock.Call {
 }
 
 // GetConsensusContext mocks base method.
-func (m *MockAccessibleState) GetConsensusContext() *interfaces.ChainContext {
+func (m *MockAccessibleState) GetConsensusContext() *iface.ChainContext {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetConsensusContext")
-	ret0, _ := ret[0].(*interfaces.ChainContext)
+	ret0, _ := ret[0].(*iface.ChainContext)
 	return ret0
 }
 

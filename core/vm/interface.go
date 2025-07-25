@@ -100,6 +100,9 @@ type StateDB interface {
 	GetTxHash() common.Hash
 
 	AddPreimage(common.Hash, []byte)
+
+	// IntermediateRoot computes the intermediate state root
+	IntermediateRoot(deleteEmptyObjects bool) common.Hash
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM

@@ -19,8 +19,8 @@ GOARCH := $(shell go env GOARCH)
 GOOS := $(shell go env GOOS)
 CGO_CFLAGS := -O -D__BLST_PORTABLE__
 LDFLAGS := -X github.com/luxfi/evm/plugin/evm.Version=$(VERSION)
-# Build tags - never include validators when compiling evmlib alone
-EVM_TAGS := sqlite,rocksdb,evm_nopruner
+# Build tags - only include necessary tags
+EVM_TAGS := sqlite,rocksdb
 
 # Default target
 .PHONY: all

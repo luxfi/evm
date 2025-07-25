@@ -31,10 +31,10 @@ import (
 	"github.com/luxfi/evm/internal/stub"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/rpc"
-	statesyncclient "github.com/luxfi/evm/sync/client"
-	"github.com/luxfi/evm/sync/client/stats"
+	statesyncclient "github.com/luxfi/node/state_sync/client"
+	"github.com/luxfi/node/state_sync/client/stats"
 	"github.com/luxfi/evm/triedb/hashdb"
-	"github.com/luxfi/evm/warp"
+	"github.com/luxfi/warp/backend"
 	"github.com/luxfi/geth/eth"
 	"github.com/luxfi/geth/eth/ethconfig"
 	"github.com/luxfi/geth/metrics"
@@ -250,7 +250,7 @@ type VM struct {
 
 	// Lux Warp Messaging backend
 	// Used to serve BLS signatures of warp messages over RPC
-	warpBackend warp.Backend
+	warpBackend backend.Backend
 
 	// Initialize only sets these if nil so they can be overridden in tests
 	p2pSender          commonEng.AppSender

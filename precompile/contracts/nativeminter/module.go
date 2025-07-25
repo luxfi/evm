@@ -8,7 +8,7 @@ import (
 	"math/big"
 	
 	"github.com/luxfi/evm/precompile/contract"
-	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
 	"github.com/holiman/uint256"
@@ -23,17 +23,17 @@ const ConfigKey = "contractNativeMinterConfig"
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000001")
 
 // Module is the precompile module. It is used to register the precompile contract.
-var Module = modules.Module{
-	ConfigKey:    ConfigKey,
-	Address:      ContractAddress,
-	Contract:     ContractNativeMinterPrecompile,
-	Configurator: &configurator{},
-}
+var Module = registry.NewModule(
+	ConfigKey,
+	ContractAddress,
+	ContractNativeMinterPrecompile,
+	&configurator{},
+)
 
 type configurator struct{}
 
 func init() {
-	if err := modules.RegisterModule(Module); err != nil {
+	if err := registry.RegisterModule(Module); err != nil {
 		panic(err)
 	}
 }

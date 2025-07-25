@@ -32,8 +32,8 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/luxfi/geth/consensus/misc/eip4844"
-	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/evm/consensus/misc/eip4844"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
@@ -404,8 +404,8 @@ func ReadReceipts(db ethdb.Reader, hash common.Hash, number uint64, time uint64,
 	}
 	// Compute effective blob gas price.
 	var blobGasPrice *big.Int
-	if header != nil && header.ExcessBlobGas != nil && config != nil {
-		blobGasPrice = eip4844.CalcBlobFee(config, header)
+	if header != nil && header.ExcessBlobGas != nil {
+		blobGasPrice = eip4844.CalcBlobFee(*header.ExcessBlobGas)
 	}
 	if err := receipts.DeriveFields(config, hash, number, time, baseFee, blobGasPrice, body.Transactions); err != nil {
 		log.Error("Failed to derive block receipts fields", "hash", hash, "number", number, "err", err)
@@ -522,13 +522,8 @@ func ReadBlock(db ethdb.Reader, hash common.Hash, number uint64) *types.Block {
 	if body == nil {
 		return nil
 	}
-	// Create a types.Body from our body
-	blockBody := types.Body{
-		Transactions: body.Transactions,
-		Uncles:       body.Uncles,
-	}
 	// Note: WithExtData is not available in standard geth, so we just return the block without extension data
-	return types.NewBlockWithHeader(header).WithBody(blockBody)
+	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles)
 }
 
 // WriteBlock serializes a block into the database, header and body separately.

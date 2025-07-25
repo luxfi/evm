@@ -33,7 +33,7 @@ import (
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"
-	ethparams "github.com/luxfi/evm/params"
+	ethparams "github.com/luxfi/evm/ethparams"
 	"github.com/luxfi/geth/trie"
 )
 

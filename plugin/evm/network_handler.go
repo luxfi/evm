@@ -10,11 +10,11 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/evm/plugin/evm/message"
-	syncHandlers "github.com/luxfi/evm/sync/handlers"
-	syncStats "github.com/luxfi/evm/sync/handlers/stats"
+	syncHandlers "github.com/luxfi/node/state_sync/handlers"
+	syncStats "github.com/luxfi/node/state_sync/handlers/stats"
 	"github.com/luxfi/geth/trie"
-	"github.com/luxfi/evm/warp"
-	warpHandlers "github.com/luxfi/evm/warp/handlers"
+	"github.com/luxfi/warp/backend"
+	// warpHandlers "github.com/luxfi/warp/handlers" // TODO: restore when handlers are fixed
 )
 
 var _ message.RequestHandler = &networkHandler{}
@@ -23,7 +23,7 @@ type networkHandler struct {
 	stateTrieLeafsRequestHandler *syncHandlers.LeafsRequestHandler
 	blockRequestHandler          *syncHandlers.BlockRequestHandler
 	codeRequestHandler           *syncHandlers.CodeRequestHandler
-	signatureRequestHandler      *warpHandlers.SignatureRequestHandler
+	// signatureRequestHandler      *warpHandlers.SignatureRequestHandler // TODO: restore when warp is integrated from node
 }
 
 // newNetworkHandler constructs the handler for serving network requests.
@@ -39,7 +39,7 @@ func newNetworkHandler(
 		stateTrieLeafsRequestHandler: syncHandlers.NewLeafsRequestHandler(evmTrieDB, provider, networkCodec, syncStats),
 		blockRequestHandler:          syncHandlers.NewBlockRequestHandler(provider, networkCodec, syncStats),
 		codeRequestHandler:           syncHandlers.NewCodeRequestHandler(diskDB, networkCodec, syncStats),
-		signatureRequestHandler:      warpHandlers.NewSignatureRequestHandler(warpBackend, networkCodec),
+		// signatureRequestHandler:      warpHandlers.NewSignatureRequestHandler(warpBackend, networkCodec), // TODO: restore
 	}
 }
 
@@ -56,9 +56,11 @@ func (n networkHandler) HandleCodeRequest(ctx context.Context, nodeID interfaces
 }
 
 func (n networkHandler) HandleMessageSignatureRequest(ctx context.Context, nodeID interfaces.NodeID, requestID uint32, messageSignatureRequest message.MessageSignatureRequest) ([]byte, error) {
-	return n.signatureRequestHandler.OnMessageSignatureRequest(ctx, nodeID, requestID, messageSignatureRequest)
+	// TODO: restore when warp is integrated from node
+	return nil, nil
 }
 
 func (n networkHandler) HandleBlockSignatureRequest(ctx context.Context, nodeID interfaces.NodeID, requestID uint32, blockSignatureRequest message.BlockSignatureRequest) ([]byte, error) {
-	return n.signatureRequestHandler.OnBlockSignatureRequest(ctx, nodeID, requestID, blockSignatureRequest)
+	// TODO: restore when warp is integrated from node
+	return nil, nil
 }
