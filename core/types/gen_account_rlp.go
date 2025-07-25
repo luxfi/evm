@@ -2,11 +2,8 @@
 
 package types
 
-import (
-	"io"
-
-	"github.com/luxfi/geth/rlp"
-)
+import "github.com/luxfi/geth/rlp"
+import "io"
 
 func (obj *StateAccount) EncodeRLP(_w io.Writer) error {
 	w := rlp.NewEncoderBuffer(_w)

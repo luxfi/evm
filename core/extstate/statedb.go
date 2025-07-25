@@ -5,6 +5,7 @@ package extstate
 
 import (
 	"github.com/luxfi/geth/common"
+	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
 	ethparams "github.com/luxfi/geth/params"
@@ -40,8 +41,8 @@ func New(vm VmStateDB) *StateDB {
 
 // AddBalance wrapper to match precompile interface (2 params instead of 3)
 func (s *StateDB) AddBalance(addr common.Address, amount *uint256.Int) {
-	// Call the underlying AddBalance (may have changed signature)
-	s.vmStateDB.AddBalance(addr, amount)
+	// Call the underlying AddBalance with unspecified reason
+	s.vmStateDB.AddBalance(addr, amount, tracing.BalanceChangeUnspecified)
 }
 
 // SetState wrapper to match precompile interface (no return value)
@@ -51,8 +52,8 @@ func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 
 // SetNonce wrapper to match precompile interface (2 params instead of 3)
 func (s *StateDB) SetNonce(addr common.Address, nonce uint64) {
-	// Call the underlying SetNonce
-	s.vmStateDB.SetNonce(addr, nonce)
+	// Call the underlying SetNonce with unspecified reason
+	s.vmStateDB.SetNonce(addr, nonce, tracing.NonceChangeUnspecified)
 }
 
 // SetCode wrapper to match stateupgrade interface (no return value)

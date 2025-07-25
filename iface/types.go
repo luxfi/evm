@@ -5,11 +5,55 @@ package iface
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
 )
+
+// Size constants
+const (
+	KiB = 1024       // 1 kibibyte
+	MiB = 1024 * KiB // 1 mebibyte
+	GiB = 1024 * MiB // 1 gibibyte
+)
+
+// ID represents a generic identifier
+type ID [32]byte
+
+// String returns the string representation of an ID
+func (id ID) String() string {
+	return fmt.Sprintf("%x", id[:])
+}
+
+// BlockID represents a block identifier
+type BlockID = ID
+
+// Status represents the status of a block
+type Status int
+
+// Timestamp represents a block timestamp
+type Timestamp struct {
+	Unix int64
+}
+
+// SendConfig configures message sending
+type SendConfig struct {
+	NodeIDs       Set
+	Validators    int
+	NonValidators int
+	Peers         int
+}
+
+// Set represents a set of node IDs
+type Set interface {
+	Contains(NodeID) bool
+	Len() int
+	List() []NodeID
+	Add(...NodeID)
+	Remove(...NodeID)
+}
 
 // CallMsg contains parameters for contract calls.
 type CallMsg struct {

@@ -7,9 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"github.com/luxfi/geth/common"
+
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/plugin/evm/customtypes"
+	"github.com/luxfi/evm/plugin/evm/header"
+	"github.com/luxfi/evm/upgrade/legacy"
+	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/trie"
 )
 

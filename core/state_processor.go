@@ -29,16 +29,17 @@ package core
 import (
 	"fmt"
 	"math/big"
+
+	"github.com/holiman/uint256"
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
+	gethtypes "github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/log"
-	ethparams "github.com/luxfi/evm/params"
-	"github.com/holiman/uint256"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -80,20 +81,15 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 
 	// Configure any upgrades that should go into effect during this block.
 	blockContext := NewBlockContext(block.Number(), block.Time())
-	err := ApplyUpgrades(p.config, &parent.Time, blockContext, statedb)
-	if err != nil {
+	if err := ApplyUpgrades(p.config, &parent.Time, blockContext, statedb); err != nil {
 		log.Error("failed to configure precompiles processing block", "hash", block.Hash(), "number", block.NumberU64(), "timestamp", block.Time(), "err", err)
 		return nil, nil, 0, err
 	}
 
-	var (
-		context = NewEVMBlockContext(header, p.bc, nil)
-		// Use the converted ethereum ChainConfig for EVM
-		ethConfig = convertToEthChainConfig(p.config)
-		txContext = vm.TxContext{} // Empty initial tx context
-		vmenv   = vm.NewEVM(context, txContext, statedb, ethConfig, cfg)
-		signer  = types.MakeSigner(p.config.ToEthChainConfig(), header.Number, header.Time)
-	)
+	context := NewEVMBlockContext(header, p.bc, nil)
+	txContext := vm.TxContext{} // Empty initial tx context
+	vmenv := vm.NewEVM(context, txContext, statedb, p.config, cfg)
+	signer := types.MakeSigner(p.config.ChainConfig, header.Number, header.Time)
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
@@ -112,7 +108,7 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		allLogs = append(allLogs, receipt.Logs...)
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	if err := p.engine.Finalize(p.bc, block, parent, statedb, receipts); err != nil {
+	if _, err := p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles()); err != nil {
 		return nil, nil, 0, fmt.Errorf("engine finalization check failed: %w", err)
 	}
 
@@ -152,7 +148,7 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, sta
 	receipt.GasUsed = result.UsedGas
 
 	if tx.Type() == types.BlobTxType {
-		receipt.BlobGasUsed = uint64(len(tx.BlobHashes()) * ethparams.BlobTxBlobGasPerBlob)
+		receipt.BlobGasUsed = uint64(len(tx.BlobHashes()) * params.BlobTxBlobGasPerBlob)
 		receipt.BlobGasPrice = evm.Context.BlobBaseFee
 	}
 
@@ -162,7 +158,8 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, sta
 	}
 
 	// Set the receipt logs and create the bloom filter.
-	receipt.Logs = statedb.GetLogs(tx.Hash(), blockNumber.Uint64(), blockHash)
+	// GetLogs now requires blockTime as well
+	receipt.Logs = convertGethLogs(statedb.GetLogs(tx.Hash(), blockNumber.Uint64(), blockHash, evm.Context.Time))
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 	receipt.BlockHash = blockHash
 	receipt.BlockNumber = blockNumber
@@ -181,8 +178,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, blockContext 
 	}
 	// Create a new context to be used in the EVM environment
 	txContext := NewEVMTxContext(msg)
-	ethConfig := convertToEthChainConfig(config)
-	vmenv := vm.NewEVM(blockContext, txContext, statedb, ethConfig, cfg)
+	vmenv := vm.NewEVM(blockContext, txContext, statedb, config, cfg)
 	return applyTransaction(msg, config, gp, statedb, header.Number, header.Hash(), tx, usedGas, vmenv)
 }
 
@@ -194,7 +190,7 @@ func ProcessBeaconBlockRoot(beaconRoot common.Hash, vmenv *vm.EVM, statedb *stat
 	// BeaconRootsStorageAddress is not available in our go-ethereum version
 	beaconRootsAddr := common.HexToAddress("0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02")
 	systemAddress := common.HexToAddress("0xfffffffffffffffffffffffffffffffffffffffe")
-	
+
 	msg := &Message{
 		From:      systemAddress,
 		GasLimit:  30_000_000,
@@ -207,7 +203,29 @@ func ProcessBeaconBlockRoot(beaconRoot common.Hash, vmenv *vm.EVM, statedb *stat
 	// Update the evm with the new transaction context.
 	vmenv.Reset(NewEVMTxContext(msg), statedb)
 	statedb.AddAddressToAccessList(beaconRootsAddr)
-	// Call the beacon roots contract  
+	// Call the beacon roots contract
 	_, _, _ = vmenv.Call(vm.AccountRef(msg.From), *msg.To, msg.Data, 30_000_000, uint256.NewInt(0))
 	statedb.Finalise(true)
+}
+
+// convertGethLogs converts geth logs to our logs
+func convertGethLogs(gethLogs []*gethtypes.Log) []*types.Log {
+	if gethLogs == nil {
+		return nil
+	}
+	logs := make([]*types.Log, len(gethLogs))
+	for i, gethLog := range gethLogs {
+		logs[i] = &types.Log{
+			Address:     gethLog.Address,
+			Topics:      gethLog.Topics,
+			Data:        gethLog.Data,
+			BlockNumber: gethLog.BlockNumber,
+			TxHash:      gethLog.TxHash,
+			TxIndex:     gethLog.TxIndex,
+			BlockHash:   gethLog.BlockHash,
+			Index:       gethLog.Index,
+			Removed:     gethLog.Removed,
+		}
+	}
+	return logs
 }

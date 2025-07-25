@@ -37,8 +37,8 @@ import (
 	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
+	ethparams "github.com/luxfi/geth/params"
 	"github.com/holiman/uint256"
-	ethparams "github.com/luxfi/evm/params"
 )
 
 // Config is a basic type specifying certain configuration flags for running
@@ -70,18 +70,20 @@ func setDefaults(cfg *Config) {
 	if cfg.ChainConfig == nil {
 		cfg.ChainConfig = params.WithExtra(
 			&params.ChainConfig{
-				ChainID:             big.NewInt(1),
-				HomesteadBlock:      new(big.Int),
-				EIP150Block:         new(big.Int),
-				EIP155Block:         new(big.Int),
-				EIP158Block:         new(big.Int),
-				ByzantiumBlock:      new(big.Int),
-				ConstantinopleBlock: new(big.Int),
-				PetersburgBlock:     new(big.Int),
-				IstanbulBlock:       new(big.Int),
-				MuirGlacierBlock:    new(big.Int),
-				BerlinBlock:         new(big.Int),
-				LondonBlock:         new(big.Int),
+				ChainConfig: &ethparams.ChainConfig{
+					ChainID:             big.NewInt(1),
+					HomesteadBlock:      new(big.Int),
+					EIP150Block:         new(big.Int),
+					EIP155Block:         new(big.Int),
+					EIP158Block:         new(big.Int),
+					ByzantiumBlock:      new(big.Int),
+					ConstantinopleBlock: new(big.Int),
+					PetersburgBlock:     new(big.Int),
+					IstanbulBlock:       new(big.Int),
+					MuirGlacierBlock:    new(big.Int),
+					BerlinBlock:         new(big.Int),
+					LondonBlock:         new(big.Int),
+				},
 			},
 			&extras.ChainConfig{
 				NetworkUpgrades: extras.NetworkUpgrades{
@@ -112,7 +114,7 @@ func setDefaults(cfg *Config) {
 		}
 	}
 	if cfg.BaseFee == nil {
-		cfg.BaseFee = big.NewInt(ethparams.ApricotPhase3InitialBaseFee)
+		cfg.BaseFee = big.NewInt(params.TestInitialBaseFee)
 	}
 	if cfg.BlobBaseFee == nil {
 		cfg.BlobBaseFee = big.NewInt(ethparams.BlobTxMinBlobGasprice)
@@ -137,13 +139,27 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 		address = common.BytesToAddress([]byte("contract"))
 		vmenv   = NewEnv(cfg)
 		sender  = vm.AccountRef(cfg.Origin)
-		ethCfg  = &ethparams.ChainConfig{ChainID: cfg.ChainConfig.ChainID}
-		rules   = ethCfg.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
+		rules   = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
+		gethRules = ethparams.Rules{
+			ChainID:                                   rules.ChainID,
+			IsHomestead:                               rules.IsHomestead,
+			IsEIP150:                                  rules.IsEIP150,
+			IsEIP155:                                  rules.IsEIP155,
+			IsEIP158:                                  rules.IsEIP158,
+			IsByzantium:                               rules.IsByzantium,
+			IsConstantinople:                          rules.IsConstantinople,
+			IsPetersburg:                              rules.IsPetersburg,
+			IsIstanbul:                                rules.IsIstanbul,
+			IsBerlin:                                  rules.IsBerlin,
+			IsLondon:                                  rules.IsLondon,
+			IsShanghai:                                rules.IsShanghai,
+			IsCancun:                                  rules.IsCancun,
+		}
 	)
 	// Execute the preparatory steps for state transition which includes:
 	// - prepare accessList(post-berlin)
 	// - reset transient storage(eip 1153)
-	cfg.State.Prepare(rules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(rules), nil)
+	cfg.State.Prepare(gethRules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(gethRules), nil)
 
 	cfg.State.CreateAccount(address)
 	// set the receiver's (the executing contract) code for execution.
@@ -172,13 +188,27 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 	var (
 		vmenv  = NewEnv(cfg)
 		sender = vm.AccountRef(cfg.Origin)
-		ethCfg = &ethparams.ChainConfig{ChainID: cfg.ChainConfig.ChainID}
-		rules  = ethCfg.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
+		rules  = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
+		gethRules = ethparams.Rules{
+			ChainID:                                   rules.ChainID,
+			IsHomestead:                               rules.IsHomestead,
+			IsEIP150:                                  rules.IsEIP150,
+			IsEIP155:                                  rules.IsEIP155,
+			IsEIP158:                                  rules.IsEIP158,
+			IsByzantium:                               rules.IsByzantium,
+			IsConstantinople:                          rules.IsConstantinople,
+			IsPetersburg:                              rules.IsPetersburg,
+			IsIstanbul:                                rules.IsIstanbul,
+			IsBerlin:                                  rules.IsBerlin,
+			IsLondon:                                  rules.IsLondon,
+			IsShanghai:                                rules.IsShanghai,
+			IsCancun:                                  rules.IsCancun,
+		}
 	)
 	// Execute the preparatory steps for state transition which includes:
 	// - prepare accessList(post-berlin)
 	// - reset transient storage(eip 1153)
-	cfg.State.Prepare(rules, cfg.Origin, cfg.Coinbase, nil, vm.ActivePrecompiles(rules), nil)
+	cfg.State.Prepare(gethRules, cfg.Origin, cfg.Coinbase, nil, vm.ActivePrecompiles(gethRules), nil)
 
 	// Call the code with the given configuration.
 	code, address, leftOverGas, err := vmenv.Create(
@@ -202,13 +232,27 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 		vmenv   = NewEnv(cfg)
 		sender  = vm.AccountRef(cfg.Origin)
 		statedb = cfg.State
-		ethCfg  = &ethparams.ChainConfig{ChainID: cfg.ChainConfig.ChainID}
-		rules   = ethCfg.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
+		rules   = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
+		gethRules = ethparams.Rules{
+			ChainID:                                   rules.ChainID,
+			IsHomestead:                               rules.IsHomestead,
+			IsEIP150:                                  rules.IsEIP150,
+			IsEIP155:                                  rules.IsEIP155,
+			IsEIP158:                                  rules.IsEIP158,
+			IsByzantium:                               rules.IsByzantium,
+			IsConstantinople:                          rules.IsConstantinople,
+			IsPetersburg:                              rules.IsPetersburg,
+			IsIstanbul:                                rules.IsIstanbul,
+			IsBerlin:                                  rules.IsBerlin,
+			IsLondon:                                  rules.IsLondon,
+			IsShanghai:                                rules.IsShanghai,
+			IsCancun:                                  rules.IsCancun,
+		}
 	)
 	// Execute the preparatory steps for state transition which includes:
 	// - prepare accessList(post-berlin)
 	// - reset transient storage(eip 1153)
-	statedb.Prepare(rules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(rules), nil)
+	statedb.Prepare(gethRules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(gethRules), nil)
 
 	// Call the code with the given configuration.
 	ret, leftOverGas, err := vmenv.Call(

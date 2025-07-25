@@ -10,13 +10,13 @@ import (
 	"runtime"
 	"strings"
 
-	ethlog "github.com/luxfi/evm/log"
-	"github.com/luxfi/evm/log"
 	"log/slog"
+
+	"github.com/luxfi/evm/log"
 )
 
 type EVMLogger struct {
-	ethlog.Logger
+	log.Logger
 
 	logLevel *slog.LevelVar
 }
@@ -35,26 +35,22 @@ func InitLogger(alias string, level string, jsonFormat bool, writer io.Writer) (
 		useColor := false
 		chainStr := fmt.Sprintf("<%s Chain> ", alias)
 		termHandler := log.NewTerminalHandlerWithLevel(writer, logLevel, useColor)
-		termHandler.Prefix = func(r slog.Record) string {
-			file, line := getSource(r)
-			if file != "" {
-				return fmt.Sprintf("%s%s:%d ", chainStr, file, line)
-			}
-			return chainStr
-		}
-		handler = termHandler
+		// The new TerminalHandler doesn't have a Prefix field anymore.
+		// We'll add the chain prefix through a wrapper handler.
+		handler = &prefixHandler{Handler: termHandler, prefix: chainStr}
 	}
 
 	// Create handler
 	c := EVMLogger{
-		Logger:   ethlog.NewLogger(handler),
+		Logger:   log.NewLogger(handler),
 		logLevel: logLevel,
 	}
 
 	if err := c.SetLogLevel(level); err != nil {
 		return EVMLogger{}, err
 	}
-	ethlog.SetDefault(c.Logger)
+	// log.SetDefault is not available in the current version
+	// The logger is returned for the caller to use
 	return c, nil
 }
 
@@ -65,7 +61,7 @@ func (s *EVMLogger) SetLogLevel(level string) error {
 	if err != nil {
 		return err
 	}
-	s.logLevel.Set(logLevel)
+	s.logLevel.Set(slog.Level(logLevel))
 	return nil
 }
 
@@ -103,4 +99,17 @@ func (a *addContext) Handle(ctx context.Context, r slog.Record) error {
 		r.Add(slog.String("caller", fmt.Sprintf("%s:%d", file, line)))
 	}
 	return a.Handler.Handle(ctx, r)
+}
+
+type prefixHandler struct {
+	slog.Handler
+	prefix string
+}
+
+func (p *prefixHandler) Handle(ctx context.Context, r slog.Record) error {
+	file, line := getSource(r)
+	if file != "" {
+		r.AddAttrs(slog.String("location", fmt.Sprintf("%s%s:%d", p.prefix, file, line)))
+	}
+	return p.Handler.Handle(ctx, r)
 }

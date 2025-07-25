@@ -14,7 +14,7 @@ import (
 
 const (
 	Version        = uint16(0)
-	MaxResultsSize = interfaces.MiB
+	MaxResultsSize = iface.MiB
 )
 
 var Codec codec.Manager

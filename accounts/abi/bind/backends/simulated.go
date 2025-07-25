@@ -49,6 +49,7 @@ import (
 	"github.com/luxfi/geth/common/math"
 	"github.com/luxfi/geth/event"
 	"github.com/luxfi/geth/log"
+	"github.com/luxfi/evm/ethclient/simulated"
 )
 
 // Verify that SimulatedBackend implements required interfaces
@@ -57,16 +58,16 @@ var (
 	_ bind.ContractBackend        = (*SimulatedBackend)(nil)
 	_ bind.DeployBackend          = (*SimulatedBackend)(nil)
 
-	_ ethereum.ChainReader              = (*SimulatedBackend)(nil)
-	_ ethereum.ChainStateReader         = (*SimulatedBackend)(nil)
-	_ ethereum.TransactionReader        = (*SimulatedBackend)(nil)
-	_ ethereum.TransactionSender        = (*SimulatedBackend)(nil)
-	_ ethereum.ContractCaller           = (*SimulatedBackend)(nil)
-	_ ethereum.GasEstimator             = (*SimulatedBackend)(nil)
-	_ ethereum.GasPricer                = (*SimulatedBackend)(nil)
-	_ ethereum.LogFilterer              = (*SimulatedBackend)(nil)
-	_ interfaces.AcceptedStateReader    = (*SimulatedBackend)(nil)
-	_ interfaces.AcceptedContractCaller = (*SimulatedBackend)(nil)
+	_ iface.ChainReader              = (*SimulatedBackend)(nil)
+	_ iface.ChainStateReader         = (*SimulatedBackend)(nil)
+	_ iface.TransactionReader        = (*SimulatedBackend)(nil)
+	_ iface.TransactionSender        = (*SimulatedBackend)(nil)
+	_ iface.ContractCaller           = (*SimulatedBackend)(nil)
+	_ iface.GasEstimator             = (*SimulatedBackend)(nil)
+	_ iface.GasPricer                = (*SimulatedBackend)(nil)
+	_ iface.LogFilterer              = (*SimulatedBackend)(nil)
+	_ iface.AcceptedStateReader    = (*SimulatedBackend)(nil)
+	_ iface.AcceptedContractCaller = (*SimulatedBackend)(nil)
 )
 
 // SimulatedBackend is a simulated blockchain.

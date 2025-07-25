@@ -10,7 +10,7 @@ import (
 	"os"
 	"github.com/luxfi/evm/cmd/simulator/config"
 	"github.com/luxfi/evm/cmd/simulator/load"
-	"github.com/luxfi/evm/log"
+	"github.com/luxfi/geth/log"
 	"github.com/spf13/pflag"
 )
 
@@ -37,9 +37,12 @@ func main() {
 	}
 
 	// Set up logging
-	_ = v.GetString(config.LogLevelKey)
-	// Simple logging setup - go-ethereum v1.16.1 simplified the log API
-	log.SetDefault(log.NewLogger(log.NewTerminalHandler(os.Stderr, true)))
+	logLevel := v.GetString(config.LogLevelKey)
+	// Set up logging using the geth log package
+	handler := log.NewTerminalHandler(os.Stderr, true)
+	log.SetDefault(log.NewLogger(handler))
+	// TODO: Apply log level from config
+	_ = logLevel
 
 	config, err := config.BuildConfig(v)
 	if err != nil {

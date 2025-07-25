@@ -32,23 +32,19 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 
-	"github.com/luxfi/geth/consensus/misc/eip4844"
-	"github.com/luxfi/geth/core"
-	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/evm/params"
-	"github.com/luxfi/geth/rpc"
+	"github.com/holiman/uint256"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
-	"github.com/luxfi/geth/common/math"
+	"github.com/luxfi/evm/consensus/misc/eip4844"
 	"github.com/luxfi/geth/crypto/kzg4844"
 	"github.com/luxfi/geth/log"
-	"github.com/holiman/uint256"
-)
-
-var (
-	maxBlobsPerTransaction = params.MaxBlobGasPerBlock / params.BlobTxBlobGasPerBlob
+	evmparams "github.com/luxfi/evm/params"
+	"github.com/luxfi/geth/rpc"
 )
 
 // TransactionArgs represents the arguments to construct a new transaction
@@ -132,9 +128,6 @@ func (args *TransactionArgs) setDefaults(ctx context.Context, b Backend, skipGas
 	if args.BlobHashes != nil && len(args.BlobHashes) == 0 {
 		return errors.New(`need at least 1 blob for a blob transaction`)
 	}
-	if args.BlobHashes != nil && len(args.BlobHashes) > maxBlobsPerTransaction {
-		return fmt.Errorf(`too many blobs in transaction (have=%d, max=%d)`, len(args.BlobHashes), maxBlobsPerTransaction)
-	}
 
 	// create check
 	if args.To == nil {
@@ -181,7 +174,7 @@ func (args *TransactionArgs) setDefaults(ctx context.Context, b Backend, skipGas
 
 	// If chain id is provided, ensure it matches the local chain id. Otherwise, set the local
 	// chain id as the default.
-	want := b.ChainConfig().ChainID
+	want := b.ChainConfig().ToEthChainConfig().ChainID
 	if args.ChainID != nil {
 		if have := (*big.Int)(args.ChainID); have.Cmp(want) != 0 {
 			return fmt.Errorf("chainId does not match node's (have=%v, want=%v)", have, want)
@@ -195,7 +188,7 @@ func (args *TransactionArgs) setDefaults(ctx context.Context, b Backend, skipGas
 type feeBackend interface {
 	SuggestGasTipCap(ctx context.Context) (*big.Int, error)
 	CurrentHeader() *types.Header
-	ChainConfig() *params.ChainConfig
+	ChainConfig() *evmparams.ChainConfig
 }
 
 // setFeeDefaults fills in default fee values for unspecified tx fields.
@@ -229,7 +222,9 @@ func (args *TransactionArgs) setFeeDefaults(ctx context.Context, b feeBackend) e
 	}
 
 	// Sanity check the non-EIP-1559 fee parameters.
-	isLondon := b.ChainConfig().IsApricotPhase3(head.Time)
+	// Determine if London (ApricotPhase3) is active via chain rules
+	rules := b.ChainConfig().ToEthChainConfig().Rules(head.Number, head.BaseFee != nil, head.Time)
+	isLondon := rules.IsLondon
 	if args.GasPrice != nil && !eip1559ParamsSet {
 		// Zero gas-price is not allowed after London fork
 		if args.GasPrice.ToInt().Sign() == 0 && isLondon {
@@ -262,11 +257,11 @@ func (args *TransactionArgs) setFeeDefaults(ctx context.Context, b feeBackend) e
 func (args *TransactionArgs) setCancunFeeDefaults(ctx context.Context, head *types.Header, b feeBackend) error {
 	// Set maxFeePerBlobGas if it is missing.
 	if args.BlobHashes != nil && args.BlobFeeCap == nil {
+		// ExcessBlobGas must be set for a Cancun block.
 		var excessBlobGas uint64
 		if head.ExcessBlobGas != nil {
 			excessBlobGas = *head.ExcessBlobGas
 		}
-		// ExcessBlobGas must be set for a Cancun block.
 		blobBaseFee := eip4844.CalcBlobFee(excessBlobGas)
 		// Set the max fee to be 2 times larger than the previous block's blob base fee.
 		// The additional slack allows the tx to not become invalidated if the base
@@ -341,13 +336,13 @@ func (args *TransactionArgs) setBlobTxSidecar(ctx context.Context, b Backend) er
 		// Generate commitment and proof.
 		commitments := make([]kzg4844.Commitment, n)
 		proofs := make([]kzg4844.Proof, n)
-		for i, b := range args.Blobs {
-			c, err := kzg4844.BlobToCommitment(b)
+		for i, blob := range args.Blobs {
+			c, err := kzg4844.BlobToCommitment(&blob)
 			if err != nil {
 				return fmt.Errorf("blobs[%d]: error computing commitment: %v", i, err)
 			}
 			commitments[i] = c
-			p, err := kzg4844.ComputeBlobProof(b, c)
+			p, err := kzg4844.ComputeBlobProof(&blob, c)
 			if err != nil {
 				return fmt.Errorf("blobs[%d]: error computing proof: %v", i, err)
 			}
@@ -356,8 +351,8 @@ func (args *TransactionArgs) setBlobTxSidecar(ctx context.Context, b Backend) er
 		args.Commitments = commitments
 		args.Proofs = proofs
 	} else {
-		for i, b := range args.Blobs {
-			if err := kzg4844.VerifyBlobProof(b, args.Commitments[i], args.Proofs[i]); err != nil {
+		for i, blob := range args.Blobs {
+			if err := kzg4844.VerifyBlobProof(&blob, args.Commitments[i], args.Proofs[i]); err != nil {
 				return fmt.Errorf("failed to verify blob proof: %v", err)
 			}
 		}
@@ -435,7 +430,7 @@ func (args *TransactionArgs) ToMessage(globalGasCap uint64, baseFee *big.Int) (*
 			// Backfill the legacy gasPrice for EVM execution, unless we're all zeroes
 			gasPrice = new(big.Int)
 			if gasFeeCap.BitLen() > 0 || gasTipCap.BitLen() > 0 {
-				gasPrice = math.BigMin(new(big.Int).Add(gasTipCap, baseFee), gasFeeCap)
+				gasPrice = BigMin(new(big.Int).Add(gasTipCap, baseFee), gasFeeCap)
 			}
 		}
 	}

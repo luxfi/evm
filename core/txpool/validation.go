@@ -40,14 +40,14 @@ import (
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/crypto/kzg4844"
 	"github.com/luxfi/geth/log"
-	ethparams "github.com/luxfi/evm/params"
-	vmerr "github.com/luxfi/evm/vmerrs"
+	gethparams "github.com/luxfi/geth/params"
+	gethvm "github.com/luxfi/geth/core/vm"
 )
 
 var (
 	// blobTxMinBlobGasPrice is the big.Int version of the configured protocol
 	// parameter to avoid constucting a new big integer for every transaction.
-	blobTxMinBlobGasPrice = big.NewInt(ethparams.BlobTxMinBlobGasprice)
+	blobTxMinBlobGasPrice = big.NewInt(gethparams.BlobTxMinBlobGasprice)
 )
 
 // ValidationOptions define certain differences between transaction validation
@@ -87,8 +87,8 @@ func ValidateTransaction(tx *types.Transaction, head *types.Header, signer types
 		return fmt.Errorf("%w: type %d rejected, pool not yet in Cancun", core.ErrTxTypeNotSupported, tx.Type())
 	}
 	// Check whether the init code size has been exceeded
-	if opts.Config.IsShanghai(head.Number, head.Time) && tx.To() == nil && len(tx.Data()) > ethparams.MaxInitCodeSize {
-		return fmt.Errorf("%w: code size %v, limit %v", vmerr.ErrMaxInitCodeSizeExceeded, len(tx.Data()), ethparams.MaxInitCodeSize)
+	if opts.Config.IsShanghai(head.Number, head.Time) && tx.To() == nil && len(tx.Data()) > gethparams.MaxInitCodeSize {
+		return fmt.Errorf("%w: code size %v, limit %v", gethvm.ErrMaxInitCodeSizeExceeded, len(tx.Data()), gethparams.MaxInitCodeSize)
 	}
 	// Transactions can't be negative. This may never happen using RLP decoded
 	// transactions but may occur for transactions created using the RPC.

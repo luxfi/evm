@@ -10,14 +10,14 @@ import (
 	"github.com/luxfi/evm/iface"
 )
 
-// MockableClock implements interfaces.MockableTimer
+// MockableClock implements iface.MockableTimer
 type MockableClock struct {
 	mu   sync.RWMutex
 	time time.Time
 }
 
 // NewMockableClock creates a new mockable clock
-func NewMockableClock() interfaces.MockableTimer {
+func NewMockableClock() iface.MockableTimer {
 	return &MockableClock{
 		time: time.Now(),
 	}

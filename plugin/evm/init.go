@@ -9,7 +9,7 @@ import (
 
 func init() {
 	// Register the EVM plugin
-	interfaces.RegisterPlugin("evm", &vmFactory{})
+	iface.RegisterPlugin("evm", &vmFactory{})
 }
 
 type vmFactory struct{}

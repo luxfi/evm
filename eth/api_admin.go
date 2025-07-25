@@ -34,8 +34,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/luxfi/geth/core"
-	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/rlp"
 )
 

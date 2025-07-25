@@ -6,13 +6,14 @@ package evm
 import (
 	"sync"
 	"time"
-	"github.com/luxfi/evm/iface"
+
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/params"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/log"
+	"github.com/luxfi/node/consensus"
+	commonEng "github.com/luxfi/node/consensus/engine/core"
+	"github.com/luxfi/node/utils/timer"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 )
 
 type blockBuilder struct {
-	ctx         *interfaces.ChainContext
+	ctx         *consensus.Context // Keep the original context for logging
 	chainConfig *params.ChainConfig
 
 	txPool *txpool.TxPool
@@ -32,7 +33,7 @@ type blockBuilder struct {
 
 	// A message is sent on this channel when a new block
 	// is ready to be build. This notifies the consensus common.
-	notifyBuildBlockChan chan<- interfaces.Message
+	notifyBuildBlockChan chan<- commonEng.Message
 
 	// [buildBlockLock] must be held when accessing [buildSent]
 	buildBlockLock sync.Mutex
@@ -44,11 +45,11 @@ type blockBuilder struct {
 	// buildBlockTimer is a timer used to delay retrying block building a minimum amount of time
 	// with the same contents of the mempool.
 	// If the mempool receives a new transaction, the block builder will send a new notification to
-	// the engine and cancel the interfaces.
-	buildBlockTimer *interfaces.Timer
+	// the engine and cancel the timer.
+	buildBlockTimer *timer.Timer
 }
 
-func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- interfaces.Message) *blockBuilder {
+func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- commonEng.Message) *blockBuilder {
 	b := &blockBuilder{
 		ctx:                  vm.ctx,
 		chainConfig:          vm.chainConfig,
@@ -64,7 +65,7 @@ func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- interfaces.Message) *b
 // handleBlockBuilding dispatches a timer used to delay block building retry attempts when the contents
 // of the mempool has not been changed since the last attempt.
 func (b *blockBuilder) handleBlockBuilding() {
-	b.buildBlockTimer = interfaces.NewTimer(b.buildBlockTimerCallback)
+	b.buildBlockTimer = timer.NewTimer(b.buildBlockTimerCallback)
 	go b.ctx.Log.RecoverAndPanic(b.buildBlockTimer.Dispatch)
 }
 
@@ -94,12 +95,10 @@ func (b *blockBuilder) handleGenerateBlock() {
 }
 
 // needToBuild returns true if there are outstanding transactions to be issued
-// into a interfaces.
+// into a block.
 func (b *blockBuilder) needToBuild() bool {
-	size := b.txPool.PendingSize(txpool.PendingFilter{
-		MinTip: uint256.MustFromBig(b.txPool.GasTip()),
-	})
-	return size > 0
+	pending, _ := b.txPool.Stats()
+	return pending > 0
 }
 
 // markBuilding adds a PendingTxs message to the toEngine channel.
@@ -112,7 +111,7 @@ func (b *blockBuilder) markBuilding() {
 	b.buildBlockTimer.Cancel() // Cancel any future attempt from the timer to send a PendingTxs message
 
 	select {
-	case b.notifyBuildBlockChan <- interfaces.PendingTxs:
+	case b.notifyBuildBlockChan <- commonEng.PendingTxs:
 		b.buildSent = true
 	default:
 		log.Error("Failed to push PendingTxs notification to the consensus common.")
@@ -137,12 +136,13 @@ func (b *blockBuilder) signalTxsReady() {
 
 // awaitSubmittedTxs waits for new transactions to be submitted
 // and notifies the VM when the tx pool has transactions to be
-// put into a new interfaces.
+// put into a new block.
 func (b *blockBuilder) awaitSubmittedTxs() {
 	// txSubmitChan is invoked when new transactions are issued as well as on re-orgs which
-	// may orphan transactions that were previously in a preferred interfaces.
+	// may orphan transactions that were previously in a preferred block.
 	txSubmitChan := make(chan core.NewTxsEvent)
-	b.txPool.SubscribeTransactions(txSubmitChan, true)
+	sub := b.txPool.SubscribeNewTxsEvent(txSubmitChan)
+	defer sub.Unsubscribe()
 
 	b.shutdownWg.Add(1)
 	go b.ctx.Log.RecoverAndPanic(func() {

@@ -32,9 +32,10 @@ import (
 	"sync"
 
 	"github.com/luxfi/node/utils/timer/mockable"
-	"github.com/luxfi/geth/core"
-	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/params"
+	gethparams "github.com/luxfi/geth/params"
 	customheader "github.com/luxfi/evm/plugin/evm/header"
 	"github.com/luxfi/evm/upgrade/lp176"
 	"github.com/luxfi/geth/rpc"
@@ -62,7 +63,7 @@ const (
 )
 
 var (
-	DefaultMaxPrice           = big.NewInt(150 * params.GWei)
+	DefaultMaxPrice           = big.NewInt(150 * gethparams.GWei)
 	DefaultMinPrice           = big.NewInt(lp176.MinGasPrice)
 	DefaultMinGasUsed         = big.NewInt(lp176.MinTargetPerSecond)
 	DefaultMaxLookbackSeconds = uint64(80)
@@ -230,7 +231,11 @@ func (oracle *Oracle) estimateNextBaseFee(ctx context.Context) (*big.Int, error)
 	// If the block does have a baseFee, calculate the next base fee
 	// based on the current time and add it to the tip to estimate the
 	// total gas price estimate.
-	return customheader.EstimateNextBaseFee(oracle.backend.ChainConfig(), header, oracle.clock.Unix())
+	config := oracle.backend.ChainConfig()
+	extrasConfig := params.GetExtra(config)
+	// Use the default fee config from the chain config
+	feeConfig := extrasConfig.FeeConfig
+	return customheader.EstimateNextBaseFee(extrasConfig, feeConfig, header, oracle.clock.Unix())
 }
 
 // SuggestPrice returns an estimated price for legacy transactions.

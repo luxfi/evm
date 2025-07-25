@@ -7,9 +7,9 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
-	"github.com/luxfi/evm/core/types"
 )
 
 var _ = (*headerMarshaling)(nil)
