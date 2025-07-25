@@ -1,19 +1,14 @@
 // Package interfaces provides common interfaces to break import cycles
-package interfaces
+package iface
 
 import (
 	"math/big"
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/iface"
 )
 
-// ChainHeaderReader is an alias to iface.ChainHeaderReader
-type ChainHeaderReader = iface.ChainHeaderReader
-
-// ChainReader is an alias to iface.ChainReader
-type ChainReader = iface.ChainReader
+// ChainHeaderReader and ChainReader are defined in chain.go
 
 // Engine is an algorithm agnostic consensus engine.
 type Engine interface {
@@ -53,8 +48,6 @@ type Engine interface {
 	Close() error
 }
 
-// ChainConfig is an alias to iface.ChainConfig for interface compatibility
-type ChainConfig = iface.ChainConfig
 
 // FeeConfig represents the fee configuration
 type FeeConfig interface {
