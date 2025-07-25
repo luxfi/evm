@@ -1,7 +1,7 @@
 // Copyright 2025 Lux Industries, Inc.
 // This file contains the Block interface.
 
-package interfaces
+package iface
 
 import "context"
 
