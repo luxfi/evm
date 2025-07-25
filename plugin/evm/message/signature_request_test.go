@@ -8,8 +8,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/node/ids"
 	"github.com/stretchr/testify/require"
 )
 

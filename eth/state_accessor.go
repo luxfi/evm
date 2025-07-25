@@ -32,13 +32,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/luxfi/geth/core"
-	"github.com/luxfi/geth/core/rawdb"
-	"github.com/luxfi/geth/core/state"
-	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/core/vm"
-	"github.com/luxfi/geth/eth/tracers"
-	"github.com/luxfi/geth/trie"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/eth/tracers"
+	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/trie"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/log"
@@ -163,7 +164,7 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 			return nil, nil, fmt.Errorf("processing block %d failed: %v", current.NumberU64(), err)
 		}
 		// Finalize the state so any modifications are written to the trie
-		root, err := statedb.Commit(current.NumberU64(), eth.blockchain.Config().IsEIP158(current.Number()))
+		root, err := statedb.Commit(current.NumberU64(), eth.blockchain.Config().IsEIP158(current.Number()), false)
 		if err != nil {
 			return nil, nil, fmt.Errorf("stateAtBlock commit failed, number %d root %v: %w",
 				current.NumberU64(), current.Root().Hex(), err)
@@ -249,7 +250,13 @@ func (eth *Ethereum) stateAtTransaction(ctx context.Context, block *types.Block,
 		return nil, vm.BlockContext{}, statedb, release, nil
 	}
 	// Recompute transactions up to the target index.
-	signer := types.MakeSigner(eth.blockchain.Config(), block.Number(), block.Time())
+	var chainConfig *params.ChainConfig
+	if cfg, ok := eth.blockchain.Config().(*params.ChainConfig); ok {
+		chainConfig = cfg
+	} else {
+		return nil, vm.BlockContext{}, nil, nil, errors.New("chain config is not *params.ChainConfig")
+	}
+	signer := types.MakeSigner(chainConfig.ToEthChainConfig(), block.Number(), block.Time())
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := core.TransactionToMessage(tx, signer, block.BaseFee())
@@ -259,7 +266,7 @@ func (eth *Ethereum) stateAtTransaction(ctx context.Context, block *types.Block,
 			return msg, context, statedb, release, nil
 		}
 		// Not yet the searched for transaction, execute on top of the current state
-		vmenv := vm.NewEVM(context, txContext, statedb, eth.blockchain.Config(), vm.Config{})
+		vmenv := vm.NewEVM(context, txContext, statedb, chainConfig, vm.Config{})
 		statedb.SetTxContext(tx.Hash(), idx)
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas())); err != nil {
 			return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
@@ -284,7 +291,14 @@ func (eth *Ethereum) StateAtNextBlock(ctx context.Context, parent *types.Block, 
 	}
 
 	// Apply upgrades here for the [nextBlock]
-	err = core.ApplyUpgrades(eth.blockchain.Config(), &parent.Header().Time, nextBlock, statedb)
+	var chainConfig *params.ChainConfig
+	if cfg, ok := eth.blockchain.Config().(*params.ChainConfig); ok {
+		chainConfig = cfg
+	} else {
+		release()
+		return nil, nil, errors.New("chain config is not *params.ChainConfig")
+	}
+	err = core.ApplyUpgrades(chainConfig, &parent.Header().Time, nextBlock, statedb)
 	if err != nil {
 		release()
 		return nil, nil, err

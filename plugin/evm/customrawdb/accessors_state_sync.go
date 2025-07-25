@@ -5,9 +5,9 @@ package customrawdb
 
 import (
 	"encoding/binary"
-	
-	"github.com/luxfi/geth/common"
+
 	ethrawdb "github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/log"
 )

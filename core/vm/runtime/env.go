@@ -29,7 +29,6 @@ package runtime
 import (
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/vm"
-	ethparams "github.com/luxfi/evm/params"
 )
 
 func NewEnv(cfg *Config) *vm.EVM {
@@ -52,5 +51,5 @@ func NewEnv(cfg *Config) *vm.EVM {
 		BlobBaseFee: cfg.BlobBaseFee,
 	}
 
-	return vm.NewEVM(blockContext, txContext, cfg.State, &ethparams.ChainConfig{ChainID: cfg.ChainConfig.ChainID}, cfg.EVMConfig)
+	return vm.NewEVM(blockContext, txContext, cfg.State, cfg.ChainConfig, cfg.EVMConfig)
 }

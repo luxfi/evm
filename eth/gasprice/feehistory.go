@@ -33,7 +33,7 @@ import (
 	"math/big"
 	"slices"
 
-	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/rpc"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/log"
@@ -133,7 +133,8 @@ func (oracle *Oracle) resolveBlockRange(ctx context.Context, lastBlock rpc.Block
 
 	lastAcceptedBlock := rpc.BlockNumber(oracle.backend.LastAcceptedBlock().NumberU64())
 	maxQueryDepth := rpc.BlockNumber(oracle.maxBlockHistory) - 1
-	if lastBlock.IsAccepted() {
+	// Check if lastBlock is requesting the latest/accepted block
+	if lastBlock == rpc.LatestBlockNumber || lastBlock == rpc.FinalizedBlockNumber || lastBlock == rpc.SafeBlockNumber {
 		lastBlock = lastAcceptedBlock
 	} else if lastAcceptedBlock > maxQueryDepth && lastAcceptedBlock-maxQueryDepth > lastBlock {
 		// If the requested last block reaches further back than [oracle.maxBlockHistory] past the last accepted block return an error

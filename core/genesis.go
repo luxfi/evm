@@ -32,7 +32,6 @@ import (
 	"fmt"
 	"math/big"
 	"time"
-	ethtypes "github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/core/types"
@@ -48,8 +47,8 @@ import (
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/log"
 	"github.com/luxfi/geth/core/tracing"
+	gethparams "github.com/luxfi/geth/params"
 	"github.com/holiman/uint256"
-	ethparams "github.com/luxfi/evm/params"
 )
 
 //go:generate go run github.com/fjl/gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -263,7 +262,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 		}
 		airdropAmount := uint256.MustFromBig(g.AirdropAmount)
 		for _, alloc := range airdrop {
-			statedb.AddBalance(alloc.Address, airdropAmount, tracing.BalanceChangeGenesisBalance)
+			statedb.AddBalance(alloc.Address, airdropAmount, tracing.BalanceIncreaseGenesisBalance)
 		}
 		log.Debug(
 			"applied airdrop allocation",
@@ -296,7 +295,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 	// Do custom allocation after airdrop in case an address shows up in standard
 	// allocation
 	for addr, account := range g.Alloc {
-		statedb.AddBalance(addr, uint256.MustFromBig(account.Balance), tracing.BalanceChangeGenesisBalance)
+		statedb.AddBalance(addr, uint256.MustFromBig(account.Balance), tracing.BalanceIncreaseGenesisBalance)
 		statedb.SetCode(addr, account.Code)
 		if account.Nonce > 0 {
 			statedb.SetNonce(addr, account.Nonce, tracing.NonceChangeUnspecified)
@@ -309,7 +308,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 	head.Root = root
 
 	if g.GasLimit == 0 {
-		head.GasLimit = params.DefaultGasLimit
+		head.GasLimit = gethparams.GenesisGasLimit
 	}
 	if g.Difficulty == nil {
 		head.Difficulty = big.NewInt(0) // EVM chains use zero difficulty
@@ -347,9 +346,8 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 			panic(fmt.Sprintf("unable to commit genesis block: %v", err))
 		}
 	}
-	// Create ethereum Body type for NewBlock
-	ethBody := &ethtypes.Body{}
-	return types.NewBlock(head, ethBody, nil, trie.NewStackTrie(nil))
+	// Create block with empty transactions and receipts
+	return types.NewBlock(head, nil, nil, nil, trie.NewStackTrie(nil))
 }
 
 // Commit writes the block and state of a genesis specification to the database.

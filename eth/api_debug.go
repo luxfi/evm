@@ -32,12 +32,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/luxfi/geth/core/rawdb"
-	"github.com/luxfi/geth/core/state"
-	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/internal/ethapi"
-	"github.com/luxfi/geth/rpc"
-	"github.com/luxfi/geth/trie"
+	"github.com/luxfi/evm/rpc"
+	"github.com/luxfi/evm/trie"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/crypto"
@@ -97,7 +97,8 @@ func (api *DebugAPI) Preimage(ctx context.Context, hash common.Hash) (hexutil.By
 // GetBadBlocks returns a list of the last 'bad blocks' that the client has seen on the network
 // and returns them as a JSON list of block hashes.
 func (api *DebugAPI) GetBadBlocks(ctx context.Context) ([]*ethapi.BadBlockArgs, error) {
-	internalAPI := ethapi.NewBlockChainAPI(api.eth.APIBackend)
+	wrapper := &ethAPIBackendWrapper{api.eth.APIBackend}
+	internalAPI := ethapi.NewBlockChainAPI(wrapper)
 	return internalAPI.GetBadBlocks(ctx)
 }
 

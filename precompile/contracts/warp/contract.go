@@ -11,9 +11,7 @@ import (
 	"github.com/luxfi/evm/accounts/abi"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/common/math"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/core/vm"
 	"github.com/luxfi/evm/vmerrs"
 )
 
@@ -230,11 +228,11 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	if remainingGas, err = contract.DeductGas(suppliedGas, SendWarpMessageGasCost); err != nil {
 		return nil, 0, err
 	}
-	// This gas cost includes buffer room because it is based off of the total size of the input instead of the produced interfaces.
+	// This gas cost includes buffer room because it is based off of the total size of the input instead of the produced iface.
 	// This ensures that we charge gas before we unpack the variable sized input.
-	payloadGas, overflow := interfaces.SafeMul(SendWarpMessageGasCostPerByte, uint64(len(input)))
+	payloadGas, overflow := iface.SafeMul(SendWarpMessageGasCostPerByte, uint64(len(input)))
 	if overflow {
-		return nil, 0, vm.ErrOutOfGas
+		return nil, 0, vmerrs.ErrOutOfGas
 	}
 	if remainingGas, err = contract.DeductGas(remainingGas, payloadGas); err != nil {
 		return nil, 0, err
@@ -249,19 +247,22 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	}
 
 	var (
-		sourceChainID = accessibleState.GetConsensusContext().ChainID
+		consensusCtx  = accessibleState.GetConsensusContext()
+		sourceChainID = [32]byte(consensusCtx.ChainID)
 		sourceAddress = caller
 	)
 
-	addressedPayload, err := interfaces.NewAddressedCall(
-		sourceAddress.Bytes(),
-		payloadData,
-	)
-	if err != nil {
+	// Create addressed payload with source address and payload data
+	addressedPayload := &iface.AddressedCall{
+		SourceAddress: sourceAddress.Bytes(),
+		Payload:       payloadData,
+	}
+	// Validate addressed payload
+	if err := addressedPayload.Verify(); err != nil {
 		return nil, remainingGas, err
 	}
-	unsignedWarpMessage, err := interfaces.NewUnsignedMessage(
-		accessibleState.GetConsensusContext().NetworkID,
+	unsignedWarpMessage, err := iface.NewUnsignedMessage(
+		consensusCtx.NetworkID,
 		sourceChainID,
 		addressedPayload.Bytes(),
 	)
@@ -299,14 +300,14 @@ func PackSendWarpMessageEvent(sourceAddress common.Address, unsignedMessageID co
 	return WarpABI.PackEvent("SendWarpMessage", sourceAddress, unsignedMessageID, unsignedMessageBytes)
 }
 
-// UnpackSendWarpEventDataToMessage attempts to unpack event [data] as interfaces.UnsignedMessage.
-func UnpackSendWarpEventDataToMessage(data []byte) (*interfaces.UnsignedMessage, error) {
+// UnpackSendWarpEventDataToMessage attempts to unpack event [data] as iface.UnsignedMessage.
+func UnpackSendWarpEventDataToMessage(data []byte) (*iface.UnsignedMessage, error) {
 	event := SendWarpMessageEventData{}
 	err := WarpABI.UnpackIntoInterface(&event, "SendWarpMessage", data)
 	if err != nil {
 		return nil, err
 	}
-	return interfaces.ParseUnsignedMessage(event.Message)
+	return iface.ParseUnsignedMessage(event.Message)
 }
 
 // createWarpPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.

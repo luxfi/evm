@@ -7,8 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-	"github.com/luxfi/evm/core/txpool"
-	"github.com/luxfi/geth/eth"
+
+	"github.com/luxfi/evm/core/txpool/legacypool"
+	"github.com/luxfi/evm/eth"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/spf13/cast"
@@ -55,8 +56,12 @@ const (
 	// time assumptions:
 	// - normal bootstrap processing time: ~14 blocks / second
 	// - state sync time: ~6 hrs.
-	defaultStateSyncMinBlocks   = 300_000
-	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
+	defaultStateSyncMinBlocks         = 300_000
+	defaultStateSyncRequestSize       = 1024             // the number of key/values to ask peers for per request
+	defaultTxPoolLifetime             = 10 * time.Minute // default lifetime for transaction pool
+	defaultTriePrefetcherParallelism  = 16               // default number of goroutines for trie prefetching
+	defaultHistoricalProofQueryWindow = 43200            // default 43200 blocks (~12 hours) for historical proof queries
+	defaultTransactionHistory         = 2350000          // default number of blocks to keep transaction history
 )
 
 var (
@@ -84,10 +89,11 @@ type Config struct {
 	AirdropFile string `json:"airdrop"`
 
 	// Lux EVM APIs
-	ChainAPIEnabled bool   `json:"chain-api-enabled"`
-	WarpAPIEnabled    bool   `json:"warp-api-enabled"`
-	AdminAPIEnabled   bool   `json:"admin-api-enabled"`
-	AdminAPIDir       string `json:"admin-api-dir"`
+	ChainAPIEnabled      bool   `json:"chain-api-enabled"`
+	WarpAPIEnabled       bool   `json:"warp-api-enabled"`
+	AdminAPIEnabled      bool   `json:"admin-api-enabled"`
+	AdminAPIDir          string `json:"admin-api-dir"`
+	ValidatorsAPIEnabled bool   `json:"validators-api-enabled"`
 
 	// EnabledEthAPIs is a list of Ethereum services that should be enabled
 	// If none is specified, then we use the default list [defaultEnabledAPIs]
@@ -138,6 +144,7 @@ type Config struct {
 	TxPoolGlobalSlots  uint64   `json:"tx-pool-global-slots"`
 	TxPoolAccountQueue uint64   `json:"tx-pool-account-queue"`
 	TxPoolGlobalQueue  uint64   `json:"tx-pool-global-queue"`
+	TxPoolLifetime     Duration `json:"tx-pool-lifetime"`
 
 	APIMaxDuration           Duration      `json:"api-max-duration"`
 	WSCPURefillRate          Duration      `json:"ws-cpu-refill-rate"`
@@ -196,6 +203,18 @@ type Config struct {
 	// identical state with the pre-upgrade ruleset.
 	SkipUpgradeCheck bool `json:"skip-upgrade-check"`
 
+	// TriePrefetcherParallelism sets the number of goroutines to use for trie prefetching
+	TriePrefetcherParallelism int `json:"trie-prefetcher-parallelism"`
+
+	// HistoricalProofQueryWindow is the number of blocks before the last accepted block to be accepted for state queries.
+	HistoricalProofQueryWindow uint64 `json:"historical-proof-query-window"`
+
+	// TransactionHistory is the number of blocks to keep the transaction history for
+	TransactionHistory uint64 `json:"transaction-history"`
+
+	// SkipTxIndexing disables transaction indexing
+	SkipTxIndexing bool `json:"skip-tx-indexing"`
+
 	// AcceptedCacheSize is the depth to keep in the accepted headers cache and the
 	// accepted logs cache at the accepted tip.
 	//
@@ -231,14 +250,14 @@ func (c *Config) SetDefaults() {
 	c.RPCTxFeeCap = defaultRpcTxFeeCap
 	c.MetricsExpensiveEnabled = defaultMetricsExpensiveEnabled
 
-	c.TxPoolJournal = txpool.DefaultConfig.Journal
-	c.TxPoolRejournal = Duration{txpool.DefaultConfig.Rejournal}
-	c.TxPoolPriceLimit = txpool.DefaultConfig.PriceLimit
-	c.TxPoolPriceBump = txpool.DefaultConfig.PriceBump
-	c.TxPoolAccountSlots = txpool.DefaultConfig.AccountSlots
-	c.TxPoolGlobalSlots = txpool.DefaultConfig.GlobalSlots
-	c.TxPoolAccountQueue = txpool.DefaultConfig.AccountQueue
-	c.TxPoolGlobalQueue = txpool.DefaultConfig.GlobalQueue
+	c.TxPoolJournal = legacypool.DefaultConfig.Journal
+	c.TxPoolRejournal = Duration{legacypool.DefaultConfig.Rejournal}
+	c.TxPoolPriceLimit = legacypool.DefaultConfig.PriceLimit
+	c.TxPoolPriceBump = legacypool.DefaultConfig.PriceBump
+	c.TxPoolAccountSlots = legacypool.DefaultConfig.AccountSlots
+	c.TxPoolGlobalSlots = legacypool.DefaultConfig.GlobalSlots
+	c.TxPoolAccountQueue = legacypool.DefaultConfig.AccountQueue
+	c.TxPoolGlobalQueue = legacypool.DefaultConfig.GlobalQueue
 
 	c.APIMaxDuration.Duration = defaultApiMaxDuration
 	c.WSCPURefillRate.Duration = defaultWsCpuRefillRate
@@ -272,11 +291,15 @@ func (c *Config) SetDefaults() {
 	c.StateSyncRequestSize = defaultStateSyncRequestSize
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
+	c.TxPoolLifetime.Duration = defaultTxPoolLifetime
+	c.TriePrefetcherParallelism = defaultTriePrefetcherParallelism
+	c.HistoricalProofQueryWindow = defaultHistoricalProofQueryWindow
+	c.TransactionHistory = defaultTransactionHistory
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {
 	var v interface{}
-	if err := interfaces.Unmarshal(data, &v); err != nil {
+	if err := json.Unmarshal(data, &v); err != nil {
 		return err
 	}
 	d.Duration, err = cast.ToDurationE(v)
@@ -290,7 +313,7 @@ func (d Duration) String() string {
 
 // String implements the stringer interface.
 func (d Duration) MarshalJSON() ([]byte, error) {
-	return interfaces.Marshal(d.Duration.String())
+	return json.Marshal(d.Duration.String())
 }
 
 // Validate returns an error if this is an invalid interfaces.

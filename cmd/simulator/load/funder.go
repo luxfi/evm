@@ -12,7 +12,7 @@ import (
 	"github.com/luxfi/evm/cmd/simulator/metrics"
 	"github.com/luxfi/evm/cmd/simulator/txs"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/geth/ethclient"
+	"github.com/luxfi/evm/ethclient"
 	ethparams "github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/log"

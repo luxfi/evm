@@ -6,7 +6,6 @@ package evm
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -15,39 +14,41 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"github.com/luxfi/geth/common"
+
 	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/internal/testutils"
+	"github.com/luxfi/evm/params/extras"
+	"github.com/luxfi/evm/plugin/evm/customtypes"
+	"github.com/luxfi/evm/plugin/evm/header"
+	"github.com/luxfi/evm/plugin/evm/vmerrors"
+	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	
-	"github.com/luxfi/evm/accounts/abi"
-	accountKeystore "github.com/luxfi/geth/accounts/keystore"
+
 	"github.com/luxfi/evm/core"
-	"github.com/luxfi/geth/eth"
-	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/evm/rpc"
+	"github.com/luxfi/geth/eth"
 	"github.com/luxfi/geth/trie"
-	
+
 	"github.com/luxfi/node/chains/atomic"
+	"github.com/luxfi/node/consensus"
+	"github.com/luxfi/node/consensus/engine/enginetest"
+	"github.com/luxfi/node/database"
+	"github.com/luxfi/node/ids"
 	"github.com/luxfi/node/utils/formatting"
-	
+
 	"github.com/luxfi/evm/commontype"
-	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/constants"
 	"github.com/luxfi/evm/core/txpool"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/internal/ethapi"
 	"github.com/luxfi/evm/params"
-	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/precompile/allowlist"
 	"github.com/luxfi/evm/precompile/contracts/deployerallowlist"
 	"github.com/luxfi/evm/precompile/contracts/feemanager"
 	"github.com/luxfi/evm/precompile/contracts/rewardmanager"
 	"github.com/luxfi/evm/precompile/contracts/txallowlist"
 	"github.com/luxfi/evm/utils"
-	"github.com/luxfi/evm/vmerrs"
 )
 
 var (
@@ -57,15 +58,15 @@ var (
 	testMinGasPrice int64  = 225_000_000_000
 	testKeys        []*ecdsa.PrivateKey
 	testEthAddrs    []common.Address // testEthAddrs[i] corresponds to testKeys[i]
-	testLuxAssetID = ids.ID{1, 2, 3}
+	testLuxAssetID  = ids.ID{1, 2, 3}
 	username        = "Johns"
 	password        = "CjasdjhiPeirbSenfeI13" // #nosec G101
 	// Use chainId: 43111, so that it does not overlap with any Lux ChainIDs, which may have their
 	// config overridden in vm.Initialize.
-	genesisJSONEVM    = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0,\"evmTimestamp\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
-	genesisJSONDUpgrade     = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0,\"evmTimestamp\":0,\"dUpgradeTimestamp\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
-	genesisJSONPreEVM = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
-	genesisJSONLatest       = genesisJSONDUpgrade
+	genesisJSONEVM      = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0,\"evmTimestamp\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
+	genesisJSONDUpgrade = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0,\"evmTimestamp\":0,\"dUpgradeTimestamp\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
+	genesisJSONPreEVM   = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
+	genesisJSONLatest   = genesisJSONDUpgrade
 
 	firstTxAmount = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*100))
 
@@ -91,10 +92,10 @@ var (
 		return string(b)
 	}
 
-	genesisJSONPreEVM = genesisJSON(params.TestPreEVMChainConfig)
-	genesisJSONEVM    = genesisJSON(params.TestEVMChainConfig)
-	genesisJSONDurango      = genesisJSON(params.TestDurangoChainConfig)
-	genesisJSONEtna         = genesisJSON(params.TestEtnaChainConfig)
+	genesisJSONPreEVM  = genesisJSON(params.TestPreEVMChainConfig)
+	genesisJSONEVM     = genesisJSON(params.TestEVMChainConfig)
+	genesisJSONDurango = genesisJSON(params.TestDurangoChainConfig)
+	genesisJSONEtna    = genesisJSON(params.TestEtnaChainConfig)
 	// genesisJSONFortuna      = genesisJSON(params.TestFortunaChainConfig)
 	genesisJSONGranite = genesisJSON(params.TestGraniteChainConfig)
 	genesisJSONLatest  = genesisJSONGranite
@@ -146,8 +147,8 @@ func NewContext() *consensus.Context {
 		GetSubnetIDF: func(_ context.Context, chainID ids.ID) (ids.ID, error) {
 			subnetID, ok := map[ids.ID]ids.ID{
 				luxConstants.PlatformChainID: luxConstants.PrimaryNetworkID,
-				testXChainID:                       luxConstants.PrimaryNetworkID,
-				testCChainID:                       luxConstants.PrimaryNetworkID,
+				testXChainID:                 luxConstants.PrimaryNetworkID,
+				testCChainID:                 luxConstants.PrimaryNetworkID,
 			}[chainID]
 			if !ok {
 				return ids.Empty, errors.New("unknown chain")

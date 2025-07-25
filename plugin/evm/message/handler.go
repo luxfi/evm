@@ -5,6 +5,7 @@ package message
 
 import (
 	"context"
+
 	"github.com/luxfi/node/ids"
 )
 

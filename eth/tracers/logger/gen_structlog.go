@@ -5,7 +5,7 @@ package logger
 import (
 	"encoding/json"
 
-	"github.com/luxfi/geth/core/vm"
+	"github.com/luxfi/evm/core/vm"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/common/math"

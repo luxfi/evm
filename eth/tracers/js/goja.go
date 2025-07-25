@@ -34,8 +34,8 @@ import (
 
 	"github.com/dop251/goja"
 
-	"github.com/luxfi/geth/core/vm"
-	"github.com/luxfi/geth/eth/tracers"
+	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/eth/tracers"
 	jsassets "github.com/luxfi/evm/eth/tracers/js/internal/tracers"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
@@ -290,7 +290,8 @@ func (t *jsTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Addr
 	t.ctx["block"] = t.vm.ToValue(env.Context.BlockNumber.Uint64())
 	// Update list of precompiles based on current block
 	rules := env.ChainConfig().Rules(env.Context.BlockNumber, env.Context.Time)
-	t.activePrecompiles = vm.ActivePrecompiles(rules)
+	gethRules := env.ChainConfig().ToEthChainConfig().Rules(env.Context.BlockNumber, false, env.Context.Time)
+	t.activePrecompiles = vm.ActivePrecompiles(gethRules)
 }
 
 // CaptureState implements the Tracer interface to trace a single step of VM execution.

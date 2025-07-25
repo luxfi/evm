@@ -66,10 +66,10 @@ func (mr *MockStateMockRecorder) GetMinimumHeight(ctx interface{}) *gomock.Call 
 }
 
 // GetSubnetID mocks base method.
-func (m *MockState) GetSubnetID(ctx context.Context, chainID interfaces.ID) (interfaces.ID, error) {
+func (m *MockState) GetSubnetID(ctx context.Context, chainID iface.ID) (iface.ID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSubnetID", ctx, chainID)
-	ret0, _ := ret[0].(interfaces.ID)
+	ret0, _ := ret[0].(iface.ID)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -81,10 +81,10 @@ func (mr *MockStateMockRecorder) GetSubnetID(ctx, chainID interface{}) *gomock.C
 }
 
 // GetValidatorSet mocks base method.
-func (m *MockState) GetValidatorSet(ctx context.Context, height uint64, subnetID interfaces.ID) (map[interfaces.NodeID]*interfaces.GetValidatorOutput, error) {
+func (m *MockState) GetValidatorSet(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetValidatorSet", ctx, height, subnetID)
-	ret0, _ := ret[0].(map[interfaces.NodeID]*interfaces.GetValidatorOutput)
+	ret0, _ := ret[0].(map[iface.NodeID]*iface.GetValidatorOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

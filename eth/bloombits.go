@@ -29,7 +29,7 @@ package eth
 import (
 	"time"
 
-	"github.com/luxfi/geth/core/rawdb"
+	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/geth/common/bitutil"
 )
 

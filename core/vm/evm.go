@@ -32,6 +32,7 @@ import (
 
 	"github.com/luxfi/evm/constants"
 	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/core/headerutil"
 	"github.com/luxfi/evm/iface"
@@ -486,7 +487,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	// This doesn't matter on Mainnet, where all empties are gone at the time of Byzantium,
 	// but is the correct thing to do and matters on other networks, in tests, and potential
 	// future scenarios
-	evm.StateDB.AddBalance(addr, new(uint256.Int))
+	evm.StateDB.AddBalance(addr, new(uint256.Int), tracing.BalanceChangeTouchAccount)
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
 	if evm.Config.Tracer != nil {
@@ -556,7 +557,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	if nonce+1 < nonce {
 		return nil, common.Address{}, gas, vmerrs.ErrNonceUintOverflow
 	}
-	evm.StateDB.SetNonce(caller.Address(), nonce+1)
+	evm.StateDB.SetNonce(caller.Address(), nonce+1, tracing.NonceChangeContractCreator)
 	// We add this to the access list _before_ taking a snapshot. Even if the creation fails,
 	// the access-list change should not be rolled back
 	// All upgrades are active in Lux v1, always add to access list
@@ -570,7 +571,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	snapshot := evm.StateDB.Snapshot()
 	evm.StateDB.CreateAccount(address)
 	if evm.chainRules.IsEIP158 {
-		evm.StateDB.SetNonce(address, 1)
+		evm.StateDB.SetNonce(address, 1, tracing.NonceChangeNewContract)
 	}
 	evm.Context.Transfer(evm.StateDB, caller.Address(), address, value)
 
