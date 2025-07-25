@@ -9,6 +9,7 @@ import (
 
 	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/utils"
+	ethparams "github.com/luxfi/geth/params"
 )
 
 const (
@@ -127,7 +128,11 @@ func GetRulesExtra(rules Rules) *extras.Rules {
 	
 	// Create a minimal ChainConfig to get extras
 	// This is a workaround since Rules doesn't have direct access to ChainConfig
-	tempConfig := &ChainConfig{ChainID: chainID}
+	tempConfig := &ChainConfig{
+		ChainConfig: &ethparams.ChainConfig{
+			ChainID: chainID,
+		},
+	}
 	extra := GetExtra(tempConfig)
 	
 	// Create rules based on the Lux upgrades

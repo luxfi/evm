@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"github.com/luxfi/geth/common"
+	"github.com/luxfi/evm/iface"
 )
 
-// NodeID represents a node identifier
-type NodeID [32]byte
+// NodeID is a type alias to iface.NodeID
+type NodeID = iface.NodeID
 
 // BlockID represents a block identifier
 type BlockID [32]byte
@@ -22,11 +23,6 @@ type ID [32]byte
 
 // String returns the string representation of an ID
 func (id ID) String() string {
-	return fmt.Sprintf("%x", id[:])
-}
-
-// String returns the string representation of a NodeID
-func (id NodeID) String() string {
 	return fmt.Sprintf("%x", id[:])
 }
 
@@ -165,25 +161,14 @@ type StateSyncableVM interface {
 	AcceptStateSummary(ctx context.Context, stateSummary StateSummary) error
 }
 
-// ChainContext provides chain context
-type ChainContext struct {
-	NetworkID uint32
-	SubnetID  SubnetID
-	ChainID   ChainID
-	NodeID    NodeID
+// ChainContext is a type alias to iface.ChainContext
+type ChainContext = iface.ChainContext
 
-	// Node version
-	AppVersion uint32
+// SubnetID is a type alias to iface.SubnetID  
+type SubnetID = iface.SubnetID
 
-	// Chain configuration
-	ChainDataDir string
-}
-
-// SubnetID represents a subnet identifier
-type SubnetID [32]byte
-
-// ChainID represents a chain identifier
-type ChainID [32]byte
+// ChainID is a type alias to iface.ChainID
+type ChainID = iface.ChainID
 
 // BlockBuildContext provides context for building blocks
 type BlockBuildContext struct {

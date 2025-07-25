@@ -23,7 +23,7 @@ var (
 )
 
 func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.PrecompileTest {
-	contractAddress := module.Address
+	contractAddress := module.Address()
 	return map[string]testutils.PrecompileTest{
 		"admin set admin": {
 			Caller:     TestAdminAddr,

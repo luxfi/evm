@@ -6,43 +6,14 @@ import (
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/iface"
 )
 
-// ChainHeaderReader defines methods needed to access the local blockchain during header verification.
-type ChainHeaderReader interface {
-	// Config retrieves the blockchain's chain configuration.
-	Config() *ChainConfig
+// ChainHeaderReader is an alias to iface.ChainHeaderReader
+type ChainHeaderReader = iface.ChainHeaderReader
 
-	// CurrentHeader retrieves the current header from the local chain.
-	CurrentHeader() *types.Header
-
-	// GetHeader retrieves a block header from the database by hash and number.
-	GetHeader(hash common.Hash, number uint64) *types.Header
-
-	// GetHeaderByNumber retrieves a block header from the database by number.
-	GetHeaderByNumber(number uint64) *types.Header
-
-	// GetHeaderByHash retrieves a block header from the database by its hash.
-	GetHeaderByHash(hash common.Hash) *types.Header
-
-	// GetTd retrieves the total difficulty from the database by hash and number.
-	GetTd(hash common.Hash, number uint64) *big.Int
-
-	// GetCoinbaseAt returns the configured coinbase address at the given timestamp
-	GetCoinbaseAt(timestamp uint64) common.Address
-
-	// GetFeeConfigAt returns the fee configuration at the given timestamp
-	GetFeeConfigAt(timestamp uint64) (FeeConfig, error)
-}
-
-// ChainReader defines a small collection of methods needed to access the local
-// blockchain during header and/or uncle verification.
-type ChainReader interface {
-	ChainHeaderReader
-
-	// GetBlock retrieves a block from the database by hash and number.
-	GetBlock(hash common.Hash, number uint64) *types.Block
-}
+// ChainReader is an alias to iface.ChainReader
+type ChainReader = iface.ChainReader
 
 // Engine is an algorithm agnostic consensus engine.
 type Engine interface {
@@ -82,24 +53,8 @@ type Engine interface {
 	Close() error
 }
 
-// Minimal ChainConfig interface to avoid importing params
-type ChainConfig interface {
-	GetChainID() *big.Int
-	GetEIP150Block() *big.Int
-	GetEIP150Hash() common.Hash
-	GetEIP155Block() *big.Int
-	GetEIP158Block() *big.Int
-	GetByzantiumBlock() *big.Int
-	GetConstantinopleBlock() *big.Int
-	GetPetersburgBlock() *big.Int
-	GetIstanbulBlock() *big.Int
-	GetMuirGlacierBlock() *big.Int
-	GetBerlinBlock() *big.Int
-	GetLondonBlock() *big.Int
-	
-	// Fork checking methods
-	IsCancun(num *big.Int, time uint64) bool
-}
+// ChainConfig is an alias to iface.ChainConfig for interface compatibility
+type ChainConfig = iface.ChainConfig
 
 // FeeConfig represents the fee configuration
 type FeeConfig interface {

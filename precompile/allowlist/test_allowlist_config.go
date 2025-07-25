@@ -28,7 +28,7 @@ func mkConfigWithAllowList(module modules.Module, cfg *AllowListConfig) precompi
 		panic(err)
 	}
 
-	return moduleCfg
+	return moduleCfg.(precompileconfig.Config)
 }
 
 func mkConfigWithUpgradeAndAllowList(module modules.Module, cfg *AllowListConfig, update precompileconfig.Upgrade) precompileconfig.Config {

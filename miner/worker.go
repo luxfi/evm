@@ -314,7 +314,7 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 	if err != nil {
 		return nil, fmt.Errorf("calculating gas capacity: %w", err)
 	}
-	currentState.StartPrefetcher("miner")
+	currentState.StartPrefetcher("miner", nil)
 	return &environment{
 		signer:           types.MakeSigner(&eparams.ChainConfig{ChainID: w.chainConfig.ChainID}, header.Number, header.Time),
 		state:            currentState,

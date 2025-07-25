@@ -16,6 +16,7 @@ import (
 	"github.com/luxfi/node/consensus/validators"
 	"github.com/luxfi/node/upgrade"
 	"github.com/luxfi/evm/localsigner"
+	"github.com/luxfi/evm/iface"
 )
 
 var (
@@ -57,6 +58,27 @@ func TestConsensusContext() *consensus.Context {
 	_ = aliaser.Alias(testXChainID, testXChainID.String())
 
 	return ctx
+}
+
+// ConvertToChainContext converts a consensus.Context to iface.ChainContext
+func ConvertToChainContext(ctx *consensus.Context) *iface.ChainContext {
+	// Convert 20-byte NodeID to 32-byte NodeID by padding with zeros
+	var nodeID iface.NodeID
+	copy(nodeID[:], ctx.NodeID[:])
+	
+	return &iface.ChainContext{
+		NetworkID:    ctx.NetworkID,
+		SubnetID:     iface.SubnetID(ctx.SubnetID),
+		ChainID:      iface.ChainID(ctx.ChainID),
+		NodeID:       nodeID,
+		AppVersion:   uint32(0), // Default for testing
+		ChainDataDir: ctx.ChainDataDir,
+	}
+}
+
+// TestChainContext returns a test ChainContext
+func TestChainContext() *iface.ChainContext {
+	return ConvertToChainContext(TestConsensusContext())
 }
 
 // TestValidatorState is a test implementation of validator state

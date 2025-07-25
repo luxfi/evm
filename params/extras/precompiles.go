@@ -5,8 +5,9 @@ package extras
 
 import (
 	"encoding/json"
+	"fmt"
 
-	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 )
 
@@ -22,14 +23,19 @@ func (ccp *Precompiles) UnmarshalJSON(data []byte) error {
 	}
 
 	*ccp = make(Precompiles)
-	for _, module := range modules.RegisteredModules() {
-		key := module.ConfigKey
+	for _, module := range registry.RegisteredModules() {
+		key := module.ConfigKey()
 		if value, ok := raw[key]; ok {
 			conf := module.MakeConfig()
 			if err := json.Unmarshal(value, conf); err != nil {
 				return err
 			}
-			(*ccp)[key] = conf
+			// Type assert to precompileconfig.Config
+			if cfg, ok := conf.(precompileconfig.Config); ok {
+				(*ccp)[key] = cfg
+			} else {
+				return fmt.Errorf("config for %s does not implement precompileconfig.Config", key)
+			}
 		}
 	}
 	return nil

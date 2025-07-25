@@ -6,7 +6,7 @@ package txallowlist
 import (
 	"fmt"
 	"github.com/luxfi/evm/precompile/contract"
-	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
 )
@@ -19,17 +19,17 @@ const ConfigKey = "txAllowListConfig"
 
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000002")
 
-var Module = modules.Module{
-	ConfigKey:    ConfigKey,
-	Address:      ContractAddress,
-	Contract:     TxAllowListPrecompile,
-	Configurator: &configurator{},
-}
+var Module = registry.NewModule(
+	ConfigKey,
+	ContractAddress,
+	TxAllowListPrecompile,
+	&configurator{},
+)
 
 type configurator struct{}
 
 func init() {
-	if err := modules.RegisterModule(Module); err != nil {
+	if err := registry.RegisterModule(Module); err != nil {
 		panic(err)
 	}
 }
