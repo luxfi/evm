@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
+	"github.com/luxfi/evm/core/vm"
 )
 
 var _ = (*callFrameMarshaling)(nil)

@@ -18,7 +18,7 @@ type LRUCache[K comparable, V any] struct {
 }
 
 // NewLRUCache creates a new LRU cache with the specified capacity
-func NewLRUCache[K comparable, V any](capacity int) interfaces.Cacher[K, V] {
+func NewLRUCache[K comparable, V any](capacity int) iface.Cacher[K, V] {
 	if capacity <= 0 {
 		capacity = 1
 	}

@@ -18,9 +18,9 @@ var (
 )
 
 // ethDbWrapper implements ethdb.Database
-type ethDbWrapper struct{ interfaces.Database }
+type ethDbWrapper struct{ iface.Database }
 
-func WrapDatabase(db interfaces.Database) ethdb.KeyValueStore { return ethDbWrapper{db} }
+func WrapDatabase(db iface.Database) ethdb.KeyValueStore { return ethDbWrapper{db} }
 
 // Stat implements ethdb.Database
 func (db ethDbWrapper) Stat() (string, error) { return "", database.ErrNotFound }
@@ -73,13 +73,13 @@ func (db ethDbWrapper) NewIteratorWithStart(start []byte) ethdb.Iterator {
 }
 
 // wrappedBatch implements ethdb.wrappedBatch
-type wrappedBatch struct{ interfaces.Batch }
+type wrappedBatch struct{ iface.Batch }
 
 // ValueSize implements ethdb.Batch
 func (batch wrappedBatch) ValueSize() int { return batch.Batch.ValueSize() }
 
 // Replay implements ethdb.Batch
-func (batch wrappedBatch) Replay(w ethdb.KeyValueWriter) error { 
+func (batch wrappedBatch) Replay(w ethdb.KeyValueWriter) error {
 	// Wrap the ethdb.KeyValueWriter as a database.KeyValueWriterDeleter
 	return batch.Batch.Replay(&keyValueWriterDeleter{w})
 }

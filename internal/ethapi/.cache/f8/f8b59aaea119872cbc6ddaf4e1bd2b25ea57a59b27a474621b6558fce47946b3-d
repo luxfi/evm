@@ -1,0 +1,5 @@
+./doc.go
+./doc_darwin.go
+./error.go
+./msg.go
+./winscard.go

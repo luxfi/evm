@@ -24,20 +24,21 @@ import (
 	"github.com/luxfi/node/utils/timer/mockable"
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/constants"
-	"github.com/luxfi/geth/core"
-	"github.com/luxfi/geth/core/rawdb"
-	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/eth"
-	"github.com/luxfi/geth/eth/ethconfig"
-	"github.com/luxfi/geth/ethclient"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/eth"
+	"github.com/luxfi/evm/eth/ethconfig"
+	"github.com/luxfi/evm/ethclient"
 	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/geth/node"
-	"github.com/luxfi/geth/params"
-	"github.com/luxfi/geth/rpc"
+	"github.com/luxfi/node"
+	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/rpc"
 	"github.com/luxfi/geth/common"
+	"github.com/luxfi/geth/ethdb"
 )
 
-var _ eth.PushGossiper = (*fakePushGossiper)(nil)
+// fakePushGossiper is a no-op gossiper for simulated backend
 
 type fakePushGossiper struct{}
 
@@ -45,26 +46,132 @@ func (*fakePushGossiper) Add(*types.Transaction) {}
 
 // Client exposes the methods provided by the Ethereum RPC client.
 type Client interface {
-	interfaces.BlockNumberReader
-	interfaces.ChainReader
-	interfaces.ChainStateReader
-	interfaces.ContractCaller
-	interfaces.GasEstimator
-	interfaces.GasPricer
-	interfaces.GasPricer1559
-	interfaces.FeeHistoryReader
-	interfaces.LogFilterer
-	interfaces.AcceptedStateReader
-	interfaces.AcceptedContractCaller
-	interfaces.TransactionReader
-	interfaces.TransactionSender
-	interfaces.ChainIDReader
+	ethclient.Client
 }
 
 // simClient wraps ethclient. This exists to prevent extracting ethclient.Client
 // from the Client interface returned by Backend.
 type simClient struct {
-	ethclient.Client
+	client ethclient.Client
+}
+
+// Implement all ethclient.Client interface methods by delegating to the wrapped client
+func (s simClient) Client() *rpc.Client { return s.client.Client() }
+func (s simClient) Close() { s.client.Close() }
+func (s simClient) ChainID(ctx context.Context) (*big.Int, error) { return s.client.ChainID(ctx) }
+func (s simClient) BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {
+	return s.client.BlockByHash(ctx, hash)
+}
+func (s simClient) BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
+	return s.client.BlockByNumber(ctx, number)
+}
+func (s simClient) BlockNumber(ctx context.Context) (uint64, error) {
+	return s.client.BlockNumber(ctx)
+}
+func (s simClient) BlockReceipts(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]*types.Receipt, error) {
+	return s.client.BlockReceipts(ctx, blockNrOrHash)
+}
+func (s simClient) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
+	return s.client.HeaderByHash(ctx, hash)
+}
+func (s simClient) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
+	return s.client.HeaderByNumber(ctx, number)
+}
+func (s simClient) TransactionByHash(ctx context.Context, hash common.Hash) (tx *types.Transaction, isPending bool, err error) {
+	return s.client.TransactionByHash(ctx, hash)
+}
+func (s simClient) TransactionSender(ctx context.Context, tx *types.Transaction, block common.Hash, index uint) (common.Address, error) {
+	return s.client.TransactionSender(ctx, tx, block, index)
+}
+func (s simClient) TransactionCount(ctx context.Context, blockHash common.Hash) (uint, error) {
+	return s.client.TransactionCount(ctx, blockHash)
+}
+func (s simClient) TransactionInBlock(ctx context.Context, blockHash common.Hash, index uint) (*types.Transaction, error) {
+	return s.client.TransactionInBlock(ctx, blockHash, index)
+}
+func (s simClient) TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
+	return s.client.TransactionReceipt(ctx, txHash)
+}
+func (s simClient) SyncProgress(ctx context.Context) error {
+	return s.client.SyncProgress(ctx)
+}
+func (s simClient) SubscribeNewAcceptedTransactions(ctx context.Context, ch chan<- *common.Hash) (iface.Subscription, error) {
+	return s.client.SubscribeNewAcceptedTransactions(ctx, ch)
+}
+func (s simClient) SubscribeNewPendingTransactions(ctx context.Context, ch chan<- *common.Hash) (iface.Subscription, error) {
+	return s.client.SubscribeNewPendingTransactions(ctx, ch)
+}
+func (s simClient) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (iface.Subscription, error) {
+	return s.client.SubscribeNewHead(ctx, ch)
+}
+func (s simClient) NetworkID(ctx context.Context) (*big.Int, error) {
+	return s.client.NetworkID(ctx)
+}
+func (s simClient) BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error) {
+	return s.client.BalanceAt(ctx, account, blockNumber)
+}
+func (s simClient) BalanceAtHash(ctx context.Context, account common.Address, blockHash common.Hash) (*big.Int, error) {
+	return s.client.BalanceAtHash(ctx, account, blockHash)
+}
+func (s simClient) StorageAt(ctx context.Context, account common.Address, key common.Hash, blockNumber *big.Int) ([]byte, error) {
+	return s.client.StorageAt(ctx, account, key, blockNumber)
+}
+func (s simClient) StorageAtHash(ctx context.Context, account common.Address, key common.Hash, blockHash common.Hash) ([]byte, error) {
+	return s.client.StorageAtHash(ctx, account, key, blockHash)
+}
+func (s simClient) CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error) {
+	return s.client.CodeAt(ctx, account, blockNumber)
+}
+func (s simClient) CodeAtHash(ctx context.Context, account common.Address, blockHash common.Hash) ([]byte, error) {
+	return s.client.CodeAtHash(ctx, account, blockHash)
+}
+func (s simClient) NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error) {
+	return s.client.NonceAt(ctx, account, blockNumber)
+}
+func (s simClient) NonceAtHash(ctx context.Context, account common.Address, blockHash common.Hash) (uint64, error) {
+	return s.client.NonceAtHash(ctx, account, blockHash)
+}
+func (s simClient) FilterLogs(ctx context.Context, q iface.FilterQuery) ([]types.Log, error) {
+	return s.client.FilterLogs(ctx, q)
+}
+func (s simClient) SubscribeFilterLogs(ctx context.Context, q iface.FilterQuery, ch chan<- types.Log) (iface.Subscription, error) {
+	return s.client.SubscribeFilterLogs(ctx, q, ch)
+}
+func (s simClient) AcceptedCodeAt(ctx context.Context, account common.Address) ([]byte, error) {
+	return s.client.AcceptedCodeAt(ctx, account)
+}
+func (s simClient) AcceptedNonceAt(ctx context.Context, account common.Address) (uint64, error) {
+	return s.client.AcceptedNonceAt(ctx, account)
+}
+func (s simClient) AcceptedCallContract(ctx context.Context, call iface.CallMsg) ([]byte, error) {
+	return s.client.AcceptedCallContract(ctx, call)
+}
+func (s simClient) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
+	return s.client.SuggestGasPrice(ctx)
+}
+func (s simClient) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
+	return s.client.SuggestGasTipCap(ctx)
+}
+func (s simClient) EstimateGas(ctx context.Context, call iface.CallMsg) (gas uint64, err error) {
+	return s.client.EstimateGas(ctx, call)
+}
+func (s simClient) SendTransaction(ctx context.Context, tx *types.Transaction) error {
+	return s.client.SendTransaction(ctx, tx)
+}
+func (s simClient) CallContract(ctx context.Context, call iface.CallMsg, blockNumber *big.Int) ([]byte, error) {
+	return s.client.CallContract(ctx, call, blockNumber)
+}
+func (s simClient) CallContractAtHash(ctx context.Context, call iface.CallMsg, blockHash common.Hash) ([]byte, error) {
+	return s.client.CallContractAtHash(ctx, call, blockHash)
+}
+func (s simClient) AsymmetricKeyLocalAvailable(ctx context.Context, addr common.Address) (bool, error) {
+	return s.client.AsymmetricKeyLocalAvailable(ctx, addr)
+}
+func (s simClient) AsymmetricKeyMaxChunks(ctx context.Context) (int, error) {
+	return s.client.AsymmetricKeyMaxChunks(ctx)
+}
+func (s simClient) NotifyL1Validators(ctx context.Context, txHash common.Hash) error {
+	return s.client.NotifyL1Validators(ctx, txHash)
 }
 
 // Backend is a simulated blockchain. You can use it to test your contracts or
@@ -88,7 +195,7 @@ func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config,
 	// service to mutate with the options afterwards
 	nodeConf := node.DefaultConfig
 
-	ethConf := ethconfig.DefaultConfig
+	ethConf := ethconfig.DefaultConfig()
 	ethConf.Genesis = &core.Genesis{
 		Config: &chainConfig,
 		Alloc:  alloc,
@@ -115,7 +222,7 @@ func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config,
 
 // newWithNode sets up a simulated backend on an existing node. The provided node
 // must not be started and will be started by this method.
-func newWithNode(stack *node.Node, conf *eth.Config, blockPeriod uint64) (*Backend, error) {
+func newWithNode(stack *node.Node, conf *ethconfig.Config, blockPeriod uint64) (*Backend, error) {
 	chaindb := rawdb.NewMemoryDatabase()
 	clock := &mockable.Clock{}
 	clock.Set(time.Unix(0, 0))
@@ -125,13 +232,16 @@ func newWithNode(stack *node.Node, conf *eth.Config, blockPeriod uint64) (*Backe
 	)
 
 	backend, err := eth.New(
-		stack, conf, &fakePushGossiper{}, chaindb, eth.Settings{}, common.Hash{},
+		stack, &eth.Config{
+			Config: *conf,
+			Genesis: conf.Genesis,
+		}, &fakePushGossiper{}, chaindb, eth.Settings{}, common.Hash{},
 		engine, clock,
 	)
 	if err != nil {
 		return nil, err
 	}
-	server := rpc.NewServer(0)
+	server := rpc.NewServer(0 * time.Second)
 	for _, api := range backend.APIs() {
 		if err := server.RegisterName(api.Namespace, api.Service); err != nil {
 			return nil, err
@@ -139,7 +249,7 @@ func newWithNode(stack *node.Node, conf *eth.Config, blockPeriod uint64) (*Backe
 	}
 	return &Backend{
 		eth:    backend,
-		client: simClient{ethclient.NewClient(rpc.DialInProc(server))},
+		client: simClient{client: ethclient.NewClient(rpc.DialInProc(server))},
 		clock:  clock,
 		server: server,
 	}, nil
@@ -148,8 +258,8 @@ func newWithNode(stack *node.Node, conf *eth.Config, blockPeriod uint64) (*Backe
 // Close shuts down the simBackend.
 // The simulated backend can't be used afterwards.
 func (n *Backend) Close() error {
-	if n.client.Client != nil {
-		n.client.Close()
+	if n.client.client != nil {
+		n.client.client.Close()
 	}
 	n.server.Stop()
 	return nil

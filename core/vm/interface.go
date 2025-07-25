@@ -29,9 +29,10 @@ package vm
 import (
 	"math/big"
 
+	"github.com/luxfi/geth/common"
+	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/params"
-	"github.com/luxfi/geth/common"
 	"github.com/holiman/uint256"
 )
 
@@ -39,8 +40,8 @@ import (
 type StateDB interface {
 	CreateAccount(common.Address)
 
-	SubBalance(common.Address, *uint256.Int)
-	AddBalance(common.Address, *uint256.Int)
+	SubBalance(common.Address, *uint256.Int, tracing.BalanceChangeReason) uint256.Int
+	AddBalance(common.Address, *uint256.Int, tracing.BalanceChangeReason) uint256.Int
 	GetBalance(common.Address) *uint256.Int
 
 	SubBalanceMultiCoin(common.Address, common.Hash, *big.Int)
@@ -48,7 +49,7 @@ type StateDB interface {
 	GetBalanceMultiCoin(common.Address, common.Hash) *big.Int
 
 	GetNonce(common.Address) uint64
-	SetNonce(common.Address, uint64)
+	SetNonce(common.Address, uint64, tracing.NonceChangeReason)
 
 	GetCodeHash(common.Address) common.Hash
 	GetCode(common.Address) []byte

@@ -20,7 +20,7 @@ import (
 	"github.com/luxfi/evm/iface/metrics"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/evm/core/state/snapshot"
-	"github.com/luxfi/evm/triedb/hashdb"
+	"github.com/luxfi/geth/triedb/hashdb"
 	"github.com/stretchr/testify/require"
 )
 

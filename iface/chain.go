@@ -12,6 +12,7 @@ import (
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
+	"github.com/holiman/uint256"
 )
 
 // ChainHeaderReader defines methods needed to access the local blockchain during header verification.
@@ -160,6 +161,9 @@ type ChainContext struct {
 
 	// Chain configuration
 	ChainDataDir string
+	
+	// Validator state
+	ValidatorState ValidatorState
 }
 
 // NodeID is a 32-byte identifier for nodes
@@ -188,7 +192,7 @@ func (id ChainID) String() string {
 
 // StateDB is an EVM database for full state querying
 type StateDB interface {
-	GetBalance(common.Address) *big.Int
+	GetBalance(common.Address) *uint256.Int
 	GetNonce(common.Address) uint64
 	GetCode(common.Address) []byte
 	GetState(common.Address, common.Hash) common.Hash

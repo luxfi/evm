@@ -10,12 +10,12 @@ import (
 	"os/exec"
 	"strings"
 	"time"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/log"
+	"github.com/luxfi/geth/log"
 	"github.com/go-cmd/cmd"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/require"
+	"github.com/luxfi/node/api/health"
 )
 
 // RunCommand starts the command [bin] with the given [args] and returns the command to the caller
@@ -54,10 +54,11 @@ func RegisterPingTest() {
 	require := require.New(ginkgo.GinkgoT())
 
 	ginkgo.It("ping the network", ginkgo.Label("ping"), func() {
-		client := interfaces.NewClient(DefaultLocalNodeURI)
-		healthy, err := client.Readiness(context.Background(), nil)
+		client := health.NewClient(DefaultLocalNodeURI)
+		healthyReply, err := client.Health(context.Background(), nil)
 		require.NoError(err)
-		require.True(healthy.Healthy)
+		require.NotNil(healthyReply)
+		require.True(healthyReply.Healthy)
 	})
 }
 
@@ -78,10 +79,26 @@ func RegisterNodeRun() {
 		gomega.Expect(err).Should(gomega.BeNil())
 
 		// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
-		healthClient := interfaces.NewClient(DefaultLocalNodeURI)
-		healthy, err := interfaces.AwaitReady(ctx, healthClient, HealthCheckTimeout, nil)
-		gomega.Expect(err).Should(gomega.BeNil())
-		gomega.Expect(healthy).Should(gomega.BeTrue())
+		healthClient := health.NewClient(DefaultLocalNodeURI)
+		
+		// Wait for the node to be healthy
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+		timeout := time.After(HealthCheckTimeout)
+		
+		for {
+			select {
+			case <-ticker.C:
+				healthyReply, err := healthClient.Health(ctx, nil)
+				if err == nil && healthyReply != nil && healthyReply.Healthy {
+					gomega.Expect(true).Should(gomega.BeTrue())
+					return
+				}
+			case <-timeout:
+				gomega.Expect(false).Should(gomega.BeTrue(), "Node did not become healthy within timeout")
+				return
+			}
+		}
 		log.Info("Lux node is healthy")
 	})
 

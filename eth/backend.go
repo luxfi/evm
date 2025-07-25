@@ -36,25 +36,27 @@ import (
 
 	"github.com/luxfi/node/utils/timer/mockable"
 	"github.com/luxfi/geth/accounts"
-	"github.com/luxfi/geth/consensus"
-	"github.com/luxfi/geth/core"
+	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/evm/commontype"
+	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/bloombits"
-	"github.com/luxfi/geth/core/rawdb"
-	"github.com/luxfi/geth/core/state/pruner"
-	"github.com/luxfi/geth/core/txpool"
-	"github.com/luxfi/geth/core/txpool/legacypool"
-	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/core/vm"
-	"github.com/luxfi/geth/eth/ethconfig"
-	"github.com/luxfi/geth/eth/filters"
-	"github.com/luxfi/geth/eth/gasprice"
-	"github.com/luxfi/geth/eth/tracers"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/core/state/pruner"
+	"github.com/luxfi/evm/core/txpool"
+	"github.com/luxfi/evm/core/txpool/legacypool"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/eth/ethconfig"
+	"github.com/luxfi/evm/eth/filters"
+	"github.com/luxfi/evm/eth/gasprice"
+	"github.com/luxfi/evm/eth/tracers"
 	"github.com/luxfi/evm/internal/ethapi"
 	"github.com/luxfi/evm/internal/shutdowncheck"
-	"github.com/luxfi/geth/miner"
+	"github.com/luxfi/evm/miner"
 	"github.com/luxfi/geth/node"
-	"github.com/luxfi/geth/params"
-	"github.com/luxfi/geth/rpc"
+	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/rpc"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/event"
@@ -113,6 +115,68 @@ type Ethereum struct {
 	stackRPCs []rpc.API
 
 	settings Settings // Settings for Ethereum API
+}
+
+// blockChainWrapper wraps BlockChain to implement the interfaces needed by txpool and legacypool
+type blockChainWrapper struct {
+	bc *core.BlockChain
+}
+
+// Config returns the chain configuration.
+func (w *blockChainWrapper) Config() *params.ChainConfig {
+	// We know the underlying config is *params.ChainConfig
+	if cfg, ok := w.bc.Config().(*params.ChainConfig); ok {
+		return cfg
+	}
+	return nil
+}
+
+// CurrentBlock returns the current head of the chain.
+func (w *blockChainWrapper) CurrentBlock() *types.Header {
+	return w.bc.CurrentBlock()
+}
+
+// GetBlock retrieves a block by hash and number.
+func (w *blockChainWrapper) GetBlock(hash common.Hash, number uint64) *types.Block {
+	return w.bc.GetBlock(hash, number)
+}
+
+// StateAt returns a state database for a given root hash.
+func (w *blockChainWrapper) StateAt(root common.Hash) (*state.StateDB, error) {
+	return w.bc.StateAt(root)
+}
+
+// SubscribeChainHeadEvent registers a subscription of ChainHeadEvent.
+func (w *blockChainWrapper) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
+	return w.bc.SubscribeChainHeadEvent(ch)
+}
+
+// SenderCacher returns the transaction sender cacher.
+func (w *blockChainWrapper) SenderCacher() *core.TxSenderCacher {
+	return w.bc.SenderCacher()
+}
+
+// GetFeeConfigAt returns the fee configuration at a given block.
+func (w *blockChainWrapper) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
+	return w.bc.GetFeeConfigAtHeader(parent)
+}
+
+// mockableTimerWrapper wraps mockable.Clock to implement iface.MockableTimer
+type mockableTimerWrapper struct {
+	clock *mockable.Clock
+}
+
+func (m *mockableTimerWrapper) Time() time.Time {
+	return m.clock.Time()
+}
+
+func (m *mockableTimerWrapper) Set(time time.Time) {
+	m.clock.Set(time)
+}
+
+func (m *mockableTimerWrapper) Advance(duration time.Duration) {
+	newTime := m.clock.Time().Add(duration)
+	m.clock.Set(newTime)
 }
 
 // roundUpCacheSize returns [input] rounded up to the next multiple of [allocSize]
@@ -248,14 +312,27 @@ func New(
 	// config.BlobPool.Datadir = ""
 	// blobPool := blobpool.New(config.BlobPool, &chainWithFinalBlock{eth.blockchain})
 
-	legacyPool := legacypool.New(config.TxPool, eth.blockchain)
+	// Create a wrapper that implements the required interfaces
+	chainWrapper := &blockChainWrapper{bc: eth.blockchain}
+	legacyPool := legacypool.New(config.TxPool, chainWrapper)
 
-	eth.txPool, err = txpool.New(config.TxPool.PriceLimit, eth.blockchain, []txpool.SubPool{legacyPool}) //, blobPool})
+	eth.txPool, err = txpool.New(config.TxPool.PriceLimit, chainWrapper, []txpool.SubPool{legacyPool}) //, blobPool})
 	if err != nil {
 		return nil, err
 	}
 
-	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, clock)
+	// Get the concrete ChainConfig
+	var chainConfig *params.ChainConfig
+	if cfg, ok := eth.blockchain.Config().(*params.ChainConfig); ok {
+		chainConfig = cfg
+	} else {
+		// This should not happen in practice
+		return nil, errors.New("blockchain config is not *params.ChainConfig")
+	}
+	
+	// Create a timer wrapper
+	timerWrapper := &mockableTimerWrapper{clock: clock}
+	eth.miner = miner.New(eth, &config.Miner, chainConfig, eth.EventMux(), eth.engine, timerWrapper)
 
 	allowUnprotectedTxHashes := make(map[common.Hash]struct{})
 	for _, txHash := range config.AllowUnprotectedTxHashes {
@@ -275,7 +352,8 @@ func New(
 	}
 	gpoParams := config.GPO
 	gpoParams.MinPrice = new(big.Int).SetUint64(config.TxPool.PriceLimit)
-	eth.APIBackend.gpo, err = gasprice.NewOracle(eth.APIBackend, gpoParams)
+	gpoWrapper := &gpoBackendWrapper{eth.APIBackend}
+	eth.APIBackend.gpo, err = gasprice.NewOracle(gpoWrapper, gpoParams)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +361,7 @@ func New(
 	// Start the RPC service
 	eth.netRPCService = ethapi.NewNetAPI(eth.NetVersion())
 
-	eth.stackRPCs = stack.APIs()
+	// eth.stackRPCs = stack.APIs() // TODO: Check if this is still needed
 
 	// Successful startup; push a marker and check previous unclean shutdowns.
 	eth.shutdownTracker.MarkStartup()
@@ -294,13 +372,26 @@ func New(
 // APIs return the collection of RPC services the ethereum package offers.
 // NOTE, some of these services probably need to be moved to somewhere else.
 func (s *Ethereum) APIs() []rpc.API {
-	apis := ethapi.GetAPIs(s.APIBackend)
+	// Create wrapper for ethapi compatibility
+	ethWrapper := &ethAPIBackendWrapper{s.APIBackend}
+	gethAPIs := ethapi.GetAPIs(ethWrapper)
+	
+	// Convert geth APIs to evm APIs
+	apis := make([]rpc.API, len(gethAPIs))
+	for i, api := range gethAPIs {
+		apis[i] = rpc.API{
+			Namespace: api.Namespace,
+			Version:   api.Version,
+			Service:   api.Service,
+			Name:      api.Namespace, // Use namespace as name
+		}
+	}
 
 	// Append tracing APIs
 	apis = append(apis, tracers.APIs(s.APIBackend)...)
 
 	// Add the APIs from the node
-	apis = append(apis, s.stackRPCs...)
+	// apis = append(apis, s.stackRPCs...) // TODO: Check if this is still needed
 
 	// Create [filterSystem] with the log cache size set in the config.
 	filterSystem := filters.NewFilterSystem(s.APIBackend, filters.Config{

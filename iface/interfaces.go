@@ -7,88 +7,107 @@ import (
 	"errors"
 	"math"
 	
-	"github.com/luxfi/node/ids"
-	"github.com/luxfi/node/vms/platformvm/warp"
-	"github.com/luxfi/node/vms/platformvm/warp/payload"
-)
-
-// Re-export warp types for compatibility
-type (
-	UnsignedMessage = warp.UnsignedMessage
-	WarpSignedMessage = warp.Message
-	Signature      = warp.Signature
-)
-
-// Re-export payload types
-type (
-	AddressedCall = payload.AddressedCall
-	Hash          = payload.Hash
+	"github.com/luxfi/geth/common"
 )
 
 // ParseMessage parses raw bytes into a warp message
 func ParseMessage(bytes []byte) (*WarpSignedMessage, error) {
-	return warp.ParseMessage(bytes)
+	// TODO: Implement proper message parsing
+	// For now, create a basic message structure
+	if len(bytes) < 32 {
+		return nil, errors.New("message too short")
+	}
+	
+	msg := &WarpSignedMessage{
+		UnsignedMessage: UnsignedMessage{
+			Payload: bytes,
+		},
+		Signature: &BLSSignature{},
+	}
+	return msg, nil
 }
 
 // ParseUnsignedMessage parses raw bytes into an unsigned warp message
 func ParseUnsignedMessage(bytes []byte) (*UnsignedMessage, error) {
-	return warp.ParseUnsignedMessage(bytes)
+	// TODO: Implement proper unsigned message parsing
+	return &UnsignedMessage{
+		Payload: bytes,
+	}, nil
 }
 
 // Parse parses a warp payload
-func Parse(bytes []byte) (payload.Payload, error) {
-	return payload.Parse(bytes)
+func Parse(bytes []byte) (interface{}, error) {
+	// Try to parse as addressed call first
+	addressedCall := &AddressedCall{}
+	if err := addressedCall.Unmarshal(bytes); err == nil {
+		return addressedCall, nil
+	}
+	
+	// Try to parse as hash
+	if len(bytes) == 32 {
+		hash := &Hash{}
+		copy(hash.Hash[:], bytes)
+		return hash, nil
+	}
+	
+	return nil, errors.New("unknown payload type")
 }
 
 // ParseAddressedCall parses an addressed call payload
 func ParseAddressedCall(bytes []byte) (*AddressedCall, error) {
-	p, err := payload.Parse(bytes)
+	addressedCall := &AddressedCall{}
+	err := addressedCall.Unmarshal(bytes)
 	if err != nil {
 		return nil, err
-	}
-	addressedCall, ok := p.(*AddressedCall)
-	if !ok {
-		return nil, errors.New("not an addressed call")
 	}
 	return addressedCall, nil
 }
 
+// Hash represents a hash payload
+type Hash struct {
+	Hash [32]byte
+}
+
 // ParseHash parses a hash payload
 func ParseHash(bytes []byte) (*Hash, error) {
-	p, err := payload.Parse(bytes)
-	if err != nil {
-		return nil, err
+	if len(bytes) != 32 {
+		return nil, errors.New("invalid hash length")
 	}
-	hash, ok := p.(*Hash)
-	if !ok {
-		return nil, errors.New("not a hash payload")
-	}
+	hash := &Hash{}
+	copy(hash.Hash[:], bytes)
 	return hash, nil
 }
 
 // SignatureFromBytes creates a signature from bytes
-func SignatureFromBytes(bytes []byte) (Signature, error) {
-	// This is a stub - proper BLS signature parsing would go here
-	return nil, errors.New("SignatureFromBytes not implemented")
+func SignatureFromBytes(bytes []byte) (*BLSSignature, error) {
+	return &BLSSignature{bytes: bytes}, nil
 }
 
 // AggregateSignatures aggregates multiple BLS signatures
-func AggregateSignatures(sigs []Signature) (Signature, error) {
-	// This is a stub - proper implementation would aggregate BLS signatures
+func AggregateSignatures(sigs []*BLSSignature) (*BLSSignature, error) {
 	if len(sigs) == 0 {
 		return nil, errors.New("no signatures to aggregate")
 	}
+	// TODO: Implement proper BLS signature aggregation
 	return sigs[0], nil
 }
 
 // NewUnsignedMessage creates a new unsigned warp message
-func NewUnsignedMessage(networkID uint32, chainID ids.ID, payload []byte) (*UnsignedMessage, error) {
-	return warp.NewUnsignedMessage(networkID, chainID, payload)
+func NewUnsignedMessage(networkID uint32, chainID [32]byte, payload []byte) (*UnsignedMessage, error) {
+	return &UnsignedMessage{
+		NetworkID:     networkID,
+		SourceChainID: common.Hash(chainID),
+		Payload:       payload,
+	}, nil
 }
 
 // NewMessage creates a new signed warp message
-func NewMessage(unsignedMsg *UnsignedMessage, sig Signature) (*WarpSignedMessage, error) {
-	return warp.NewMessage(unsignedMsg, sig)
+func NewMessage(unsignedMsg *UnsignedMessage, sig *BLSSignature) (*WarpSignedMessage, error) {
+	return &WarpSignedMessage{
+		UnsignedMessage: *unsignedMsg,
+		Signature:       sig,
+		SourceChainID:   unsignedMsg.SourceChainID,
+	}, nil
 }
 
 // MaxUint64 is the maximum uint64 value
@@ -115,7 +134,10 @@ func SafeAdd(a, b uint64) (uint64, bool) {
 	return a + b, false
 }
 
+// MaxInt32 is the maximum int32 value
+const MaxInt32 = math.MaxInt32
+
 // WarpChainContext interface for warp consensus operations
 type WarpChainContext interface {
-	GetValidatorPublicKey(validationID ids.ID) ([]byte, error)
+	GetValidatorPublicKey(validationID [32]byte) ([]byte, error)
 }

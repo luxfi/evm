@@ -18,7 +18,7 @@ import (
 
 // GetChainConfig returns the chain config.
 func (api *BlockChainAPI) GetChainConfig(ctx context.Context) *params.ChainConfig {
-	return api.b.ChainConfig()
+	return api.b.ChainConfig().ToEthChainConfig()
 }
 
 type DetailedExecutionResult struct {
@@ -83,7 +83,7 @@ func (s *BlockChainAPI) GetBadBlocks(ctx context.Context) ([]*BadBlockArgs, erro
 		} else {
 			blockRlp = fmt.Sprintf("%#x", rlpBytes)
 		}
-		blockJSON = RPCMarshalBlock(block, true, true, s.b.ChainConfig())
+		blockJSON = RPCMarshalBlock(block, true, true, s.b.ChainConfig().ToEthChainConfig())
 		results = append(results, &BadBlockArgs{
 			Hash:   block.Hash(),
 			RLP:    blockRlp,

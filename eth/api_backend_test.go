@@ -30,7 +30,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/rlp"
 	"github.com/stretchr/testify/assert"

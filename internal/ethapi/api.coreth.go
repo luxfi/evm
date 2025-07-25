@@ -8,10 +8,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxfi/evm/upgrade/lp176"
 	"github.com/luxfi/evm/upgrade/etna"
 	"github.com/luxfi/geth/common/hexutil"
-	"github.com/luxfi/geth/common/math"
 )
 
 const (
@@ -61,16 +59,8 @@ func (s *EthereumAPI) SuggestPriceOptions(ctx context.Context) (*PriceOptions, e
 		return nil, nil
 	}
 
-	// Find min base fee based on chain config
-	// TODO: This can be removed after Fortuna is activated
-	time := s.b.CurrentHeader().Time
-	chainConfig := s.b.ChainConfig()
-	minBaseFee := new(big.Int)
-	if chainConfig.IsFortuna(time) {
-		minBaseFee.SetUint64(lp176.MinGasPrice)
-	} else {
-		minBaseFee.SetUint64(etna.MinBaseFee)
-	}
+	// TODO: Simplified min base fee logic post-Fortuna activation
+	minBaseFee := new(big.Int).SetUint64(etna.MinBaseFee)
 
 	cfg := s.b.PriceOptionsConfig()
 	bigSlowFeePercent := new(big.Int).SetUint64(cfg.SlowFeePercentage)

@@ -33,9 +33,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/luxfi/geth/core/vm"
-	"github.com/luxfi/geth/eth/tracers"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/eth/tracers"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 )
@@ -159,8 +159,8 @@ func newFlatCallTracer(ctx *tracers.Context, cfg json.RawMessage) (tracers.Trace
 func (t *flatCallTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 	t.tracer.CaptureStart(env, from, to, create, input, gas, value)
 	// Update list of precompiles based on current block
-	rules := env.ChainConfig().Rules(env.Context.BlockNumber, false, env.Context.Time)
-	t.activePrecompiles = vm.ActivePrecompiles(rules)
+	gethRules := env.ChainConfig().ToEthChainConfig().Rules(env.Context.BlockNumber, false, env.Context.Time)
+	t.activePrecompiles = vm.ActivePrecompiles(gethRules)
 }
 
 // CaptureEnd is called after the call finishes to finalize the tracing.

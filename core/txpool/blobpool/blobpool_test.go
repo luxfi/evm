@@ -211,7 +211,7 @@ func makeAddressReserver() txpool.AddressReserver {
 // the blob pool.
 func makeTx(nonce uint64, gasTipCap uint64, gasFeeCap uint64, blobFeeCap uint64, key *ecdsa.PrivateKey) *types.Transaction {
 	blobtx := makeUnsignedTx(nonce, gasTipCap, gasFeeCap, blobFeeCap)
-	return types.MustSignNewTx(key, types.LatestSigner(testChainConfig), blobtx)
+	return types.MustSignNewTx(key, types.LatestSigner(testChainConfig.ToEthChainConfig()), blobtx)
 }
 
 // makeUnsignedTx is a utility method to construct a random blob transaction
@@ -1301,7 +1301,7 @@ func TestAdd(t *testing.T) {
 
 			// Sign the seed transactions and store them in the data store
 			for _, tx := range seed.txs {
-				signed := types.MustSignNewTx(keys[acc], types.LatestSigner(testChainConfig), tx)
+				signed := types.MustSignNewTx(keys[acc], types.LatestSigner(testChainConfig.ToEthChainConfig()), tx)
 				blob, _ := rlp.EncodeToBytes(signed)
 				store.Put(blob)
 			}
@@ -1324,7 +1324,7 @@ func TestAdd(t *testing.T) {
 
 		// Add each transaction one by one, verifying the pool internals in between
 		for j, add := range tt.adds {
-			signed, _ := types.SignNewTx(keys[add.from], types.LatestSigner(testChainConfig), add.tx)
+			signed, _ := types.SignNewTx(keys[add.from], types.LatestSigner(testChainConfig.ToEthChainConfig()), add.tx)
 			if err := pool.add(signed); !errors.Is(err, add.err) {
 				t.Errorf("test %d, tx %d: adding transaction error mismatch: have %v, want %v", i, j, err, add.err)
 			}
@@ -1350,7 +1350,7 @@ func benchmarkPoolPending(b *testing.B, datacap uint64) {
 	var (
 		basefee    = uint64(1050)
 		blobfee    = uint64(105)
-		signer     = types.LatestSigner(testChainConfig)
+		signer     = types.LatestSigner(testChainConfig.ToEthChainConfig())
 		statedb, _ = state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewDatabase(memorydb.New())), nil)
 		chain      = &testBlockChain{
 			config:  testChainConfig,

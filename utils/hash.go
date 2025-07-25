@@ -10,9 +10,9 @@ import (
 )
 
 // ComputeHash256Array computes SHA256 hash and returns it as an ID
-func ComputeHash256Array(data []byte) interfaces.ID {
+func ComputeHash256Array(data []byte) iface.ID {
 	hash := sha256.Sum256(data)
-	var id interfaces.ID
+	var id iface.ID
 	copy(id[:], hash[:])
 	return id
 }

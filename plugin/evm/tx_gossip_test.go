@@ -10,19 +10,19 @@ import (
 	"sync"
 	"testing"
 	"time"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
+
+	"github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/utils"
+	"github.com/luxfi/node/consensus"
+	"github.com/luxfi/node/consensus/engine/enginetest"
+	"github.com/luxfi/node/ids"
+	"github.com/luxfi/node/proto/pb/sdk"
+	"github.com/luxfi/node/utils/logging"
+	"github.com/luxfi/node/utils/set"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
-	"github.com/luxfi/evm/core/types"
 )
 
 func TestEthTxGossip(t *testing.T) {

@@ -37,20 +37,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/geth/consensus"
-	"github.com/luxfi/geth/core"
-	"github.com/luxfi/geth/core/state"
-	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/core/vm"
-	"github.com/luxfi/geth/eth/tracers/logger"
+	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/eth/tracers/logger"
 	"github.com/luxfi/evm/internal/ethapi"
-	"github.com/luxfi/geth/params"
-	"github.com/luxfi/geth/rpc"
+	"github.com/luxfi/evm/params"
+	evmparams "github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/rpc"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/log"
 	"github.com/luxfi/geth/rlp"
+	gethrpc "github.com/luxfi/geth/rpc"
 )
 
 const (
@@ -127,10 +129,30 @@ func NewFileTracerAPI(backend Backend) *FileTracerAPI {
 	return &FileTracerAPI{baseAPI{backend: backend}}
 }
 
+// chainContextBackendWrapper wraps the tracers Backend to implement ethapi.ChainContextBackend
+type chainContextBackendWrapper struct {
+	backend Backend
+}
+
+func (w *chainContextBackendWrapper) Engine() consensus.Engine {
+	return w.backend.Engine()
+}
+
+func (w *chainContextBackendWrapper) HeaderByNumber(ctx context.Context, number gethrpc.BlockNumber) (*types.Header, error) {
+	// Convert geth rpc.BlockNumber to evm rpc.BlockNumber
+	evmNumber := rpc.BlockNumber(number)
+	return w.backend.HeaderByNumber(ctx, evmNumber)
+}
+
+func (w *chainContextBackendWrapper) ChainConfig() *evmparams.ChainConfig {
+	return w.backend.ChainConfig()
+}
+
 // chainContext constructs the context reader which is used by the evm for reading
 // the necessary chain context.
 func (api *baseAPI) chainContext(ctx context.Context) core.ChainContext {
-	return ethapi.NewChainContext(ctx, api.backend)
+	wrapper := &chainContextBackendWrapper{backend: api.backend}
+	return ethapi.NewChainContext(ctx, wrapper)
 }
 
 // blockByNumber is the wrapper of the chain access function offered by the backend.
@@ -297,7 +319,7 @@ func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed 
 			// Fetch and execute the block trace taskCh
 			for task := range taskCh {
 				var (
-					signer   = types.MakeSigner(api.backend.ChainConfig(), task.block.Number(), task.block.Time())
+					signer   = types.MakeSigner(api.backend.ChainConfig().ToEthChainConfig(), task.block.Number(), task.block.Time())
 					blockCtx = core.NewEVMBlockContext(task.block.Header(), api.chainContext(ctx), nil)
 				)
 				// Trace all the transactions contained within
@@ -559,7 +581,7 @@ func (api *API) IntermediateRoots(ctx context.Context, hash common.Hash, config 
 
 	var (
 		roots              []common.Hash
-		signer             = types.MakeSigner(api.backend.ChainConfig(), block.Number(), block.Time())
+		signer             = types.MakeSigner(api.backend.ChainConfig().ToEthChainConfig(), block.Number(), block.Time())
 		chainConfig        = api.backend.ChainConfig()
 		vmctx              = core.NewEVMBlockContext(block.Header(), api.chainContext(ctx), nil)
 		deleteEmptyObjects = chainConfig.IsEIP158(block.Number())
@@ -648,7 +670,7 @@ func (api *baseAPI) traceBlock(ctx context.Context, block *types.Block, config *
 		blockHash = block.Hash()
 		is158     = api.backend.ChainConfig().IsEIP158(block.Number())
 		blockCtx  = core.NewEVMBlockContext(block.Header(), api.chainContext(ctx), nil)
-		signer    = types.MakeSigner(api.backend.ChainConfig(), block.Number(), block.Time())
+		signer    = types.MakeSigner(api.backend.ChainConfig().ToEthChainConfig(), block.Number(), block.Time())
 		results   = make([]*txTraceResult, len(txs))
 	)
 	for i, tx := range txs {
@@ -681,7 +703,7 @@ func (api *baseAPI) traceBlockParallel(ctx context.Context, block *types.Block, 
 		txs       = block.Transactions()
 		blockHash = block.Hash()
 		blockCtx  = core.NewEVMBlockContext(block.Header(), api.chainContext(ctx), nil)
-		signer    = types.MakeSigner(api.backend.ChainConfig(), block.Number(), block.Time())
+		signer    = types.MakeSigner(api.backend.ChainConfig().ToEthChainConfig(), block.Number(), block.Time())
 		results   = make([]*txTraceResult, len(txs))
 		pend      sync.WaitGroup
 	)
@@ -729,7 +751,8 @@ txloop:
 		// Generate the next state snapshot fast without tracing
 		msg, _ := core.TransactionToMessage(tx, signer, block.BaseFee())
 		statedb.SetTxContext(tx.Hash(), i)
-		vmenv := vm.NewEVM(blockCtx, core.NewEVMTxContext(msg), statedb, api.backend.ChainConfig(), vm.Config{})
+		txContext := core.NewEVMTxContext(msg)
+		vmenv := vm.NewEVM(blockCtx, txContext, statedb, api.backend.ChainConfig(), vm.Config{})
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.GasLimit)); err != nil {
 			failed = err
 			break txloop
@@ -790,7 +813,7 @@ func (api *FileTracerAPI) standardTraceBlockToFile(ctx context.Context, block *t
 	// Execute transaction, either tracing all or just the requested one
 	var (
 		dumps       []string
-		signer      = types.MakeSigner(api.backend.ChainConfig(), block.Number(), block.Time())
+		signer      = types.MakeSigner(api.backend.ChainConfig().ToEthChainConfig(), block.Number(), block.Time())
 		chainConfig = api.backend.ChainConfig()
 		vmctx       = core.NewEVMBlockContext(block.Header(), api.chainContext(ctx), nil)
 		canon       = true
@@ -1059,62 +1082,38 @@ func overrideConfig(original *params.ChainConfig, override *params.ChainConfig) 
 	*copy = *original
 	canon := true
 
-	// Apply network upgrades (after Berlin) to the copy.
-	// Note in geth, ApricotPhase2 is the "equivalent" to Berlin.
-	if timestamp := override.ApricotPhase2BlockTimestamp; timestamp != nil {
-		copy.ApricotPhase2BlockTimestamp = timestamp
-		canon = false
-	}
-	if timestamp := override.ApricotPhase3BlockTimestamp; timestamp != nil {
-		copy.ApricotPhase3BlockTimestamp = timestamp
-		canon = false
-	}
-	if timestamp := override.ApricotPhase4BlockTimestamp; timestamp != nil {
-		copy.ApricotPhase4BlockTimestamp = timestamp
-		canon = false
-	}
-	if timestamp := override.ApricotPhase5BlockTimestamp; timestamp != nil {
-		copy.ApricotPhase5BlockTimestamp = timestamp
-		canon = false
-	}
-	if timestamp := override.ApricotPhasePre6BlockTimestamp; timestamp != nil {
-		copy.ApricotPhasePre6BlockTimestamp = timestamp
-		canon = false
-	}
-	if timestamp := override.ApricotPhase6BlockTimestamp; timestamp != nil {
-		copy.ApricotPhase6BlockTimestamp = timestamp
-		canon = false
-	}
-	if timestamp := override.ApricotPhasePost6BlockTimestamp; timestamp != nil {
-		copy.ApricotPhasePost6BlockTimestamp = timestamp
-		canon = false
-	}
-	if timestamp := override.BanffBlockTimestamp; timestamp != nil {
-		copy.BanffBlockTimestamp = timestamp
-		canon = false
-	}
-	if timestamp := override.CortinaBlockTimestamp; timestamp != nil {
-		copy.CortinaBlockTimestamp = timestamp
-		canon = false
-	}
-	if timestamp := override.DurangoBlockTimestamp; timestamp != nil {
-		copy.DurangoBlockTimestamp = timestamp
-		canon = false
-	}
-	if timestamp := override.EtnaTimestamp; timestamp != nil {
-		copy.EtnaTimestamp = timestamp
-		canon = false
-	}
-	if timestamp := override.FortunaTimestamp; timestamp != nil {
-		copy.FortunaTimestamp = timestamp
-		canon = false
-	}
+	// Apply network upgrades to the copy.
+	// Only apply overrides for fields that exist in the current ChainConfig structure.
+	
+	// Apply Ethereum network upgrades
 	if timestamp := override.CancunTime; timestamp != nil {
 		copy.CancunTime = timestamp
 		canon = false
 	}
 	if timestamp := override.VerkleTime; timestamp != nil {
 		copy.VerkleTime = timestamp
+		canon = false
+	}
+	
+	// Apply Lux-specific network upgrades
+	if override.MandatoryNetworkUpgrades.EVMTimestamp != nil {
+		copy.MandatoryNetworkUpgrades.EVMTimestamp = override.MandatoryNetworkUpgrades.EVMTimestamp
+		canon = false
+	}
+	if override.MandatoryNetworkUpgrades.DurangoTimestamp != nil {
+		copy.MandatoryNetworkUpgrades.DurangoTimestamp = override.MandatoryNetworkUpgrades.DurangoTimestamp
+		canon = false
+	}
+	if override.MandatoryNetworkUpgrades.EtnaTimestamp != nil {
+		copy.MandatoryNetworkUpgrades.EtnaTimestamp = override.MandatoryNetworkUpgrades.EtnaTimestamp
+		canon = false
+	}
+	if override.MandatoryNetworkUpgrades.FortunaTimestamp != nil {
+		copy.MandatoryNetworkUpgrades.FortunaTimestamp = override.MandatoryNetworkUpgrades.FortunaTimestamp
+		canon = false
+	}
+	if override.MandatoryNetworkUpgrades.GraniteTimestamp != nil {
+		copy.MandatoryNetworkUpgrades.GraniteTimestamp = override.MandatoryNetworkUpgrades.GraniteTimestamp
 		canon = false
 	}
 

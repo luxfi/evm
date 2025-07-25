@@ -8,15 +8,14 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/node/cache/lru"
 	"github.com/luxfi/node/ids"
 	"github.com/luxfi/node/network/p2p/gossip"
-	"github.com/luxfi/evm/consensus"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/luxfi/evm/plugin/evm/config"
-	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/geth/log"
+	"github.com/luxfi/geth/metrics"
 )
 
 const (
@@ -39,8 +38,8 @@ type mempoolMetrics struct {
 	currentTxs *metrics.Gauge // Gauge of current transactions to be issued into a block
 	issuedTxs  *metrics.Gauge // Gauge of transactions that have been issued into a block
 
-	addedTxs     metrics.Counter // Count of all transactions added to the mempool
-	discardedTxs metrics.Counter // Count of all discarded transactions
+	addedTxs     *metrics.Counter // Count of all transactions added to the mempool
+	discardedTxs *metrics.Counter // Count of all discarded transactions
 }
 
 // newMempoolMetrics constructs metrics for the atomic mempool
@@ -87,9 +86,9 @@ type Mempool struct {
 // NewMempool returns a Mempool with [maxSize]
 func NewMempool(ctx *consensus.Context, registerer prometheus.Registerer, maxSize int, verify func(tx *Tx) error) (*Mempool, error) {
 	bloom, err := gossip.NewBloomFilter(registerer, "atomic_mempool_bloom_filter",
-		config.TxGossipBloomMinTargetElements,
-		config.TxGossipBloomTargetFalsePositiveRate,
-		config.TxGossipBloomResetFalsePositiveRate,
+		8*1024, // txGossipBloomMinTargetElements
+		0.01,   // txGossipBloomTargetFalsePositiveRate
+		0.05,   // txGossipBloomResetFalsePositiveRate
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize bloom filter: %w", err)
@@ -320,7 +319,7 @@ func (m *Mempool) addTx(tx *Tx, local bool, force bool) error {
 	}
 
 	m.bloom.Add(&GossipAtomicTx{Tx: tx})
-	reset, err := gossip.ResetBloomFilterIfNeeded(m.bloom, m.length()*config.TxGossipBloomChurnMultiplier)
+	reset, err := gossip.ResetBloomFilterIfNeeded(m.bloom, m.length()*3) // txGossipBloomChurnMultiplier
 	if err != nil {
 		return err
 	}

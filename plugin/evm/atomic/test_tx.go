@@ -11,12 +11,12 @@ import (
 	"github.com/luxfi/node/codec/linearcodec"
 	"github.com/luxfi/node/utils"
 
+	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/geth/params"
 	luxatomic "github.com/luxfi/node/chains/atomic"
 	"github.com/luxfi/node/ids"
-	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/node/utils/set"
 	"github.com/luxfi/node/utils/wrappers"
-	"github.com/luxfi/geth/params"
 )
 
 var TestTxCodec codec.Manager
@@ -37,8 +37,8 @@ func init() {
 }
 
 type TestUnsignedTx struct {
-	GasUsedV                    uint64                    `serialize:"true"`
-	AcceptRequestsBlockchainIDV ids.ID                    `serialize:"true"`
+	GasUsedV                    uint64              `serialize:"true"`
+	AcceptRequestsBlockchainIDV ids.ID              `serialize:"true"`
 	AcceptRequestsV             *luxatomic.Requests `serialize:"true"`
 	VerifyV                     error
 	IDV                         ids.ID `serialize:"true" json:"id"`

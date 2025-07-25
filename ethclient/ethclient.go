@@ -34,8 +34,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxfi/geth/accounts/abi/bind"
-	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/evm/accounts/abi/bind"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/rpc"
 	"github.com/luxfi/geth/common"
@@ -53,16 +53,8 @@ var (
 	_ bind.ContractTransactor     = (*client)(nil)
 	_ bind.DeployBackend          = (*client)(nil)
 
-	_ interfaces.ChainReader            = (*client)(nil)
-	_ interfaces.ChainStateReader       = (*client)(nil)
-	_ interfaces.TransactionReader      = (*client)(nil)
-	_ interfaces.TransactionSender      = (*client)(nil)
-	_ interfaces.ContractCaller         = (*client)(nil)
-	_ interfaces.GasEstimator           = (*client)(nil)
-	_ interfaces.GasPricer              = (*client)(nil)
-	_ interfaces.LogFilterer            = (*client)(nil)
-	_ interfaces.AcceptedStateReader    = (*client)(nil)
-	_ interfaces.AcceptedContractCaller = (*client)(nil)
+	// Note: ethclient doesn't implement full blockchain interfaces like ChainReader
+	// since it's a remote client, not a local blockchain node
 
 	_ Client = (*client)(nil)
 )
@@ -84,9 +76,9 @@ type Client interface {
 	TransactionInBlock(context.Context, common.Hash, uint) (*types.Transaction, error)
 	TransactionReceipt(context.Context, common.Hash) (*types.Receipt, error)
 	SyncProgress(ctx context.Context) error
-	SubscribeNewAcceptedTransactions(context.Context, chan<- *common.Hash) (interfaces.Subscription, error)
-	SubscribeNewPendingTransactions(context.Context, chan<- *common.Hash) (interfaces.Subscription, error)
-	SubscribeNewHead(context.Context, chan<- *types.Header) (interfaces.Subscription, error)
+	SubscribeNewAcceptedTransactions(context.Context, chan<- *common.Hash) (iface.Subscription, error)
+	SubscribeNewPendingTransactions(context.Context, chan<- *common.Hash) (iface.Subscription, error)
+	SubscribeNewHead(context.Context, chan<- *types.Header) (iface.Subscription, error)
 	NetworkID(context.Context) (*big.Int, error)
 	BalanceAt(context.Context, common.Address, *big.Int) (*big.Int, error)
 	BalanceAtHash(ctx context.Context, account common.Address, blockHash common.Hash) (*big.Int, error)
@@ -96,17 +88,17 @@ type Client interface {
 	CodeAtHash(ctx context.Context, account common.Address, blockHash common.Hash) ([]byte, error)
 	NonceAt(context.Context, common.Address, *big.Int) (uint64, error)
 	NonceAtHash(ctx context.Context, account common.Address, blockHash common.Hash) (uint64, error)
-	FilterLogs(context.Context, interfaces.FilterQuery) ([]types.Log, error)
-	SubscribeFilterLogs(context.Context, interfaces.FilterQuery, chan<- types.Log) (interfaces.Subscription, error)
+	FilterLogs(context.Context, iface.FilterQuery) ([]types.Log, error)
+	SubscribeFilterLogs(context.Context, iface.FilterQuery, chan<- types.Log) (iface.Subscription, error)
 	AcceptedCodeAt(context.Context, common.Address) ([]byte, error)
 	AcceptedNonceAt(context.Context, common.Address) (uint64, error)
-	AcceptedCallContract(context.Context, interfaces.CallMsg) ([]byte, error)
-	CallContract(context.Context, interfaces.CallMsg, *big.Int) ([]byte, error)
-	CallContractAtHash(ctx context.Context, msg interfaces.CallMsg, blockHash common.Hash) ([]byte, error)
+	AcceptedCallContract(context.Context, iface.CallMsg) ([]byte, error)
+	CallContract(context.Context, iface.CallMsg, *big.Int) ([]byte, error)
+	CallContractAtHash(ctx context.Context, msg iface.CallMsg, blockHash common.Hash) ([]byte, error)
 	SuggestGasPrice(context.Context) (*big.Int, error)
 	SuggestGasTipCap(context.Context) (*big.Int, error)
-	FeeHistory(ctx context.Context, blockCount uint64, lastBlock *big.Int, rewardPercentiles []float64) (*interfaces.FeeHistory, error)
-	EstimateGas(context.Context, interfaces.CallMsg) (uint64, error)
+	FeeHistory(ctx context.Context, blockCount uint64, lastBlock *big.Int, rewardPercentiles []float64) (*iface.FeeHistory, error)
+	EstimateGas(context.Context, iface.CallMsg) (uint64, error)
 	EstimateBaseFee(context.Context) (*big.Int, error)
 	SendTransaction(context.Context, *types.Transaction) error
 }
@@ -186,7 +178,7 @@ func (ec *client) BlockReceipts(ctx context.Context, blockNrOrHash rpc.BlockNumb
 	var r []*types.Receipt
 	err := ec.c.CallContext(ctx, &r, "eth_getBlockReceipts", blockNrOrHash.String())
 	if err == nil && r == nil {
-		return nil, interfaces.NotFound
+		return nil, iface.ErrNotFound
 	}
 	return r, err
 }
@@ -213,7 +205,7 @@ func (ec *client) getBlock(ctx context.Context, method string, args ...interface
 	}
 	// When the block is not found, the API returns JSON null.
 	if head == nil {
-		return nil, interfaces.NotFound
+		return nil, iface.ErrNotFound
 	}
 
 	var body rpcBlock
@@ -273,7 +265,7 @@ func (ec *client) HeaderByHash(ctx context.Context, hash common.Hash) (*types.He
 	var head *types.Header
 	err := ec.c.CallContext(ctx, &head, "eth_getBlockByHash", hash, false)
 	if err == nil && head == nil {
-		err = interfaces.NotFound
+		err = iface.ErrNotFound
 	}
 	return head, err
 }
@@ -284,7 +276,7 @@ func (ec *client) HeaderByNumber(ctx context.Context, number *big.Int) (*types.H
 	var head *types.Header
 	err := ec.c.CallContext(ctx, &head, "eth_getBlockByNumber", ToBlockNumArg(number), false)
 	if err == nil && head == nil {
-		err = interfaces.NotFound
+		err = iface.ErrNotFound
 	}
 	return head, err
 }
@@ -314,7 +306,7 @@ func (ec *client) TransactionByHash(ctx context.Context, hash common.Hash) (tx *
 	if err != nil {
 		return nil, false, err
 	} else if json == nil {
-		return nil, false, interfaces.NotFound
+		return nil, false, iface.ErrNotFound
 	} else if _, r, _ := json.tx.RawSignatureValues(); r == nil {
 		return nil, false, errors.New("server returned transaction without signature")
 	}
@@ -366,7 +358,7 @@ func (ec *client) TransactionInBlock(ctx context.Context, blockHash common.Hash,
 		return nil, err
 	}
 	if json == nil {
-		return nil, interfaces.NotFound
+		return nil, iface.ErrNotFound
 	} else if _, r, _ := json.tx.RawSignatureValues(); r == nil {
 		return nil, errors.New("server returned transaction without signature")
 	}
@@ -382,7 +374,7 @@ func (ec *client) TransactionReceipt(ctx context.Context, txHash common.Hash) (*
 	var r *types.Receipt
 	err := ec.c.CallContext(ctx, &r, "eth_getTransactionReceipt", txHash)
 	if err == nil && r == nil {
-		return nil, interfaces.NotFound
+		return nil, iface.ErrNotFound
 	}
 	return r, err
 }
@@ -406,7 +398,7 @@ func (ec *client) SyncProgress(ctx context.Context) error {
 }
 
 // SubscribeNewAcceptedTransactions subscribes to notifications about the accepted transaction hashes on the given channel.
-func (ec *client) SubscribeNewAcceptedTransactions(ctx context.Context, ch chan<- *common.Hash) (interfaces.Subscription, error) {
+func (ec *client) SubscribeNewAcceptedTransactions(ctx context.Context, ch chan<- *common.Hash) (iface.Subscription, error) {
 	sub, err := ec.c.EthSubscribe(ctx, ch, "newAcceptedTransactions")
 	if err != nil {
 		// Defensively prefer returning nil interface explicitly on error-path, instead
@@ -418,7 +410,7 @@ func (ec *client) SubscribeNewAcceptedTransactions(ctx context.Context, ch chan<
 }
 
 // SubscribeNewPendingTransactions subscribes to notifications about the pending transaction hashes on the given channel.
-func (ec *client) SubscribeNewPendingTransactions(ctx context.Context, ch chan<- *common.Hash) (interfaces.Subscription, error) {
+func (ec *client) SubscribeNewPendingTransactions(ctx context.Context, ch chan<- *common.Hash) (iface.Subscription, error) {
 	sub, err := ec.c.EthSubscribe(ctx, ch, "newPendingTransactions")
 	if err != nil {
 		// Defensively prefer returning nil interface explicitly on error-path, instead
@@ -431,7 +423,7 @@ func (ec *client) SubscribeNewPendingTransactions(ctx context.Context, ch chan<-
 
 // SubscribeNewHead subscribes to notifications about the current blockchain head
 // on the given channel.
-func (ec *client) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (interfaces.Subscription, error) {
+func (ec *client) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (iface.Subscription, error) {
 	sub, err := ec.c.EthSubscribe(ctx, ch, "newHeads")
 	if err != nil {
 		// Defensively prefer returning nil interface explicitly on error-path, instead
@@ -520,7 +512,7 @@ func (ec *client) NonceAtHash(ctx context.Context, account common.Address, block
 // Filters
 
 // FilterLogs executes a filter query.
-func (ec *client) FilterLogs(ctx context.Context, q interfaces.FilterQuery) ([]types.Log, error) {
+func (ec *client) FilterLogs(ctx context.Context, q iface.FilterQuery) ([]types.Log, error) {
 	var result []types.Log
 	arg, err := toFilterArg(q)
 	if err != nil {
@@ -531,7 +523,7 @@ func (ec *client) FilterLogs(ctx context.Context, q interfaces.FilterQuery) ([]t
 }
 
 // SubscribeFilterLogs subscribes to the results of a streaming filter query.
-func (ec *client) SubscribeFilterLogs(ctx context.Context, q interfaces.FilterQuery, ch chan<- types.Log) (interfaces.Subscription, error) {
+func (ec *client) SubscribeFilterLogs(ctx context.Context, q iface.FilterQuery, ch chan<- types.Log) (iface.Subscription, error) {
 	arg, err := toFilterArg(q)
 	if err != nil {
 		return nil, err
@@ -546,7 +538,7 @@ func (ec *client) SubscribeFilterLogs(ctx context.Context, q interfaces.FilterQu
 	return sub, nil
 }
 
-func toFilterArg(q interfaces.FilterQuery) (interface{}, error) {
+func toFilterArg(q iface.FilterQuery) (interface{}, error) {
 	arg := map[string]interface{}{
 		"address": q.Addresses,
 		"topics":  q.Topics,
@@ -580,7 +572,7 @@ func (ec *client) AcceptedNonceAt(ctx context.Context, account common.Address) (
 
 // AcceptedCallContract executes a message call transaction in the accepted
 // state.
-func (ec *client) AcceptedCallContract(ctx context.Context, msg interfaces.CallMsg) ([]byte, error) {
+func (ec *client) AcceptedCallContract(ctx context.Context, msg iface.CallMsg) ([]byte, error) {
 	return ec.CallContract(ctx, msg, nil)
 }
 
@@ -592,7 +584,7 @@ func (ec *client) AcceptedCallContract(ctx context.Context, msg interfaces.CallM
 // blockNumber selects the block height at which the call runs. It can be nil, in which
 // case the code is taken from the latest known block. Note that state from very old
 // blocks might not be available.
-func (ec *client) CallContract(ctx context.Context, msg interfaces.CallMsg, blockNumber *big.Int) ([]byte, error) {
+func (ec *client) CallContract(ctx context.Context, msg iface.CallMsg, blockNumber *big.Int) ([]byte, error) {
 	var hex hexutil.Bytes
 	err := ec.c.CallContext(ctx, &hex, "eth_call", toCallArg(msg), ToBlockNumArg(blockNumber))
 	if err != nil {
@@ -603,7 +595,7 @@ func (ec *client) CallContract(ctx context.Context, msg interfaces.CallMsg, bloc
 
 // CallContractAtHash is almost the same as CallContract except that it selects
 // the block by block hash instead of block height.
-func (ec *client) CallContractAtHash(ctx context.Context, msg interfaces.CallMsg, blockHash common.Hash) ([]byte, error) {
+func (ec *client) CallContractAtHash(ctx context.Context, msg iface.CallMsg, blockHash common.Hash) ([]byte, error) {
 	var hex hexutil.Bytes
 	err := ec.c.CallContext(ctx, &hex, "eth_call", toCallArg(msg), rpc.BlockNumberOrHashWithHash(blockHash, false))
 	if err != nil {
@@ -640,7 +632,7 @@ type feeHistoryResultMarshaling struct {
 }
 
 // FeeHistory retrieves the fee market history.
-func (ec *client) FeeHistory(ctx context.Context, blockCount uint64, lastBlock *big.Int, rewardPercentiles []float64) (*interfaces.FeeHistory, error) {
+func (ec *client) FeeHistory(ctx context.Context, blockCount uint64, lastBlock *big.Int, rewardPercentiles []float64) (*iface.FeeHistory, error) {
 	var res feeHistoryResultMarshaling
 	if err := ec.c.CallContext(ctx, &res, "eth_feeHistory", hexutil.Uint(blockCount), ToBlockNumArg(lastBlock), rewardPercentiles); err != nil {
 		return nil, err
@@ -656,7 +648,7 @@ func (ec *client) FeeHistory(ctx context.Context, blockCount uint64, lastBlock *
 	for i, b := range res.BaseFee {
 		baseFee[i] = (*big.Int)(b)
 	}
-	return &interfaces.FeeHistory{
+	return &iface.FeeHistory{
 		OldestBlock:  (*big.Int)(res.OldestBlock),
 		Reward:       reward,
 		BaseFee:      baseFee,
@@ -668,7 +660,7 @@ func (ec *client) FeeHistory(ctx context.Context, blockCount uint64, lastBlock *
 // the current pending state of the backend blockchain. There is no guarantee that this is
 // the true gas limit requirement as other transactions may be added or removed by miners,
 // but it should provide a basis for setting a reasonable default.
-func (ec *client) EstimateGas(ctx context.Context, msg interfaces.CallMsg) (uint64, error) {
+func (ec *client) EstimateGas(ctx context.Context, msg iface.CallMsg) (uint64, error) {
 	var hex hexutil.Uint64
 	err := ec.c.CallContext(ctx, &hex, "eth_estimateGas", toCallArg(msg))
 	if err != nil {
@@ -716,7 +708,7 @@ func ToBlockNumArg(number *big.Int) string {
 	return fmt.Sprintf("<invalid %d>", number)
 }
 
-func toCallArg(msg interfaces.CallMsg) interface{} {
+func toCallArg(msg iface.CallMsg) interface{} {
 	arg := map[string]interface{}{
 		"from": msg.From,
 		"to":   msg.To,

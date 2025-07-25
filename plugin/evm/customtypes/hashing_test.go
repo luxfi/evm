@@ -33,7 +33,7 @@ import (
 	"math/big"
 	mrand "math/rand"
 	"testing"
-	
+
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/iface/core/rawdb"
 	"github.com/luxfi/evm/iface/trie"
