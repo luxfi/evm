@@ -6,13 +6,13 @@ package evm
 import (
 	"math/big"
 	"testing"
-	"github.com/luxfi/evm/iface"
+
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"
-	"github.com/luxfi/evm/precompile/precompileconfig"
-	"github.com/luxfi/geth/trie"
+	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/geth/common"
+	"github.com/luxfi/geth/trie"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )

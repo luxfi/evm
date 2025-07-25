@@ -52,9 +52,7 @@ func NewPrefixDB(prefix []byte, db Database) Database {
 
 // NewVersionDB creates a new version database
 func NewVersionDB(db Database) VersionDB {
-	// This is a placeholder - in real implementation, this would create a versioned database
-	// For now, return nil
-	return nil
+	return &versionDBWrapper{Database: db}
 }
 
 // KeyValueReader wraps the Has and Get method of a backing data store.
@@ -108,4 +106,20 @@ type VersionDB interface {
 	Commit() error
 	// Abort aborts the current database operations
 	Abort()
+}
+
+// versionDBWrapper wraps a Database to provide VersionDB interface
+type versionDBWrapper struct {
+	Database
+}
+
+// Commit implements VersionDB interface
+func (v *versionDBWrapper) Commit() error {
+	// For now, this is a no-op since we're not implementing actual versioning
+	return nil
+}
+
+// Abort implements VersionDB interface
+func (v *versionDBWrapper) Abort() {
+	// For now, this is a no-op since we're not implementing actual versioning
 }

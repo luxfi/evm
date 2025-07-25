@@ -8,7 +8,7 @@ import (
 	"crypto/ecdsa"
 	"math/big"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/geth/ethclient"
+	"github.com/luxfi/evm/ethclient"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"

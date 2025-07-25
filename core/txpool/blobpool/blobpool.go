@@ -45,7 +45,6 @@ import (
 	"github.com/luxfi/geth/log"
 	"github.com/luxfi/geth/metrics"
 	ethparams "github.com/luxfi/evm/params"
-	eparams "github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/evm/consensus/misc/eip4844"
 	"github.com/luxfi/evm/core"
@@ -338,7 +337,7 @@ func New(config Config, chain BlockChain) *BlobPool {
 	// Create the transaction pool with its initial settings
 	return &BlobPool{
 		config: config,
-		signer: types.LatestSigner(&eparams.ChainConfig{ChainID: chain.Config().ChainID}),
+		signer: types.LatestSigner(chain.Config().ToEthChainConfig()),
 		chain:  chain,
 		lookup: make(map[common.Hash]uint64),
 		index:  make(map[common.Address][]*blobTxMeta),

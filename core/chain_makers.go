@@ -40,7 +40,7 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/holiman/uint256"
 	"github.com/luxfi/evm/params"
-	ethparams "github.com/luxfi/evm/params"
+	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/consensus/misc/eip4844"
@@ -112,9 +112,8 @@ func (b *BlockGen) SetParentBeaconRoot(root common.Hash) {
 	var (
 		blockContext = NewEVMBlockContext(b.header, b.cm, &b.header.Coinbase)
 		// Convert to ethereum ChainConfig for VM
-		ethConfig    = convertToEthChainConfig(b.cm.config)
 		txContext    = vm.TxContext{} // Empty TxContext for beacon root processing
-		vmenv        = vm.NewEVM(blockContext, txContext, b.statedb, ethConfig, vm.Config{})
+		vmenv        = vm.NewEVM(blockContext, txContext, b.statedb, b.cm.config, vm.Config{})
 	)
 	ProcessBeaconBlockRoot(root, vmenv, b.statedb)
 }
@@ -388,7 +387,9 @@ func (cm *chainMaker) makeHeader(parent *types.Block, gap uint64, state *state.S
 	if err != nil {
 		panic(err)
 	}
-	baseFee, err := header.BaseFee(config, feeConfig, parent.Header(), time)
+	// Retrieve extras payload from ChainConfig for header.BaseFee
+	extrasConfig := params.GetExtra(config)
+	baseFee, err := header.BaseFee(extrasConfig, feeConfig, parent.Header(), time)
 	if err != nil {
 		panic(err)
 	}
@@ -521,7 +522,7 @@ func (cm *chainMaker) GetCoinbaseAtHeader(parent *types.Header) (common.Address,
 }
 
 // convertToEthChainConfig converts a Lux ChainConfig to ethereum ChainConfig
+// convertToEthChainConfig converts a Lux ChainConfig to an ethereum ChainConfig.
 func convertToEthChainConfig(config *params.ChainConfig) *ethparams.ChainConfig {
-	// Since params.ChainConfig embeds ethparams.ChainConfig, we can return it directly
 	return config.ChainConfig
 }

@@ -4,19 +4,19 @@
 package atomic
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"math/big"
 
-	"github.com/luxfi/geth/params"
-	"github.com/luxfi/evm/upgrade/ap0"
-	"github.com/luxfi/evm/upgrade/ap5"
 	"github.com/holiman/uint256"
+	"github.com/luxfi/evm/upgrade/ap5"
+	"github.com/luxfi/geth/params"
 
+	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/geth/common"
+	"github.com/luxfi/geth/log"
 	"github.com/luxfi/node/chains/atomic"
 	"github.com/luxfi/node/ids"
-	"github.com/luxfi/evm/consensus"
 	luxutils "github.com/luxfi/node/utils"
 	"github.com/luxfi/node/utils/constants"
 	"github.com/luxfi/node/utils/crypto/secp256k1"
@@ -25,15 +25,13 @@ import (
 	"github.com/luxfi/node/utils/wrappers"
 	"github.com/luxfi/node/vms/components/lux"
 	"github.com/luxfi/node/vms/secp256k1fx"
-	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
 )
 
 var (
 	_                             UnsignedAtomicTx       = &UnsignedExportTx{}
 	_                             secp256k1fx.UnsignedTx = &UnsignedExportTx{}
-	ErrExportNonLUXInputBanff                           = errors.New("export input cannot contain non-LUX in Banff")
-	ErrExportNonLUXOutputBanff                          = errors.New("export output cannot contain non-LUX in Banff")
+	ErrExportNonLUXInputBanff                            = errors.New("export input cannot contain non-LUX in Banff")
+	ErrExportNonLUXOutputBanff                           = errors.New("export output cannot contain non-LUX in Banff")
 	ErrNoExportOutputs                                   = errors.New("tx has no export outputs")
 	errPublicKeySignatureMismatch                        = errors.New("signature doesn't match public key")
 	errOverflowExport                                    = errors.New("overflow when computing export amount + txFee")
@@ -305,7 +303,7 @@ func NewExportTx(
 		luxNeeded           uint64 = 0
 		ins, luxIns         []EVMInput
 		signers, luxSigners [][]*secp256k1.PrivateKey
-		err                  error
+		err                 error
 	)
 
 	// consume non-LUX

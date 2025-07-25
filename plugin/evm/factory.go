@@ -5,16 +5,16 @@ package evm
 
 import (
 	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/node/utils/logging"
+	"github.com/luxfi/node/vms"
 )
 
 var (
 	// ID this VM should be referenced by
 	IDStr = "subnetevm"
-	ID    = interfaces.ID{'s', 'u', 'b', 'n', 'e', 't', 'e', 'v', 'm'}
+	ID    = iface.ID{'s', 'u', 'b', 'n', 'e', 't', 'e', 'v', 'm'}
 
-	_ interfaces.Factory = &Factory{}
+	_ vms.Factory = &Factory{}
 )
 
 type Factory struct{}

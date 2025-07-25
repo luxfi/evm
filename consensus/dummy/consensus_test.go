@@ -4,12 +4,13 @@
 package dummy
 
 import (
-	"math"
-	"math/big"
-	"testing"
-	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/params"
-	"github.com/luxfi/geth/common"
+   "math"
+   "math/big"
+   "testing"
+   "github.com/luxfi/evm/commontype"
+   "github.com/luxfi/evm/core/types"
+   header "github.com/luxfi/evm/plugin/evm/header"
+   "github.com/luxfi/geth/common"
 )
 
 var testFeeConfig = commontype.FeeConfig{
@@ -110,16 +111,16 @@ func TestVerifyBlockFee(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			blockGasCost := header.BlockGasCostWithStep(
-				testFeeConfig,
-				test.parentBlockGasCost,
-				testFeeConfig.BlockGasCostStep.Uint64(),
-				test.timeElapsed,
-			)
+       blockGasCost := header.BlockGasCostWithStep(
+           testFeeConfig,
+           test.parentBlockGasCost,
+           testFeeConfig.BlockGasCostStep.Uint64(),
+           test.timeElapsed,
+       )
 			bigBlockGasCost := new(big.Int).SetUint64(blockGasCost)
 
 			engine := NewFaker()
-			if err := common.verifyBlockFee(test.baseFee, bigBlockGasCost, test.txs, test.receipts); err != nil {
+		if err := engine.verifyBlockFee(test.baseFee, bigBlockGasCost, test.txs, test.receipts); err != nil {
 				if !test.shouldErr {
 					t.Fatalf("Unexpected error: %s", err)
 				}

@@ -35,10 +35,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/internal/ethapi"
-	"github.com/luxfi/geth/rpc"
+	"github.com/luxfi/evm/rpc"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/event"
@@ -182,7 +182,7 @@ func (api *FilterAPI) NewPendingTransactions(ctx context.Context, fullTx *bool) 
 				latest := api.sys.backend.CurrentHeader()
 				for _, tx := range txs {
 					if fullTx != nil && *fullTx {
-						rpcTx := ethapi.NewRPCTransaction(tx, latest, latest.BaseFee, chainConfig)
+						rpcTx := ethapi.NewRPCTransaction(tx, latest, latest.BaseFee, chainConfig.ToEthChainConfig())
 						notifier.Notify(rpcSub.ID, rpcTx)
 					} else {
 						notifier.Notify(rpcSub.ID, tx.Hash())
@@ -223,7 +223,7 @@ func (api *FilterAPI) NewAcceptedTransactions(ctx context.Context, fullTx *bool)
 				latest := api.sys.backend.LastAcceptedBlock().Header()
 				for _, tx := range txs {
 					if fullTx != nil && *fullTx {
-						rpcTx := ethapi.NewRPCTransaction(tx, latest, latest.BaseFee, chainConfig)
+						rpcTx := ethapi.NewRPCTransaction(tx, latest, latest.BaseFee, chainConfig.ToEthChainConfig())
 						notifier.Notify(rpcSub.ID, rpcTx)
 					} else {
 						notifier.Notify(rpcSub.ID, tx.Hash())
@@ -333,12 +333,12 @@ func (api *FilterAPI) Logs(ctx context.Context, crit FilterCriteria) (*rpc.Subsc
 	)
 
 	if api.sys.backend.IsAllowUnfinalizedQueries() {
-		logsSub, err = api.events.SubscribeLogs(interfaces.FilterQuery(crit), matchedLogs)
+		logsSub, err = api.events.SubscribeLogs(iface.FilterQuery(crit), matchedLogs)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		logsSub, err = api.events.SubscribeAcceptedLogs(interfaces.FilterQuery(crit), matchedLogs)
+		logsSub, err = api.events.SubscribeAcceptedLogs(iface.FilterQuery(crit), matchedLogs)
 		if err != nil {
 			return nil, err
 		}
@@ -364,8 +364,8 @@ func (api *FilterAPI) Logs(ctx context.Context, crit FilterCriteria) (*rpc.Subsc
 }
 
 // FilterCriteria represents a request to create a new filter.
-// Same as interfaces.FilterQuery but with UnmarshalJSON() method.
-type FilterCriteria interfaces.FilterQuery
+// Same as iface.FilterQuery but with UnmarshalJSON() method.
+type FilterCriteria iface.FilterQuery
 
 // NewFilter creates a new filter and returns the filter id. It can be
 // used to retrieve logs when the state changes. This method cannot be
@@ -386,12 +386,12 @@ func (api *FilterAPI) NewFilter(crit FilterCriteria) (rpc.ID, error) {
 	)
 
 	if api.sys.backend.IsAllowUnfinalizedQueries() {
-		logsSub, err = api.events.SubscribeLogs(interfaces.FilterQuery(crit), logs)
+		logsSub, err = api.events.SubscribeLogs(iface.FilterQuery(crit), logs)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		logsSub, err = api.events.SubscribeAcceptedLogs(interfaces.FilterQuery(crit), logs)
+		logsSub, err = api.events.SubscribeAcceptedLogs(iface.FilterQuery(crit), logs)
 		if err != nil {
 			return "", err
 		}
@@ -545,7 +545,7 @@ func (api *FilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 			if f.fullTx {
 				txs := make([]*ethapi.RPCTransaction, 0, len(f.txs))
 				for _, tx := range f.txs {
-					txs = append(txs, ethapi.NewRPCTransaction(tx, latest, baseFee, chainConfig))
+					txs = append(txs, ethapi.NewRPCTransaction(tx, latest, baseFee, chainConfig.ToEthChainConfig()))
 				}
 				f.txs = nil
 				return txs, nil

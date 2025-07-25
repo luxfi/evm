@@ -1,0 +1,7 @@
+./config.go
+./network_upgrades.go
+./precompile_upgrade.go
+./precompiles.go
+./rules.go
+./state_upgrade.go
+./upgrades.go

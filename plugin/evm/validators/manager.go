@@ -3,10 +3,10 @@
 package validators
 
 import (
-	"github.com/luxfi/node/ids"
 	"github.com/luxfi/node/consensus"
 	"github.com/luxfi/node/consensus/validators"
 	"github.com/luxfi/node/database"
+	"github.com/luxfi/node/ids"
 	"github.com/luxfi/node/utils/timer/mockable"
 )
 
@@ -28,11 +28,11 @@ func NewManager(
 ) (*manager, error) {
 	m := validators.NewManager()
 	return &manager{
-		Manager:   m,
-		ctx:       ctx,
-		subnetID:  ctx.SubnetID,
-		chainID:   ctx.ChainID,
-		db:        db,
-		clock:     clock,
+		Manager:  m,
+		ctx:      ctx,
+		subnetID: ctx.SubnetID,
+		chainID:  ctx.ChainID,
+		db:       db,
+		clock:    clock,
 	}, nil
 }

@@ -38,7 +38,6 @@ import (
 	"github.com/luxfi/evm/core/vm"
 	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/params"
-	ethparams "github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/precompile/contracts/feemanager"
 	"github.com/luxfi/evm/precompile/contracts/rewardmanager"
 	"github.com/luxfi/geth/triedb"

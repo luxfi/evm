@@ -84,13 +84,12 @@ lint:
 # Generate mocks
 .PHONY: mocks
 mocks:
-	@echo "Generating mocks..."
-	@if command -v mockgen >/dev/null 2>&1; then \
-		go generate ./...; \
-	else \
-		echo "mockgen not installed. Install with: go install github.com/golang/mock/mockgen@latest"; \
-		exit 1; \
-	fi
+	@echo "Generating ethapi mocks..."
+	@go generate ./internal/ethapi
+	@echo "Generating precompileconfig mocks..."
+	@go generate ./precompile/precompileconfig
+	@echo "Generating contract mocks..."
+	@go generate ./precompile/contract
 
 # Clean build artifacts
 .PHONY: clean

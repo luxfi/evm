@@ -4,26 +4,22 @@
 package evm
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/plugin/evm/database"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/log"
-	"github.com/luxfi/evm/iface/core/rawdb"
-	"github.com/luxfi/evm/plugin/evm/config"
-	"github.com/luxfi/evm/plugin/evm/database"
-	"github.com/luxfi/evm/iface"
-	luxdatabase "github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
+	nodeMetrics "github.com/luxfi/node/api/metrics"
+	nodedb "github.com/luxfi/node/database"
+	"github.com/luxfi/node/database/pebbledb"
+	"github.com/luxfi/node/database/prefixdb"
+	"github.com/luxfi/node/utils/constants"
+	"github.com/luxfi/node/utils/logging"
 )
 
 const (
@@ -49,12 +45,12 @@ type DatabaseConfig struct {
 // initializeDBs initializes the databases used by the VM.
 // If [useStandaloneDB] is true, the chain will use a standalone database for its state.
 // Otherwise, the chain will use the provided [avaDB] for its state.
-func (vm *VM) initializeDBs(avaDB luxinterfaces.Database) error {
+func (vm *VM) initializeDBs(avaDB nodedb.Database) error {
 	db := avaDB
 	// skip standalone database initialization if we are running in unit tests
 	if vm.ctx.NetworkID != constants.UnitTestID {
 		// first initialize the accepted block database to check if we need to use a standalone database
-		acceptedDB := interfaces.NewPrefixDB(acceptedPrefix, avaDB)
+		acceptedDB := prefixdb.New(acceptedPrefix, avaDB)
 		useStandAloneDB, err := vm.useStandaloneDatabase(acceptedDB)
 		if err != nil {
 			return err
@@ -76,20 +72,23 @@ func (vm *VM) initializeDBs(avaDB luxinterfaces.Database) error {
 	}
 	// Use NewNested rather than New so that the structure of the database
 	// remains the same regardless of the provided baseDB type.
-	vm.chaindb = rawdb.NewDatabase(database.WrapDatabase(interfaces.NewPrefixDBNested(ethDBPrefix, db)))
-	vm.versiondb = interfaces.NewVersionDB(db)
-	vm.acceptedBlockDB = interfaces.NewPrefixDB(acceptedPrefix, vm.versiondb)
-	vm.metadataDB = interfaces.NewPrefixDB(metadataPrefix, vm.versiondb)
+	// Wrap the prefixed database to provide iface.Database interface
+	ethDB := NewDatabaseWrapper(prefixdb.NewNested(ethDBPrefix, db))
+	vm.chaindb = rawdb.NewDatabase(database.WrapDatabase(ethDB))
+	// For now, we don't use a versioned database - just use the regular db
+	vm.versiondb = nil // TODO: Implement version database if needed
+	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, db)
+	vm.metadataDB = prefixdb.New(metadataPrefix, db)
 	vm.db = db
 	// Note warpDB and validatorsDB are not part of versiondb because it is not necessary
 	// that they are committed to the database atomically with
 	// the last accepted interfaces.
 	// [warpDB] is used to store warp message signatures
 	// set to a prefixDB with the prefix [warpPrefix]
-	vm.warpDB = interfaces.NewPrefixDB(warpPrefix, db)
+	vm.warpDB = prefixdb.New(warpPrefix, db)
 	// [validatorsDB] is used to store the current validator set and uptimes
 	// set to a prefixDB with the prefix [validatorsDBPrefix]
-	vm.validatorsDB = interfaces.NewPrefixDB(validatorsDBPrefix, db)
+	vm.validatorsDB = prefixdb.New(validatorsDBPrefix, db)
 	return nil
 }
 
@@ -99,16 +98,16 @@ func (vm *VM) inspectDatabases() error {
 	if err := rawdb.InspectDatabase(vm.chaindb, nil, nil); err != nil {
 		return err
 	}
-	if err := inspectDB(vm.acceptedBlockDB, "acceptedBlockDB"); err != nil {
+	if err := inspectDB(NewDatabaseWrapper(vm.acceptedBlockDB), "acceptedBlockDB"); err != nil {
 		return err
 	}
-	if err := inspectDB(vm.metadataDB, "metadataDB"); err != nil {
+	if err := inspectDB(NewDatabaseWrapper(vm.metadataDB), "metadataDB"); err != nil {
 		return err
 	}
-	if err := inspectDB(vm.warpDB, "warpDB"); err != nil {
+	if err := inspectDB(NewDatabaseWrapper(vm.warpDB), "warpDB"); err != nil {
 		return err
 	}
-	if err := inspectDB(vm.validatorsDB, "validatorsDB"); err != nil {
+	if err := inspectDB(NewDatabaseWrapper(vm.validatorsDB), "validatorsDB"); err != nil {
 		return err
 	}
 	log.Info("Completed database inspection", "elapsed", time.Since(start))
@@ -117,58 +116,30 @@ func (vm *VM) inspectDatabases() error {
 
 // useStandaloneDatabase returns true if the chain can and should use a standalone database
 // other than given by [db] in Initialize()
-func (vm *VM) useStandaloneDatabase(acceptedDB luxinterfaces.Database) (bool, error) {
-	// no config provided, use default
-	standaloneDBFlag := vm.interfaces.UseStandaloneDatabase
-	if standaloneDBFlag != nil {
-		return standaloneDBFlag.Bool(), nil
-	}
-
-	// check if the chain can use a standalone database
-	_, err := acceptedDB.Get(lastAcceptedKey)
-	if err == luxdatabase.ErrNotFound {
-		// If there is nothing in the database, we can use the standalone database
-		return true, nil
-	}
-	return false, err
+func (vm *VM) useStandaloneDatabase(acceptedDB nodedb.Database) (bool, error) {
+	// Standalone database functionality is disabled for now
+	// TODO: Add database configuration fields to Config if needed
+	return false, nil
 }
 
 // getDatabaseConfig returns the database configuration for the chain
 // to be used by separate, standalone database.
-func getDatabaseConfig(config interfaces.Config, chainDataDir string) (DatabaseConfig, error) {
-	var (
-		configBytes []byte
-		err         error
-	)
-	if len(interfaces.DatabaseConfigContent) != 0 {
-		dbConfigContent := interfaces.DatabaseConfigContent
-		configBytes, err = base64.StdEncoding.DecodeString(dbConfigContent)
-		if err != nil {
-			return DatabaseConfig{}, fmt.Errorf("unable to decode base64 content: %w", err)
-		}
-	} else if len(interfaces.DatabaseConfigFile) != 0 {
-		configPath := interfaces.DatabaseConfigFile
-		configBytes, err = os.ReadFile(configPath)
-		if err != nil {
-			return DatabaseConfig{}, err
-		}
-	}
-
+func getDatabaseConfig(config Config, chainDataDir string) (DatabaseConfig, error) {
+	var configBytes []byte
+	// Database configuration fields are not available in current Config
+	// Use default configuration
 	dbPath := filepath.Join(chainDataDir, "db")
-	if len(interfaces.DatabasePath) != 0 {
-		dbPath = interfaces.DatabasePath
-	}
 
 	return DatabaseConfig{
-		Name:     interfaces.DatabaseType,
-		ReadOnly: interfaces.DatabaseReadOnly,
+		Name:     "leveldb", // default database type
+		ReadOnly: false,
 		Path:     dbPath,
 		Config:   configBytes,
 	}, nil
 }
 
-func inspectDB(db luxinterfaces.Database, label string) error {
-	it := db.NewIterator()
+func inspectDB(db iface.Database, label string) error {
+	it := db.NewIterator(nil, nil)
 	defer it.Release()
 
 	var (
@@ -197,35 +168,42 @@ func inspectDB(db luxinterfaces.Database, label string) error {
 	return nil
 }
 
-func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer interfaces.MultiGatherer, logger logging.Logger) (luxinterfaces.Database, error) {
+func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer nodeMetrics.MultiGatherer, logger logging.Logger) (nodedb.Database, error) {
 	dbPath := filepath.Join(dbConfig.Path, dbConfig.Name)
 
 	dbConfigBytes := dbConfig.Config
 	// If the database is pebble, we need to set the config
 	// to use no sync. Sync mode in pebble has an issue with OSs like MacOS.
-	if dbConfig.Name == interfaces.Name {
-		cfg := interfaces.DefaultConfig
+	if dbConfig.Name == pebbledb.Name {
+		cfg := pebbledb.DefaultConfig
 		// Default to "no sync" for pebble db
 		cfg.Sync = false
 		if len(dbConfigBytes) > 0 {
-			if err := interfaces.Unmarshal(dbConfigBytes, &cfg); err != nil {
+			if err := json.Unmarshal(dbConfigBytes, &cfg); err != nil {
 				return nil, err
 			}
 		}
 		var err error
 		// Marshal the config back to bytes to ensure that new defaults are applied
-		dbConfigBytes, err = interfaces.Marshal(cfg)
+		dbConfigBytes, err = json.Marshal(cfg)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	var db luxinterfaces.Database
+	// Create a prometheus registry for the database
+	dbRegisterer, err := nodeMetrics.MakeAndRegister(gatherer, dbMetricsPrefix)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't create database metrics registerer: %w", err)
+	}
+
+	var db nodedb.Database
 	switch dbConfig.Name {
-	case interfaces.Name:
-		db, err = interfaces.New(dbPath, dbConfigBytes, logger, gatherer)
-	case interfaces.Name:
-		db, err = interfaces.New(dbPath, dbConfigBytes, logger, gatherer)
+	case pebbledb.Name:
+		db, err = pebbledb.New(dbPath, dbConfigBytes, logger, dbRegisterer)
+	case "leveldb":
+		// Use default leveldb config for now
+		db, err = pebbledb.New(dbPath, nil, logger, dbRegisterer) // Use pebble as leveldb alternative
 	default:
 		return nil, fmt.Errorf("unknown database type: %s", dbConfig.Name)
 	}

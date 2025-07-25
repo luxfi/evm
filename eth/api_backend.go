@@ -33,22 +33,23 @@ import (
 	"time"
 
 	"github.com/luxfi/geth/accounts"
-	"github.com/luxfi/geth/consensus"
-	"github.com/luxfi/geth/core"
+	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/bloombits"
-	"github.com/luxfi/geth/core/state"
-	"github.com/luxfi/geth/core/txpool"
-	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/core/vm"
-	"github.com/luxfi/geth/eth/gasprice"
-	"github.com/luxfi/geth/eth/tracers"
+	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/core/txpool"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/eth/gasprice"
+	"github.com/luxfi/evm/eth/tracers"
 	"github.com/luxfi/evm/internal/ethapi"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/params"
 	customheader "github.com/luxfi/evm/plugin/evm/header"
-	"github.com/luxfi/geth/rpc"
+	"github.com/luxfi/evm/rpc"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/event"
+	gethrpc "github.com/luxfi/geth/rpc"
 )
 
 var ErrUnfinalizedData = errors.New("cannot query unfinalized data")
@@ -69,7 +70,13 @@ type EthAPIBackend struct {
 
 // ChainConfig returns the active chain configuration.
 func (b *EthAPIBackend) ChainConfig() *params.ChainConfig {
-	return b.eth.blockchain.Config()
+	config := b.eth.blockchain.Config()
+	// The Config() method returns an interface, we need to cast it to the concrete type
+	if paramsConfig, ok := config.(*params.ChainConfig); ok {
+		return paramsConfig
+	}
+	// This should not happen in practice, but return nil as a fallback
+	return nil
 }
 
 // IsArchive returns true if the node is running in archive mode, false otherwise.
@@ -367,11 +374,7 @@ func (b *EthAPIBackend) GetPoolTransactions() (types.Transactions, error) {
 	pending := b.eth.txPool.Pending(txpool.PendingFilter{})
 	var txs types.Transactions
 	for _, batch := range pending {
-		for _, lazy := range batch {
-			if tx := lazy.Resolve(); tx != nil {
-				txs = append(txs, tx)
-			}
-		}
+		txs = append(txs, batch...)
 	}
 	return txs, nil
 }
@@ -420,7 +423,7 @@ func (b *EthAPIBackend) TxPoolContentFrom(addr common.Address) ([]*types.Transac
 }
 
 func (b *EthAPIBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription {
-	return b.eth.txPool.SubscribeTransactions(ch, true)
+	return b.eth.txPool.SubscribeNewTxsEvent(ch)
 }
 
 func (b *EthAPIBackend) EstimateBaseFee(ctx context.Context) (*big.Int, error) {
@@ -436,7 +439,9 @@ func (b *EthAPIBackend) SuggestGasTipCap(ctx context.Context) (*big.Int, error) 
 }
 
 func (b *EthAPIBackend) FeeHistory(ctx context.Context, blockCount uint64, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (firstBlock *big.Int, reward [][]*big.Int, baseFee []*big.Int, gasUsedRatio []float64, err error) {
-	return b.gpo.FeeHistory(ctx, blockCount, lastBlock, rewardPercentiles)
+	// Convert evm rpc.BlockNumber to geth rpc.BlockNumber
+	gethLastBlock := gethrpc.BlockNumber(lastBlock)
+	return b.gpo.FeeHistory(ctx, blockCount, gethLastBlock, rewardPercentiles)
 }
 
 func (b *EthAPIBackend) ChainDb() ethdb.Database {
@@ -527,7 +532,12 @@ func (b *EthAPIBackend) StateAtTransaction(ctx context.Context, block *types.Blo
 }
 
 func (b *EthAPIBackend) MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error) {
-	return customheader.EstimateRequiredTip(b.ChainConfig(), header)
+	// Get the extras config directly
+	extrasConfig := params.GetExtra(b.ChainConfig())
+	if extrasConfig == nil {
+		return nil, errors.New("extras config not available")
+	}
+	return customheader.EstimateRequiredTip(extrasConfig, header)
 }
 
 func (b *EthAPIBackend) isLatestAndAllowed(number rpc.BlockNumber) bool {

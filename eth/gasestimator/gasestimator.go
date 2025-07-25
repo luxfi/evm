@@ -33,11 +33,12 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/luxfi/geth/core"
-	"github.com/luxfi/geth/core/state"
-	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/core/vm"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/params"
+	gethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/log"
@@ -68,7 +69,7 @@ func Estimate(ctx context.Context, call *core.Message, opts *Options, gasCap uin
 	)
 	// Determine the highest gas limit can be used during the estimation.
 	hi = opts.Header.GasLimit
-	if call.GasLimit >= params.TxGas {
+	if call.GasLimit >= gethparams.TxGas {
 		hi = call.GasLimit
 	}
 	// Normalize the max fee per gas the call is willing to spend.
@@ -115,9 +116,9 @@ func Estimate(ctx context.Context, call *core.Message, opts *Options, gasCap uin
 	// unused access list items). Ever so slightly wasteful, but safer overall.
 	if len(call.Data) == 0 {
 		if call.To != nil && opts.State.GetCodeSize(*call.To) == 0 {
-			failed, _, err := execute(ctx, call, opts, params.TxGas)
+			failed, _, err := execute(ctx, call, opts, gethparams.TxGas)
 			if !failed && err == nil {
-				return params.TxGas, nil, nil
+				return gethparams.TxGas, nil, nil
 			}
 		}
 	}
@@ -143,7 +144,7 @@ func Estimate(ctx context.Context, call *core.Message, opts *Options, gasCap uin
 	// There's a fairly high chance for the transaction to execute successfully
 	// with gasLimit set to the first execution's usedGas. Explicitly
 	// check that gas amount and use as a limit for the binary search.
-	optimisticGasLimit := (result.UsedGas + params.CallStipend) * 64 / 63
+	optimisticGasLimit := (result.UsedGas + gethparams.CallStipend) * 64 / 63
 	if optimisticGasLimit < hi {
 		failed, _, err = execute(ctx, call, opts, optimisticGasLimit)
 		if err != nil {
@@ -222,7 +223,7 @@ func run(ctx context.Context, call *core.Message, opts *Options) (*core.Executio
 		evmContext = core.NewEVMBlockContext(opts.Header, opts.Chain, nil)
 
 		dirtyState = opts.State.Copy()
-		evm        = vm.NewEVM(evmContext, dirtyState, opts.Config, vm.Config{NoBaseFee: true})
+		evm        = vm.NewEVM(evmContext, msgContext, dirtyState, opts.Config, vm.Config{NoBaseFee: true})
 	)
 	evm.TxContext = msgContext
 	// Monitor the outer context and interrupt the EVM upon cancellation. To avoid

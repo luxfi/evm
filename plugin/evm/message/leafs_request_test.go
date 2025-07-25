@@ -10,9 +10,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/luxfi/evm/iface"
-
 	"github.com/luxfi/geth/common"
+	"github.com/luxfi/node/ids"
 	"github.com/stretchr/testify/assert"
 )
 

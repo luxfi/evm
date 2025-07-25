@@ -8,16 +8,16 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"slices"
 
-	"github.com/luxfi/geth/params"
-	"github.com/luxfi/evm/upgrade/ap0"
-	"github.com/luxfi/evm/upgrade/ap5"
 	"github.com/holiman/uint256"
+	"github.com/luxfi/evm/upgrade/ap5"
+	"github.com/luxfi/geth/params"
 
+	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/geth/common"
+	"github.com/luxfi/geth/log"
 	"github.com/luxfi/node/chains/atomic"
 	"github.com/luxfi/node/ids"
-	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/node/utils"
 	"github.com/luxfi/node/utils/constants"
 	"github.com/luxfi/node/utils/crypto/secp256k1"
@@ -25,26 +25,24 @@ import (
 	"github.com/luxfi/node/utils/set"
 	"github.com/luxfi/node/vms/components/lux"
 	"github.com/luxfi/node/vms/secp256k1fx"
-	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
 )
 
 var (
-	_                           UnsignedAtomicTx       = &UnsignedImportTx{}
-	_                           secp256k1fx.UnsignedTx = &UnsignedImportTx{}
+	_                          UnsignedAtomicTx       = &UnsignedImportTx{}
+	_                          secp256k1fx.UnsignedTx = &UnsignedImportTx{}
 	ErrImportNonLUXInputBanff                         = errors.New("import input cannot contain non-LUX in Banff")
 	ErrImportNonLUXOutputBanff                        = errors.New("import output cannot contain non-LUX in Banff")
-	ErrNoImportInputs                                  = errors.New("tx has no imported inputs")
-	ErrConflictingAtomicInputs                         = errors.New("invalid block due to conflicting atomic inputs")
-	ErrWrongChainID                                    = errors.New("tx has wrong chain ID")
-	ErrNoEVMOutputs                                    = errors.New("tx has no EVM outputs")
-	ErrInputsNotSortedUnique                           = errors.New("inputs not sorted and unique")
-	ErrOutputsNotSortedUnique                          = errors.New("outputs not sorted and unique")
-	ErrOutputsNotSorted                                = errors.New("tx outputs not sorted")
-	ErrAssetIDMismatch                                 = errors.New("asset IDs in the input don't match the utxo")
-	errNilBaseFeeApricotPhase3                         = errors.New("nil base fee is invalid after apricotPhase3")
-	errInsufficientFundsForFee                         = errors.New("insufficient LUX funds to pay transaction fee")
-	errRejectedParent                                  = errors.New("rejected parent")
+	ErrNoImportInputs                                 = errors.New("tx has no imported inputs")
+	ErrConflictingAtomicInputs                        = errors.New("invalid block due to conflicting atomic inputs")
+	ErrWrongChainID                                   = errors.New("tx has wrong chain ID")
+	ErrNoEVMOutputs                                   = errors.New("tx has no EVM outputs")
+	ErrInputsNotSortedUnique                          = errors.New("inputs not sorted and unique")
+	ErrOutputsNotSortedUnique                         = errors.New("outputs not sorted and unique")
+	ErrOutputsNotSorted                               = errors.New("tx outputs not sorted")
+	ErrAssetIDMismatch                                = errors.New("asset IDs in the input don't match the utxo")
+	errNilBaseFeeApricotPhase3                        = errors.New("nil base fee is invalid after apricotPhase3")
+	errInsufficientFundsForFee                        = errors.New("insufficient LUX funds to pay transaction fee")
+	errRejectedParent                                 = errors.New("rejected parent")
 )
 
 // UnsignedImportTx is an unsigned ImportTx
@@ -233,7 +231,7 @@ func (utx *UnsignedImportTx) SemanticVerify(
 	// This needs to be accessed through the VM or Backend
 	_ = utxoIDs
 	// For now, skip UTXO verification until SharedMemory is properly integrated
-	
+
 	// Verify conflicts without full UTXO verification
 	return conflicts(backend, utx.InputUTXOs(), parent)
 }

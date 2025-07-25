@@ -42,7 +42,6 @@ import (
 	"github.com/luxfi/geth/event"
 	"github.com/luxfi/geth/log"
 	"github.com/luxfi/geth/metrics"
-	eparams "github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/state"
@@ -284,7 +283,7 @@ func New(config Config, chain BlockChain) *LegacyPool {
 		config:              config,
 		chain:               chain,
 		chainconfig:         chain.Config(),
-		signer:              types.LatestSigner(&eparams.ChainConfig{ChainID: chain.Config().ChainID}),
+		signer:              types.LatestSigner(chain.Config().ToEthChainConfig()),
 		pending:             make(map[common.Address]*list),
 		queue:               make(map[common.Address]*list),
 		beats:               make(map[common.Address]time.Time),

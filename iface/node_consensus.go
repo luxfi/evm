@@ -6,6 +6,7 @@ package iface
 import (
 	"context"
 	"fmt"
+	"github.com/luxfi/geth/common"
 )
 
 // NodeConsensus provides chain-specific consensus information for node integration
@@ -59,10 +60,13 @@ type ValidatorState interface {
 	GetCurrentHeight(ctx context.Context) (uint64, error)
 	
 	// GetValidatorSet returns the validator set at a given height
-	GetValidatorSet(ctx context.Context, height uint64, subnetID SubnetID) (map[NodeID]*ValidatorData, error)
+	GetValidatorSet(ctx context.Context, height uint64, subnetID common.Hash) (map[common.Hash]*ValidatorOutput, error)
 	
 	// GetMinimumHeight returns the minimum height
 	GetMinimumHeight(ctx context.Context) (uint64, error)
+	
+	// GetSubnetID returns the subnet ID for a given chain ID
+	GetSubnetID(ctx context.Context, chainID common.Hash) (common.Hash, error)
 }
 
 // ValidatorData contains validator information

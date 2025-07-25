@@ -1,12 +1,11 @@
 package evm
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
-	"github.com/luxfi/evm/iface"
-	"github.com/stretchr/testify/assert"
+
+	"github.com/stretchr/testify/require"
 )
 
 type rpcChainCompatibility struct {

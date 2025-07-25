@@ -11,16 +11,16 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/luxfi/geth/common"
 	"github.com/holiman/uint256"
+	"github.com/luxfi/geth/common"
 
 	"github.com/luxfi/geth/params"
 
+	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/node/chains/atomic"
 	"github.com/luxfi/node/codec"
-	"github.com/luxfi/node/ids"
-	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/node/consensus/linear"
+	"github.com/luxfi/node/ids"
 	"github.com/luxfi/node/utils/crypto/secp256k1"
 	"github.com/luxfi/node/utils/hashing"
 	"github.com/luxfi/node/utils/set"

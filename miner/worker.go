@@ -36,7 +36,7 @@ import (
 	"sync"
 	"time"
 	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/node/utils/units"
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/state"
@@ -54,7 +54,6 @@ import (
 	"github.com/luxfi/evm/consensus/misc/eip4844"
 	"github.com/holiman/uint256"
 	ethparams "github.com/luxfi/evm/params"
-	eparams "github.com/luxfi/evm/params"
 )
 
 const (
@@ -127,11 +126,11 @@ type worker struct {
 	mux        *event.TypeMux // TODO replace
 	mu         sync.RWMutex   // The lock used to protect the coinbase and extra fields
 	coinbase   common.Address
-	clock      *interfaces.MockableTimer // Allows us mock the clock for testing
+	clock      iface.MockableTimer // Allows us mock the clock for testing
 	beaconRoot *common.Hash    // TODO: set to empty hash, retained for upstream compatibility and future use
 }
 
-func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, clock *interfaces.MockableTimer) *worker {
+func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, clock iface.MockableTimer) *worker {
 	worker := &worker{
 		config:      config,
 		chainConfig: chainConfig,
@@ -171,16 +170,15 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 
 	// The fee manager relies on the state of the parent block to set the fee config
 	// because the fee config may be changed by the current block.
-	feeConfig, _, err := w.chain.GetFeeConfigAt(parent)
+	feeConfig, _, err := w.chain.GetFeeConfigAtHeader(parent)
 	if err != nil {
 		return nil, err
 	}
-	chainConfig := params.GetExtra(w.chainConfig)
-	gasLimit, err := customheader.GasLimit(chainConfig, feeConfig, parent, timestamp)
+	gasLimit, err := customheader.GasLimit(w.chainConfig, feeConfig, parent, timestamp)
 	if err != nil {
 		return nil, fmt.Errorf("calculating new gas limit: %w", err)
 	}
-	baseFee, err := customheader.BaseFee(chainConfig, feeConfig, parent, timestamp)
+	baseFee, err := customheader.BaseFee(params.GetExtra(w.chainConfig), feeConfig, parent, timestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate new base fee: %w", err)
 	}
@@ -235,8 +233,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	}
 	if header.ParentBeaconRoot != nil {
 		blockCtx := core.NewEVMBlockContext(header, w.chain, nil)
-		ethConfig := &ethparams.ChainConfig{ChainID: w.chainConfig.ChainID}
-		vmenv := vm.NewEVM(blockCtx, vm.TxContext{}, env.state, ethConfig, vm.Config{})
+		vmenv := vm.NewEVM(blockCtx, vm.TxContext{}, env.state, w.chainConfig, vm.Config{})
 		core.ProcessBeaconBlockRoot(*header.ParentBeaconRoot, vmenv, env.state)
 	}
 	// Ensure we always stop prefetcher after block building is complete.
@@ -309,20 +306,19 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 	if err != nil {
 		return nil, err
 	}
-	chainConfig := params.GetExtra(w.chainConfig)
-	_, err = customheader.GasCapacity(chainConfig, feeConfig, parent, header.Time)
+	_, err = customheader.GasCapacity(w.chainConfig, feeConfig, parent, header.Time)
 	if err != nil {
 		return nil, fmt.Errorf("calculating gas capacity: %w", err)
 	}
 	currentState.StartPrefetcher("miner", nil)
 	return &environment{
-		signer:           types.MakeSigner(&eparams.ChainConfig{ChainID: w.chainConfig.ChainID}, header.Number, header.Time),
+		signer:           types.MakeSigner(w.chainConfig.ToEthChainConfig(), header.Number, header.Time),
 		state:            currentState,
 		parent:           parent,
 		header:           header,
 		tcount:           0,
 		gasPool:          new(core.GasPool).AddGas(header.GasLimit),
-		rules:            w.chainConfig.LuxRules(header.Number, header.Time),
+		rules:            w.chainConfig.Rules(header.Number, header.Time),
 		predicateContext: predicateContext,
 		predicateResults: predicate.NewResults(),
 		start:            tstart,
@@ -518,7 +514,7 @@ func (w *worker) commit(env *environment) (*types.Block, error) {
 	}
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := copyReceipts(env.receipts)
-	block, err := w.engine.FinalizeAndAssemble(w.chain, env.header, env.parent, env.state, env.txs, nil, receipts)
+	block, err := w.engine.FinalizeAndAssemble(w.chain, env.header, env.state, env.txs, nil, receipts)
 	if err != nil {
 		return nil, err
 	}

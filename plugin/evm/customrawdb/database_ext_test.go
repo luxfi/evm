@@ -6,8 +6,8 @@ package customrawdb
 import (
 	"fmt"
 
-	"github.com/luxfi/geth/common"
 	ethrawdb "github.com/luxfi/evm/iface/core/rawdb"
+	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 )
 

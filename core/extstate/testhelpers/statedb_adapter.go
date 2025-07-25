@@ -8,7 +8,7 @@ import (
 	
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/tracing"
-	gethTypes "github.com/luxfi/geth/core/types"
+	"github.com/luxfi/evm/core/types"
 	"github.com/holiman/uint256"
 	"github.com/luxfi/evm/core/state"
 )
@@ -18,10 +18,9 @@ type StateDBAdapter struct {
 	*state.StateDB
 }
 
-// AddBalance implements the simplified AddBalance interface by providing a default reason
-func (s *StateDBAdapter) AddBalance(addr common.Address, amount *uint256.Int) {
-	// Use a generic balance change reason
-	s.StateDB.AddBalance(addr, amount, tracing.BalanceChangeUnspecified)
+// AddBalance implements the VmStateDB AddBalance interface
+func (s *StateDBAdapter) AddBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason) uint256.Int {
+	return s.StateDB.AddBalance(addr, amount, reason)
 }
 
 // MultiCoin methods - these are Lux-specific extensions not in geth
@@ -40,16 +39,14 @@ func (s *StateDBAdapter) GetBalanceMultiCoin(addr common.Address, coinID common.
 	return big.NewInt(0)
 }
 
-// AddLog implements the Lux-specific AddLog signature
-func (s *StateDBAdapter) AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64) {
-	// Convert to geth log format
-	log := &gethTypes.Log{
-		Address:     addr,
-		Topics:      topics,
-		Data:        data,
-		BlockNumber: blockNumber,
-	}
-	s.StateDB.AddLog(log)
+// Logs returns our log types
+func (s *StateDBAdapter) Logs() []*types.Log {
+	return s.StateDB.Logs()
+}
+
+// GetTxHash returns the current transaction hash
+func (s *StateDBAdapter) GetTxHash() common.Hash {
+	return s.StateDB.GetTxHash()
 }
 
 // NewStateDBAdapter creates a new adapter

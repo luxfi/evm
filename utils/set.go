@@ -16,7 +16,7 @@ type Set[T comparable] struct {
 }
 
 // NewSet creates a new set with optional initial capacity
-func NewSet[T comparable](capacity ...int) interfaces.GenericSet[T] {
+func NewSet[T comparable](capacity ...int) iface.GenericSet[T] {
 	cap := 0
 	if len(capacity) > 0 {
 		cap = capacity[0]

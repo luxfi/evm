@@ -8,9 +8,9 @@ import (
 	"io"
 	"math/big"
 
+	ethtypes "github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
-	ethtypes "github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/rlp"
 )

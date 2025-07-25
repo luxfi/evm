@@ -9,6 +9,7 @@ import (
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"
+	"github.com/luxfi/geth/core/tracing"
 	"github.com/holiman/uint256"
 )
 
@@ -37,7 +38,12 @@ func (s *StateDBAdapter) GetBalance(addr common.Address) *uint256.Int {
 
 // AddBalance implements contract.StateDB
 func (s *StateDBAdapter) AddBalance(addr common.Address, amount *uint256.Int) {
-	s.StateDB.AddBalance(addr, amount)
+	s.StateDB.AddBalance(addr, amount, tracing.BalanceChangeUnspecified)
+}
+
+// SetNonce implements contract.StateDB
+func (s *StateDBAdapter) SetNonce(addr common.Address, nonce uint64) {
+	s.StateDB.SetNonce(addr, nonce, tracing.NonceChangeUnspecified)
 }
 
 // NewStateDBAdapter creates a new StateDBAdapter
