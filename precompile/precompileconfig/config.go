@@ -6,7 +6,7 @@ package precompileconfig
 
 import (
 	"github.com/luxfi/evm/commontype"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/node/consensus"
 	"github.com/luxfi/node/vms/platformvm/warp"

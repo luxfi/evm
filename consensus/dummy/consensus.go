@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"time"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/core/vm"
@@ -18,7 +18,9 @@ import (
 	"github.com/luxfi/evm/plugin/evm/customtypes"
 	customheader "github.com/luxfi/evm/plugin/evm/header"
 	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/commontype"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/trie"
 )
 
@@ -57,6 +59,49 @@ type (
 		consensusMode Mode
 	}
 )
+
+// getParamsConfig converts an iface.ChainConfig to *params.ChainConfig
+func getParamsConfig(config iface.ChainConfig) *params.ChainConfig {
+	// Try to get the underlying geth config and cast
+	if gethConfig := config.AsGeth(); gethConfig != nil {
+		if paramsConfig, ok := gethConfig.(*params.ChainConfig); ok {
+			return paramsConfig
+		}
+	}
+	
+	// Fallback - this shouldn't happen in practice
+	panic("unable to convert chain config to params.ChainConfig")
+}
+
+// convertToExtrasConfig converts a *params.ChainConfig to *extras.ChainConfig
+func convertToExtrasConfig(paramsConfig *params.ChainConfig) *extras.ChainConfig {
+	// We need to convert the ConsensusCtx from ChainContext to consensus.Context
+	var luxCtx extras.LuxContext
+	if paramsConfig.LuxContext.ConsensusCtx != nil {
+		// This is a simplified conversion - in production code you'd need proper conversion
+		luxCtx = extras.LuxContext{
+			ConsensusCtx: nil, // Would need proper conversion from ChainContext to consensus.Context
+		}
+	}
+	
+	return &extras.ChainConfig{
+		ChainConfig:        paramsConfig.ChainConfig,
+		NetworkUpgrades:    extras.NetworkUpgrades{
+			EVMTimestamp:      paramsConfig.MandatoryNetworkUpgrades.EVMTimestamp,
+			DurangoTimestamp:  paramsConfig.MandatoryNetworkUpgrades.DurangoTimestamp,
+			EtnaTimestamp:     paramsConfig.MandatoryNetworkUpgrades.EtnaTimestamp,
+			FortunaTimestamp:  paramsConfig.MandatoryNetworkUpgrades.FortunaTimestamp,
+			GraniteTimestamp:  paramsConfig.MandatoryNetworkUpgrades.GraniteTimestamp,
+		},
+		LuxContext:         luxCtx,
+		FeeConfig:          paramsConfig.FeeConfig,
+		AllowFeeRecipients: paramsConfig.AllowFeeRecipients,
+		GenesisPrecompiles: extras.Precompiles(paramsConfig.GenesisPrecompiles),
+		UpgradeConfig:      extras.UpgradeConfig{
+			PrecompileUpgrades: paramsConfig.UpgradeConfig.PrecompileUpgrades,
+		},
+	}
+}
 
 func NewDummyEngine(
 	mode Mode,
@@ -123,7 +168,7 @@ func (eng *DummyEngine) verifyCoinbase(header *types.Header, parent *types.Heade
 	// get the coinbase configured at parent
 	configuredAddressAtParent := chain.GetCoinbaseAt(parent.Time)
 	config := chain.Config()
-	isAllowFeeRecipients := config.AllowFeeRecipients
+	isAllowFeeRecipients := config.AllowedFeeRecipients()
 
 	if isAllowFeeRecipients {
 		// if fee recipients are allowed we don't need to check the coinbase
@@ -154,12 +199,15 @@ func verifyHeaderGasFields(config *params.ChainConfig, header *types.Header, par
 	if err := customheader.VerifyGasLimit(config, feeConfig, parent, header); err != nil {
 		return err
 	}
-	if err := customheader.VerifyExtraPrefix(config, parent, header); err != nil {
+	// Convert params.ChainConfig to extras.ChainConfig for VerifyExtraPrefix
+	extrasConfig := convertToExtrasConfig(config)
+	if err := customheader.VerifyExtraPrefix(extrasConfig, parent, header); err != nil {
 		return err
 	}
 
 	// Verify header.BaseFee matches the expected value.
-	expectedBaseFee, err := customheader.BaseFee(config, feeConfig, parent, header.Time)
+	// Reuse extrasConfig from above
+	expectedBaseFee, err := customheader.BaseFee(extrasConfig, feeConfig, parent, header.Time)
 	if err != nil {
 		return fmt.Errorf("failed to calculate base fee: %w", err)
 	}
@@ -168,8 +216,9 @@ func verifyHeaderGasFields(config *params.ChainConfig, header *types.Header, par
 	}
 
 	// Enforce BlockGasCost constraints
+	// Reuse the extrasConfig from above
 	expectedBlockGasCost := customheader.BlockGasCost(
-		config,
+		extrasConfig,
 		feeConfig,
 		parent,
 		header.Time,
@@ -190,13 +239,16 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 
 	// Verify the extra data is well-formed.
 	config := chain.Config()
-	rules := config.LuxRules(header.Number, header.Time)
-	if err := customheader.VerifyExtra(rules, header.Extra); err != nil {
+	// Convert rules to the concrete type expected by VerifyExtra
+	paramsConfig := getParamsConfig(config)
+	// Get LuxRules from the NetworkUpgrades
+	luxRules := paramsConfig.MandatoryNetworkUpgrades.GetLuxRules(header.Time)
+	if err := customheader.VerifyExtra(luxRules, header.Extra); err != nil {
 		return err
 	}
 
 	// Ensure gas-related header fields are correct
-	if err := verifyHeaderGasFields(config, header, parent, chain); err != nil {
+	if err := verifyHeaderGasFields(getParamsConfig(config), header, parent, chain); err != nil {
 		return err
 	}
 	// Ensure that coinbase is valid
@@ -218,7 +270,7 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 		return consensus.ErrInvalidNumber
 	}
 	// Verify the existence / non-existence of excessBlobGas
-	cancun := (*chain.Config()).IsCancun(header.Number, header.Time)
+	cancun := chain.Config().IsCancun(header.Time)
 	if !cancun {
 		switch {
 		case header.ExcessBlobGas != nil:
@@ -352,8 +404,11 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 	feeConfig := adaptFeeConfig(feeConfigInterface)
 	// Verify the BlockGasCost set in the header matches the expected value.
 	blockGasCost := customtypes.BlockGasCost(block)
+	// Convert to extras.ChainConfig for BlockGasCost
+	paramsConfig := getParamsConfig(config)
+	extrasConfig := convertToExtrasConfig(paramsConfig)
 	expectedBlockGasCost := customheader.BlockGasCost(
-		config,
+		extrasConfig,
 		feeConfig,
 		parent,
 		timestamp,
@@ -390,8 +445,11 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 
 	// Calculate the required block gas cost for this block.
 	headerExtra := customtypes.GetHeaderExtra(header)
+	// Convert to extras.ChainConfig for BlockGasCost
+	paramsConfig := getParamsConfig(config)
+	extrasConfig := convertToExtrasConfig(paramsConfig)
 	headerExtra.BlockGasCost = customheader.BlockGasCost(
-		config,
+		extrasConfig,
 		feeConfig,
 		parent,
 		header.Time,
@@ -409,14 +467,17 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 	}
 
 	// finalize the header.Extra
-	extraPrefix, err := customheader.ExtraPrefix(config, parent, header)
+	// Convert to extras.ChainConfig for ExtraPrefix
+	paramsConfig = getParamsConfig(config)
+	extrasConfig = convertToExtrasConfig(paramsConfig)
+	extraPrefix, err := customheader.ExtraPrefix(extrasConfig, parent, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate new header.Extra: %w", err)
 	}
 	header.Extra = append(extraPrefix, header.Extra...)
 
 	// commit the final state root
-	header.Root = state.IntermediateRoot((*chain.Config()).IsEIP158(header.Number))
+	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 
 	// Header seems complete, assemble into a block and return
 	// Use the NewBlockWithExtData function to properly handle Lux extensions

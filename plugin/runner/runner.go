@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
 
 	"github.com/luxfi/evm/plugin/evm"
 )

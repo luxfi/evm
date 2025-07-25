@@ -6,7 +6,7 @@ package predicate
 import (
 	"bytes"
 	"testing"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/params"
 	"github.com/stretchr/testify/require"
 )

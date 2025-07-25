@@ -7,7 +7,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/accounts/abi"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"

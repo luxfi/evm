@@ -41,7 +41,7 @@ import (
 	"github.com/luxfi/evm/core/vm"
 	"github.com/luxfi/geth/eth/filters"
 	"github.com/luxfi/geth/ethdb"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/rpc"
 	"github.com/luxfi/geth/common"

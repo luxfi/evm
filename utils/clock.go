@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 )
 
 // MockableClock implements interfaces.MockableTimer

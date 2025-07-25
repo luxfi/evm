@@ -47,6 +47,7 @@ import (
 	"github.com/luxfi/geth/common/math"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/log"
+	"github.com/luxfi/geth/core/tracing"
 	"github.com/holiman/uint256"
 	ethparams "github.com/luxfi/evm/params"
 )
@@ -262,7 +263,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 		}
 		airdropAmount := uint256.MustFromBig(g.AirdropAmount)
 		for _, alloc := range airdrop {
-			statedb.AddBalance(alloc.Address, airdropAmount)
+			statedb.AddBalance(alloc.Address, airdropAmount, tracing.BalanceChangeGenesisBalance)
 		}
 		log.Debug(
 			"applied airdrop allocation",
@@ -295,10 +296,10 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 	// Do custom allocation after airdrop in case an address shows up in standard
 	// allocation
 	for addr, account := range g.Alloc {
-		statedb.AddBalance(addr, uint256.MustFromBig(account.Balance))
+		statedb.AddBalance(addr, uint256.MustFromBig(account.Balance), tracing.BalanceChangeGenesisBalance)
 		statedb.SetCode(addr, account.Code)
 		if account.Nonce > 0 {
-			statedb.SetNonce(addr, account.Nonce)
+			statedb.SetNonce(addr, account.Nonce, tracing.NonceChangeUnspecified)
 		}
 		for key, value := range account.Storage {
 			statedb.SetState(addr, key, value)
@@ -308,10 +309,10 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 	head.Root = root
 
 	if g.GasLimit == 0 {
-		head.GasLimit = ethparams.GenesisGasLimit
+		head.GasLimit = params.DefaultGasLimit
 	}
 	if g.Difficulty == nil {
-		head.Difficulty = ethparams.GenesisDifficulty
+		head.Difficulty = big.NewInt(0) // EVM chains use zero difficulty
 	}
 	if conf := g.Config; conf != nil {
 		// num := new(big.Int).SetUint64(g.Number) // unused after IsCancun API change
@@ -339,7 +340,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 		}
 	}
 
-	statedb.Commit(0, false)
+	statedb.Commit(0, false, false)
 	// Commit newly generated states into disk if it's not empty.
 	if root != types.EmptyRootHash {
 		if err := triedb.Commit(root, true); err != nil {
