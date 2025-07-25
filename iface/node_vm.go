@@ -1,7 +1,7 @@
 // (c) 2019-2020, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package interfaces
+package iface
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/iface"
 )
 
 // NodeID is a type alias to iface.NodeID
@@ -164,7 +163,7 @@ type StateSyncableVM interface {
 // ChainContext is a type alias to iface.ChainContext
 type ChainContext = iface.ChainContext
 
-// SubnetID is a type alias to iface.SubnetID  
+// SubnetID is a type alias to iface.SubnetID
 type SubnetID = iface.SubnetID
 
 // ChainID is a type alias to iface.ChainID

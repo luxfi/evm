@@ -1,4 +1,4 @@
-package interfaces
+package iface
 
 import (
 	"github.com/luxfi/geth/common"
