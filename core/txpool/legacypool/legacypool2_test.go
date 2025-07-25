@@ -36,7 +36,7 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/interfaces/core/rawdb"
+	"github.com/luxfi/evm/iface/core/rawdb"
 )
 
 func pricedValuedTransaction(nonce uint64, value int64, gaslimit uint64, gasprice *big.Int, key *ecdsa.PrivateKey) *types.Transaction {

@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/stretchr/testify/assert"
 )
 

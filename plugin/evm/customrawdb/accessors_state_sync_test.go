@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/luxfi/geth/common"
-	ethrawdb "github.com/luxfi/evm/interfaces/core/rawdb"
+	ethrawdb "github.com/luxfi/evm/iface/core/rawdb"
 	"github.com/stretchr/testify/require"
 )
 

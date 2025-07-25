@@ -6,7 +6,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/plugin/evm"
 	"github.com/luxfi/evm/plugin/runner"
 )

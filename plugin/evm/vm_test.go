@@ -37,7 +37,7 @@ import (
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/constants"
 	"github.com/luxfi/evm/core/txpool"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/internal/ethapi"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/plugin/evm/message"

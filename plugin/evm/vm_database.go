@@ -13,17 +13,17 @@ import (
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/log"
-	"github.com/luxfi/evm/interfaces/core/rawdb"
+	"github.com/luxfi/evm/iface/core/rawdb"
 	"github.com/luxfi/evm/plugin/evm/config"
 	"github.com/luxfi/evm/plugin/evm/database"
-	"github.com/luxfi/evm/interfaces"
-	luxdatabase "github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
+	luxdatabase "github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
 )
 
 const (

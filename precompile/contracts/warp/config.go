@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/predicate"
 	// warpValidators "github.com/luxfi/warp/validators" // TODO: implement validators in warp lib

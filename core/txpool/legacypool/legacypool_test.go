@@ -49,8 +49,8 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/event"
-	"github.com/luxfi/evm/interfaces/core/rawdb"
-	"github.com/luxfi/evm/interfaces/trie"
+	"github.com/luxfi/evm/iface/core/rawdb"
+	"github.com/luxfi/evm/iface/trie"
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/holiman/uint256"
 )

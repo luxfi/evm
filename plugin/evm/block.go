@@ -17,10 +17,10 @@ import (
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/predicate"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
 )
 
 var (

@@ -54,7 +54,7 @@ import (
 	"github.com/holiman/uint256"
 
 	// Force libevm metrics of the same name to be registered first.
-	_ "github.com/luxfi/evm/interfaces/core/txpool/legacypool"
+	_ "github.com/luxfi/evm/iface/core/txpool/legacypool"
 )
 
 const (

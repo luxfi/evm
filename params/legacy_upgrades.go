@@ -43,5 +43,5 @@ func (r Rules) IsApricotPhasePre6(num uint64) bool { return false }
 func (r Rules) IsApricotPhasePost6(num uint64) bool { return true }
 func (r Rules) IsBanff(num uint64) bool   { return true }
 func (r Rules) IsCortina(num uint64) bool { return true }
-func (r Rules) IsDurango(num uint64) bool { return true }
-func (r Rules) IsEtna(num uint64) bool    { return true }
+func (r *Rules) IsDurango() bool { return true }
+func (r *Rules) IsEtna() bool    { return true }

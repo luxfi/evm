@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/evm/plugin/evm/client"
 )

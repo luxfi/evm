@@ -6,7 +6,7 @@ package utils
 import (
 	"sync"
 
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 )
 
 // LRUCache implements an LRU cache using a simple map with a fixed size

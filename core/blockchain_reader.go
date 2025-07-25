@@ -36,6 +36,7 @@ import (
 	"github.com/luxfi/evm/core/state/snapshot"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/params"
 	ethparams "github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/precompile/contracts/feemanager"
@@ -190,22 +191,8 @@ func (bc *BlockChain) GetReceiptsByHash(hash common.Hash) types.Receipts {
 	if header == nil {
 		return nil
 	}
-	// Create ethereum ChainConfig for rawdb
-	ethConfig := &ethparams.ChainConfig{
-		ChainID: bc.chainConfig.ChainID,
-		EIP155Block: bc.chainConfig.EIP155Block,
-		EIP158Block: bc.chainConfig.EIP158Block,
-		HomesteadBlock: bc.chainConfig.HomesteadBlock,
-		ByzantiumBlock: bc.chainConfig.ByzantiumBlock,
-		ConstantinopleBlock: bc.chainConfig.ConstantinopleBlock,
-		PetersburgBlock: bc.chainConfig.PetersburgBlock,
-		IstanbulBlock: bc.chainConfig.IstanbulBlock,
-		BerlinBlock: bc.chainConfig.BerlinBlock,
-		LondonBlock: bc.chainConfig.LondonBlock,
-		ShanghaiTime: bc.chainConfig.ShanghaiTime,
-		CancunTime: bc.chainConfig.CancunTime,
-	}
-	receipts := rawdb.ReadReceipts(bc.db, hash, *number, header.Time, bc.chainConfig.ToGeth())
+	// Use the embedded geth ChainConfig directly
+	receipts := rawdb.ReadReceipts(bc.db, hash, *number, header.Time, bc.chainConfig.ChainConfig)
 	if receipts == nil {
 		return nil
 	}
@@ -281,7 +268,7 @@ func (bc *BlockChain) StateAt(root common.Hash) (*state.StateDB, error) {
 }
 
 // Config retrieves the chain's fork configuration.
-func (bc *BlockChain) Config() *params.ChainConfig { return bc.chainConfig }
+func (bc *BlockChain) Config() iface.ChainConfig { return bc.chainConfig }
 
 // Engine retrieves the blockchain's consensus common.
 func (bc *BlockChain) Engine() consensus.Engine { return bc.engine }
@@ -377,13 +364,34 @@ func (bc *BlockChain) SubscribeAcceptedTransactionEvent(ch chan<- NewTxsEvent) e
 	return bc.scope.Track(bc.txAcceptedFeed.Subscribe(ch))
 }
 
-// GetFeeConfigAt returns the fee configuration and the last changed block number at [parent].
+// GetFeeConfigAt returns the fee configuration at the given timestamp
+// This is a simplified version for the iface.ChainHeaderReader interface
+func (bc *BlockChain) GetFeeConfigAt(timestamp uint64) (iface.FeeConfig, error) {
+	// For the interface, return a wrapper around the chain config fee config
+	return &feeConfigWrapper{bc.chainConfig.FeeConfig}, nil
+}
+
+// feeConfigWrapper wraps commontype.FeeConfig to implement iface.FeeConfig
+type feeConfigWrapper struct {
+	commontype.FeeConfig
+}
+
+func (f *feeConfigWrapper) GetGasLimit() *big.Int                    { return f.GasLimit }
+func (f *feeConfigWrapper) GetTargetBlockRate() uint64               { return f.TargetBlockRate }
+func (f *feeConfigWrapper) GetMinBaseFee() *big.Int                  { return f.MinBaseFee }
+func (f *feeConfigWrapper) GetTargetGas() *big.Int                   { return f.TargetGas }
+func (f *feeConfigWrapper) GetBaseFeeChangeDenominator() *big.Int    { return f.BaseFeeChangeDenominator }
+func (f *feeConfigWrapper) GetMinBlockGasCost() *big.Int             { return f.MinBlockGasCost }
+func (f *feeConfigWrapper) GetMaxBlockGasCost() *big.Int             { return f.MaxBlockGasCost }
+func (f *feeConfigWrapper) GetBlockGasCostStep() *big.Int            { return f.BlockGasCostStep }
+
+// GetFeeConfigAtHeader returns the fee configuration and the last changed block number at [parent].
 // If EVM is not activated, returns default fee config and nil block number.
 // If FeeManager is activated at [parent], returns the fee config in the precompile contract state.
 // Otherwise returns the fee config in the chain config.
 // Assumes that a valid configuration is stored when the precompile is activated.
-func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
-	config := params.GetExtra(bc.Config())
+func (bc *BlockChain) GetFeeConfigAtHeader(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
+	config := params.GetExtra(bc.chainConfig)
 	if !config.IsEVM(parent.Time) {
 		return params.DefaultFeeConfig, nil, nil
 	}
@@ -416,11 +424,25 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 	return storedFeeConfig, lastChangedAt, nil
 }
 
-// GetCoinbaseAt returns the configured coinbase address at [parent].
+// GetCoinbaseAt returns the configured coinbase address at the given timestamp
+// This is a simplified version for the iface.ChainHeaderReader interface
+func (bc *BlockChain) GetCoinbaseAt(timestamp uint64) common.Address {
+	// For the interface, we return the blackhole address as default
+	// The full implementation uses GetCoinbaseAtHeader
+	return constants.BlackholeAddr
+}
+
+// GetTd retrieves the total difficulty for a block by hash and number
+func (bc *BlockChain) GetTd(hash common.Hash, number uint64) *big.Int {
+	// EVM chains don't use total difficulty, return zero
+	return big.NewInt(0)
+}
+
+// GetCoinbaseAtHeader returns the configured coinbase address at [parent].
 // If RewardManager is activated at [parent], returns the reward manager config in the precompile contract state.
 // If fee recipients are allowed, returns true in the second return value.
-func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
-	configExtra := params.GetExtra(bc.Config())
+func (bc *BlockChain) GetCoinbaseAtHeader(parent *types.Header) (common.Address, bool, error) {
+	configExtra := params.GetExtra(bc.chainConfig)
 	if !configExtra.IsEVM(parent.Time) {
 		return constants.BlackholeAddr, false, nil
 	}
