@@ -6,7 +6,7 @@ package utils
 import (
 	"sync"
 	
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 )
 
 // Set implements a generic set data structure

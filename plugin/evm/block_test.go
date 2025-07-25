@@ -6,7 +6,7 @@ package evm
 import (
 	"math/big"
 	"testing"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"

@@ -30,7 +30,7 @@ import (
 	"github.com/luxfi/geth/eth"
 	"github.com/luxfi/geth/eth/ethconfig"
 	"github.com/luxfi/geth/ethclient"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/node"
 	"github.com/luxfi/geth/params"
 	"github.com/luxfi/geth/rpc"

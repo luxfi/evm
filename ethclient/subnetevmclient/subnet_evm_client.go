@@ -34,7 +34,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"github.com/luxfi/evm/core/types"
-	ethereum "github.com/luxfi/evm/interfaces"
+	ethereum "github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/rpc"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"

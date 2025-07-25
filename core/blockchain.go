@@ -1759,7 +1759,7 @@ func (bc *BlockChain) commitWithSnap(
 	// blockHashes must be passed through [state.StateDB]'s Commit since snapshots
 	// are based on the block hash.
 	snapshotOpt := snapshot.WithBlockHashes(current.Hash(), current.ParentHash())
-	root, err := statedb.Commit(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()))
+	root, err := statedb.Commit(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()), false)
 	if err != nil {
 		return common.Hash{}, err
 	}

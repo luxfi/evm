@@ -7,7 +7,7 @@ package consensus
 import (
 	"math/big"
 
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/node/ids"
 )
 
@@ -38,10 +38,10 @@ type Consensus interface {
 	Finalized() bool
 }
 
-// Use interfaces from the interfaces package
-type ChainHeaderReader = interfaces.ChainHeaderReader
-type ChainReader = interfaces.ChainReader
-type Engine = interfaces.Engine
+// Use interfaces from the iface package
+type ChainHeaderReader = iface.ChainHeaderReader
+type ChainReader = iface.ChainReader
+type Engine = iface.Engine
 
 // PoW is a consensus engine based on proof-of-work (deprecated).
 type PoW interface {

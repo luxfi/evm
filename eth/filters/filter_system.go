@@ -37,7 +37,7 @@ import (
 	"github.com/luxfi/geth/core"
 	"github.com/luxfi/evm/core/bloombits"
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/params"
 	"github.com/luxfi/geth/rpc"
 	"github.com/luxfi/geth/common"

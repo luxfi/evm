@@ -32,7 +32,7 @@ import (
 	"time"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
-	ethereum "github.com/luxfi/evm/interfaces"
+	ethereum "github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/log"
 )
 

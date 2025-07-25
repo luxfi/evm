@@ -35,6 +35,7 @@ import (
 	"github.com/luxfi/geth/common"
 	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/evm/commontype"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/evm/precompile/precompileconfig"
@@ -304,7 +305,7 @@ func (c *ChainConfig) ToEthChainConfig() *ethparams.ChainConfig {
 
 // AsGeth returns the embedded geth ChainConfig
 // This is a convenience method for call sites that need the plain geth struct
-func (c *ChainConfig) AsGeth() *ethparams.ChainConfig {
+func (c *ChainConfig) AsGeth() interface{} {
 	return c.ChainConfig
 }
 
@@ -907,7 +908,7 @@ type Rules struct {
 	IsShanghai, IsCancun                                    bool
 
 	// Rules for Lux releases - all upgrades are always active
-	IsEVM bool
+	IsEVMEnabled bool
 
 	// ActivePrecompiles maps addresses to stateful precompiled contracts that are enabled
 	// for this rule set.
@@ -920,6 +921,42 @@ type Rules struct {
 	// AccepterPrecompiles maps addresses to stateful precompile accepter functions
 	// that are enabled for this rule set.
 	AccepterPrecompiles map[common.Address]precompileconfig.Accepter
+}
+
+// IsEVM returns true if EVM is enabled
+func (r *Rules) IsEVM() bool { return r.IsEVMEnabled }
+
+// IsFortuna returns true (always enabled)
+func (r *Rules) IsFortuna() bool { return true }
+
+// IsGranite returns true (always enabled)  
+func (r *Rules) IsGranite() bool { return true }
+
+// GetActivePrecompiles returns the active precompiles as an interface map
+func (r *Rules) GetActivePrecompiles() map[common.Address]interface{} {
+	result := make(map[common.Address]interface{})
+	for addr, config := range r.ActivePrecompiles {
+		result[addr] = config
+	}
+	return result
+}
+
+// GetPredicaters returns the predicaters as an interface map
+func (r *Rules) GetPredicaters() map[common.Address]interface{} {
+	result := make(map[common.Address]interface{})
+	for addr, predicater := range r.Predicaters {
+		result[addr] = predicater
+	}
+	return result
+}
+
+// GetAccepterPrecompiles returns the accepter precompiles as an interface map
+func (r *Rules) GetAccepterPrecompiles() map[common.Address]interface{} {
+	result := make(map[common.Address]interface{})
+	for addr, accepter := range r.AccepterPrecompiles {
+		result[addr] = accepter
+	}
+	return result
 }
 
 // IsPrecompileEnabled returns true if the precompile at [addr] is enabled for this rule set.
@@ -948,15 +985,15 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 		IsLondon:         c.IsLondon(num),
 		IsShanghai:       c.IsShanghai(num, timestamp),
 		IsCancun:         c.IsCancun(timestamp),
+		IsEVMEnabled:     c.IsEVM(timestamp),
 	}
 }
 
 // LuxRules returns the Lux modified rules to support Lux
 // network upgrades
-func (c *ChainConfig) LuxRules(blockNum *big.Int, timestamp uint64) Rules {
+func (c *ChainConfig) LuxRules(blockNum *big.Int, timestamp uint64) iface.LuxRules {
 	rules := c.rules(blockNum, timestamp)
-
-	rules.IsEVM = c.IsEVM(timestamp)
+	// IsEVM is already a field in Rules struct, set during initialization
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
@@ -978,7 +1015,7 @@ func (c *ChainConfig) LuxRules(blockNum *big.Int, timestamp uint64) Rules {
 		}
 	}
 
-	return rules
+	return &rules
 }
 
 // IsFortuna returns whether [time] represents a block

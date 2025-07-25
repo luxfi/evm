@@ -40,11 +40,11 @@ import (
 	"time"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/interfaces/core/rawdb"
+	"github.com/luxfi/evm/iface/core/rawdb"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/crypto/kzg4844"
-	"github.com/luxfi/evm/interfaces/ethdb/memorydb"
+	"github.com/luxfi/evm/iface/ethdb/memorydb"
 	"github.com/luxfi/geth/log"
 	ethparams "github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/rlp"

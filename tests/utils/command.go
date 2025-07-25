@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"strings"
 	"time"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/log"
 	"github.com/go-cmd/cmd"
 	"github.com/onsi/ginkgo/v2"

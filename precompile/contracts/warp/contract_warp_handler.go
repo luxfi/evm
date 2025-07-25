@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math"
 	"github.com/luxfi/evm/utils"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/evm/predicate"
 	"github.com/luxfi/geth/common"
