@@ -11,7 +11,7 @@ import (
 	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/predicate"
-	warpValidators "github.com/luxfi/evm/warp/validators"
+	// warpValidators "github.com/luxfi/warp/validators" // TODO: implement validators in warp lib
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/math"
 	"github.com/luxfi/geth/log"

@@ -205,7 +205,7 @@ func (bc *BlockChain) GetReceiptsByHash(hash common.Hash) types.Receipts {
 		ShanghaiTime: bc.chainConfig.ShanghaiTime,
 		CancunTime: bc.chainConfig.CancunTime,
 	}
-	receipts := rawdb.ReadReceipts(bc.db, hash, *number, header.Time, ethConfig)
+	receipts := rawdb.ReadReceipts(bc.db, hash, *number, header.Time, bc.chainConfig.ToGeth())
 	if receipts == nil {
 		return nil
 	}

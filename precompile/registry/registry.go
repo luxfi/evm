@@ -4,36 +4,138 @@
 // Module to facilitate the registration of precompiles and their configuration.
 package registry
 
-// Force imports of each precompile to ensure each precompile's init function runs and registers itself
-// with the registry.
 import (
-	_ "github.com/luxfi/evm/precompile/contracts/deployerallowlist"
-	_ "github.com/luxfi/evm/precompile/contracts/nativeminter"
-	_ "github.com/luxfi/evm/precompile/contracts/txallowlist"
-	_ "github.com/luxfi/evm/precompile/contracts/feemanager"
-	_ "github.com/luxfi/evm/precompile/contracts/rewardmanager"
-	_ "github.com/luxfi/evm/x/warp"
-	// ADD YOUR PRECOMPILE HERE
-	// _ "github.com/luxfi/evm/precompile/contracts/yourprecompile"
+	"fmt"
+	"sort"
+	
+	"github.com/luxfi/evm/constants"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/utils"
+	"github.com/luxfi/geth/common"
 )
 
-// This list is kept just for reference. The actual addresses defined in respective packages of precompiles.
-// Note: it is important that none of these addresses conflict with each other or any other precompiles
-// in core/vm/contracts.go.
-// The first stateful precompiles were added in geth to support nativeAssetCall and nativeAssetBalance. New stateful precompiles
-// originating in geth will continue at this prefix, so we reserve this range in evm so that they can be migrated into
-// evm without issue.
-// These start at the address: 0x0100000000000000000000000000000000000000 and will increment by 1.
-// Optional precompiles implemented in evm start at 0x0200000000000000000000000000000000000000 and will increment by 1
-// from here to reduce the risk of conflicts.
-// For forks of evm, users should start at 0x0300000000000000000000000000000000000000 to ensure
-// that their own modifications do not conflict with stateful precompiles that may be added to evm
-// in the future.
-// ContractDeployerAllowListAddress = common.HexToAddress("0x0200000000000000000000000000000000000000")
-// ContractNativeMinterAddress      = common.HexToAddress("0x0200000000000000000000000000000000000001")
-// TxAllowListAddress               = common.HexToAddress("0x0200000000000000000000000000000000000002")
-// FeeManagerAddress                = common.HexToAddress("0x0200000000000000000000000000000000000003")
-// RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
-// WarpAddress                      = common.HexToAddress("0x0200000000000000000000000000000000000005")
-// ADD YOUR PRECOMPILE HERE
-// {YourPrecompile}Address          = common.HexToAddress("0x03000000000000000000000000000000000000??")
+var (
+	// registeredModules is a list of Module to preserve order
+	// for deterministic iteration
+	registeredModules = make([]Module, 0)
+
+	reservedRanges = []utils.AddressRange{
+		{
+			Start: common.HexToAddress("0x0100000000000000000000000000000000000000"),
+			End:   common.HexToAddress("0x01000000000000000000000000000000000000ff"),
+		},
+		{
+			Start: common.HexToAddress("0x0200000000000000000000000000000000000000"),
+			End:   common.HexToAddress("0x02000000000000000000000000000000000000ff"),
+		},
+		{
+			Start: common.HexToAddress("0x0300000000000000000000000000000000000000"),
+			End:   common.HexToAddress("0x03000000000000000000000000000000000000ff"),
+		},
+	}
+)
+
+// globalRegistry is the singleton registry instance
+type precompileRegistry struct{}
+
+// Ensure precompileRegistry implements iface.PrecompileRegistry
+var _ iface.PrecompileRegistry = (*precompileRegistry)(nil)
+
+// GetPrecompileModule returns a precompile module by key
+func (r *precompileRegistry) GetPrecompileModule(key string) (iface.PrecompileModule, bool) {
+	for _, stm := range registeredModules {
+		if stm.configKey == key {
+			return stm, true
+		}
+	}
+	return nil, false
+}
+
+// GetPrecompileModuleByAddress returns a precompile module by address
+func (r *precompileRegistry) GetPrecompileModuleByAddress(address common.Address) (iface.PrecompileModule, bool) {
+	for _, stm := range registeredModules {
+		if stm.address == address {
+			return stm, true
+		}
+	}
+	return nil, false
+}
+
+// RegisteredModules returns all registered modules
+func (r *precompileRegistry) RegisteredModules() []iface.PrecompileModule {
+	result := make([]iface.PrecompileModule, len(registeredModules))
+	for i, m := range registeredModules {
+		result[i] = m
+	}
+	return result
+}
+
+// GetRegistry returns the global registry instance
+func GetRegistry() iface.PrecompileRegistry {
+	return &precompileRegistry{}
+}
+
+// ReservedAddress returns true if [addr] is in a reserved range for custom precompiles
+func ReservedAddress(addr common.Address) bool {
+	for _, reservedRange := range reservedRanges {
+		if reservedRange.Contains(addr) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// RegisterModule registers a stateful precompile module
+func RegisterModule(stm Module) error {
+	address := stm.address
+	key := stm.configKey
+
+	if address == constants.BlackholeAddr {
+		return fmt.Errorf("address %s overlaps with blackhole address", address)
+	}
+	if !ReservedAddress(address) {
+		return fmt.Errorf("address %s not in a reserved range", address)
+	}
+
+	for _, registeredModule := range registeredModules {
+		if registeredModule.configKey == key {
+			return fmt.Errorf("name %s already used by a stateful precompile", key)
+		}
+		if registeredModule.address == address {
+			return fmt.Errorf("address %s already used by a stateful precompile", address)
+		}
+	}
+	// sort by address to ensure deterministic iteration
+	registeredModules = insertSortedByAddress(registeredModules, stm)
+	return nil
+}
+
+// Legacy functions for compatibility
+func GetPrecompileModuleByAddress(address common.Address) (Module, bool) {
+	for _, stm := range registeredModules {
+		if stm.address == address {
+			return stm, true
+		}
+	}
+	return Module{}, false
+}
+
+func GetPrecompileModule(key string) (Module, bool) {
+	for _, stm := range registeredModules {
+		if stm.configKey == key {
+			return stm, true
+		}
+	}
+	return Module{}, false
+}
+
+func RegisteredModules() []Module {
+	return registeredModules
+}
+
+func insertSortedByAddress(data []Module, stm Module) []Module {
+	data = append(data, stm)
+	sort.Sort(moduleArray(data))
+	return data
+}

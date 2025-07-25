@@ -64,7 +64,15 @@ func (test PrecompileTest) Run(t *testing.T, module modules.Module, state contra
 	runParams := test.setup(t, module, state)
 
 	if runParams.Input != nil {
-		ret, remainingGas, err := module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
+		// Get the contract from the module
+		contractInterface := module.Contract()
+		statefulContract, ok := contractInterface.(contract.StatefulPrecompiledContract)
+		if !ok {
+			t.Fatal("Module contract does not implement StatefulPrecompiledContract")
+			return
+		}
+		
+		ret, remainingGas, err := statefulContract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
 		if len(test.ExpectedErr) != 0 {
 			require.ErrorContains(t, err, test.ExpectedErr)
 		} else {
@@ -81,7 +89,7 @@ func (test PrecompileTest) Run(t *testing.T, module modules.Module, state contra
 
 func (test PrecompileTest) setup(t testing.TB, module modules.Module, state contract.StateDB) PrecompileRunparams {
 	t.Helper()
-	contractAddress := module.Address
+	contractAddress := module.Address()
 
 	ctrl := gomock.NewController(t)
 
@@ -107,7 +115,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 		blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
 		blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
 	}
-	consensusContext := utils.TestConsensusContext()
+	consensusContext := utils.TestChainContext()
 
 	accessibleState := contract.NewMockAccessibleState(ctrl)
 	accessibleState.EXPECT().GetStateDB().Return(state).AnyTimes()
@@ -116,8 +124,15 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 	accessibleState.EXPECT().GetChainConfig().Return(chainConfig).AnyTimes()
 
 	if test.Config != nil {
-		err := module.Configure(chainConfig, test.Config, state, blockContext)
-		require.NoError(t, err)
+		// Get the configurator from the module
+		if configurator := module.Configurator(); configurator != nil {
+			if conf, ok := configurator.(contract.Configurator); ok {
+				err := conf.Configure(chainConfig, test.Config, state, blockContext)
+				require.NoError(t, err)
+			} else {
+				t.Fatal("Module configurator does not implement contract.Configurator")
+			}
+		}
 	}
 
 	input := test.Input
@@ -145,7 +160,15 @@ func (test PrecompileTest) Bench(b *testing.B, module modules.Module, state cont
 	stateDB := runParams.AccessibleState.GetStateDB()
 	snapshot := stateDB.Snapshot()
 
-	ret, remainingGas, err := module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
+	// Get the contract from the module
+	contractInterface := module.Contract()
+	statefulContract, ok := contractInterface.(contract.StatefulPrecompiledContract)
+	if !ok {
+		b.Fatal("Module contract does not implement StatefulPrecompiledContract")
+		return
+	}
+	
+	ret, remainingGas, err := statefulContract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
 	if len(test.ExpectedErr) != 0 {
 		require.ErrorContains(b, err, test.ExpectedErr)
 	} else {
@@ -168,7 +191,7 @@ func (test PrecompileTest) Bench(b *testing.B, module modules.Module, state cont
 		snapshot = stateDB.Snapshot()
 
 		// Ignore return values for benchmark
-		_, _, _ = module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
+		_, _, _ = statefulContract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
 	}
 	b.StopTimer()
 
@@ -185,7 +208,7 @@ func (test PrecompileTest) Bench(b *testing.B, module modules.Module, state cont
 	// Execute the test one final time to ensure that if our RevertToSnapshot logic breaks such that each run is actually failing or resulting in unexpected behavior
 	// the benchmark should catch the error here.
 	stateDB.RevertToSnapshot(snapshot)
-	ret, remainingGas, err = module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
+	ret, remainingGas, err = statefulContract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
 	if len(test.ExpectedErr) != 0 {
 		require.ErrorContains(b, err, test.ExpectedErr)
 	} else {

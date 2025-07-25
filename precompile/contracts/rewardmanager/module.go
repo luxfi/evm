@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/luxfi/evm/precompile/contract"
-	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 
 	"github.com/luxfi/geth/common"
@@ -22,19 +22,19 @@ const ConfigKey = "rewardManagerConfig"
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000004")
 
 // Module is the precompile module. It is used to register the precompile contract.
-var Module = modules.Module{
-	ConfigKey:    ConfigKey,
-	Address:      ContractAddress,
-	Contract:     RewardManagerPrecompile,
-	Configurator: &configurator{},
-}
+var Module = registry.NewModule(
+	ConfigKey,
+	ContractAddress,
+	RewardManagerPrecompile,
+	&configurator{},
+)
 
 type configurator struct{}
 
 func init() {
 	// Register the precompile module.
 	// Each precompile contract registers itself through [RegisterModule] function.
-	if err := modules.RegisterModule(Module); err != nil {
+	if err := registry.RegisterModule(Module); err != nil {
 		panic(err)
 	}
 }

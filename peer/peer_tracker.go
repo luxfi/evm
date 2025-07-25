@@ -4,14 +4,16 @@
 package peer
 
 import (
-	coreinterfaces "github.com/luxfi/evm/interfaces"
-	utils_interfaces "github.com/luxfi/evm/utils"
-	"github.com/luxfi/geth/log"
-	"github.com/luxfi/geth/metrics"
-	version "github.com/luxfi/node/version"
 	"math"
 	"math/rand"
 	"time"
+
+	"github.com/luxfi/geth/log"
+	"github.com/luxfi/geth/metrics"
+	"github.com/luxfi/node/ids"
+	"github.com/luxfi/node/utils/set"
+	safemath "github.com/luxfi/node/utils/math"
+	"github.com/luxfi/node/version"
 )
 
 const (
@@ -29,8 +31,8 @@ const (
 
 // information we track on a given peer
 type peerInfo struct {
-	version   *coreinterfaces.Application
-	bandwidth utils_interfaces.Averager
+	version   *version.Application
+	bandwidth safemath.Averager
 }
 
 // peerTracker tracks the bandwidth of responses coming from peers,
@@ -38,26 +40,26 @@ type peerInfo struct {
 // to new peers with an exponentially decaying probability.
 // Note: is not thread safe, caller must handle synchronization.
 type peerTracker struct {
-	peers                  map[coreinterfaces.NodeID]*peerInfo // all peers we are connected to
-	numTrackedPeers        coreinterfaces.Gauge
-	trackedPeers           coreinterfaces.Set[coreinterfaces.NodeID] // peers that we have sent a request to
-	numResponsivePeers     coreinterfaces.Gauge
-	responsivePeers        coreinterfaces.Set[coreinterfaces.NodeID] // peers that responded to the last request they were sent
-	bandwidthHeap          utils_interfaces.AveragerHeap             // tracks bandwidth peers are responding with
-	averageBandwidthMetric coreinterfaces.GaugeFloat64
-	averageBandwidth       utils_interfaces.Averager
+	peers                  map[ids.NodeID]*peerInfo // all peers we are connected to
+	numTrackedPeers        *metrics.Gauge
+	trackedPeers           set.Set[ids.NodeID] // peers that we have sent a request to
+	numResponsivePeers     *metrics.Gauge
+	responsivePeers        set.Set[ids.NodeID] // peers that responded to the last request they were sent
+	bandwidthHeap          safemath.AveragerHeap             // tracks bandwidth peers are responding with
+	averageBandwidthMetric *metrics.GaugeFloat64
+	averageBandwidth       safemath.Averager
 }
 
 func NewPeerTracker() *peerTracker {
 	return &peerTracker{
-		peers:                  make(map[coreinterfaces.NodeID]*peerInfo),
-		numTrackedPeers:        coreinterfaces.NewGauge(),
-		trackedPeers:           make(coreinterfaces.Set[coreinterfaces.NodeID]),
-		numResponsivePeers:     coreinterfaces.NewGauge(),
-		responsivePeers:        make(coreinterfaces.Set[coreinterfaces.NodeID]),
-		bandwidthHeap:          utils_interfaces.NewMaxAveragerHeap(),
-		averageBandwidthMetric: coreinterfaces.NewGaugeFloat64(),
-		averageBandwidth:       utils_interfaces.NewAverager(0, bandwidthHalflife, time.Now()),
+		peers:                  make(map[ids.NodeID]*peerInfo),
+		numTrackedPeers:        metrics.NewGauge(),
+		trackedPeers:           make(set.Set[ids.NodeID]),
+		numResponsivePeers:     metrics.NewGauge(),
+		responsivePeers:        make(set.Set[ids.NodeID]),
+		bandwidthHeap:          safemath.NewMaxAveragerHeap(),
+		averageBandwidthMetric: metrics.NewGaugeFloat64(),
+		averageBandwidth:       safemath.NewAverager(0, bandwidthHalflife, time.Now()),
 	}
 }
 
@@ -78,10 +80,10 @@ func (p *peerTracker) shouldTrackNewPeer() bool {
 
 // getResponsivePeer returns a random [interfaces.NodeID] of a peer that has responded
 // to a request.
-func (p *peerTracker) getResponsivePeer() (coreinterfaces.NodeID, utils_interfaces.Averager, bool) {
+func (p *peerTracker) getResponsivePeer() (ids.NodeID, safemath.Averager, bool) {
 	nodeID, ok := p.responsivePeers.Peek()
 	if !ok {
-		return coreinterfaces.NodeID{}, nil, false
+		return ids.NodeID{}, nil, false
 	}
 	averager, ok := p.bandwidthHeap.Remove(nodeID)
 	if ok {
@@ -91,7 +93,7 @@ func (p *peerTracker) getResponsivePeer() (coreinterfaces.NodeID, utils_interfac
 	return nodeID, peer.bandwidth, true
 }
 
-func (p *peerTracker) GetAnyPeer(minVersion *version.Application) (coreinterfaces.NodeID, bool) {
+func (p *peerTracker) GetAnyPeer(minVersion *version.Application) (ids.NodeID, bool) {
 	if p.shouldTrackNewPeer() {
 		for nodeID := range p.peers {
 			// if minVersion is specified and peer's version is less, skip
@@ -107,10 +109,10 @@ func (p *peerTracker) GetAnyPeer(minVersion *version.Application) (coreinterface
 		}
 	}
 	var (
-		nodeID   coreinterfaces.NodeID
+		nodeID   ids.NodeID
 		ok       bool
 		random   bool
-		averager utils_interfaces.Averager
+		averager safemath.Averager
 	)
 	if rand.Float64() < randomPeerProbability {
 		random = true
@@ -126,12 +128,12 @@ func (p *peerTracker) GetAnyPeer(minVersion *version.Application) (coreinterface
 	return p.trackedPeers.Peek()
 }
 
-func (p *peerTracker) TrackPeer(nodeID coreinterfaces.NodeID) {
+func (p *peerTracker) TrackPeer(nodeID ids.NodeID) {
 	p.trackedPeers.Add(nodeID)
 	p.numTrackedPeers.Update(int64(p.trackedPeers.Len()))
 }
 
-func (p *peerTracker) TrackBandwidth(nodeID coreinterfaces.NodeID, bandwidth float64) {
+func (p *peerTracker) TrackBandwidth(nodeID ids.NodeID, bandwidth float64) {
 	peer := p.peers[nodeID]
 	if peer == nil {
 		// we're not connected to this peer, nothing to do here
@@ -141,7 +143,7 @@ func (p *peerTracker) TrackBandwidth(nodeID coreinterfaces.NodeID, bandwidth flo
 
 	now := time.Now()
 	if peer.bandwidth == nil {
-		peer.bandwidth = utils_interfaces.NewAverager(bandwidth, bandwidthHalflife, now)
+		peer.bandwidth = safemath.NewAverager(bandwidth, bandwidthHalflife, now)
 	} else {
 		peer.bandwidth.Observe(bandwidth, now)
 	}
@@ -158,7 +160,7 @@ func (p *peerTracker) TrackBandwidth(nodeID coreinterfaces.NodeID, bandwidth flo
 }
 
 // Connected should be called when [nodeID] connects to this node
-func (p *peerTracker) Connected(nodeID coreinterfaces.NodeID, nodeVersion *version.Application) {
+func (p *peerTracker) Connected(nodeID ids.NodeID, nodeVersion *version.Application) {
 	if peer := p.peers[nodeID]; peer != nil {
 		// Peer is already connected, update the version if it has changed.
 		// Log a warning message since the consensus engine should never call Connected on a peer
@@ -181,7 +183,7 @@ func (p *peerTracker) Connected(nodeID coreinterfaces.NodeID, nodeVersion *versi
 }
 
 // Disconnected should be called when [nodeID] disconnects from this node
-func (p *peerTracker) Disconnected(nodeID coreinterfaces.NodeID) {
+func (p *peerTracker) Disconnected(nodeID ids.NodeID) {
 	p.bandwidthHeap.Remove(nodeID)
 	p.trackedPeers.Remove(nodeID)
 	p.numTrackedPeers.Update(int64(p.trackedPeers.Len()))

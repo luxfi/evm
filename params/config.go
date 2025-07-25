@@ -34,10 +34,9 @@ import (
 	
 	"github.com/luxfi/geth/common"
 	ethparams "github.com/luxfi/geth/params"
-	"github.com/luxfi/evm/interfaces"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/params/extras"
-	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/utils"
 )
@@ -50,17 +49,17 @@ type (
 )
 
 // testChainContext creates a test ChainContext from consensus.Context
-func testChainContext() *interfaces.ChainContext {
+func testChainContext() *commontype.ChainContext {
 	consensusCtx := utils.TestConsensusContext()
 	
 	// Convert 20-byte NodeID to 32-byte NodeID
-	var nodeID interfaces.NodeID
+	var nodeID commontype.NodeID
 	copy(nodeID[:], consensusCtx.NodeID[:])
 	
-	return &interfaces.ChainContext{
+	return &commontype.ChainContext{
 		NetworkID:    consensusCtx.NetworkID,
-		SubnetID:     interfaces.SubnetID(consensusCtx.SubnetID),
-		ChainID:      interfaces.ChainID(consensusCtx.ChainID),
+		SubnetID:     commontype.SubnetID(consensusCtx.SubnetID),
+		ChainID:      commontype.ChainID(consensusCtx.ChainID),
 		NodeID:       nodeID,
 		ChainDataDir: consensusCtx.ChainDataDir,
 	}
@@ -108,34 +107,48 @@ var (
 	// EVMDefaultConfig is the default configuration
 	// without any network upgrades.
 	EVMDefaultChainConfig = &ChainConfig{
-		ChainID:                  DefaultChainID,
-		HomesteadBlock:           big.NewInt(0),
-		EIP150Block:              big.NewInt(0),
-		EIP155Block:              big.NewInt(0),
-		EIP158Block:              big.NewInt(0),
-		ByzantiumBlock:           big.NewInt(0),
-		ConstantinopleBlock:      big.NewInt(0),
-		PetersburgBlock:          big.NewInt(0),
-		IstanbulBlock:            big.NewInt(0),
-		MuirGlacierBlock:         big.NewInt(0),
+		ChainConfig: &ethparams.ChainConfig{
+			ChainID:             DefaultChainID,
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+			// All time-based forks enabled from genesis
+			ShanghaiTime:        new(uint64), // 0
+			CancunTime:          new(uint64), // 0
+		},
+		FeeConfig:                DefaultFeeConfig,
 		MandatoryNetworkUpgrades: MainnetNetworkUpgrades, // This can be changed to correct network (local, test) via VM.
 		GenesisPrecompiles:       Precompiles{},
 	}
 
 	TestChainConfig = &ChainConfig{
+		ChainConfig: &ethparams.ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+			ShanghaiTime:        new(uint64), // 0
+			CancunTime:          new(uint64), // 0
+		},
 		LuxContext:          LuxContext{testChainContext()},
-		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
 		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
 			EVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.NewUint64(0),
@@ -143,38 +156,50 @@ var (
 	}
 
 	TestEVMConfig = &ChainConfig{
+		ChainConfig: &ethparams.ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+			ShanghaiTime:        new(uint64), // 0
+			CancunTime:          new(uint64), // 0
+		},
 		LuxContext:          LuxContext{testChainContext()},
-		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
 		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
 			EVMTimestamp: utils.NewUint64(0),
 		},
 	}
 
 	TestPreEVMConfig = &ChainConfig{
+		ChainConfig: &ethparams.ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+			ShanghaiTime:        new(uint64), // 0
+			CancunTime:          new(uint64), // 0
+		},
 		LuxContext:               LuxContext{testChainContext()},
-		ChainID:                  big.NewInt(1),
 		FeeConfig:                DefaultFeeConfig,
 		AllowFeeRecipients:       false,
-		HomesteadBlock:           big.NewInt(0),
-		EIP150Block:              big.NewInt(0),
-		EIP155Block:              big.NewInt(0),
-		EIP158Block:              big.NewInt(0),
-		ByzantiumBlock:           big.NewInt(0),
-		ConstantinopleBlock:      big.NewInt(0),
-		PetersburgBlock:          big.NewInt(0),
-		IstanbulBlock:            big.NewInt(0),
-		MuirGlacierBlock:         big.NewInt(0),
 		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{},
 		GenesisPrecompiles:       Precompiles{},
 		UpgradeConfig:            UpgradeConfig{},
@@ -201,7 +226,7 @@ type UpgradeConfig struct {
 
 // LuxContext provides Lux specific context directly into the EVM.
 type LuxContext struct {
-	ConsensusCtx *interfaces.ChainContext
+	ConsensusCtx *commontype.ChainContext
 }
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -210,30 +235,12 @@ type LuxContext struct {
 // that any network, identified by its genesis block, can have its own
 // set of configuration options.
 type ChainConfig struct {
-	LuxContext `json:"-"` // Lux specific context set during VM initialization. Not serialized.
-
-	ChainID            *big.Int             `json:"chainId"`                      // chainId identifies the current chain and is used for replay protection
+	*ethparams.ChainConfig              // Embedded geth ChainConfig
+	LuxContext `json:"-"`               // Lux specific context set during VM initialization. Not serialized.
+	
+	// Lux-specific extensions
 	FeeConfig          commontype.FeeConfig `json:"feeConfig"`                    // Set the configuration for the dynamic fee algorithm
 	AllowFeeRecipients bool                 `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
-
-	HomesteadBlock *big.Int `json:"homesteadBlock,omitempty"` // Homestead switch block (nil = no fork, 0 = already homestead)
-
-	// EIP150 implements the Gas price changes (https://github.com/ethereum/EIPs/issues/150)
-	EIP150Block *big.Int `json:"eip150Block,omitempty"` // EIP150 HF block (nil = no fork)
-	EIP155Block *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
-	EIP158Block *big.Int `json:"eip158Block,omitempty"` // EIP158 HF block
-
-	ByzantiumBlock      *big.Int `json:"byzantiumBlock,omitempty"`      // Byzantium switch block (nil = no fork, 0 = already on byzantium)
-	ConstantinopleBlock *big.Int `json:"constantinopleBlock,omitempty"` // Constantinople switch block (nil = no fork, 0 = already activated)
-	PetersburgBlock     *big.Int `json:"petersburgBlock,omitempty"`     // Petersburg switch block (nil = same as Constantinople)
-	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
-	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
-	BerlinBlock         *big.Int `json:"berlinBlock,omitempty"`         // Berlin switch block (nil = no fork, 0 = already on berlin)
-	LondonBlock         *big.Int `json:"londonBlock,omitempty"`         // London switch block (nil = no fork, 0 = already on london)
-	
-	// Time based forks
-	ShanghaiTime        *uint64  `json:"shanghaiTime,omitempty"`        // Shanghai switch time (nil = no fork, 0 = already on shanghai)
-	CancunTime          *uint64  `json:"cancunTime,omitempty"`          // Cancun switch time (nil = no fork, 0 = already on cancun)
 
 	MandatoryNetworkUpgrades             // Config for timestamps that enable mandatory network upgrades. Skip encoding/decoding directly into ChainConfig.
 	OptionalNetworkUpgrades              // Config for optional timestamps that enable network upgrades
@@ -291,39 +298,31 @@ func (c ChainConfig) MarshalJSON() ([]byte, error) {
 
 // ToEthChainConfig converts Lux ChainConfig to ethereum ChainConfig
 func (c *ChainConfig) ToEthChainConfig() *ethparams.ChainConfig {
-	return &ethparams.ChainConfig{
-		ChainID:             c.ChainID,
-		HomesteadBlock:      c.HomesteadBlock,
-		EIP150Block:         c.EIP150Block,
-		EIP155Block:         c.EIP155Block,
-		EIP158Block:         c.EIP158Block,
-		ByzantiumBlock:      c.ByzantiumBlock,
-		ConstantinopleBlock: c.ConstantinopleBlock,
-		PetersburgBlock:     c.PetersburgBlock,
-		IstanbulBlock:       c.IstanbulBlock,
-		MuirGlacierBlock:    c.MuirGlacierBlock,
-		BerlinBlock:         c.BerlinBlock,
-		LondonBlock:         c.LondonBlock,
-		ShanghaiTime:        c.ShanghaiTime,
-		CancunTime:          c.CancunTime,
-	}
+	// Since we embed ethparams.ChainConfig, we can just return it
+	return c.ChainConfig
+}
+
+// AsGeth returns the embedded geth ChainConfig
+// This is a convenience method for call sites that need the plain geth struct
+func (c *ChainConfig) AsGeth() *ethparams.ChainConfig {
+	return c.ChainConfig
 }
 
 // Description returns a human-readable description of ChainConfig.
 func (c *ChainConfig) Description() string {
 	var banner string
 
-	banner += fmt.Sprintf("Chain ID:  %v\n", c.ChainID)
+	banner += fmt.Sprintf("Chain ID:  %v\n", c.ChainConfig.ChainID)
 	banner += "Consensus: Dummy Consensus Engine\n\n"
 
 	// Create a list of forks with a short description of them. Forks that only
 	// makes sense for mainnet should be optional at printing to avoid bloating
 	// the output for testnets and private networks.
 	banner += "Hard Forks:\n"
-	banner += fmt.Sprintf(" - Homestead:                   #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/homestead.md)\n", c.HomesteadBlock)
-	banner += fmt.Sprintf(" - Tangerine Whistle (EIP 150): #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/tangerine-whistle.md)\n", c.EIP150Block)
-	banner += fmt.Sprintf(" - Spurious Dragon/1 (EIP 155): #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/spurious-dragon.md)\n", c.EIP155Block)
-	banner += fmt.Sprintf(" - Spurious Dragon/2 (EIP 158): #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/spurious-dragon.md)\n", c.EIP155Block)
+	banner += fmt.Sprintf(" - Homestead:                   #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/homestead.md)\n", c.ChainConfig.HomesteadBlock)
+	banner += fmt.Sprintf(" - Tangerine Whistle (EIP 150): #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/tangerine-whistle.md)\n", c.ChainConfig.EIP150Block)
+	banner += fmt.Sprintf(" - Spurious Dragon/1 (EIP 155): #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/spurious-dragon.md)\n", c.ChainConfig.EIP155Block)
+	banner += fmt.Sprintf(" - Spurious Dragon/2 (EIP 158): #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/spurious-dragon.md)\n", c.ChainConfig.EIP155Block)
 	banner += fmt.Sprintf(" - Byzantium:                   #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/byzantium.md)\n", c.ByzantiumBlock)
 	banner += fmt.Sprintf(" - Constantinople:              #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/constantinople.md)\n", c.ConstantinopleBlock)
 	banner += fmt.Sprintf(" - Petersburg:                  #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/petersburg.md)\n", c.PetersburgBlock)
@@ -371,61 +370,66 @@ func (c *ChainConfig) Description() string {
 	return banner
 }
 
+// GetChainID returns the chain ID
+func (c *ChainConfig) GetChainID() *big.Int {
+	return c.ChainConfig.ChainID
+}
+
 // IsHomestead returns whether num is either equal to the homestead block or greater.
 func (c *ChainConfig) IsHomestead(num *big.Int) bool {
-	return utils.IsBlockForked(c.HomesteadBlock, num)
+	return utils.IsBlockForked(c.ChainConfig.HomesteadBlock, num)
 }
 
 // IsEIP150 returns whether num is either equal to the EIP150 fork block or greater.
 func (c *ChainConfig) IsEIP150(num *big.Int) bool {
-	return utils.IsBlockForked(c.EIP150Block, num)
+	return utils.IsBlockForked(c.ChainConfig.EIP150Block, num)
 }
 
 // IsEIP155 returns whether num is either equal to the EIP155 fork block or greater.
 func (c *ChainConfig) IsEIP155(num *big.Int) bool {
-	return utils.IsBlockForked(c.EIP155Block, num)
+	return utils.IsBlockForked(c.ChainConfig.EIP155Block, num)
 }
 
 // IsEIP158 returns whether num is either equal to the EIP158 fork block or greater.
 func (c *ChainConfig) IsEIP158(num *big.Int) bool {
-	return utils.IsBlockForked(c.EIP158Block, num)
+	return utils.IsBlockForked(c.ChainConfig.EIP158Block, num)
 }
 
 // IsByzantium returns whether num is either equal to the Byzantium fork block or greater.
 func (c *ChainConfig) IsByzantium(num *big.Int) bool {
-	return utils.IsBlockForked(c.ByzantiumBlock, num)
+	return utils.IsBlockForked(c.ChainConfig.ByzantiumBlock, num)
 }
 
 // IsConstantinople returns whether num is either equal to the Constantinople fork block or greater.
 func (c *ChainConfig) IsConstantinople(num *big.Int) bool {
-	return utils.IsBlockForked(c.ConstantinopleBlock, num)
+	return utils.IsBlockForked(c.ChainConfig.ConstantinopleBlock, num)
 }
 
 // IsMuirGlacier returns whether num is either equal to the Muir Glacier (EIP-2384) fork block or greater.
 func (c *ChainConfig) IsMuirGlacier(num *big.Int) bool {
-	return utils.IsBlockForked(c.MuirGlacierBlock, num)
+	return utils.IsBlockForked(c.ChainConfig.MuirGlacierBlock, num)
 }
 
 // IsPetersburg returns whether num is either
 // - equal to or greater than the PetersburgBlock fork block,
 // - OR is nil, and Constantinople is active
 func (c *ChainConfig) IsPetersburg(num *big.Int) bool {
-	return utils.IsBlockForked(c.PetersburgBlock, num) || c.PetersburgBlock == nil && utils.IsBlockForked(c.ConstantinopleBlock, num)
+	return utils.IsBlockForked(c.ChainConfig.PetersburgBlock, num) || c.ChainConfig.PetersburgBlock == nil && utils.IsBlockForked(c.ChainConfig.ConstantinopleBlock, num)
 }
 
 // IsIstanbul returns whether num is either equal to the Istanbul fork block or greater.
 func (c *ChainConfig) IsIstanbul(num *big.Int) bool {
-	return utils.IsBlockForked(c.IstanbulBlock, num)
+	return utils.IsBlockForked(c.ChainConfig.IstanbulBlock, num)
 }
 
 // IsBerlin returns whether num is either equal to the Berlin fork block or greater.
 func (c *ChainConfig) IsBerlin(num *big.Int) bool {
-	return utils.IsBlockForked(c.BerlinBlock, num)
+	return utils.IsBlockForked(c.ChainConfig.BerlinBlock, num)
 }
 
 // IsLondon returns whether num is either equal to the London fork block or greater.
 func (c *ChainConfig) IsLondon(num *big.Int) bool {
-	return utils.IsBlockForked(c.LondonBlock, num)
+	return utils.IsBlockForked(c.ChainConfig.LondonBlock, num)
 }
 
 // IsShanghai returns whether time represents a block with a timestamp after the Shanghai upgrade time.
@@ -461,11 +465,7 @@ func (c *ChainConfig) IsDurango(time uint64) bool {
 // AllowedFeeRecipients returns true if fee recipients are allowed
 // Implements precompileconfig.ChainConfig interface.
 func (c *ChainConfig) AllowedFeeRecipients() bool {
-	extra := GetExtra(c)
-	if extra == nil {
-		return false
-	}
-	return extra.AllowedFeeRecipients()
+	return c.AllowFeeRecipients
 }
 
 // GetFeeConfig returns the original FeeConfig that was set in the genesis
@@ -516,15 +516,15 @@ func (c *ChainConfig) verifyStateUpgrades() error {
 // mandatoryForkOrder returns the mandatory fork ordering
 func (c *ChainConfig) mandatoryForkOrder() []fork {
 	return []fork{
-		{name: "homesteadBlock", block: c.HomesteadBlock},
-		{name: "eip150Block", block: c.EIP150Block},
-		{name: "eip155Block", block: c.EIP155Block},
-		{name: "eip158Block", block: c.EIP158Block},
-		{name: "byzantiumBlock", block: c.ByzantiumBlock},
-		{name: "constantinopleBlock", block: c.ConstantinopleBlock},
-		{name: "petersburgBlock", block: c.PetersburgBlock},
-		{name: "istanbulBlock", block: c.IstanbulBlock},
-		{name: "muirGlacierBlock", block: c.MuirGlacierBlock, optional: true},
+		{name: "homesteadBlock", block: c.ChainConfig.HomesteadBlock},
+		{name: "eip150Block", block: c.ChainConfig.EIP150Block},
+		{name: "eip155Block", block: c.ChainConfig.EIP155Block},
+		{name: "eip158Block", block: c.ChainConfig.EIP158Block},
+		{name: "byzantiumBlock", block: c.ChainConfig.ByzantiumBlock},
+		{name: "constantinopleBlock", block: c.ChainConfig.ConstantinopleBlock},
+		{name: "petersburgBlock", block: c.ChainConfig.PetersburgBlock},
+		{name: "istanbulBlock", block: c.ChainConfig.IstanbulBlock},
+		{name: "muirGlacierBlock", block: c.ChainConfig.MuirGlacierBlock, optional: true},
 	}
 }
 
@@ -621,9 +621,9 @@ type fork struct {
 // to guarantee that forks can be implemented in a different order than on official networks
 func (c *ChainConfig) CheckConfigForkOrder() error {
 	ethForks := []fork{
-		{name: "homesteadBlock", block: c.HomesteadBlock},
-		{name: "eip150Block", block: c.EIP150Block},
-		{name: "eip155Block", block: c.EIP155Block},
+		{name: "homesteadBlock", block: c.ChainConfig.HomesteadBlock},
+		{name: "eip150Block", block: c.ChainConfig.EIP150Block},
+		{name: "eip155Block", block: c.ChainConfig.EIP155Block},
 		{name: "eip158Block", block: c.EIP158Block},
 		{name: "byzantiumBlock", block: c.ByzantiumBlock},
 		{name: "constantinopleBlock", block: c.ConstantinopleBlock},
@@ -690,11 +690,11 @@ func checkForks(forks []fork, blockFork bool) error {
 // This confirms that all Ethereum and Lux upgrades are backwards compatible as well as that the precompile config is backwards
 // compatible.
 func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, height *big.Int, time uint64) *ConfigCompatError {
-	if isForkBlockIncompatible(c.HomesteadBlock, newcfg.HomesteadBlock, height) {
-		return newBlockCompatError("Homestead fork block", c.HomesteadBlock, newcfg.HomesteadBlock)
+	if isForkBlockIncompatible(c.ChainConfig.HomesteadBlock, newcfg.ChainConfig.HomesteadBlock, height) {
+		return newBlockCompatError("Homestead fork block", c.ChainConfig.HomesteadBlock, newcfg.ChainConfig.HomesteadBlock)
 	}
-	if isForkBlockIncompatible(c.EIP150Block, newcfg.EIP150Block, height) {
-		return newBlockCompatError("EIP150 fork block", c.EIP150Block, newcfg.EIP150Block)
+	if isForkBlockIncompatible(c.ChainConfig.EIP150Block, newcfg.ChainConfig.EIP150Block, height) {
+		return newBlockCompatError("EIP150 fork block", c.ChainConfig.EIP150Block, newcfg.ChainConfig.EIP150Block)
 	}
 	if isForkBlockIncompatible(c.EIP155Block, newcfg.EIP155Block, height) {
 		return newBlockCompatError("EIP155 fork block", c.EIP155Block, newcfg.EIP155Block)
@@ -702,8 +702,8 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, height *big.Int, time
 	if isForkBlockIncompatible(c.EIP158Block, newcfg.EIP158Block, height) {
 		return newBlockCompatError("EIP158 fork block", c.EIP158Block, newcfg.EIP158Block)
 	}
-	if c.IsEIP158(height) && !utils.BigNumEqual(c.ChainID, newcfg.ChainID) {
-		return newBlockCompatError("EIP158 chain ID", c.EIP158Block, newcfg.EIP158Block)
+	if c.IsEIP158(height) && !utils.BigNumEqual(c.ChainConfig.ChainID, newcfg.ChainConfig.ChainID) {
+		return newBlockCompatError("EIP158 chain ID", c.ChainConfig.EIP158Block, newcfg.ChainConfig.EIP158Block)
 	}
 	if isForkBlockIncompatible(c.ByzantiumBlock, newcfg.ByzantiumBlock, height) {
 		return newBlockCompatError("Byzantium fork block", c.ByzantiumBlock, newcfg.ByzantiumBlock)
@@ -965,14 +965,14 @@ func (c *ChainConfig) LuxRules(blockNum *big.Int, timestamp uint64) Rules {
 	
 	extra := GetExtra(c)
 	if extra != nil {
-		for _, module := range modules.RegisteredModules() {
-			if config := extra.GetActivePrecompileConfig(module.Address, timestamp); config != nil && !config.IsDisabled() {
-				rules.ActivePrecompiles[module.Address] = config
+		for _, module := range registry.RegisteredModules() {
+			if config := extra.GetActivePrecompileConfig(module.Address(), timestamp); config != nil && !config.IsDisabled() {
+				rules.ActivePrecompiles[module.Address()] = config
 				if predicater, ok := config.(precompileconfig.Predicater); ok {
-					rules.Predicaters[module.Address] = predicater
+					rules.Predicaters[module.Address()] = predicater
 				}
 				if precompileAccepter, ok := config.(precompileconfig.Accepter); ok {
-					rules.AccepterPrecompiles[module.Address] = precompileAccepter
+					rules.AccepterPrecompiles[module.Address()] = precompileAccepter
 				}
 			}
 		}

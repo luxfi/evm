@@ -153,20 +153,23 @@ func (n *NetworkUpgrades) Override(o *NetworkUpgrades) {
 
 // IsEVM returns whether [time] represents a block
 // with a timestamp after the EVM upgrade time.
-func (n NetworkUpgrades) IsEVM(time uint64) bool {
-	return isTimestampForked(n.EVMTimestamp, time)
+// All past upgrades are always enabled in Lux.
+func (NetworkUpgrades) IsEVM(_ uint64) bool {
+	return true
 }
 
 // IsDurango returns whether [time] represents a block
 // with a timestamp after the Durango upgrade time.
-func (n NetworkUpgrades) IsDurango(time uint64) bool {
-	return isTimestampForked(n.DurangoTimestamp, time)
+// All past upgrades are always enabled in Lux.
+func (NetworkUpgrades) IsDurango(_ uint64) bool {
+	return true
 }
 
 // IsEtna returns whether [time] represents a block
 // with a timestamp after the Etna upgrade time.
-func (n NetworkUpgrades) IsEtna(time uint64) bool {
-	return isTimestampForked(n.EtnaTimestamp, time)
+// All past upgrades are always enabled in Lux.
+func (NetworkUpgrades) IsEtna(_ uint64) bool {
+	return true
 }
 
 // IsFortuna returns whether [time] represents a block
@@ -201,23 +204,23 @@ type LuxRules struct {
 
 func (n *NetworkUpgrades) GetLuxRules(time uint64) LuxRules {
 	return LuxRules{
-		IsEVM:     n.IsEVM(time),
-		IsDurango: n.IsDurango(time),
-		IsEtna:    n.IsEtna(time),
+		IsEVM:     true, // Always enabled
+		IsDurango: true, // Always enabled
+		IsEtna:    true, // Always enabled
 		IsFortuna: n.IsFortuna(time),
 		IsGranite: n.IsGranite(time),
 	}
 }
 
 // getDefaultNetworkUpgrades returns the network upgrades for the specified luxd upgrades.
-// Nil values are used to indicate optional upgrades.
+// All past upgrades are enabled from genesis (timestamp 0).
 func getDefaultNetworkUpgrades(agoUpgrade upgrade.Config) NetworkUpgrades {
 	return NetworkUpgrades{
-		EVMTimestamp:     utils.NewUint64(0),
-		DurangoTimestamp: utils.TimeToNewUint64(agoUpgrade.DurangoTime),
-		EtnaTimestamp:    utils.TimeToNewUint64(agoUpgrade.EtnaTime),
-		FortunaTimestamp: nil, // Fortuna is optional and has no effect on EVM
-		GraniteTimestamp: nil, // Granite is optional and has no effect on EVM
+		EVMTimestamp:     utils.NewUint64(0), // All EVM features enabled from genesis
+		DurangoTimestamp: utils.NewUint64(0), // Shanghai enabled from genesis
+		EtnaTimestamp:    utils.NewUint64(0), // Cancun enabled from genesis
+		FortunaTimestamp: nil, // Future upgrade - not yet scheduled
+		GraniteTimestamp: nil, // Future upgrade - not yet scheduled
 	}
 }
 

@@ -55,8 +55,8 @@ import (
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/geth/triedb"
-	"github.com/luxfi/evm/triedb/hashdb"
-	"github.com/luxfi/evm/triedb/pathdb"
+	"github.com/luxfi/geth/triedb/hashdb"
+	"github.com/luxfi/geth/triedb/pathdb"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/lru"
 	"github.com/luxfi/geth/event"
@@ -217,8 +217,8 @@ func (c *CacheConfig) triedbConfig() *triedb.Config {
 	if c.StateScheme == rawdb.PathScheme {
 		config.PathDB = &pathdb.Config{
 			StateHistory:   c.StateHistory,
-			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
-			DirtyCacheSize: c.TrieDirtyLimit * 1024 * 1024,
+			TrieCleanSize:  c.TrieCleanLimit * 1024 * 1024,
+			StateCleanSize: c.TrieDirtyLimit * 1024 * 1024,
 		}
 	}
 	return config
@@ -1323,7 +1323,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	bc.senderCacher.Recover(types.MakeSigner(bc.chainConfig.ToEthChainConfig(), block.Number(), block.Time()), block.Transactions())
 
 	substart := time.Now()
-	err := bc.engine.VerifyHeader(bc, block.Header())
+	err := bc.engine.VerifyHeader(bc, block.Header(), false)
 	if err == nil {
 		err = bc.validator.ValidateBody(block)
 	}
@@ -1377,7 +1377,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 
 	// Enable prefetching to pull in trie node paths while processing transactions
 	// WithConcurrentWorkers is not available in ethereum v1.16.1
-	statedb.StartPrefetcher("chain")
+	statedb.StartPrefetcher("chain", nil)
 	defer statedb.StopPrefetcher()
 
 	// Process block using the parent state as reference point
@@ -1734,7 +1734,7 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 
 	// Enable prefetching to pull in trie node paths while processing transactions
 	// WithConcurrentWorkers is not available in ethereum v1.16.1
-	statedb.StartPrefetcher("chain")
+	statedb.StartPrefetcher("chain", nil)
 	defer statedb.StopPrefetcher()
 
 	// Process previously stored block

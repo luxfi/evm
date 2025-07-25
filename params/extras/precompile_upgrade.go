@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/utils"
 	gethparams "github.com/luxfi/geth/params"
@@ -41,7 +41,7 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("PrecompileUpgrade must have exactly one key, got %d", len(raw))
 	}
 	for key, value := range raw {
-		module, ok := modules.GetPrecompileModule(key)
+		module, ok := registry.GetPrecompileModule(key)
 		if !ok {
 			return fmt.Errorf("unknown precompile config: %s", key)
 		}
@@ -49,7 +49,12 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(value, config); err != nil {
 			return err
 		}
-		u.Config = config
+		// Type assert to precompileconfig.Config
+		if cfg, ok := config.(precompileconfig.Config); ok {
+			u.Config = cfg
+		} else {
+			return fmt.Errorf("config does not implement precompileconfig.Config")
+		}
 	}
 	return nil
 }
@@ -162,12 +167,12 @@ func (c *ChainConfig) GetActivePrecompileConfig(address common.Address, timestam
 // state transition from a block with timestamp [from] to a block with timestamp [to].
 func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *uint64, to uint64, upgrades []PrecompileUpgrade) []precompileconfig.Config {
 	// Get key from address.
-	module, ok := modules.GetPrecompileModuleByAddress(address)
+	module, ok := registry.GetPrecompileModuleByAddress(address)
 	if !ok {
 		return nil
 	}
 	configs := make([]precompileconfig.Config, 0)
-	key := module.ConfigKey
+	key := module.ConfigKey()
 	// First check the embedded [upgrade] for precompiles configured
 	// in the genesis chain config.
 	if config, ok := c.GenesisPrecompiles[key]; ok {
@@ -195,8 +200,8 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 // This ensures that as long as the node has not accepted a block with a different rule set it will allow a
 // new upgrade to be applied as long as it activates after the last accepted block.
 func (c *ChainConfig) checkPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, time uint64) *gethparams.ConfigCompatError {
-	for _, module := range modules.RegisteredModules() {
-		if err := c.checkPrecompileCompatible(module.Address, precompileUpgrades, time); err != nil {
+	for _, module := range registry.RegisteredModules() {
+		if err := c.checkPrecompileCompatible(module.Address(), precompileUpgrades, time); err != nil {
 			return err
 		}
 	}
@@ -248,9 +253,9 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 // EnabledStatefulPrecompiles returns current stateful precompile configs that are enabled at [blockTimestamp].
 func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp uint64) Precompiles {
 	statefulPrecompileConfigs := make(Precompiles)
-	for _, module := range modules.RegisteredModules() {
-		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil && !config.IsDisabled() {
-			statefulPrecompileConfigs[module.ConfigKey] = config
+	for _, module := range registry.RegisteredModules() {
+		if config := c.GetActivePrecompileConfig(module.Address(), blockTimestamp); config != nil && !config.IsDisabled() {
+			statefulPrecompileConfigs[module.ConfigKey()] = config
 		}
 	}
 

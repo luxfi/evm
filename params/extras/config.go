@@ -32,6 +32,7 @@ var (
 	}
 
 	EVMDefaultChainConfig = &ChainConfig{
+		ChainConfig:        &gethparams.ChainConfig{},
 		FeeConfig:          DefaultFeeConfig,
 		NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.MainnetID)),
 		GenesisPrecompiles: Precompiles{},
@@ -44,60 +45,9 @@ var (
 		GenesisPrecompiles: Precompiles{},
 	}
 
-	TestPreEVMChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			EVMTimestamp:     utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			DurangoTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			EtnaTimestamp:    utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			FortunaTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		}
-	})
-
-	TestEVMChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			EVMTimestamp:     utils.NewUint64(0),
-			DurangoTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			EtnaTimestamp:    utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			FortunaTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		}
-	})
-
-	TestDurangoChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			EVMTimestamp:     utils.NewUint64(0),
-			DurangoTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			EtnaTimestamp:    utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			FortunaTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		}
-	})
-
-	TestEtnaChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			EVMTimestamp:     utils.NewUint64(0),
-			DurangoTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			EtnaTimestamp:    utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			FortunaTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		}
-	})
-
-	TestFortunaChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			EVMTimestamp:     utils.NewUint64(0),
-			DurangoTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			EtnaTimestamp:    utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			FortunaTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-		}
-	})
-
-	TestGraniteChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			EVMTimestamp:     utils.NewUint64(0),
-			DurangoTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			EtnaTimestamp:    utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			FortunaTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			GraniteTimestamp: utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-		}
-	})
+	// All test configs now start with all current upgrades enabled
+	// Only future upgrades (Fortuna, Granite) remain unscheduled
+	TestAllEnabledChainConfig = TestChainConfig // All current upgrades enabled by default
 )
 
 func copyAndSet(c *ChainConfig, set func(*ChainConfig)) *ChainConfig {
@@ -126,6 +76,7 @@ type LuxContext struct {
 }
 
 type ChainConfig struct {
+	*gethparams.ChainConfig // Embedded go-ethereum ChainConfig
 	NetworkUpgrades // Config for timestamps that enable network upgrades.
 
 	LuxContext `json:"-"` // Lux specific context set during VM initialization. Not serialized.
@@ -134,6 +85,11 @@ type ChainConfig struct {
 	AllowFeeRecipients bool                 `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
 	GenesisPrecompiles Precompiles          `json:"-"`                            // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
 	UpgradeConfig      `json:"-"`           // Config specified in upgradeBytes (lux network upgrades or enable/disabling precompiles). Not serialized.
+}
+
+// AsGeth returns the embedded *params.ChainConfig
+func (c *ChainConfig) AsGeth() *gethparams.ChainConfig { 
+	return c.ChainConfig 
 }
 
 func (c *ChainConfig) CheckConfigCompatible(newConfig *ChainConfig, headNumber *big.Int, headTimestamp uint64) *gethparams.ConfigCompatError {
