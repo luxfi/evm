@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/interfaces/core/rawdb"
+	"github.com/luxfi/evm/iface/core/rawdb"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/evm/commontype"

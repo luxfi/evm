@@ -4,7 +4,7 @@
 package evm
 
 import (
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 )
 
 func init() {

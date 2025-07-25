@@ -6,8 +6,8 @@ package evm
 import (
 	"fmt"
 	"net/http"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/log"
 )
 

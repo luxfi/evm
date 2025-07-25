@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/interfaces/core/rawdb"
+	"github.com/luxfi/evm/iface/core/rawdb"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
 	"github.com/luxfi/geth/crypto"

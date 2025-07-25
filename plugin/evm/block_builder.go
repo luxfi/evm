@@ -6,12 +6,12 @@ package evm
 import (
 	"sync"
 	"time"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/params"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/log"
 )
 

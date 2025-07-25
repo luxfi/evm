@@ -6,7 +6,7 @@ package database
 import (
 	"errors"
 
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/node/database"
 )

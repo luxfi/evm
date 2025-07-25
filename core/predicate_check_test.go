@@ -6,7 +6,7 @@ package core
 import (
 	"errors"
 	"testing"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"

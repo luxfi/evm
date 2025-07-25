@@ -10,7 +10,7 @@ import (
 
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/state/snapshot"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/geth/common"

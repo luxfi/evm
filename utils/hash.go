@@ -6,7 +6,7 @@ package utils
 import (
 	"crypto/sha256"
 	
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 )
 
 // ComputeHash256Array computes SHA256 hash and returns it as an ID

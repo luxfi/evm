@@ -38,7 +38,7 @@ import (
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/event"
-	ethereum "github.com/luxfi/evm/interfaces"
+	ethereum "github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/rpc"
 )
 

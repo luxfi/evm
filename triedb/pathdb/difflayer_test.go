@@ -31,8 +31,8 @@ import (
 	"testing"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/interfaces/core/rawdb"
-	"github.com/luxfi/evm/interfaces/trie/testutil"
+	"github.com/luxfi/evm/iface/core/rawdb"
+	"github.com/luxfi/evm/iface/trie/testutil"
 	"github.com/luxfi/evm/trie/trienode"
 )
 

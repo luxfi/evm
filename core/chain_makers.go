@@ -36,6 +36,7 @@ import (
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/holiman/uint256"
 	"github.com/luxfi/evm/params"
@@ -298,13 +299,13 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			gen(i, b)
 		}
 		// Finalize and seal the block
-		block, err := b.engine.FinalizeAndAssemble(cm, b.header, parent.Header(), statedb, b.txs, b.uncles, b.receipts)
+		block, err := b.engine.FinalizeAndAssemble(cm, b.header, statedb, b.txs, b.uncles, b.receipts)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Failed to finalize and assemble block at index %d: %w", i, err)
 		}
 
 		// Write state changes to db
-		root, err := statedb.Commit(b.header.Number.Uint64(), config.IsEIP158(b.header.Number))
+		root, err := statedb.Commit(b.header.Number.Uint64(), config.IsEIP158(b.header.Number), false)
 		if err != nil {
 			panic(fmt.Sprintf("state write error: %v", err))
 		}
@@ -378,11 +379,11 @@ func GenerateChainWithGenesis(genesis *Genesis, engine consensus.Engine, n int, 
 
 func (cm *chainMaker) makeHeader(parent *types.Block, gap uint64, state *state.StateDB, engine consensus.Engine) *types.Header {
 	time := parent.Time() + gap // block time is fixed at [gap] seconds
-	feeConfig, _, err := cm.GetFeeConfigAt(parent.Header())
+	feeConfig, _, err := cm.GetFeeConfigAtHeader(parent.Header())
 	if err != nil {
 		panic(err)
 	}
-	config := params.GetExtra(cm.config)
+	config := cm.config
 	gasLimit, err := header.GasLimit(config, feeConfig, parent.Header(), time)
 	if err != nil {
 		panic(err)
@@ -458,7 +459,7 @@ func (cm *chainMaker) blockByNumber(number uint64) *types.Block {
 // ChainReader/ChainContext implementation
 
 // Config returns the chain configuration (for consensus.ChainReader).
-func (cm *chainMaker) Config() *params.ChainConfig {
+func (cm *chainMaker) Config() iface.ChainConfig {
 	return cm.config
 }
 
@@ -498,30 +499,29 @@ func (cm *chainMaker) GetBlock(hash common.Hash, number uint64) *types.Block {
 	return cm.blockByNumber(number)
 }
 
-func (cm *chainMaker) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
+func (cm *chainMaker) GetFeeConfigAt(timestamp uint64) (iface.FeeConfig, error) {
+	return &feeConfigWrapper{cm.config.FeeConfig}, nil
+}
+
+func (cm *chainMaker) GetFeeConfigAtHeader(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	return params.GetExtra(cm.config).FeeConfig, nil, nil
 }
 
-func (cm *chainMaker) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
+func (cm *chainMaker) GetCoinbaseAt(timestamp uint64) common.Address {
+	return constants.BlackholeAddr
+}
+
+func (cm *chainMaker) GetTd(hash common.Hash, number uint64) *big.Int {
+	// EVM chains don't use total difficulty, return zero
+	return big.NewInt(0)
+}
+
+func (cm *chainMaker) GetCoinbaseAtHeader(parent *types.Header) (common.Address, bool, error) {
 	return constants.BlackholeAddr, params.GetExtra(cm.config).AllowFeeRecipients, nil
 }
 
 // convertToEthChainConfig converts a Lux ChainConfig to ethereum ChainConfig
 func convertToEthChainConfig(config *params.ChainConfig) *ethparams.ChainConfig {
-	return &ethparams.ChainConfig{
-		ChainID:             config.ChainID,
-		HomesteadBlock:      config.HomesteadBlock,
-		EIP150Block:         config.EIP150Block,
-		EIP155Block:         config.EIP155Block,
-		EIP158Block:         config.EIP158Block,
-		ByzantiumBlock:      config.ByzantiumBlock,
-		ConstantinopleBlock: config.ConstantinopleBlock,
-		PetersburgBlock:     config.PetersburgBlock,
-		IstanbulBlock:       config.IstanbulBlock,
-		MuirGlacierBlock:    config.MuirGlacierBlock,
-		BerlinBlock:         config.BerlinBlock,
-		LondonBlock:         config.LondonBlock,
-		ShanghaiTime:        config.ShanghaiTime,
-		CancunTime:          config.CancunTime,
-	}
+	// Since params.ChainConfig embeds ethparams.ChainConfig, we can return it directly
+	return config.ChainConfig
 }

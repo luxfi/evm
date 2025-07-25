@@ -103,7 +103,7 @@ import (
 	"github.com/luxfi/evm/accounts/abi"
 	"github.com/luxfi/evm/accounts/abi/bind"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/event"
 )

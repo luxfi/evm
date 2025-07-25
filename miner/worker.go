@@ -35,8 +35,8 @@ import (
 	"math/big"
 	"sync"
 	"time"
-	"github.com/luxfi/evm/interfaces"
-	"github.com/luxfi/evm/interfaces"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/state"
@@ -212,7 +212,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	}
 	header.Coinbase = w.coinbase
 
-	configuredCoinbase, isAllowFeeRecipient, err := w.chain.GetCoinbaseAt(parent)
+	configuredCoinbase, isAllowFeeRecipient, err := w.chain.GetCoinbaseAtHeader(parent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get configured coinbase: %w", err)
 	}
