@@ -322,6 +322,33 @@ func (c *ChainConfig) AllowedFeeRecipients() bool {
 	return c.AllowFeeRecipients
 }
 
+// IsDurango returns whether [time] represents a block with a timestamp after the Durango upgrade time.
+// For v2.0.0, all upgrades are active at genesis, so this always returns true.
+// Implements precompileconfig.ChainConfig interface.
+func (c *ChainConfig) IsDurango(time uint64) bool {
+	return true
+}
+
+// IsEVM returns whether [time] represents a block with a timestamp after the EVM upgrade time.
+// For v2.0.0, all upgrades are active at genesis, so this always returns true.
+func (c *ChainConfig) IsEVM(time uint64) bool {
+	return true
+}
+
+// IsFortuna returns whether [time] represents a block with a timestamp after the Fortuna upgrade time.
+// For v2.0.0, all upgrades are active at genesis, so this always returns true.
+func (c *ChainConfig) IsFortuna(time uint64) bool {
+	return true
+}
+
+// GetRules returns the rules for the given timestamp.
+// For v2.0.0, all upgrades are always active.
+func (c *ChainConfig) GetRules(time uint64) GenesisRules {
+	return GenesisRules{
+		IsGenesis: true, // All features active from genesis in v2.0.0
+	}
+}
+
 // IsForkTransition returns true if `fork` activates during the transition from
 // `parent` to `current`.
 // Taking `parent` as a pointer allows for us to pass nil when checking forks

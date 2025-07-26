@@ -493,9 +493,8 @@ func MakePreState(db ethdb.Database, accounts types.GenesisAlloc, snapshotter bo
 			CacheSize:  1,
 			NoBuild:    false,
 			AsyncBuild: false,
-			SkipVerify: true,
 		}
-		snaps, _ = snapshot.New(snapconfig, db, tdb, common.Hash{}, root)
+		snaps, _ = snapshot.New(snapconfig, db, tdb, root)
 	}
 	statedb, _ = state.New(root, sdb, snaps)
 	return StateTestState{statedb, tdb, snaps}
@@ -509,8 +508,7 @@ func (st *StateTestState) Close() {
 	}
 	if st.Snapshots != nil {
 		// Need to call Disable here to quit the snapshot generator goroutine.
-		st.Snapshots.AbortGeneration()
-		st.Snapshots.Release()
+		st.Snapshots.Disable()
 		st.Snapshots = nil
 	}
 }

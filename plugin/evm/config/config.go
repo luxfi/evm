@@ -58,7 +58,7 @@ const (
 	// - state sync time: ~6 hrs.
 	defaultStateSyncMinBlocks   = 300_000
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
-	defaultDBType               = "leveldb"
+	defaultDBType               = "badgerdb"
 	defaultValidatorAPIEnabled  = true
 
 	estimatedBlockAcceptPeriod        = 2 * time.Second
@@ -219,12 +219,9 @@ type Config struct {
 	//  * 0:   means no limit
 	//  * N:   means N block limit [HEAD-N+1, HEAD] and delete extra indexes
 	TransactionHistory uint64 `json:"transaction-history"`
-	// Deprecated, use 'TransactionHistory' instead.
-	TxLookupLimit uint64 `json:"tx-lookup-limit"`
 
 	// SkipTxIndexing skips indexing transactions.
 	// This is useful for validators that don't need to index transactions.
-	// TxLookupLimit can be still used to control unindexing old transactions.
 	SkipTxIndexing bool `json:"skip-tx-indexing"`
 
 	// WarpOffChainMessages encodes off-chain messages (unrelated to any on-chain event ie. block or AddressedCall)
@@ -359,14 +356,8 @@ func (c *Config) Validate() error {
 }
 
 func (c *Config) Deprecate() string {
-	msg := ""
-	// Deprecate the old config options and set the new ones.
-	if c.TxLookupLimit != 0 {
-		msg += "tx-lookup-limit is deprecated, use transaction-history instead. "
-		c.TransactionHistory = c.TxLookupLimit
-	}
-
-	return msg
+	// No deprecated options for v2.0.0
+	return ""
 }
 
 func (p *PBool) String() string {

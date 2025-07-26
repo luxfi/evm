@@ -124,7 +124,7 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 		}
 		gas += z * gethparams.TxDataZeroGas
 
-		if isContractCreation && params.GetRulesExtra(rules).IsDurango {
+		if isContractCreation && params.GetRulesExtra(rules).IsDurango() {
 			lenWords := toWordSize(dataLen)
 			if (math.MaxUint64-gas)/gethparams.InitCodeWordGas < lenWords {
 				return 0, ErrGasUintOverflow
@@ -503,7 +503,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 
 	// Check whether the init code size has been exceeded.
-	if rulesExtra.IsDurango && contractCreation && len(msg.Data) > gethparams.MaxInitCodeSize {
+	if rulesExtra.IsDurango() && contractCreation && len(msg.Data) > gethparams.MaxInitCodeSize {
 		return nil, fmt.Errorf("max init code size exceeded: code size %v limit %v", len(msg.Data), gethparams.MaxInitCodeSize)
 	}
 
@@ -559,7 +559,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	if overflow {
 		return nil, ErrGasUintOverflow
 	}
-	gasRefund := st.refundGas(rulesExtra.IsEVM)
+	gasRefund := st.refundGas(rulesExtra.IsEVM())
 	fee := new(uint256.Int).SetUint64(st.gasUsed())
 	fee.Mul(fee, price)
 	st.state.AddBalance(st.evm.Context.Coinbase, fee, tracing.BalanceIncreaseRewardTransactionFee)

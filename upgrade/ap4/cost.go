@@ -75,14 +75,8 @@ func BlockGasCost(
 		cost = defaultCost
 	}
 
-	switch {
-	case cost < MinBlockGasCost:
-		// This is technically dead code because [MinBlockGasCost] is 0, but it
-		// makes the code more clear.
-		return MinBlockGasCost
-	case cost > MaxBlockGasCost:
+	if cost > MaxBlockGasCost {
 		return MaxBlockGasCost
-	default:
-		return cost
 	}
+	return cost
 }

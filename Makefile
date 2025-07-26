@@ -71,14 +71,59 @@ test:
 	@mkdir -p $(TMPDIR) $(GOCACHE)
 	TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) go test -v ./...
 
+# Run tests with filter
+.PHONY: test-filter
+test-filter:
+	@echo "Running tests with filter: $(filter)"
+	@mkdir -p $(TMPDIR) $(GOCACHE)
+	TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) go test -v -run="$(filter)" ./...
+
+# Run tests with ginkgo
+.PHONY: test-ginkgo
+test-ginkgo:
+	@echo "Running tests with ginkgo..."
+	@mkdir -p $(TMPDIR) $(GOCACHE)
+	@if command -v ginkgo >/dev/null 2>&1; then \
+		TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) ginkgo -v -r --race --fail-fast --randomize-all --randomize-suites; \
+	else \
+		echo "ginkgo not installed. Install with: go install github.com/onsi/ginkgo/v2/ginkgo@latest"; \
+		exit 1; \
+	fi
+
+# Run tests with ginkgo and filter
+.PHONY: test-ginkgo-filter
+test-ginkgo-filter:
+	@echo "Running tests with ginkgo filter: $(filter)"
+	@mkdir -p $(TMPDIR) $(GOCACHE)
+	@if command -v ginkgo >/dev/null 2>&1; then \
+		TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) ginkgo -v -r --race --fail-fast --randomize-all --randomize-suites --focus="$(filter)"; \
+	else \
+		echo "ginkgo not installed. Install with: go install github.com/onsi/ginkgo/v2/ginkgo@latest"; \
+		exit 1; \
+	fi
+
 # Run tests with coverage
 .PHONY: test-coverage
 test-coverage:
 	@echo "Running tests with coverage..."
 	@mkdir -p $(TMPDIR) $(GOCACHE)
-	TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) go test -v -coverprofile=coverage.out ./...
+	TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
+
+# Run tests with coverage using ginkgo
+.PHONY: test-coverage-ginkgo
+test-coverage-ginkgo:
+	@echo "Running tests with coverage using ginkgo..."
+	@mkdir -p $(TMPDIR) $(GOCACHE)
+	@if command -v ginkgo >/dev/null 2>&1; then \
+		TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) ginkgo -v -r --race --fail-fast --randomize-all --randomize-suites --cover --coverprofile=coverage.out --covermode=atomic; \
+		go tool cover -html=coverage.out -o coverage.html; \
+		echo "Coverage report generated: coverage.html"; \
+	else \
+		echo "ginkgo not installed. Install with: go install github.com/onsi/ginkgo/v2/ginkgo@latest"; \
+		exit 1; \
+	fi
 
 # Run benchmarks
 .PHONY: bench
@@ -186,7 +231,11 @@ help:
 	@echo "  build        - Build the EVM binary (alias for evm)"
 	@echo "  install      - Build and install as Lux plugin"
 	@echo "  test         - Run tests"
+	@echo "  test-filter  - Run tests with filter (usage: make test-filter filter=TestName)"
+	@echo "  test-ginkgo  - Run tests with ginkgo"
+	@echo "  test-ginkgo-filter - Run tests with ginkgo filter (usage: make test-ginkgo-filter filter=TestName)"
 	@echo "  test-coverage - Run tests with coverage report"
+	@echo "  test-coverage-ginkgo - Run tests with coverage using ginkgo"
 	@echo "  bench        - Run benchmarks"
 	@echo "  fmt          - Format code"
 	@echo "  lint         - Run linter"

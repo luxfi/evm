@@ -7,12 +7,15 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/geth/core/rawdb"
-	"github.com/luxfi/geth/core/state"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
+	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/geth/log"
+	"github.com/luxfi/ids"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 )
@@ -45,8 +48,8 @@ func CanTransferMC(db StateDB, addr common.Address, to common.Address, coinID co
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
 func Transfer(db StateDB, sender, recipient common.Address, amount *uint256.Int) {
-	db.SubBalance(sender, amount)
-	db.AddBalance(recipient, amount)
+	db.SubBalance(sender, amount, tracing.BalanceChangeTransfer)
+	db.AddBalance(recipient, amount, tracing.BalanceChangeTransfer)
 }
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
@@ -57,7 +60,8 @@ func TransferMultiCoin(db StateDB, sender, recipient common.Address, coinID comm
 
 func TestPackNativeAssetCallInput(t *testing.T) {
 	addr := common.BytesToAddress([]byte("hello"))
-	assetID := common.BytesToHash([]byte("ScoobyCoin"))
+	assetIDHash := common.BytesToHash([]byte("ScoobyCoin"))
+	assetID := ids.ID(assetIDHash)
 	assetAmount := big.NewInt(50)
 	callData := []byte{1, 2, 3, 4, 5, 6, 7, 8}
 
@@ -69,6 +73,115 @@ func TestPackNativeAssetCallInput(t *testing.T) {
 	assert.Equal(t, assetID, unpackedAssetID, "assetID")
 	assert.Equal(t, assetAmount, unpackedAssetAmount, "assetAmount")
 	assert.Equal(t, callData, unpackedCallData, "callData")
+}
+
+// mockStateDB implements StateDB interface for testing
+type mockStateDB struct {
+	*state.StateDB
+	multiCoinBalances map[common.Address]map[common.Hash]*big.Int
+}
+
+func newMockStateDB(t *testing.T) *mockStateDB {
+	memdb := rawdb.NewMemoryDatabase()
+	statedb, err := state.New(common.Hash{}, state.NewDatabase(memdb), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &mockStateDB{
+		StateDB:           statedb,
+		multiCoinBalances: make(map[common.Address]map[common.Hash]*big.Int),
+	}
+}
+
+func (m *mockStateDB) SubBalanceMultiCoin(addr common.Address, coinID common.Hash, amount *big.Int) {
+	if m.multiCoinBalances[addr] == nil {
+		m.multiCoinBalances[addr] = make(map[common.Hash]*big.Int)
+	}
+	current := m.GetBalanceMultiCoin(addr, coinID)
+	m.multiCoinBalances[addr][coinID] = new(big.Int).Sub(current, amount)
+}
+
+func (m *mockStateDB) AddBalanceMultiCoin(addr common.Address, coinID common.Hash, amount *big.Int) {
+	if m.multiCoinBalances[addr] == nil {
+		m.multiCoinBalances[addr] = make(map[common.Hash]*big.Int)
+	}
+	current := m.GetBalanceMultiCoin(addr, coinID)
+	m.multiCoinBalances[addr][coinID] = new(big.Int).Add(current, amount)
+}
+
+func (m *mockStateDB) GetBalanceMultiCoin(addr common.Address, coinID common.Hash) *big.Int {
+	if m.multiCoinBalances[addr] == nil || m.multiCoinBalances[addr][coinID] == nil {
+		return big.NewInt(0)
+	}
+	return new(big.Int).Set(m.multiCoinBalances[addr][coinID])
+}
+
+func (m *mockStateDB) SetBalanceMultiCoin(addr common.Address, coinID common.Hash, amount *big.Int) {
+	if m.multiCoinBalances[addr] == nil {
+		m.multiCoinBalances[addr] = make(map[common.Hash]*big.Int)
+	}
+	m.multiCoinBalances[addr][coinID] = new(big.Int).Set(amount)
+}
+
+// Override AddBalance to add the missing parameter
+func (m *mockStateDB) AddBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason) uint256.Int {
+	return m.StateDB.AddBalance(addr, amount, reason)
+}
+
+// Override SubBalance to add the missing parameter
+func (m *mockStateDB) SubBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason) uint256.Int {
+	return m.StateDB.SubBalance(addr, amount, reason)
+}
+
+// Override SetBalance to add the missing parameter
+func (m *mockStateDB) SetBalance(addr common.Address, amount *uint256.Int) {
+	m.StateDB.SetBalance(addr, amount, tracing.BalanceChangeUnspecified)
+}
+
+// Override SetNonce
+func (m *mockStateDB) SetNonce(addr common.Address, nonce uint64, reason tracing.NonceChangeReason) {
+	m.StateDB.SetNonce(addr, nonce, reason)
+}
+
+// Override AddLog to match the interface
+func (m *mockStateDB) AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64) {
+	// Our state.StateDB already has the correct AddLog signature
+	m.StateDB.AddLog(addr, topics, data, blockNumber)
+}
+
+// GetLogData returns log data in the format expected by our interface
+func (m *mockStateDB) GetLogData() (topics [][]common.Hash, data [][]byte) {
+	logs := m.StateDB.Logs()
+	topics = make([][]common.Hash, len(logs))
+	data = make([][]byte, len(logs))
+	for i, log := range logs {
+		topics[i] = log.Topics
+		data[i] = log.Data
+	}
+	return topics, data
+}
+
+// GetCommittedStateAP1 implements the interface
+func (m *mockStateDB) GetCommittedStateAP1(addr common.Address, key common.Hash) common.Hash {
+	// For testing, just return the current state
+	return m.StateDB.GetState(addr, key)
+}
+
+// GetPredicateStorageSlots implements the interface
+func (m *mockStateDB) GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool) {
+	// For testing, return empty
+	return nil, false
+}
+
+// SetPredicateStorageSlots implements the interface
+func (m *mockStateDB) SetPredicateStorageSlots(address common.Address, predicates [][]byte) {
+	// For testing, no-op
+}
+
+// GetTxHash implements the interface
+func (m *mockStateDB) GetTxHash() common.Hash {
+	// For testing, return empty hash
+	return common.Hash{}
 }
 
 func TestStatefulPrecompile(t *testing.T) {
@@ -97,7 +210,8 @@ func TestStatefulPrecompile(t *testing.T) {
 
 	userAddr1 := common.BytesToAddress([]byte("user1"))
 	userAddr2 := common.BytesToAddress([]byte("user2"))
-	assetID := common.BytesToHash([]byte("ScoobyCoin"))
+	assetIDHash := common.BytesToHash([]byte("ScoobyCoin"))
+	assetID := ids.ID(assetIDHash)
 	zeroBytes := make([]byte, 32)
 	big0.FillBytes(zeroBytes)
 	big0 := uint256.NewInt(0)
@@ -112,10 +226,7 @@ func TestStatefulPrecompile(t *testing.T) {
 	tests := []statefulContractTest{
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				// Create account
 				statedb.CreateAccount(userAddr1)
 				// Set balance to pay for gas fee
@@ -136,17 +247,14 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				// Create account
 				statedb.CreateAccount(userAddr1)
 				// Set balance to pay for gas fee
 				statedb.SetBalance(userAddr1, u256Hundred)
 				// Initialize multicoin balance and set it back to 0
-				statedb.AddBalanceMultiCoin(userAddr1, assetID, bigHundred)
-				statedb.SubBalanceMultiCoin(userAddr1, assetID, bigHundred)
+				statedb.AddBalanceMultiCoin(userAddr1, assetIDHash, bigHundred)
+				statedb.SubBalanceMultiCoin(userAddr1, assetIDHash, bigHundred)
 				statedb.Finalise(true)
 				return statedb
 			},
@@ -162,16 +270,13 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				// Create account
 				statedb.CreateAccount(userAddr1)
 				// Set balance to pay for gas fee
 				statedb.SetBalance(userAddr1, u256Hundred)
 				// Initialize multicoin balance to 100
-				statedb.AddBalanceMultiCoin(userAddr1, assetID, bigHundred)
+				statedb.AddBalanceMultiCoin(userAddr1, assetIDHash, bigHundred)
 				statedb.Finalise(true)
 				return statedb
 			},
@@ -187,10 +292,7 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				return statedb
 			},
 			from:                 userAddr1,
@@ -205,10 +307,7 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				return statedb
 			},
 			from:                 userAddr1,
@@ -223,10 +322,7 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				return statedb
 			},
 			from:                 userAddr1,
@@ -241,12 +337,9 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				statedb.SetBalance(userAddr1, u256Hundred)
-				statedb.SetBalanceMultiCoin(userAddr1, assetID, bigHundred)
+				statedb.SetBalanceMultiCoin(userAddr1, assetIDHash, bigHundred)
 				statedb.Finalise(true)
 				return statedb
 			},
@@ -262,8 +355,8 @@ func TestStatefulPrecompile(t *testing.T) {
 			stateDBCheck: func(t *testing.T, stateDB StateDB) {
 				user1Balance := stateDB.GetBalance(userAddr1)
 				user2Balance := stateDB.GetBalance(userAddr2)
-				user1AssetBalance := stateDB.GetBalanceMultiCoin(userAddr1, assetID)
-				user2AssetBalance := stateDB.GetBalanceMultiCoin(userAddr2, assetID)
+				user1AssetBalance := stateDB.GetBalanceMultiCoin(userAddr1, assetIDHash)
+				user2AssetBalance := stateDB.GetBalanceMultiCoin(userAddr2, assetIDHash)
 
 				expectedBalance := big.NewInt(50)
 				assert.Equal(t, u256Hundred, user1Balance, "user 1 balance")
@@ -274,12 +367,9 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				statedb.SetBalance(userAddr1, u256Hundred)
-				statedb.SetBalanceMultiCoin(userAddr1, assetID, bigHundred)
+				statedb.SetBalanceMultiCoin(userAddr1, assetIDHash, bigHundred)
 				statedb.Finalise(true)
 				return statedb
 			},
@@ -296,8 +386,8 @@ func TestStatefulPrecompile(t *testing.T) {
 				user1Balance := stateDB.GetBalance(userAddr1)
 				user2Balance := stateDB.GetBalance(userAddr2)
 				nativeAssetCallAddrBalance := stateDB.GetBalance(NativeAssetCallAddr)
-				user1AssetBalance := stateDB.GetBalanceMultiCoin(userAddr1, assetID)
-				user2AssetBalance := stateDB.GetBalanceMultiCoin(userAddr2, assetID)
+				user1AssetBalance := stateDB.GetBalanceMultiCoin(userAddr1, assetIDHash)
+				user2AssetBalance := stateDB.GetBalanceMultiCoin(userAddr2, assetIDHash)
 				expectedBalance := big.NewInt(50)
 
 				assert.Equal(t, uint256.NewInt(51), user1Balance, "user 1 balance")
@@ -309,12 +399,9 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				statedb.SetBalance(userAddr1, u256Hundred)
-				statedb.SetBalanceMultiCoin(userAddr1, assetID, big.NewInt(50))
+				statedb.SetBalanceMultiCoin(userAddr1, assetIDHash, big.NewInt(50))
 				statedb.Finalise(true)
 				return statedb
 			},
@@ -330,8 +417,8 @@ func TestStatefulPrecompile(t *testing.T) {
 			stateDBCheck: func(t *testing.T, stateDB StateDB) {
 				user1Balance := stateDB.GetBalance(userAddr1)
 				user2Balance := stateDB.GetBalance(userAddr2)
-				user1AssetBalance := stateDB.GetBalanceMultiCoin(userAddr1, assetID)
-				user2AssetBalance := stateDB.GetBalanceMultiCoin(userAddr2, assetID)
+				user1AssetBalance := stateDB.GetBalanceMultiCoin(userAddr1, assetIDHash)
+				user2AssetBalance := stateDB.GetBalanceMultiCoin(userAddr2, assetIDHash)
 
 				assert.Equal(t, bigHundred, user1Balance, "user 1 balance")
 				assert.Equal(t, big0, user2Balance, "user 2 balance")
@@ -341,12 +428,9 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				statedb.SetBalance(userAddr1, uint256.NewInt(50))
-				statedb.SetBalanceMultiCoin(userAddr1, assetID, big.NewInt(50))
+				statedb.SetBalanceMultiCoin(userAddr1, assetIDHash, big.NewInt(50))
 				statedb.Finalise(true)
 				return statedb
 			},
@@ -362,8 +446,8 @@ func TestStatefulPrecompile(t *testing.T) {
 			stateDBCheck: func(t *testing.T, stateDB StateDB) {
 				user1Balance := stateDB.GetBalance(userAddr1)
 				user2Balance := stateDB.GetBalance(userAddr2)
-				user1AssetBalance := stateDB.GetBalanceMultiCoin(userAddr1, assetID)
-				user2AssetBalance := stateDB.GetBalanceMultiCoin(userAddr2, assetID)
+				user1AssetBalance := stateDB.GetBalanceMultiCoin(userAddr1, assetIDHash)
+				user2AssetBalance := stateDB.GetBalanceMultiCoin(userAddr2, assetIDHash)
 
 				assert.Equal(t, big.NewInt(50), user1Balance, "user 1 balance")
 				assert.Equal(t, big0, user2Balance, "user 2 balance")
@@ -373,12 +457,9 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				statedb.SetBalance(userAddr1, u256Hundred)
-				statedb.SetBalanceMultiCoin(userAddr1, assetID, bigHundred)
+				statedb.SetBalanceMultiCoin(userAddr1, assetIDHash, bigHundred)
 				statedb.Finalise(true)
 				return statedb
 			},
@@ -394,12 +475,9 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				statedb.SetBalance(userAddr1, u256Hundred)
-				statedb.SetBalanceMultiCoin(userAddr1, assetID, bigHundred)
+				statedb.SetBalanceMultiCoin(userAddr1, assetIDHash, bigHundred)
 				statedb.Finalise(true)
 				return statedb
 			},
@@ -415,8 +493,8 @@ func TestStatefulPrecompile(t *testing.T) {
 			stateDBCheck: func(t *testing.T, stateDB StateDB) {
 				user1Balance := stateDB.GetBalance(userAddr1)
 				user2Balance := stateDB.GetBalance(userAddr2)
-				user1AssetBalance := stateDB.GetBalanceMultiCoin(userAddr1, assetID)
-				user2AssetBalance := stateDB.GetBalanceMultiCoin(userAddr2, assetID)
+				user1AssetBalance := stateDB.GetBalanceMultiCoin(userAddr1, assetIDHash)
+				user2AssetBalance := stateDB.GetBalanceMultiCoin(userAddr2, assetIDHash)
 
 				assert.Equal(t, bigHundred, user1Balance, "user 1 balance")
 				assert.Equal(t, big0, user2Balance, "user 2 balance")
@@ -426,12 +504,9 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				statedb.SetBalance(userAddr1, u256Hundred)
-				statedb.SetBalanceMultiCoin(userAddr1, assetID, bigHundred)
+				statedb.SetBalanceMultiCoin(userAddr1, assetIDHash, bigHundred)
 				statedb.Finalise(true)
 				return statedb
 			},
@@ -447,12 +522,9 @@ func TestStatefulPrecompile(t *testing.T) {
 		},
 		{
 			setupStateDB: func() StateDB {
-				statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				statedb := newMockStateDB(t)
 				statedb.SetBalance(userAddr1, u256Hundred)
-				statedb.SetBalanceMultiCoin(userAddr1, assetID, bigHundred)
+				statedb.SetBalanceMultiCoin(userAddr1, assetIDHash, bigHundred)
 				statedb.Finalise(true)
 				return statedb
 			},
@@ -471,7 +543,7 @@ func TestStatefulPrecompile(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			stateDB := test.setupStateDB()
 			// Create EVM with BlockNumber and Time initialized to 0 to enable Apricot Rules.
-			evm := NewEVM(vmCtx, TxContext{}, stateDB, params.TestApricotPhase5Config, Config{}) // Use ApricotPhase5Config because these precompiles are deprecated in ApricotPhase6.
+			evm := NewEVM(vmCtx, TxContext{}, stateDB, params.TestChainConfig, Config{}) // Use TestChainConfig for basic testing
 			ret, gasRemaining, err := evm.Call(AccountRef(test.from), test.precompileAddr, test.input, test.gasInput, test.value)
 			// Place gas remaining check before error check, so that it is not skipped when there is an error
 			assert.Equal(t, test.expectedGasRemaining, gasRemaining, "unexpected gas remaining")

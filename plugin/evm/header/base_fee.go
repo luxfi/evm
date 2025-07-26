@@ -47,10 +47,8 @@ func EstimateNextBaseFee(
 	parent *types.Header,
 	timestamp uint64,
 ) (*big.Int, error) {
-	if config.EVMTimestamp == nil {
-		return nil, errEstimateBaseFeeWithoutActivation
-	}
-
-	timestamp = max(timestamp, parent.Time, *config.EVMTimestamp)
+	// For v2.0.0, all upgrades are active at genesis (timestamp 0)
+	// So we don't need to check EVMTimestamp
+	timestamp = max(timestamp, parent.Time, 0)
 	return BaseFee(config, feeConfig, parent, timestamp)
 }
