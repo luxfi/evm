@@ -10,13 +10,13 @@ import (
 
 	"github.com/luxfi/node/utils/wrappers"
 	"github.com/luxfi/evm/utils/utilstest"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ethereum/go-ethereum/trie/trienode"
-	"github.com/ethereum/go-ethereum/triedb"
+	"github.com/luxfi/geth/common"
+	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/geth/ethdb"
+	"github.com/luxfi/geth/rlp"
+	"github.com/luxfi/geth/trie"
+	"github.com/luxfi/geth/trie/trienode"
+	"github.com/luxfi/geth/triedb"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 )
@@ -62,8 +62,7 @@ func FillTrie(t *testing.T, start, numKeys int, keySize int, trieDB *triedb.Data
 	}
 
 	// Commit the root to [trieDB]
-	nextRoot, nodes, err := testTrie.Commit(false)
-	assert.NoError(t, err)
+	nextRoot, nodes := testTrie.Commit(false)
 	err = trieDB.Update(nextRoot, root, 0, trienode.NewWithNodeSet(nodes), nil)
 	assert.NoError(t, err)
 	err = trieDB.Commit(nextRoot, false)
@@ -179,10 +178,7 @@ func FillAccounts(
 		accounts[key] = &acc
 	}
 
-	newRoot, nodes, err := tr.Commit(false)
-	if err != nil {
-		t.Fatalf("error committing trie: %v", err)
-	}
+	newRoot, nodes := tr.Commit(false)
 	if err := trieDB.Update(newRoot, root, 0, trienode.NewWithNodeSet(nodes), nil); err != nil {
 		t.Fatalf("error updating trieDB: %v", err)
 	}
