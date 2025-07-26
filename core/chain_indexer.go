@@ -39,7 +39,7 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/event"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // ChainIndexerBackend defines the methods needed to process chain segments in

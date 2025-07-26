@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/core"

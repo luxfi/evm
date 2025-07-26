@@ -45,7 +45,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/hashicorp/go-bexpr"
 	"log/slog"
 )

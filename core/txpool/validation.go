@@ -39,7 +39,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/crypto/kzg4844"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	gethparams "github.com/luxfi/geth/params"
 	gethvm "github.com/luxfi/geth/core/vm"
 )

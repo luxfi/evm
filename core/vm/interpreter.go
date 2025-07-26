@@ -31,7 +31,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/math"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // Config are the configuration options for the Interpreter

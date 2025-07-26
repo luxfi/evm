@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/luxfi/evm/plugin/evm/client"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/node/api"
 	"github.com/luxfi/node/utils/profiler"
 )

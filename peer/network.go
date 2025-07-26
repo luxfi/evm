@@ -14,7 +14,7 @@ import (
 
 	"github.com/luxfi/evm/peer/stats"
 	"github.com/luxfi/evm/plugin/evm/message"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/node/codec"
 	"github.com/luxfi/ids"
 	nodeinterfaces "github.com/luxfi/node/consensus/engine/core"

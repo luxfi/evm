@@ -12,12 +12,11 @@ import (
 	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/plugin/evm/database"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
 	nodedb "github.com/luxfi/database"
 	"github.com/luxfi/database/factory"
 	"github.com/luxfi/database/prefixdb"
 	"github.com/luxfi/node/utils/constants"
-	luxlog "github.com/luxfi/log"
+	"github.com/luxfi/log"
 )
 
 const (
@@ -170,12 +169,12 @@ func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer interface{}, logger
 	dbPath := filepath.Join(dbConfig.Path, dbConfig.Name)
 
 	// Convert the logger interface to luxfi/log.Logger
-	var luxLogger luxlog.Logger
-	if l, ok := logger.(luxlog.Logger); ok {
+	var luxLogger log.Logger
+	if l, ok := logger.(log.Logger); ok {
 		luxLogger = l
 	} else {
-		// Fallback to noop logger if conversion fails
-		luxLogger = luxlog.NewNoopLogger()
+		// Fallback to discard logger if conversion fails
+		luxLogger = log.NewLogger(log.DiscardHandler())
 	}
 	
 	// Use the factory to create the database

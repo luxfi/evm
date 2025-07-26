@@ -42,7 +42,7 @@ import (
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/evm/consensus/misc/eip4844"
 	"github.com/luxfi/geth/crypto/kzg4844"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	evmparams "github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/rpc"
 )

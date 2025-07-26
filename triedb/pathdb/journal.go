@@ -37,7 +37,7 @@ import (
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/evm/trie/trienode"
 )

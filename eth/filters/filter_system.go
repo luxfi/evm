@@ -43,7 +43,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/event"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // Config represents the configuration of the filter system.

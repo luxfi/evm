@@ -35,7 +35,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/evm/trie/trienode"
 	"golang.org/x/crypto/sha3"
 )

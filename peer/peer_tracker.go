@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/utils/set"

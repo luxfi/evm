@@ -33,7 +33,7 @@ import (
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // Prove constructs a merkle proof for key. The result contains all encoded nodes

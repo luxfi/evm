@@ -50,7 +50,7 @@ import (
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/common/math"
 	"github.com/luxfi/geth/event"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/evm/ethclient/simulated"
 )
 

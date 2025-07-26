@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"strings"
 	"time"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/go-cmd/cmd"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"

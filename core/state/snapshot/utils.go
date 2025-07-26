@@ -33,7 +33,7 @@ import (
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // CheckDanglingStorage iterates the snap storage data, and verifies that all

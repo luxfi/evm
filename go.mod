@@ -26,11 +26,12 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
 	github.com/kylelemons/godebug v1.1.0
-	github.com/luxfi/crypto v1.0.0
+	github.com/luxfi/crypto v1.0.1
 	github.com/luxfi/database v1.1.3
 	github.com/luxfi/geth v1.16.2
-	github.com/luxfi/ids v0.0.0-00010101000000-000000000000
-	github.com/luxfi/node v1.15.0
+	github.com/luxfi/ids v1.0.1
+	github.com/luxfi/log v1.0.1
+	github.com/luxfi/node v1.12.14
 	github.com/luxfi/warp v0.1.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20

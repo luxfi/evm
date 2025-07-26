@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // ChainAPI introduces linear specific functionality to the evm

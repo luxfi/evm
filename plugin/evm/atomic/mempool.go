@@ -14,7 +14,7 @@ import (
 	"github.com/luxfi/node/network/p2p/gossip"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/geth/metrics"
 )
 

@@ -10,7 +10,7 @@ import (
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/params"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/node/consensus"
 	commonEng "github.com/luxfi/node/consensus/engine/core"
 	"github.com/luxfi/node/utils/timer"
