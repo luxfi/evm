@@ -1,4 +1,4 @@
-// (c) 2019-2022, Lux Industries, Inc. All rights reserved.
+// (c) 2020-2022, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package message
@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/luxfi/node/codec"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 )
 
 // Request represents a Network request type

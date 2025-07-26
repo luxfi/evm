@@ -1,4 +1,4 @@
-// (c) 2019-2022, Lux Industries, Inc. All rights reserved.
+// (c) 2020-2022, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package peer
@@ -16,7 +16,7 @@ import (
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/geth/log"
 	"github.com/luxfi/node/codec"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	nodeinterfaces "github.com/luxfi/node/consensus/engine/core"
 	"github.com/luxfi/node/consensus/validators"
 	"github.com/luxfi/node/network/p2p"

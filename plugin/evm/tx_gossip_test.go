@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023, Lux Industries, Inc. All rights reserved.
+// Copyright (C) 2020-2023, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -16,7 +16,7 @@ import (
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/node/consensus"
 	"github.com/luxfi/node/consensus/engine/enginetest"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	"github.com/luxfi/node/proto/pb/sdk"
 	"github.com/luxfi/node/utils/logging"
 	"github.com/luxfi/node/utils/set"

@@ -56,3 +56,6 @@ dist/
 
 *.orig
 .tmp
+
+internal/ethapi/.gocache
+internal/ethapi/.cache

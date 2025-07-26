@@ -1,4 +1,4 @@
-// (c) 2019-2020, Lux Industries, Inc. All rights reserved.
+// (c) 2020-2020, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -41,8 +41,8 @@ import (
 	commonEng "github.com/luxfi/node/consensus/engine/core"
 	"github.com/luxfi/node/consensus/engine/linear/block"
 	"github.com/luxfi/node/consensus/linear"
-	"github.com/luxfi/node/database"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/database"
+	"github.com/luxfi/ids"
 	statesyncclient "github.com/luxfi/node/state_sync/client"
 	"github.com/luxfi/node/state_sync/client/stats"
 	"github.com/luxfi/node/utils/constants"
