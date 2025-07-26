@@ -25,9 +25,10 @@ import (
 	"github.com/luxfi/evm/sync/statesync/statesynctest"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
-	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/triedb"
+	
+	etypes "github.com/luxfi/evm/core/types"
 )
 
 func TestGetCode(t *testing.T) {
@@ -167,7 +168,7 @@ func TestGetBlocks(t *testing.T) {
 
 	// encodeBlockSlice takes a slice of blocks that are ordered in increasing height order
 	// and returns a slice of byte slices with those blocks encoded in reverse order
-	encodeBlockSlice := func(blocks []*types.Block) [][]byte {
+	encodeBlockSlice := func(blocks []*etypes.Block) [][]byte {
 		blockBytes := make([][]byte, 0, len(blocks))
 		for i := len(blocks) - 1; i >= 0; i-- {
 			buf := new(bytes.Buffer)
@@ -182,7 +183,7 @@ func TestGetBlocks(t *testing.T) {
 	tests := map[string]struct {
 		request        message.BlockRequest
 		getResponse    func(t *testing.T, request message.BlockRequest) []byte
-		assertResponse func(t *testing.T, response []*types.Block)
+		assertResponse func(t *testing.T, response []*etypes.Block)
 		expectedErr    string
 	}{
 		"normal resonse": {
@@ -203,7 +204,7 @@ func TestGetBlocks(t *testing.T) {
 
 				return response
 			},
-			assertResponse: func(t *testing.T, response []*types.Block) {
+			assertResponse: func(t *testing.T, response []*etypes.Block) {
 				assert.Equal(t, 16, len(response))
 			},
 		},
@@ -227,7 +228,7 @@ func TestGetBlocks(t *testing.T) {
 				return response
 			},
 			// If the server returns fewer than requested blocks, we should consider it valid
-			assertResponse: func(t *testing.T, response []*types.Block) {
+			assertResponse: func(t *testing.T, response []*etypes.Block) {
 				assert.Equal(t, 11, len(response))
 			},
 		},
@@ -300,7 +301,7 @@ func TestGetBlocks(t *testing.T) {
 			},
 			getResponse: func(t *testing.T, request message.BlockRequest) []byte {
 				// Encode blocks with a missing link
-				blks := make([]*types.Block, 0)
+				blks := make([]*etypes.Block, 0)
 				blks = append(blks, blocks[84:89]...)
 				blks = append(blks, blocks[90:101]...)
 				blockBytes := encodeBlockSlice(blks)
@@ -393,9 +394,9 @@ func TestGetBlocks(t *testing.T) {
 	}
 }
 
-func buildGetter(blocks []*types.Block) handlers.BlockProvider {
+func buildGetter(blocks []*etypes.Block) handlers.BlockProvider {
 	return &handlers.TestBlockProvider{
-		GetBlockFn: func(blockHash common.Hash, blockHeight uint64) *types.Block {
+		GetBlockFn: func(blockHash common.Hash, blockHeight uint64) *etypes.Block {
 			requestedBlock := blocks[blockHeight]
 			if requestedBlock.Hash() != blockHash {
 				fmt.Printf("ERROR height=%d, hash=%s, parentHash=%s, reqHash=%s\n", blockHeight, blockHash, requestedBlock.ParentHash(), requestedBlock.Hash())
@@ -415,7 +416,7 @@ func TestGetLeafs(t *testing.T) {
 	largeTrieRoot, largeTrieKeys, _ := statesynctest.GenerateTrie(t, trieDB, 100_000, common.HashLength)
 	smallTrieRoot, _, _ := statesynctest.GenerateTrie(t, trieDB, leafsLimit, common.HashLength)
 
-	handler := handlers.NewLeafsRequestHandler(trieDB, message.StateTrieKeyLength, nil, message.Codec, handlerstats.NewNoopHandlerStats())
+	handler := handlers.NewLeafsRequestHandler(trieDB, common.HashLength, nil, message.Codec, handlerstats.NewNoopHandlerStats())
 	client := NewClient(&ClientConfig{
 		NetworkClient:    &testNetwork{},
 		Codec:            message.Codec,
@@ -436,7 +437,6 @@ func TestGetLeafs(t *testing.T) {
 				Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
 				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
 				Limit:    leafsLimit,
-				NodeType: message.StateTrieNode,
 			},
 			getResponse: func(t *testing.T, request message.LeafsRequest) []byte {
 				response, err := handler.OnLeafsRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
@@ -461,7 +461,6 @@ func TestGetLeafs(t *testing.T) {
 				Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
 				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
 				Limit:    leafsLimit / 2,
-				NodeType: message.StateTrieNode,
 			},
 			getResponse: func(t *testing.T, request message.LeafsRequest) []byte {
 				modifiedRequest := request
@@ -484,7 +483,6 @@ func TestGetLeafs(t *testing.T) {
 				Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
 				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
 				Limit:    leafsLimit,
-				NodeType: message.StateTrieNode,
 			},
 			getResponse: func(t *testing.T, request message.LeafsRequest) []byte {
 				response, err := handler.OnLeafsRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
@@ -509,7 +507,6 @@ func TestGetLeafs(t *testing.T) {
 				Start:    largeTrieKeys[1000],
 				End:      largeTrieKeys[99000],
 				Limit:    leafsLimit,
-				NodeType: message.StateTrieNode,
 			},
 			getResponse: func(t *testing.T, request message.LeafsRequest) []byte {
 				response, err := handler.OnLeafsRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
@@ -534,7 +531,6 @@ func TestGetLeafs(t *testing.T) {
 				Start:    largeTrieKeys[len(largeTrieKeys)-30], // Set start 30 keys from the end of the large trie
 				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
 				Limit:    leafsLimit,
-				NodeType: message.StateTrieNode,
 			},
 			getResponse: func(t *testing.T, request message.LeafsRequest) []byte {
 				response, err := handler.OnLeafsRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
@@ -558,7 +554,6 @@ func TestGetLeafs(t *testing.T) {
 				Start:    largeTrieKeys[1000], // Set the range for 1000 leafs in an intermediate range of the trie
 				End:      largeTrieKeys[1099], // (inclusive range)
 				Limit:    leafsLimit,
-				NodeType: message.StateTrieNode,
 			},
 			getResponse: func(t *testing.T, request message.LeafsRequest) []byte {
 				response, err := handler.OnLeafsRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
@@ -583,7 +578,6 @@ func TestGetLeafs(t *testing.T) {
 				Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
 				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
 				Limit:    leafsLimit,
-				NodeType: message.StateTrieNode,
 			},
 			getResponse: func(t *testing.T, request message.LeafsRequest) []byte {
 				response, err := handler.OnLeafsRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
@@ -614,7 +608,6 @@ func TestGetLeafs(t *testing.T) {
 				Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
 				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
 				Limit:    leafsLimit,
-				NodeType: message.StateTrieNode,
 			},
 			getResponse: func(t *testing.T, request message.LeafsRequest) []byte {
 				response, err := handler.OnLeafsRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
@@ -644,7 +637,6 @@ func TestGetLeafs(t *testing.T) {
 				Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
 				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
 				Limit:    leafsLimit,
-				NodeType: message.StateTrieNode,
 			},
 			getResponse: func(t *testing.T, request message.LeafsRequest) []byte {
 				response, err := handler.OnLeafsRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
@@ -675,7 +667,6 @@ func TestGetLeafs(t *testing.T) {
 				Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
 				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
 				Limit:    leafsLimit,
-				NodeType: message.StateTrieNode,
 			},
 			getResponse: func(t *testing.T, request message.LeafsRequest) []byte {
 				response, err := handler.OnLeafsRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
@@ -707,7 +698,6 @@ func TestGetLeafs(t *testing.T) {
 				Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
 				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
 				Limit:    leafsLimit,
-				NodeType: message.StateTrieNode,
 			},
 			getResponse: func(t *testing.T, request message.LeafsRequest) []byte {
 				response, err := handler.OnLeafsRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
@@ -738,7 +728,6 @@ func TestGetLeafs(t *testing.T) {
 				Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
 				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
 				Limit:    leafsLimit,
-				NodeType: message.StateTrieNode,
 			},
 			getResponse: func(t *testing.T, request message.LeafsRequest) []byte {
 				response, err := handler.OnLeafsRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
@@ -797,7 +786,7 @@ func TestGetLeafsRetries(t *testing.T) {
 	trieDB := triedb.NewDatabase(rawdb.NewMemoryDatabase(), nil)
 	root, _, _ := statesynctest.GenerateTrie(t, trieDB, 100_000, common.HashLength)
 
-	handler := handlers.NewLeafsRequestHandler(trieDB, message.StateTrieKeyLength, nil, message.Codec, handlerstats.NewNoopHandlerStats())
+	handler := handlers.NewLeafsRequestHandler(trieDB, common.HashLength, nil, message.Codec, handlerstats.NewNoopHandlerStats())
 	testNetClient := &testNetwork{}
 
 	const maxAttempts = 8
@@ -814,7 +803,6 @@ func TestGetLeafsRetries(t *testing.T) {
 		Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
 		End:      bytes.Repeat([]byte{0xff}, common.HashLength),
 		Limit:    1024,
-		NodeType: message.StateTrieNode,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
