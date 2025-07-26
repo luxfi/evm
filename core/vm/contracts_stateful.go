@@ -1,4 +1,4 @@
-// (c) 2019-2020, Lux Industries, Inc. All rights reserved.
+// (c) 2020-2020, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package vm
@@ -11,7 +11,7 @@ import (
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 )
 
 // wrappedPrecompiledContract implements StatefulPrecompiledContract by wrapping stateless native precompiled contracts

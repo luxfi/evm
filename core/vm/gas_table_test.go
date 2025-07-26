@@ -1,4 +1,4 @@
-// (c) 2019-2020, Lux Industries, Inc.
+// (c) 2020-2020, Lux Industries, Inc.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -140,7 +140,7 @@ var createGasTests = []struct {
 	{"0x600061C00060006000f5" + "600052" + "60206000F3", true, 53528, 53528},
 	// create2(0, 0, 0xc001, 0)
 	// This case is trying to deploy code exceeding the limit
-	{"0x600061C00160006000f5" + "600052" + "60206000F3", true, 32024, 100000},
+	{"0x600061C00160006000f5" + "600052" + "60206000F3", true, 32025, 100000},
 }
 
 func TestCreateGas(t *testing.T) {

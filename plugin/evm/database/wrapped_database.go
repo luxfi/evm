@@ -1,4 +1,4 @@
-// (c) 2019-2020, Lux Industries, Inc. All rights reserved.
+// (c) 2020-2020, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package database
@@ -8,7 +8,7 @@ import (
 
 	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/ethdb"
-	"github.com/luxfi/node/database"
+	"github.com/luxfi/database"
 )
 
 var (

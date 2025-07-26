@@ -9,7 +9,7 @@ import (
 
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/evm/vmerrs"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	"github.com/luxfi/node/vms/platformvm/warp"
 	"github.com/luxfi/geth/common"
 	"github.com/holiman/uint256"

@@ -17,7 +17,7 @@ import (
 	"github.com/luxfi/geth/log"
 	commonEng "github.com/luxfi/node/consensus/engine/core"
 	"github.com/luxfi/node/consensus/engine/linear/block"
-	"github.com/luxfi/node/database"
+	"github.com/luxfi/database"
 	syncclient "github.com/luxfi/node/state_sync/client"
 	"github.com/luxfi/node/state_sync/statesync"
 )

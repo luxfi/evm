@@ -1,4 +1,4 @@
-// (c) 2019-2021, Lux Industries, Inc. All rights reserved.
+// (c) 2020-2021, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package message
@@ -6,7 +6,7 @@ package message
 import (
 	"context"
 
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 )
 
 var (

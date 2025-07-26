@@ -1,4 +1,4 @@
-// (c) 2019-2020, Lux Industries, Inc. All rights reserved.
+// (c) 2020-2020, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package atomic
@@ -10,7 +10,7 @@ import (
 
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/node/cache/lru"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	"github.com/luxfi/node/network/p2p/gossip"
 	"github.com/prometheus/client_golang/prometheus"
 

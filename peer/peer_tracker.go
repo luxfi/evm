@@ -1,4 +1,4 @@
-// (c) 2019-2022, Lux Industries, Inc. All rights reserved.
+// (c) 2020-2022, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package peer
@@ -10,7 +10,7 @@ import (
 
 	"github.com/luxfi/geth/log"
 	"github.com/luxfi/geth/metrics"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	"github.com/luxfi/node/utils/set"
 	safemath "github.com/luxfi/node/utils/math"
 	"github.com/luxfi/node/version"

@@ -1,4 +1,4 @@
-// (c) 2019-2020, Lux Industries, Inc. All rights reserved.
+// (c) 2020-2020, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -9,7 +9,7 @@ import (
 
 	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/ethdb"
-	"github.com/luxfi/node/database"
+	"github.com/luxfi/database"
 )
 
 // DatabaseWrapper wraps a node database to provide compatibility with EVM database interfaces
@@ -25,8 +25,8 @@ func NewDatabaseWrapper(db database.Database) iface.Database {
 // HealthCheck implements the HealthChecker interface
 func (d *DatabaseWrapper) HealthCheck() (interface{}, error) {
 	// Call the underlying health check from node database
-	result, err := d.Database.HealthCheck(nil)
-	return result, err
+	err := d.Database.HealthCheck()
+	return nil, err
 }
 
 // Close closes the database

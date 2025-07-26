@@ -36,7 +36,7 @@ import (
 	"github.com/luxfi/evm/core/vm"
 	"github.com/luxfi/evm/eth/tracers"
 	"github.com/luxfi/evm/eth/tracers/internal"
-	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/log"
@@ -92,7 +92,7 @@ func (f *callFrame) processOutput(output []byte, err error) {
 	if f.Type == vm.CREATE || f.Type == vm.CREATE2 {
 		f.To = nil
 	}
-	if !errors.Is(err, vm.ErrExecutionReverted) || len(output) == 0 {
+	if !errors.Is(err, vmerrs.ErrExecutionReverted) || len(output) == 0 {
 		return
 	}
 	f.Output = output
