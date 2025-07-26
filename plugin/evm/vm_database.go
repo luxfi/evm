@@ -173,8 +173,8 @@ func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer interface{}, logger
 	if l, ok := logger.(log.Logger); ok {
 		luxLogger = l
 	} else {
-		// Fallback to discard logger if conversion fails
-		luxLogger = log.NewLogger(log.DiscardHandler())
+		// Fallback to no-op logger if conversion fails
+		luxLogger = log.NewNoOpLogger()
 	}
 	
 	// Use the factory to create the database
