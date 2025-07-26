@@ -14,7 +14,7 @@ import (
 
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/node/chains/atomic"
 	"github.com/luxfi/ids"
 	luxutils "github.com/luxfi/node/utils"

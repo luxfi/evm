@@ -43,7 +43,7 @@ import (
 	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/holiman/uint256"
 )
 

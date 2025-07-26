@@ -9,7 +9,7 @@ import (
 	"math/big"
 
 	"github.com/luxfi/geth/core/tracing"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/evm/core/extstate"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/params"

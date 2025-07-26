@@ -36,7 +36,7 @@ import (
 	"github.com/luxfi/geth/trie/trienode"
 	"github.com/luxfi/geth/triedb/database"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // Trie is a Merkle Patricia Trie. Use New to create a trie that sits on

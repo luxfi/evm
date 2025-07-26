@@ -12,7 +12,7 @@ import (
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/predicate"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 var ErrMissingPredicateContext = errors.New("missing predicate context")

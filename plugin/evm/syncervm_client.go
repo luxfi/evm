@@ -14,7 +14,7 @@ import (
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	commonEng "github.com/luxfi/node/consensus/engine/core"
 	"github.com/luxfi/node/consensus/engine/linear/block"
 	"github.com/luxfi/database"

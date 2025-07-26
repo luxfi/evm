@@ -39,7 +39,7 @@ import (
 	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 //go:generate go run github.com/fjl/gencodec -type callFrame -field-override callFrameMarshaling -out gen_callframe_json.go

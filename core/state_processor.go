@@ -39,7 +39,7 @@ import (
 	"github.com/luxfi/geth/common"
 	gethtypes "github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning

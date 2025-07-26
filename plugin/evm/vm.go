@@ -68,7 +68,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/rlp"
-	luxlog "github.com/luxfi/log"
+	"github.com/luxfi/log"
 
 	// Additional node imports
 
@@ -225,7 +225,7 @@ type VM struct {
 
 	bootstrapped utils.Atomic[bool]
 
-	logger luxlog.Logger
+	logger log.Logger
 	// State sync server and client
 	StateSyncServer
 	StateSyncClient
@@ -282,9 +282,9 @@ func (vm *VM) Initialize(
 	// Just use chain ID as alias
 	vm.chainAlias = vm.ctx.ChainID.String()
 
-	// For now, we'll need an adapter to convert between node's logging.Logger and luxfi/log.Logger
-	// This will be removed once node/utils/logging is extracted to luxfi/log
-	vm.logger = createLoggerAdapter(vm.ctx.Log, vm.chainAlias)
+	// Create a luxfi/log logger for the VM
+	// TODO: Eventually the node should use luxfi/log directly
+	vm.logger = log.New("chain", vm.chainAlias)
 
 	vm.logger.Info("Initializing Lux EVM VM", "Version", Version, "Config", vm.config)
 
@@ -605,7 +605,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 					// SendAppRequestAny sends to any peer, so we use SendAppRequest for specific peer
 					return vm.client.SendAppRequest(ctx, peerID, req)
 				},
-				Logger:           createGethLoggerFromLuxLog(vm.logger),
+				Logger:           asGethLogger(vm.logger),
 				Stats:            stats.NewClientSyncerStats(),
 				StateSyncNodeIDs: stateSyncIDs,
 				BlockParser:      vm,

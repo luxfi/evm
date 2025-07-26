@@ -35,7 +35,7 @@ import (
 	"log/slog"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // generatorStats is a collection of statistics gathered by the snapshot generator
@@ -52,13 +52,13 @@ type generatorStats struct {
 // Info creates an contextual info-level log with the given message and the context pulled
 // from the internally maintained statistics.
 func (gs *generatorStats) Info(msg string, root common.Hash, marker []byte) {
-	gs.log(log.LvlInfo, msg, root, marker)
+	gs.log(log.LevelInfo, msg, root, marker)
 }
 
 // Debug creates an contextual debug-level log with the given message and the context pulled
 // from the internally maintained statistics.
 func (gs *generatorStats) Debug(msg string, root common.Hash, marker []byte) {
-	gs.log(log.LvlDebug, msg, root, marker)
+	gs.log(log.LevelDebug, msg, root, marker)
 }
 
 // log creates an contextual log with the given message and the context pulled
@@ -98,11 +98,11 @@ func (gs *generatorStats) log(level slog.Level, msg string, root common.Hash, ma
 	}
 
 	switch level {
-	case log.LvlTrace:
+	case log.LevelTrace:
 		log.Trace(msg, ctx...)
-	case log.LvlDebug:
+	case log.LevelDebug:
 		log.Debug(msg, ctx...)
-	case log.LvlInfo:
+	case log.LevelInfo:
 		log.Info(msg, ctx...)
 	case log.LevelWarn:
 		log.Warn(msg, ctx...)

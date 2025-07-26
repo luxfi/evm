@@ -18,7 +18,7 @@ import (
 	"github.com/luxfi/evm/plugin/evm/header"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/predicate"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/node/consensus/engine/linear/block"
 	"github.com/luxfi/ids"
