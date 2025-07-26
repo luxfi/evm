@@ -20,19 +20,41 @@ GOOS := $(shell go env GOOS)
 CGO_CFLAGS := -O -D__BLST_PORTABLE__
 LDFLAGS := -X github.com/luxfi/evm/plugin/evm.Version=$(VERSION)
 # Build tags - only include necessary tags
-EVM_TAGS := sqlite,rocksdb
+EVM_TAGS_DEFAULT := sqlite
+EVM_TAGS_PEBBLE := sqlite,pebbledb
+EVM_TAGS_ROCKSDB := sqlite,rocksdb
 
 # Default target
 .PHONY: all
-all: build
+all: evm
 
-# Build the EVM binary
-.PHONY: build
-build:
-	@echo "Building Lux EVM..."
+# Build the EVM binary with BadgerDB (default)
+.PHONY: evm
+evm:
+	@echo "Building Lux EVM with BadgerDB..."
 	@mkdir -p build
 	@mkdir -p $(TMPDIR) $(GOCACHE)
-	TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) CGO_CFLAGS="$(CGO_CFLAGS)" go build -tags="$(EVM_TAGS)" -ldflags "$(LDFLAGS)" -o build/$(BINARY_NAME) ./plugin
+	TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) CGO_CFLAGS="$(CGO_CFLAGS)" go build -tags="$(EVM_TAGS_DEFAULT)" -ldflags "$(LDFLAGS)" -o build/$(BINARY_NAME) ./plugin
+
+# Build the EVM binary with PebbleDB
+.PHONY: evm-pebble
+evm-pebble:
+	@echo "Building Lux EVM with PebbleDB..."
+	@mkdir -p build
+	@mkdir -p $(TMPDIR) $(GOCACHE)
+	TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) CGO_CFLAGS="$(CGO_CFLAGS)" go build -tags="$(EVM_TAGS_PEBBLE)" -ldflags "$(LDFLAGS)" -o build/$(BINARY_NAME) ./plugin
+
+# Build the EVM binary with RocksDB only
+.PHONY: evm-rocksdb
+evm-rocksdb:
+	@echo "Building Lux EVM with RocksDB..."
+	@mkdir -p build
+	@mkdir -p $(TMPDIR) $(GOCACHE)
+	TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) CGO_CFLAGS="$(CGO_CFLAGS)" go build -tags="$(EVM_TAGS_ROCKSDB)" -ldflags "$(LDFLAGS)" -o build/$(BINARY_NAME) ./plugin
+
+# Build the EVM binary (alias for backward compatibility)
+.PHONY: build
+build: evm
 
 # Build and install as plugin
 .PHONY: install
@@ -157,8 +179,11 @@ help:
 	@echo "  make [target]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all          - Build the EVM binary (default)"
-	@echo "  build        - Build the EVM binary"
+	@echo "  all          - Build the EVM binary with BadgerDB (default)"
+	@echo "  evm          - Build the EVM binary with BadgerDB"
+	@echo "  evm-pebble   - Build the EVM binary with PebbleDB"
+	@echo "  evm-rocksdb  - Build the EVM binary with RocksDB"
+	@echo "  build        - Build the EVM binary (alias for evm)"
 	@echo "  install      - Build and install as Lux plugin"
 	@echo "  test         - Run tests"
 	@echo "  test-coverage - Run tests with coverage report"
