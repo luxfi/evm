@@ -72,10 +72,9 @@ func (p *Admin) SetLogLevel(_ *http.Request, args *client.SetLogLevelArgs, reply
 	p.vm.vmLock.Lock()
 	defer p.vm.vmLock.Unlock()
 
-	if err := p.vm.logger.SetLogLevel(args.Level); err != nil {
-		return fmt.Errorf("failed to parse log level: %w ", err)
-	}
-	return nil
+	// TODO: Implement SetLogLevel when luxfi/log supports dynamic level changes
+	// For now, log level changes are not supported
+	return fmt.Errorf("dynamic log level changes are not currently supported")
 }
 
 func (p *Admin) GetVMConfig(_ *http.Request, _ *struct{}, reply *client.ConfigReply) error {

@@ -62,17 +62,17 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 	}
 
 	// Verify the extra data is well-formed.
-	if err := header.VerifyExtra(rulesExtra.LuxRules, ethHeader.Extra); err != nil {
+	// For v2.0.0, all upgrades are active, so we use GenesisRules
+	if err := header.VerifyExtra(rulesExtra.GenesisRules, ethHeader.Extra); err != nil {
 		return err
 	}
 
-	if rulesExtra.IsEVM {
-		if ethHeader.BaseFee == nil {
-			return errNilBaseFeeEVM
-		}
-		if bfLen := ethHeader.BaseFee.BitLen(); bfLen > 256 {
-			return fmt.Errorf("too large base fee: bitlen %d", bfLen)
-		}
+	// For v2.0.0, EVM is always active, so always check base fee
+	if ethHeader.BaseFee == nil {
+		return errNilBaseFeeEVM
+	}
+	if bfLen := ethHeader.BaseFee.BitLen(); bfLen > 256 {
+		return fmt.Errorf("too large base fee: bitlen %d", bfLen)
 	}
 
 	// Check that the tx hash in the header matches the body
@@ -97,14 +97,7 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 		return errEmptyBlock
 	}
 
-	if !rulesExtra.IsEVM {
-		// Make sure that all the txs have the correct fee set.
-		for _, tx := range txs {
-			if tx.GasPrice().Cmp(legacyMinGasPrice) < 0 {
-				return fmt.Errorf("block contains tx %s with gas price too low (%d < %d)", tx.Hash(), tx.GasPrice(), legacyMinGasPrice)
-			}
-		}
-	}
+	// For v2.0.0, EVM is always active, so we don't check legacy gas price minimum
 
 	// Make sure the block isn't too far in the future
 	blockTimestamp := b.ethBlock.Time()
@@ -112,16 +105,15 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 		return fmt.Errorf("block timestamp is too far in the future: %d > allowed %d", blockTimestamp, maxBlockTime)
 	}
 
-	if rulesExtra.IsEVM {
-		blockGasCost := customtypes.GetHeaderExtra(ethHeader).BlockGasCost
-		switch {
-		// Make sure BlockGasCost is not nil
-		// NOTE: ethHeader.BlockGasCost correctness is checked in header verification
+	// For v2.0.0, EVM is always active, so always check block gas cost
+	blockGasCost := customtypes.GetHeaderExtra(ethHeader).BlockGasCost
+	switch {
+	// Make sure BlockGasCost is not nil
+	// NOTE: ethHeader.BlockGasCost correctness is checked in header verification
 		case blockGasCost == nil:
 			return errNilBlockGasCostEVM
-		case !blockGasCost.IsUint64():
-			return fmt.Errorf("too large blockGasCost: %d", blockGasCost)
-		}
+	case !blockGasCost.IsUint64():
+		return fmt.Errorf("too large blockGasCost: %d", blockGasCost)
 	}
 
 	// Verify the existence / non-existence of excessBlobGas

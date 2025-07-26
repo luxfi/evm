@@ -70,12 +70,9 @@ const maxJSONLen = 64 * 1024 * 1024 // 64MB
 
 var (
 	// MainnetNetworkUpgrades defines the network upgrade timestamps for mainnet
+	// For v2.0.0, all upgrades are active at genesis (timestamp 0)
 	MainnetNetworkUpgrades = extras.NetworkUpgrades{
-		EVMTimestamp: utils.NewUint64(0),
-		DurangoTimestamp:   nil,
-		EtnaTimestamp:      nil,
-		FortunaTimestamp:   nil,
-		GraniteTimestamp:   nil,
+		GenesisTimestamp: utils.NewUint64(0),
 	}
 	
 	errNonGenesisForkByHeight = errors.New("evm only supports forking by height at the genesis block")
@@ -151,8 +148,7 @@ var (
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
 		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
-			EVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.NewUint64(0),
+			GenesisTimestamp: utils.NewUint64(0),
 		},
 	}
 
@@ -177,7 +173,7 @@ var (
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
 		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
-			EVMTimestamp: utils.NewUint64(0),
+			GenesisTimestamp: utils.NewUint64(0),
 		},
 	}
 
@@ -206,7 +202,7 @@ var (
 		UpgradeConfig:            UpgradeConfig{},
 	}
 
-	TestRules = TestChainConfig.LuxRules(new(big.Int), 0)
+	TestRules = TestChainConfig.GenesisRules(new(big.Int), 0)
 )
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:
@@ -332,9 +328,7 @@ func (c *ChainConfig) Description() string {
 		banner += fmt.Sprintf(" - Muir Glacier:                #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/muir-glacier.md)\n", c.MuirGlacierBlock)
 	}
 	banner += "Mandatory Upgrades:\n"
-	banner += fmt.Sprintf(" - EVM Timestamp:           @%-10v (https://github.com/luxfi/node/releases/tag/v1.10.0)\n", ptrToString(c.MandatoryNetworkUpgrades.EVMTimestamp))
-	banner += fmt.Sprintf(" - Durango Timestamp:             @%-10v (https://github.com/luxfi/node/releases/tag/v1.11.0)\n", ptrToString(c.MandatoryNetworkUpgrades.DurangoTimestamp))
-	banner += fmt.Sprintf(" - Etna Timestamp:                @%-10v (https://github.com/luxfi/node/releases/tag/v1.12.0)\n", ptrToString(c.MandatoryNetworkUpgrades.EtnaTimestamp))
+	banner += fmt.Sprintf(" - Genesis Timestamp:           @%-10v (All upgrades active at genesis)\n", ptrToString(c.MandatoryNetworkUpgrades.GenesisTimestamp))
 	banner += "\n"
 
 	// Add EVM custom fields
@@ -434,9 +428,9 @@ func (c *ChainConfig) IsLondon(num *big.Int) bool {
 }
 
 // IsShanghai returns whether time represents a block with a timestamp after the Shanghai upgrade time.
+// For v2.0.0, this is always true since all upgrades are active at genesis.
 func (c *ChainConfig) IsShanghai(num *big.Int, time uint64) bool {
-	// For now, we'll consider Shanghai active if EVM is active
-	return c.IsEVM(time)
+	return true
 }
 
 // Rules returns the Ethereum chainrules to use for the given block number and timestamp.
@@ -446,21 +440,24 @@ func (c *ChainConfig) Rules(num *big.Int, timestamp uint64) Rules {
 
 // IsEVM returns whether [time] represents a block
 // with a timestamp after the EVM upgrade time.
+// For v2.0.0, this is always true since all upgrades are active at genesis.
 func (c *ChainConfig) IsEVM(time uint64) bool {
-	return utils.IsTimestampForked(c.MandatoryNetworkUpgrades.EVMTimestamp, time)
+	return true
 }
 
 // IsDUpgrade returns whether [time] represents a block
 // with a timestamp after the DUpgrade upgrade time.
+// For v2.0.0, this is always true since all upgrades are active at genesis.
 func (c *ChainConfig) IsDUpgrade(time uint64) bool {
-	return utils.IsTimestampForked(c.MandatoryNetworkUpgrades.DurangoTimestamp, time)
+	return true
 }
 
 // IsDurango returns whether [time] represents a block
 // with a timestamp after the Durango upgrade time.
 // Implements precompileconfig.ChainConfig interface.
+// For v2.0.0, this is always true since all upgrades are active at genesis.
 func (c *ChainConfig) IsDurango(time uint64) bool {
-	return c.IsDUpgrade(time)
+	return true
 }
 
 // AllowedFeeRecipients returns true if fee recipients are allowed
@@ -481,8 +478,9 @@ func (c *ChainConfig) GetFeeConfig() commontype.FeeConfig {
 
 // IsCancun returns whether [time] represents a block
 // with a timestamp after the Cancun upgrade time.
+// For v2.0.0, this is always true since all upgrades are active at genesis.
 func (c *ChainConfig) IsCancun(time uint64) bool {
-	return c.MandatoryNetworkUpgrades.IsEtna(time)
+	return true
 }
 
 func (r *Rules) PredicatersExist() bool {
@@ -932,6 +930,9 @@ func (r *Rules) IsFortuna() bool { return true }
 // IsGranite returns true (always enabled)  
 func (r *Rules) IsGranite() bool { return true }
 
+// IsGenesis returns true (always enabled in v2.0.0)
+func (r *Rules) IsGenesis() bool { return true }
+
 // GetActivePrecompiles returns the active precompiles as an interface map
 func (r *Rules) GetActivePrecompiles() map[common.Address]interface{} {
 	result := make(map[common.Address]interface{})
@@ -983,15 +984,15 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 		IsIstanbul:       c.IsIstanbul(num),
 		IsBerlin:         c.IsBerlin(num),
 		IsLondon:         c.IsLondon(num),
-		IsShanghai:       c.IsShanghai(num, timestamp),
-		IsCancun:         c.IsCancun(timestamp),
-		IsEVMEnabled:     c.IsEVM(timestamp),
+		IsShanghai:       true, // Always true for v2.0.0
+		IsCancun:         true, // Always true for v2.0.0
+		IsEVMEnabled:     true, // Always true for v2.0.0
 	}
 }
 
-// LuxRules returns the Lux modified rules to support Lux
+// GenesisRules returns the Genesis modified rules to support Genesis
 // network upgrades
-func (c *ChainConfig) LuxRules(blockNum *big.Int, timestamp uint64) iface.LuxRules {
+func (c *ChainConfig) GenesisRules(blockNum *big.Int, timestamp uint64) iface.GenesisRules {
 	rules := c.rules(blockNum, timestamp)
 	// IsEVM is already a field in Rules struct, set during initialization
 
@@ -1020,12 +1021,16 @@ func (c *ChainConfig) LuxRules(blockNum *big.Int, timestamp uint64) iface.LuxRul
 
 // IsFortuna returns whether [time] represents a block
 // with a timestamp after the Fortuna upgrade time.
+// For v2.0.0, this is always true since all upgrades are active at genesis.
 func (c *ChainConfig) IsFortuna(time uint64) bool {
-	extra := GetExtra(c)
-	if extra == nil {
-		return false
-	}
-	return extra.IsFortuna(time)
+	return true
+}
+
+// IsGenesis returns whether all network upgrades are active at genesis.
+// For v2.0.0, this is always true since all upgrades are active at genesis.
+// Implements iface.ChainConfig interface.
+func (c *ChainConfig) IsGenesis(time uint64) bool {
+	return true
 }
 
 type ChainConfigWithUpgradesJSON struct {

@@ -7,7 +7,6 @@ import (
 	"hash"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/rlp"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -42,13 +41,3 @@ func (h *testHasher) Hash() common.Hash {
 	return common.BytesToHash(h.hasher.Sum(nil))
 }
 
-// hashItems is a test utility to compute the hash of a list of items.
-func hashItems[T any](items []T) common.Hash {
-	h := sha3.NewLegacyKeccak256()
-	for _, item := range items {
-		if data, err := rlp.EncodeToBytes(item); err == nil {
-			h.Write(data)
-		}
-	}
-	return common.BytesToHash(h.Sum(nil))
-}

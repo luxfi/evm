@@ -15,9 +15,9 @@ import (
 	"github.com/luxfi/geth/log"
 	nodedb "github.com/luxfi/database"
 	"github.com/luxfi/database/factory"
-	"github.com/luxfi/database/pebbledb"
 	"github.com/luxfi/database/prefixdb"
 	"github.com/luxfi/node/utils/constants"
+	luxlog "github.com/luxfi/log"
 )
 
 const (
@@ -169,34 +169,29 @@ func inspectDB(db iface.Database, label string) error {
 func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer interface{}, logger interface{}) (nodedb.Database, error) {
 	dbPath := filepath.Join(dbConfig.Path, dbConfig.Name)
 
-	// TODO: Fix pebbledb configuration when constants are available
-	// For now, we'll ignore the gatherer and logger parameters
-	// until we can properly integrate them with the new pebbledb API
-
-	var db nodedb.Database
-	var err error
-	switch dbConfig.Name {
-	case "badgerdb":
-		// Use the factory to create BadgerDB with proper build tag handling
-		factoryConfig := factory.DatabaseConfig{
-			Name:       dbConfig.Name,
-			Dir:        dbPath,
-			Config:     dbConfig.Config,
-			Type:       "badgerdb",
-			MetricsReg: nil, // TODO: Add metrics if needed
-		}
-		db, err = factory.New(factoryConfig)
-	case "pebbledb":
-		db, err = pebbledb.New(dbPath, 0, 0, "", false)
-	case "leveldb":
-		// Use default leveldb config for now
-		db, err = pebbledb.New(dbPath, 0, 0, "", false) // Use pebble as leveldb alternative
-	default:
-		return nil, fmt.Errorf("unknown database type: %s", dbConfig.Name)
+	// Convert the logger interface to luxfi/log.Logger
+	var luxLogger luxlog.Logger
+	if l, ok := logger.(luxlog.Logger); ok {
+		luxLogger = l
+	} else {
+		// Fallback to noop logger if conversion fails
+		luxLogger = luxlog.NewNoopLogger()
 	}
+	
+	// Use the factory to create the database
+	db, err := factory.New(
+		dbConfig.Name,
+		dbPath,
+		false, // not read-only
+		dbConfig.Config,
+		gatherer, // Use the provided gatherer
+		luxLogger,
+		"evm", // metrics prefix
+		"",    // meter db reg name
+	)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create database: %w", err)
 	}
-
+	
 	return db, nil
 }

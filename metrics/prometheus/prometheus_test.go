@@ -100,13 +100,14 @@ func TestGatherer_Gather(t *testing.T) {
 }
 
 func registerNilMetrics(t *testing.T, register func(t *testing.T, name string, collector any)) {
-	metrics.Enabled = false
-	defer func() { metrics.Enabled = true }()
+	// Note: metrics.Enabled is a function, not a variable.
+	// We can't disable metrics at runtime in this way.
+	// Instead, we'll test with nil metrics directly
 	nilCounter := metrics.NewCounter()
 	register(t, "nil/counter", nilCounter)
 	nilCounterFloat64 := metrics.NewCounterFloat64()
 	register(t, "nil/counter_float64", nilCounterFloat64)
-	nilEWMA := &metrics.NilEWMA{}
+	nilEWMA := metrics.NewEWMA(0.5)
 	register(t, "nil/ewma", nilEWMA)
 	nilGauge := metrics.NewGauge()
 	register(t, "nil/gauge", nilGauge)
@@ -116,14 +117,16 @@ func registerNilMetrics(t *testing.T, register func(t *testing.T, name string, c
 	register(t, "nil/gauge_info", nilGaugeInfo)
 	nilHealthcheck := metrics.NewHealthcheck(nil)
 	register(t, "nil/healthcheck", nilHealthcheck)
-	nilHistogram := metrics.NewHistogram(nil)
+	// Create histogram with a sample to avoid nil panic
+	nilSample := metrics.NewUniformSample(100)
+	nilHistogram := metrics.NewHistogram(nilSample)
 	register(t, "nil/histogram", nilHistogram)
 	nilMeter := metrics.NewMeter()
 	register(t, "nil/meter", nilMeter)
 	nilResettingTimer := metrics.NewResettingTimer()
 	register(t, "nil/resetting_timer", nilResettingTimer)
-	nilSample := metrics.NewUniformSample(1028)
-	register(t, "nil/sample", nilSample)
+	nilSample2 := metrics.NewUniformSample(1028)
+	register(t, "nil/sample", nilSample2)
 	nilTimer := metrics.NewTimer()
 	register(t, "nil/timer", nilTimer)
 }

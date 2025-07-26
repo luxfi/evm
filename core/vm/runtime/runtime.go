@@ -87,7 +87,7 @@ func setDefaults(cfg *Config) {
 			},
 			&extras.ChainConfig{
 				NetworkUpgrades: extras.NetworkUpgrades{
-					EVMTimestamp: new(uint64),
+					GenesisTimestamp: new(uint64),
 				},
 			},
 		)

@@ -6,7 +6,6 @@ package evm
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -276,20 +275,14 @@ func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writ
 
 // verifyPredicates verifies the predicates in the block are valid according to predicateContext.
 func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateContext) error {
-	rules := b.vm.rules(b.ethBlock.Number(), b.ethBlock.Timestamp())
-
-	switch {
-	case !rules.IsDurango && rules.PredicatersExist():
-		return errors.New("cannot enable predicates before Durango activation")
-	case !rules.IsDurango:
-		return nil
-	}
+	// For v2.0.0, all upgrades are active including Durango
+	// Skip the upgrade check since we always support predicates
 
 	predicateResults := predicate.NewResults()
 	for _, tx := range b.ethBlock.Transactions() {
 		// Convert to params.Rules for CheckPredicates
-		paramRules := b.vm.chainConfig.Rules(b.ethBlock.Number(), b.ethBlock.Timestamp())
-		results, err := core.CheckPredicates(paramRules, predicateContext, tx)
+		rules := b.vm.chainConfig.Rules(b.ethBlock.Number(), b.ethBlock.Timestamp())
+		results, err := core.CheckPredicates(rules, predicateContext, tx)
 		if err != nil {
 			return err
 		}

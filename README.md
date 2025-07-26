@@ -1,7 +1,13 @@
 # Lux EVM
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/luxfi/evm.svg)](https://pkg.go.dev/github.com/luxfi/evm)
+[![Go Report Card](https://goreportcard.com/badge/github.com/luxfi/evm)](https://goreportcard.com/report/github.com/luxfi/evm)
 [![Build + Test + Release](https://github.com/luxfi/geth/actions/workflows/lint-tests-release.yml/badge.svg)](https://github.com/luxfi/geth/actions/workflows/lint-tests-release.yml)
 [![CodeQL](https://github.com/luxfi/geth/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/luxfi/geth/actions/workflows/codeql-analysis.yml)
+
+## Overview
+
+The Lux EVM is a high-performance Ethereum Virtual Machine implementation optimized for the Lux Network. It provides full Ethereum compatibility while leveraging Lux's advanced consensus and networking capabilities.
 
 [Lux](https://docs.lux.network/overview/getting-started/lux-platform) is a network composed of multiple blockchains.
 Each blockchain is an instance of a Virtual Machine (VM), much like an object in an object-oriented language is an instance of a class.
@@ -10,6 +16,14 @@ That is, the VM defines the behavior of the blockchain.
 EVM is the [Virtual Machine (VM)](https://docs.lux.network/learn/lux/virtual-machines) that defines the EVM Contract Chains. Lux EVM is a customizable version of [Lux Ethereum VM (C-Chain)](https://github.com/luxfi/geth).
 
 This chain implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
+
+### Key Features
+
+- **⚡ High Performance**: Sub-second finality with high throughput
+- **🔄 Full EVM Compatibility**: Deploy existing Ethereum dApps without modification
+- **🏗️ Customizable**: Configure gas limits, fees, and network parameters
+- **🔐 Secure**: Built on Avalanche consensus for maximum security
+- **📊 Efficient**: Optimized state management and storage
 
 ## Building
 
@@ -120,3 +134,129 @@ There are two options when using the Lux-CLI:
 
 1. Use an official EVM release: https://docs.lux.network/subnets/build-first-subnet
 2. Build and deploy a locally built (and optionally modified) version of EVM: https://docs.lux.network/subnets/create-custom-subnet
+
+## Configuration
+
+### Genesis Configuration
+
+Configure your EVM instance through the genesis file:
+
+```json
+{
+  "config": {
+    "chainId": 7777,
+    "homesteadBlock": 0,
+    "eip150Block": 0,
+    "eip155Block": 0,
+    "eip158Block": 0,
+    "byzantiumBlock": 0,
+    "constantinopleBlock": 0,
+    "petersburgBlock": 0,
+    "istanbulBlock": 0,
+    "muirGlacierBlock": 0,
+    "subnetEVMTimestamp": 0,
+    "feeConfig": {
+      "gasLimit": 15000000,
+      "targetBlockRate": 2,
+      "minBaseFee": 25000000000,
+      "targetGas": 15000000,
+      "baseFeeChangeDenominator": 36,
+      "minBlockGasCost": 0,
+      "maxBlockGasCost": 1000000,
+      "blockGasCostStep": 200000
+    }
+  }
+}
+```
+
+### Network Upgrades (v2.0.0+)
+
+Starting with version 2.0.0, all network upgrades are active from genesis. For adding future upgrades, see [NETWORK_UPGRADES.md](./NETWORK_UPGRADES.md).
+
+## Development
+
+### Testing
+
+```bash
+# Run all tests
+go test ./...
+
+# Run tests with coverage
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+
+# Run specific package tests
+go test ./core/...
+go test ./eth/...
+```
+
+### Benchmarking
+
+```bash
+# Run benchmarks
+go test -bench=. ./core/vm/...
+go test -bench=. ./core/state/...
+```
+
+### Debugging
+
+Enable debug APIs in your configuration:
+
+```json
+{
+  "eth-apis": ["eth", "debug", "net", "web3"]
+}
+```
+
+## Performance Tuning
+
+### Database Backend
+
+The EVM uses BadgerDB by default for optimal performance:
+
+```json
+{
+  "database-type": "badgerdb",
+  "database-cache-size": 2048
+}
+```
+
+### State Management
+
+Configure state pruning for efficient storage:
+
+```json
+{
+  "pruning-enabled": true,
+  "pruning-blocks-to-keep": 1000,
+  "pruning-interval": 3600
+}
+```
+
+## Security
+
+- Always run nodes with appropriate firewall rules
+- Use secure RPC endpoints with authentication
+- Keep your node software up to date
+- Monitor for security advisories
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](../CONTRIBUTING.md) for details.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## Resources
+
+- [Lux Documentation](https://docs.lux.network)
+- [Discord Community](https://discord.gg/luxnetwork)
+- [GitHub Issues](https://github.com/luxfi/evm/issues)
+- [Ethereum Yellow Paper](https://ethereum.github.io/yellowpaper/paper.pdf)
+
+## License
+
+This project is licensed under the BSD 3-Clause License. See the [LICENSE](LICENSE) file for details.

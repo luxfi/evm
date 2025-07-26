@@ -41,3 +41,18 @@ func (sk *SecretKey) Sign(msg []byte) (*bls.Signature, error) {
 func (sk *SecretKey) SignProofOfPossession(msg []byte) (*bls.Signature, error) {
 	return sk.signer.SignProofOfPossession(msg)
 }
+
+// MarshalBinary serializes the secret key to bytes
+func (sk *SecretKey) MarshalBinary() ([]byte, error) {
+	return sk.signer.ToBytes(), nil
+}
+
+// UnmarshalBinary deserializes the secret key from bytes
+func (sk *SecretKey) UnmarshalBinary(data []byte) error {
+	signer, err := localsigner.FromBytes(data)
+	if err != nil {
+		return err
+	}
+	sk.signer = signer
+	return nil
+}

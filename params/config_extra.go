@@ -44,12 +44,9 @@ func (p *chainConfigPayloads) Set(c *ChainConfig, extra *extras.ChainConfig) {
 	p.extras[c] = extra
 }
 
-// SetEthUpgrades enables Etheruem network upgrades using the same time as
+// SetEthUpgrades enables Ethereum network upgrades using the same time as
 // the Lux network upgrade that enables them.
-//
-// TODO: Prior to Cancun, Lux upgrades are referenced inline in the
-// code in place of their Ethereum counterparts. The original Ethereum names
-// should be restored for maintainability.
+// For v2.0.0, all upgrades are active at genesis (timestamp 0).
 func SetEthUpgrades(c *ChainConfig, luxUpgrades extras.NetworkUpgrades) {
 	if c.BerlinBlock == nil {
 		c.BerlinBlock = big.NewInt(0)
@@ -57,11 +54,10 @@ func SetEthUpgrades(c *ChainConfig, luxUpgrades extras.NetworkUpgrades) {
 	if c.LondonBlock == nil {
 		c.LondonBlock = big.NewInt(0)
 	}
-	if luxUpgrades.DurangoTimestamp != nil {
-		c.ShanghaiTime = utils.NewUint64(*luxUpgrades.DurangoTimestamp)
-	}
-	if luxUpgrades.EtnaTimestamp != nil {
-		c.CancunTime = utils.NewUint64(*luxUpgrades.EtnaTimestamp)
+	// For v2.0.0, all upgrades are active at genesis
+	if luxUpgrades.GenesisTimestamp != nil {
+		c.ShanghaiTime = utils.NewUint64(*luxUpgrades.GenesisTimestamp)
+		c.CancunTime = utils.NewUint64(*luxUpgrades.GenesisTimestamp)
 	}
 }
 
@@ -137,7 +133,7 @@ func GetRulesExtra(rules Rules) *extras.Rules {
 	
 	// Create rules based on the Lux upgrades
 	return &extras.Rules{
-		LuxRules: extra.GetLuxRules(0), // Using 0 as we don't have timestamp in Rules
+		GenesisRules: extra.GetRules(0), // Using 0 as we don't have timestamp in Rules
 		Precompiles:    rules.ActivePrecompiles,
 		Predicaters:    rules.Predicaters,
 		AccepterPrecompiles: rules.AccepterPrecompiles,
