@@ -61,6 +61,11 @@ type (
 
 // getParamsConfig converts an iface.ChainConfig to *params.ChainConfig
 func getParamsConfig(config iface.ChainConfig) *params.ChainConfig {
+	// First check if config is already a *params.ChainConfig
+	if paramsConfig, ok := config.(*params.ChainConfig); ok {
+		return paramsConfig
+	}
+	
 	// Try to get the underlying geth config and cast
 	if gethConfig := config.AsGeth(); gethConfig != nil {
 		if paramsConfig, ok := gethConfig.(*params.ChainConfig); ok {

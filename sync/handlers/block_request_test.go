@@ -14,7 +14,6 @@ import (
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/sync/handlers/stats"
 	"github.com/luxfi/evm/sync/handlers/stats/statstest"
@@ -103,15 +102,17 @@ func executeBlockRequestTest(t testing.TB, test blockRequestTest, blocks []*type
 }
 
 func TestBlockRequestHandler(t *testing.T) {
+	config := getTestChainConfig()
 	gspec := &core.Genesis{
-		Config:   params.TestChainConfig,
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+		Config:   config,
+		GasLimit: config.FeeConfig.GasLimit.Uint64(),
+		BaseFee:  config.FeeConfig.MinBaseFee,
 	}
 	memdb := rawdb.NewMemoryDatabase()
 	tdb := triedb.NewDatabase(memdb, nil)
 	genesis := gspec.MustCommit(memdb, tdb)
-	engine := dummy.NewETHFaker()
-	blocks, _, err := core.GenerateChain(params.TestChainConfig, genesis, engine, memdb, 96, 0, func(i int, b *core.BlockGen) {})
+	engine := dummy.NewCoinbaseFaker()
+	blocks, _, err := core.GenerateChain(config, genesis, engine, memdb, 96, 0, func(i int, b *core.BlockGen) {})
 	if err != nil {
 		t.Fatal("unexpected error when generating test blockchain", err)
 	}
@@ -155,13 +156,15 @@ func TestBlockRequestHandler(t *testing.T) {
 }
 
 func TestBlockRequestHandlerLargeBlocks(t *testing.T) {
+	config := getTestChainConfig()
 	var (
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
-		funds   = big.NewInt(1000000000000000000)
+		funds   = new(big.Int).Mul(big.NewInt(1000000000), big.NewInt(1000000000000000000)) // 1B ETH
 		gspec   = &core.Genesis{
-			Config:   params.TestChainConfig,
-			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+			Config:   config,
+			GasLimit: config.FeeConfig.GasLimit.Uint64(),
+			BaseFee:  config.FeeConfig.MinBaseFee,
 			Alloc:    types.GenesisAlloc{addr1: {Balance: funds}},
 		}
 		signer = types.LatestSignerForChainID(gspec.Config.ChainID)
@@ -169,8 +172,8 @@ func TestBlockRequestHandlerLargeBlocks(t *testing.T) {
 	memdb := rawdb.NewMemoryDatabase()
 	tdb := triedb.NewDatabase(memdb, nil)
 	genesis := gspec.MustCommit(memdb, tdb)
-	engine := dummy.NewETHFaker()
-	blocks, _, err := core.GenerateChain(params.TestChainConfig, genesis, engine, memdb, 96, 0, func(i int, b *core.BlockGen) {
+	engine := dummy.NewCoinbaseFaker()
+	blocks, _, err := core.GenerateChain(config, genesis, engine, memdb, 96, 0, func(i int, b *core.BlockGen) {
 		var data []byte
 		switch {
 		case i <= 32:
@@ -178,11 +181,21 @@ func TestBlockRequestHandlerLargeBlocks(t *testing.T) {
 		default:
 			data = make([]byte, units.MiB/16)
 		}
-		tx, err := types.SignTx(types.NewTransaction(b.TxNonce(addr1), addr1, big.NewInt(10000), 4_215_304, nil, data), signer, key1)
+		tx := types.NewTx(&types.DynamicFeeTx{
+			ChainID:   config.ChainID,
+			Nonce:     b.TxNonce(addr1),
+			To:        &addr1,
+			Value:     big.NewInt(10000),
+			Gas:       4_215_304,
+			GasFeeCap: b.BaseFee(),
+			GasTipCap: big.NewInt(0),
+			Data:      data,
+		})
+		signedTx, err := types.SignTx(tx, signer, key1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		b.AddTx(tx)
+		b.AddTx(signedTx)
 	})
 	if err != nil {
 		t.Fatal("unexpected error when generating test blockchain", err)
@@ -217,15 +230,17 @@ func TestBlockRequestHandlerLargeBlocks(t *testing.T) {
 }
 
 func TestBlockRequestHandlerCtxExpires(t *testing.T) {
+	config := getTestChainConfig()
 	gspec := &core.Genesis{
-		Config:   params.TestChainConfig,
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+		Config:   config,
+		GasLimit: config.FeeConfig.GasLimit.Uint64(),
+		BaseFee:  config.FeeConfig.MinBaseFee,
 	}
 	memdb := rawdb.NewMemoryDatabase()
 	tdb := triedb.NewDatabase(memdb, nil)
 	genesis := gspec.MustCommit(memdb, tdb)
-	engine := dummy.NewETHFaker()
-	blocks, _, err := core.GenerateChain(params.TestChainConfig, genesis, engine, memdb, 11, 0, func(i int, b *core.BlockGen) {})
+	engine := dummy.NewCoinbaseFaker()
+	blocks, _, err := core.GenerateChain(config, genesis, engine, memdb, 11, 0, func(i int, b *core.BlockGen) {})
 	if err != nil {
 		t.Fatal("unexpected error when generating test blockchain", err)
 	}

@@ -155,8 +155,8 @@ type Logger interface {
 	// Crit logs a message at the crit level with context key/value pairs, and exits
 	Crit(msg string, ctx ...interface{})
 
-	// Write logs a message at the specified level
-	Write(level slog.Level, msg string, attrs ...any)
+	// WriteLog logs a message at the specified level
+	WriteLog(level slog.Level, msg string, attrs ...any)
 
 	// Enabled reports whether l emits log records at the given context and level.
 	Enabled(ctx context.Context, level slog.Level) bool
@@ -173,8 +173,8 @@ func NewLogger(h slog.Handler) Logger {
 	}
 }
 
-// write logs a message at the specified level:
-func (l *logger) Write(level slog.Level, msg string, attrs ...any) {
+// WriteLog logs a message at the specified level:
+func (l *logger) WriteLog(level slog.Level, msg string, attrs ...any) {
 	if !l.inner.Enabled(context.Background(), level) {
 		return
 	}
@@ -191,7 +191,7 @@ func (l *logger) Write(level slog.Level, msg string, attrs ...any) {
 }
 
 func (l *logger) Log(level slog.Level, msg string, attrs ...any) {
-	l.Write(level, msg, attrs...)
+	l.WriteLog(level, msg, attrs...)
 }
 
 func (l *logger) With(ctx ...interface{}) Logger {
@@ -208,26 +208,26 @@ func (l *logger) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (l *logger) Trace(msg string, ctx ...interface{}) {
-	l.Write(LevelTrace, msg, ctx...)
+	l.WriteLog(LevelTrace, msg, ctx...)
 }
 
 func (l *logger) Debug(msg string, ctx ...interface{}) {
-	l.Write(slog.LevelDebug, msg, ctx...)
+	l.WriteLog(slog.LevelDebug, msg, ctx...)
 }
 
 func (l *logger) Info(msg string, ctx ...interface{}) {
-	l.Write(slog.LevelInfo, msg, ctx...)
+	l.WriteLog(slog.LevelInfo, msg, ctx...)
 }
 
 func (l *logger) Warn(msg string, ctx ...any) {
-	l.Write(slog.LevelWarn, msg, ctx...)
+	l.WriteLog(slog.LevelWarn, msg, ctx...)
 }
 
 func (l *logger) Error(msg string, ctx ...interface{}) {
-	l.Write(slog.LevelError, msg, ctx...)
+	l.WriteLog(slog.LevelError, msg, ctx...)
 }
 
 func (l *logger) Crit(msg string, ctx ...interface{}) {
-	l.Write(LevelCrit, msg, ctx...)
+	l.WriteLog(LevelCrit, msg, ctx...)
 	os.Exit(1)
 }

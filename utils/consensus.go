@@ -8,8 +8,8 @@ import (
 	"errors"
 
 	"github.com/luxfi/ids"
+	luxlog "github.com/luxfi/log"
 	"github.com/luxfi/node/utils/constants"
-	"github.com/luxfi/node/utils/logging"
 	"github.com/luxfi/node/vms/platformvm/warp"
 	"github.com/luxfi/node/consensus"
 	"github.com/luxfi/node/api/metrics"
@@ -44,7 +44,7 @@ func TestConsensusContext() *consensus.Context {
 		NetworkUpgrades: upgrade.Default,
 		PublicKey:       pk,
 		WarpSigner:      warp.NewSigner(signer, networkID, chainID),
-		Log:             logging.NoLog{},
+		Log:             luxlog.NewNoOpLogger(),
 		BCLookup:        ids.NewAliaser(),
 		Metrics:         metrics.NewPrefixGatherer(),
 		ChainDataDir:    "",
