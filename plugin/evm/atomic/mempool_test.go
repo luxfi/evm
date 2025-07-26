@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023, Lux Industries, Inc. All rights reserved.
+// Copyright (C) 2020-2023, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package atomic
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/luxfi/evm/consensus"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )

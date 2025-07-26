@@ -6,7 +6,7 @@ package atomic
 import (
 	"container/heap"
 
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 )
 
 // txEntry is used to track the [gasPrice] transactions pay to be included in

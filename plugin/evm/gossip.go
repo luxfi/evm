@@ -1,4 +1,4 @@
-// (c) 2019-2025, Lux Industries, Inc. All rights reserved.
+// (c) 2020-2025, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -9,7 +9,7 @@ import (
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	"github.com/luxfi/node/network/p2p/gossip"
 	"github.com/prometheus/client_golang/prometheus"
 )

@@ -14,7 +14,7 @@ import (
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/geth/params"
 	luxatomic "github.com/luxfi/node/chains/atomic"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	"github.com/luxfi/node/utils/set"
 	"github.com/luxfi/node/utils/wrappers"
 )

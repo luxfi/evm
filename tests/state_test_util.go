@@ -1,4 +1,4 @@
-// (c) 2019-2020, Lux Industries, Inc.
+// (c) 2020-2020, Lux Industries, Inc.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -37,7 +37,7 @@ import (
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/state"
-	"github.com/luxfi/evm/core/state/snapshot"
+	"github.com/luxfi/geth/core/state/snapshot"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
 	"github.com/luxfi/geth/ethdb"
@@ -52,7 +52,6 @@ import (
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/geth/core/tracing"
 	"golang.org/x/crypto/sha3"
-	ethparams "github.com/luxfi/evm/params"
 	"github.com/holiman/uint256"
 )
 
@@ -293,7 +292,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 		if err != nil {
 			return state, common.Hash{}, err
 		}
-		if _, err := types.Sender(types.LatestSigner(&ethparams.ChainConfig{ChainID: config.ChainID}), &ttx); err != nil {
+		if _, err := types.Sender(types.LatestSigner(config.ToEthChainConfig()), &ttx); err != nil {
 			return state, common.Hash{}, err
 		}
 	}
@@ -303,10 +302,10 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
 	context.GetHash = vmTestBlockHash
 	context.BaseFee = baseFee
-	context.Random = nil
+	// Random field is not available in the local BlockContext
+	// It may need to be handled differently in the Lux EVM
 	if config.IsEVM(block.Time()) && t.json.Env.Random != nil {
-		rnd := common.BigToHash(t.json.Env.Random)
-		context.Random = &rnd
+		// TODO: Handle random value in Lux EVM context
 		context.Difficulty = big.NewInt(0)
 	}
 	if config.IsCancun(block.Time()) && t.json.Env.ExcessBlobGas != nil {
@@ -314,8 +313,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 		excess := uint256.MustFromBig(new(big.Int).SetUint64(*t.json.Env.ExcessBlobGas))
 		context.BlobBaseFee = new(big.Int).Div(excess.ToBig(), big.NewInt(128))
 	}
-	evm := vm.NewEVM(context, state.StateDB, &ethparams.ChainConfig{ChainID: config.ChainID}, vmconfig)
-	evm.SetTxContext(txContext)
+	evm := vm.NewEVM(context, txContext, state.StateDB, config, vmconfig)
 
 	// Execute the message.
 	snapshot := state.StateDB.Snapshot()

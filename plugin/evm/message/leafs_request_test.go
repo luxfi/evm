@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	"github.com/stretchr/testify/assert"
 )
 

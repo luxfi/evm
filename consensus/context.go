@@ -1,4 +1,4 @@
-// (c) 2019-2020, Lux Industries, Inc.
+// (c) 2020-2020, Lux Industries, Inc.
 // All rights reserved.
 // See the file LICENSE for licensing terms.
 
@@ -6,8 +6,8 @@ package consensus
 
 import (
 	"github.com/luxfi/node/api/metrics"
-	"github.com/luxfi/node/ids"
-	"github.com/luxfi/node/utils/crypto/bls"
+	"github.com/luxfi/ids"
+	"github.com/luxfi/crypto/bls"
 	"github.com/luxfi/node/utils/logging"
 )
 
