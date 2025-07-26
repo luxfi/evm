@@ -33,7 +33,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
 	ethereum "github.com/luxfi/evm/iface"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // WaitMined waits for tx to be mined on the blockchain.

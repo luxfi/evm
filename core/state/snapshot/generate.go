@@ -37,7 +37,7 @@ import (
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/geth/rlp"
 )
 

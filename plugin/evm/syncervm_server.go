@@ -9,7 +9,7 @@ import (
 
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/plugin/evm/message"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/node/consensus/engine/linear/block"
 	"github.com/luxfi/database"
 )

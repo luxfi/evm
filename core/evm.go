@@ -37,7 +37,7 @@ import (
 	"github.com/luxfi/evm/predicate"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/tracing"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/holiman/uint256"
 )
 

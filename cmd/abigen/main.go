@@ -38,7 +38,7 @@ import (
 	"github.com/luxfi/evm/cmd/utils"
 	"github.com/luxfi/geth/common/compiler"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/urfave/cli/v2"
 )
 

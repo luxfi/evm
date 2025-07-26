@@ -13,7 +13,7 @@ import (
 	"github.com/luxfi/evm/predicate"
 	// warpValidators "github.com/luxfi/warp/validators"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 const (

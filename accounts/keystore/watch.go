@@ -33,7 +33,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/fsnotify/fsnotify"
 )
 

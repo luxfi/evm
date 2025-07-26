@@ -53,7 +53,7 @@ import (
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/evm/eth/gasestimator"
 	"github.com/luxfi/evm/eth/tracers/logger"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 
 	gethmath "github.com/luxfi/geth/common/math"
 	"github.com/luxfi/geth/params"
