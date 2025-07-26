@@ -14,6 +14,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/log"
 	nodedb "github.com/luxfi/database"
+	"github.com/luxfi/database/factory"
 	"github.com/luxfi/database/pebbledb"
 	"github.com/luxfi/database/prefixdb"
 	"github.com/luxfi/node/utils/constants"
@@ -128,7 +129,7 @@ func getDatabaseConfig(config Config, chainDataDir string) (DatabaseConfig, erro
 	dbPath := filepath.Join(chainDataDir, "db")
 
 	return DatabaseConfig{
-		Name:     "leveldb", // default database type
+		Name:     "badgerdb", // default database type
 		ReadOnly: false,
 		Path:     dbPath,
 		Config:   configBytes,
@@ -175,6 +176,16 @@ func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer interface{}, logger
 	var db nodedb.Database
 	var err error
 	switch dbConfig.Name {
+	case "badgerdb":
+		// Use the factory to create BadgerDB with proper build tag handling
+		factoryConfig := factory.DatabaseConfig{
+			Name:       dbConfig.Name,
+			Dir:        dbPath,
+			Config:     dbConfig.Config,
+			Type:       "badgerdb",
+			MetricsReg: nil, // TODO: Add metrics if needed
+		}
+		db, err = factory.New(factoryConfig)
 	case "pebbledb":
 		db, err = pebbledb.New(dbPath, 0, 0, "", false)
 	case "leveldb":
