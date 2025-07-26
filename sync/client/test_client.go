@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/luxfi/node/codec"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/sync/handlers"
 	"github.com/luxfi/geth/common"

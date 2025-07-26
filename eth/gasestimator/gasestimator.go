@@ -41,7 +41,7 @@ import (
 	gethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // Options are the contextual parameters to execute the requested call.

@@ -31,7 +31,7 @@ import (
 	"os"
 	"runtime/trace"
 
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // StartGoTrace turns on tracing, writing to the given file.

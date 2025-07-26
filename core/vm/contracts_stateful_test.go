@@ -14,7 +14,7 @@ import (
 	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/tracing"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/ids"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"

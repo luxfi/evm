@@ -33,7 +33,7 @@ import (
 	"os"
 	
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/evm/core/types"
 )

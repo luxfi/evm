@@ -15,7 +15,7 @@ import (
 	"github.com/luxfi/evm/ethclient"
 	ethparams "github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 // DistributeFunds ensures that each address in keys has at least [minFundsPerAddr] by sending funds

@@ -40,7 +40,7 @@ import (
 	"github.com/luxfi/geth/accounts"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"golang.org/x/exp/slices"
 )
 

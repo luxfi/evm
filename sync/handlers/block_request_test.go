@@ -8,17 +8,17 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	"github.com/luxfi/node/utils/units"
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/sync/handlers/stats"
 	"github.com/luxfi/evm/sync/handlers/stats/statstest"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/core/rawdb"
-	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/geth/triedb"
@@ -104,7 +104,8 @@ func executeBlockRequestTest(t testing.TB, test blockRequestTest, blocks []*type
 
 func TestBlockRequestHandler(t *testing.T) {
 	gspec := &core.Genesis{
-		Config: params.TestChainConfig,
+		Config:   params.TestChainConfig,
+		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	memdb := rawdb.NewMemoryDatabase()
 	tdb := triedb.NewDatabase(memdb, nil)
@@ -159,16 +160,17 @@ func TestBlockRequestHandlerLargeBlocks(t *testing.T) {
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
 		funds   = big.NewInt(1000000000000000000)
 		gspec   = &core.Genesis{
-			Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-			Alloc:  types.GenesisAlloc{addr1: {Balance: funds}},
+			Config:   params.TestChainConfig,
+			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+			Alloc:    types.GenesisAlloc{addr1: {Balance: funds}},
 		}
-		signer = types.LatestSigner(gspec.Config)
+		signer = types.LatestSignerForChainID(gspec.Config.ChainID)
 	)
 	memdb := rawdb.NewMemoryDatabase()
 	tdb := triedb.NewDatabase(memdb, nil)
 	genesis := gspec.MustCommit(memdb, tdb)
 	engine := dummy.NewETHFaker()
-	blocks, _, err := core.GenerateChain(gspec.Config, genesis, engine, memdb, 96, 0, func(i int, b *core.BlockGen) {
+	blocks, _, err := core.GenerateChain(params.TestChainConfig, genesis, engine, memdb, 96, 0, func(i int, b *core.BlockGen) {
 		var data []byte
 		switch {
 		case i <= 32:
@@ -216,7 +218,8 @@ func TestBlockRequestHandlerLargeBlocks(t *testing.T) {
 
 func TestBlockRequestHandlerCtxExpires(t *testing.T) {
 	gspec := &core.Genesis{
-		Config: params.TestChainConfig,
+		Config:   params.TestChainConfig,
+		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	memdb := rawdb.NewMemoryDatabase()
 	tdb := triedb.NewDatabase(memdb, nil)

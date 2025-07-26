@@ -45,7 +45,7 @@ import (
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/crypto/kzg4844"
 	"github.com/luxfi/evm/iface/ethdb/memorydb"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	ethparams "github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/evm/commontype"

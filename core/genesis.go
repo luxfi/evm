@@ -45,7 +45,7 @@ import (
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/common/math"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/geth/core/tracing"
 	gethparams "github.com/luxfi/geth/params"
 	"github.com/holiman/uint256"

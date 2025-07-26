@@ -11,7 +11,7 @@ import (
 	"github.com/luxfi/evm/ethclient"
 	ethereum "github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 type ethereumTxWorker struct {

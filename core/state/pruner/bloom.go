@@ -32,7 +32,7 @@ import (
 	"os"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	bloomfilter "github.com/holiman/bloomfilter/v2"
 )
 

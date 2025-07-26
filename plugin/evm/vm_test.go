@@ -23,7 +23,7 @@ import (
 	"github.com/luxfi/evm/plugin/evm/vmerrors"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

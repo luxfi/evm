@@ -50,7 +50,7 @@ import (
 	"github.com/luxfi/evm/predicate"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/event"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/luxfi/evm/consensus/misc/eip4844"
 	"github.com/holiman/uint256"
 	ethparams "github.com/luxfi/evm/params"

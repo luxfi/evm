@@ -37,7 +37,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 //go:generate go run github.com/fjl/gencodec -type account -field-override accountMarshaling -out gen_account_json.go

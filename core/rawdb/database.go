@@ -38,7 +38,7 @@ import (
 	"github.com/luxfi/geth/ethdb/leveldb"
 	"github.com/luxfi/geth/ethdb/memorydb"
 	"github.com/luxfi/geth/ethdb/pebble"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 	"github.com/olekukonko/tablewriter"
 )
 

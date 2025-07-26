@@ -40,7 +40,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/event"
 	gethevent "github.com/luxfi/geth/event"
-	"github.com/luxfi/geth/log"
+	"github.com/luxfi/log"
 )
 
 var (
