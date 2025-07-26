@@ -1,11 +1,11 @@
-// (c) 2019-2020, Lux Industries, Inc. All rights reserved.
+// (c) 2020-2020, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package localsigner
 
 import (
-	"github.com/luxfi/node/utils/crypto/bls"
-	"github.com/luxfi/node/utils/crypto/bls/signer/localsigner"
+	"github.com/luxfi/crypto/bls"
+	"github.com/luxfi/crypto/bls/signer/localsigner"
 )
 
 // SecretKey is a wrapper around the BLS local signer

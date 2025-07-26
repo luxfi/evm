@@ -27,7 +27,7 @@ import (
 	"github.com/luxfi/geth/eth/tracers"
 	"github.com/luxfi/node/consensus/engine/enginetest"
 	"github.com/luxfi/node/consensus/validators/validatorstest"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	"github.com/luxfi/node/utils/constants"
 	"github.com/luxfi/node/vms/components/chain"
 	"github.com/stretchr/testify/require"

@@ -10,7 +10,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/node/consensus/engine/linear/block"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 )
 
 var _ block.StateSummary = &SyncSummary{}

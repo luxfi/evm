@@ -35,7 +35,7 @@ import (
 
 	"github.com/luxfi/evm/core/vm"
 	"github.com/luxfi/evm/eth/tracers"
-	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 )
@@ -277,7 +277,7 @@ func flatFromNested(input *callFrame, traceAddress []int, convertErrs bool, ctx 
 
 	// Revert output contains useful information (revert reason).
 	// Otherwise discard result.
-	if input.Error != "" && input.Error != vm.ErrExecutionReverted.Error() {
+	if input.Error != "" && input.Error != vmerrs.ErrExecutionReverted.Error() {
 		frame.Result = nil
 	}
 

@@ -29,7 +29,7 @@ import (
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/node/consensus"
 	"github.com/luxfi/node/consensus/engine/enginetest"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	statesyncclient "github.com/luxfi/node/state_sync/client"
 	"github.com/luxfi/node/state_sync/statesync"
 	"github.com/luxfi/node/utils/set"

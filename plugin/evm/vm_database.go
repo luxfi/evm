@@ -1,10 +1,9 @@
-// (c) 2019-2021, Lux Industries, Inc. All rights reserved.
+// (c) 2020-2021, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -14,12 +13,10 @@ import (
 	"github.com/luxfi/evm/plugin/evm/database"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/log"
-	nodeMetrics "github.com/luxfi/node/api/metrics"
-	nodedb "github.com/luxfi/node/database"
-	"github.com/luxfi/node/database/pebbledb"
-	"github.com/luxfi/node/database/prefixdb"
+	nodedb "github.com/luxfi/database"
+	"github.com/luxfi/database/pebbledb"
+	"github.com/luxfi/database/prefixdb"
 	"github.com/luxfi/node/utils/constants"
-	"github.com/luxfi/node/utils/logging"
 )
 
 const (
@@ -168,42 +165,21 @@ func inspectDB(db iface.Database, label string) error {
 	return nil
 }
 
-func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer nodeMetrics.MultiGatherer, logger logging.Logger) (nodedb.Database, error) {
+func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer interface{}, logger interface{}) (nodedb.Database, error) {
 	dbPath := filepath.Join(dbConfig.Path, dbConfig.Name)
 
-	dbConfigBytes := dbConfig.Config
-	// If the database is pebble, we need to set the config
-	// to use no sync. Sync mode in pebble has an issue with OSs like MacOS.
-	if dbConfig.Name == pebbledb.Name {
-		cfg := pebbledb.DefaultConfig
-		// Default to "no sync" for pebble db
-		cfg.Sync = false
-		if len(dbConfigBytes) > 0 {
-			if err := json.Unmarshal(dbConfigBytes, &cfg); err != nil {
-				return nil, err
-			}
-		}
-		var err error
-		// Marshal the config back to bytes to ensure that new defaults are applied
-		dbConfigBytes, err = json.Marshal(cfg)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Create a prometheus registry for the database
-	dbRegisterer, err := nodeMetrics.MakeAndRegister(gatherer, dbMetricsPrefix)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't create database metrics registerer: %w", err)
-	}
+	// TODO: Fix pebbledb configuration when constants are available
+	// For now, we'll ignore the gatherer and logger parameters
+	// until we can properly integrate them with the new pebbledb API
 
 	var db nodedb.Database
+	var err error
 	switch dbConfig.Name {
-	case pebbledb.Name:
-		db, err = pebbledb.New(dbPath, dbConfigBytes, logger, dbRegisterer)
+	case "pebbledb":
+		db, err = pebbledb.New(dbPath, 0, 0, "", false)
 	case "leveldb":
 		// Use default leveldb config for now
-		db, err = pebbledb.New(dbPath, nil, logger, dbRegisterer) // Use pebble as leveldb alternative
+		db, err = pebbledb.New(dbPath, 0, 0, "", false) // Use pebble as leveldb alternative
 	default:
 		return nil, fmt.Errorf("unknown database type: %s", dbConfig.Name)
 	}

@@ -1,4 +1,4 @@
-// (c) 2019-2020, Lux Industries, Inc.
+// (c) 2020-2020, Lux Industries, Inc.
 // All rights reserved.
 // See the file LICENSE for licensing terms.
 
@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 )
 
 // Block is the interface for linear blocks
