@@ -29,9 +29,10 @@ require (
 	github.com/luxfi/crypto v1.0.1
 	github.com/luxfi/database v1.1.3
 	github.com/luxfi/geth v1.16.2
-	github.com/luxfi/ids v1.0.1
-	github.com/luxfi/log v1.0.1
-	github.com/luxfi/node v1.12.14
+	github.com/luxfi/ids v0.1.0
+	github.com/luxfi/log v0.1.0
+	github.com/luxfi/node v1.14.0
+	github.com/luxfi/trace v0.1.0
 	github.com/luxfi/warp v0.1.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
@@ -169,13 +170,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/luxfi/node => ../node
-
-replace github.com/luxfi/database => ../database
-
-replace github.com/luxfi/ids => ../ids
-
-replace github.com/luxfi/crypto => ../crypto
-
-replace github.com/luxfi/geth => ../geth
