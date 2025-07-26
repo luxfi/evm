@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Copyright 2023 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -32,12 +34,20 @@ import (
 	"github.com/luxfi/evm/eth/ethconfig"
 	"github.com/luxfi/evm/ethclient"
 	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/node"
 	"github.com/luxfi/evm/params"
-	"github.com/luxfi/evm/rpc"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/ethdb"
+	"github.com/luxfi/geth/rpc"
 )
+
+// mockableClockWrapper wraps mockable.Clock to implement iface.MockableTimer
+type mockableClockWrapper struct {
+	*mockable.Clock
+}
+
+func (m *mockableClockWrapper) Advance(duration time.Duration) {
+	currentTime := m.Time()
+	m.Set(currentTime.Add(duration))
+}
 
 // fakePushGossiper is a no-op gossiper for simulated backend
 
@@ -165,14 +175,11 @@ func (s simClient) CallContract(ctx context.Context, call iface.CallMsg, blockNu
 func (s simClient) CallContractAtHash(ctx context.Context, call iface.CallMsg, blockHash common.Hash) ([]byte, error) {
 	return s.client.CallContractAtHash(ctx, call, blockHash)
 }
-func (s simClient) AsymmetricKeyLocalAvailable(ctx context.Context, addr common.Address) (bool, error) {
-	return s.client.AsymmetricKeyLocalAvailable(ctx, addr)
+func (s simClient) EstimateBaseFee(ctx context.Context) (*big.Int, error) {
+	return s.client.EstimateBaseFee(ctx)
 }
-func (s simClient) AsymmetricKeyMaxChunks(ctx context.Context) (int, error) {
-	return s.client.AsymmetricKeyMaxChunks(ctx)
-}
-func (s simClient) NotifyL1Validators(ctx context.Context, txHash common.Hash) error {
-	return s.client.NotifyL1Validators(ctx, txHash)
+func (s simClient) FeeHistory(ctx context.Context, blockCount uint64, lastBlock *big.Int, rewardPercentiles []float64) (*iface.FeeHistory, error) {
+	return s.client.FeeHistory(ctx, blockCount, lastBlock, rewardPercentiles)
 }
 
 // Backend is a simulated blockchain. You can use it to test your contracts or
@@ -188,15 +195,11 @@ type Backend struct {
 // contract bindings in unit tests.
 //
 // A simulated backend always uses chainID 1337.
-func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config, ethConf *ethconfig.Config)) *Backend {
+func NewBackend(alloc types.GenesisAlloc, options ...func(ethConf *ethconfig.Config)) *Backend {
 	chainConfig := *params.TestChainConfig
 	chainConfig.ChainID = big.NewInt(1337)
 
-	// Create the default configurations for the outer node shell and the Ethereum
-	// service to mutate with the options afterwards
-	nodeConf := node.DefaultConfig
-
-	ethConf := ethconfig.DefaultConfig()
+	ethConf := ethconfig.NewDefaultConfig()
 	ethConf.Genesis = &core.Genesis{
 		Config: &chainConfig,
 		Alloc:  alloc,
@@ -207,37 +210,37 @@ func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config,
 	ethConf.TxPool.NoLocals = true
 
 	for _, option := range options {
-		option(&nodeConf, &ethConf)
+		option(&ethConf)
 	}
-	// Assemble the Ethereum stack to run the chain with
-	stack, err := node.New(&nodeConf)
-	if err != nil {
-		panic(err) // this should never happen
-	}
-	sim, err := newWithNode(stack, &ethConf, 0)
+
+	sim, err := newWithoutNode(&ethConf, 0)
 	if err != nil {
 		panic(err) // this should never happen
 	}
 	return sim
 }
 
-// newWithNode sets up a simulated backend on an existing node. The provided node
-// must not be started and will be started by this method.
-func newWithNode(stack *node.Node, conf *ethconfig.Config, blockPeriod uint64) (*Backend, error) {
+// newWithoutNode sets up a simulated backend without a full node stack
+func newWithoutNode(conf *ethconfig.Config, blockPeriod uint64) (*Backend, error) {
 	chaindb := rawdb.NewMemoryDatabase()
-	clock := &mockable.Clock{}
-	clock.Set(time.Unix(0, 0))
+	baseClock := &mockable.Clock{}
+	baseClock.Set(time.Unix(0, 0))
+	clock := &mockableClockWrapper{Clock: baseClock}
 
 	engine := dummy.NewFakerWithModeAndClock(
 		dummy.Mode{ModeSkipCoinbase: true}, clock,
 	)
 
+	// Create a mock node for eth.New
+	// This is a workaround since eth.New expects a geth node.Node
+	// but we're in a simulated environment
+	var stack interface{} = nil
+	
 	backend, err := eth.New(
 		stack, &eth.Config{
 			Config: *conf,
-			Genesis: conf.Genesis,
 		}, &fakePushGossiper{}, chaindb, eth.Settings{}, common.Hash{},
-		engine, clock,
+		engine, baseClock,
 	)
 	if err != nil {
 		return nil, err

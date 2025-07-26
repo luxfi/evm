@@ -49,7 +49,6 @@ import (
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/plugin/evm/header"
 	"github.com/luxfi/evm/precompile/contracts/feemanager"
-	"github.com/luxfi/evm/utils"
 	"github.com/holiman/uint256"
 
 	// Force libevm metrics of the same name to be registered first.
@@ -1792,16 +1791,13 @@ func (pool *LegacyPool) demoteUnexecutables() {
 }
 
 func (pool *LegacyPool) startPeriodicFeeUpdate() {
-	evmTimestamp := params.GetExtra(pool.chainconfig).EVMTimestamp
-	if evmTimestamp == nil {
-		return
-	}
+	// For v2.0.0, all upgrades are active at genesis (timestamp 0)
+	// So we always start the periodic fee update
 
 	// Call updateBaseFee here to ensure that there is not a [baseFeeUpdateInterval] delay
-	// when starting up in ApricotPhase3 before the base fee is updated.
-	if time.Now().After(utils.Uint64ToTime(evmTimestamp)) {
-		pool.updateBaseFee()
-	}
+	// when starting up before the base fee is updated.
+	// For v2.0.0, all upgrades are active, so we always update immediately
+	pool.updateBaseFee()
 
 	pool.wg.Add(1)
 	go pool.periodicBaseFeeUpdate()
@@ -1810,13 +1806,8 @@ func (pool *LegacyPool) startPeriodicFeeUpdate() {
 func (pool *LegacyPool) periodicBaseFeeUpdate() {
 	defer pool.wg.Done()
 
-	// Sleep until its time to start the periodic base fee update or the tx pool is shutting down
-	evmTime := utils.Uint64ToTime(params.GetExtra(pool.chainconfig).EVMTimestamp)
-	select {
-	case <-time.After(time.Until(evmTime)):
-	case <-pool.generalShutdownChan:
-		return // Return early if shutting down
-	}
+	// For v2.0.0, all upgrades are active at genesis, so we don't need to wait
+	// before starting the periodic base fee update
 
 	// Update the base fee every [baseFeeUpdateInterval]
 	// and shutdown when [generalShutdownChan] is closed by Stop()

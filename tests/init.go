@@ -219,7 +219,7 @@ var Forks = map[string]*params.ChainConfig{
 		},
 		&extras.ChainConfig{
 			NetworkUpgrades: extras.NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(0),
+				GenesisTimestamp: utils.NewUint64(0),
 			},
 		},
 	),
@@ -241,8 +241,7 @@ var Forks = map[string]*params.ChainConfig{
 		},
 		&extras.ChainConfig{
 			NetworkUpgrades: extras.NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.NewUint64(0),
+				GenesisTimestamp: utils.NewUint64(0),
 			},
 		},
 	),
@@ -266,8 +265,7 @@ var Forks = map[string]*params.ChainConfig{
 		},
 		&extras.ChainConfig{
 			NetworkUpgrades: extras.NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.NewUint64(0),
+				GenesisTimestamp: utils.NewUint64(0),
 			},
 		},
 	),

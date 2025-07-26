@@ -213,16 +213,14 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 	}
 
 	// Verify the extra data is well-formed.
-	config := chain.Config()
-	// Convert rules to the concrete type expected by VerifyExtra
-	paramsConfig := getParamsConfig(config)
-	// Get LuxRules from the NetworkUpgrades
-	luxRules := paramsConfig.MandatoryNetworkUpgrades.GetLuxRules(header.Time)
-	if err := customheader.VerifyExtra(luxRules, header.Extra); err != nil {
+	// For v2.0.0, all upgrades are active, so we use a simple GenesisRules
+	genesisRules := extras.GenesisRules{IsGenesis: true}
+	if err := customheader.VerifyExtra(genesisRules, header.Extra); err != nil {
 		return err
 	}
 
 	// Ensure gas-related header fields are correct
+	config := chain.Config()
 	if err := verifyHeaderGasFields(getParamsConfig(config), header, parent, chain); err != nil {
 		return err
 	}
@@ -433,7 +431,7 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 		parent,
 		header.Time,
 	)
-	if config.IsEVM(header.Time) {
+	if extrasConfig.IsEVM(header.Time) {
 		// Verify that this block covers the block fee.
 		if err := eng.verifyBlockFee(
 			header.BaseFee,

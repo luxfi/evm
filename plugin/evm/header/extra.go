@@ -71,36 +71,17 @@ func VerifyExtraPrefix(
 // rules.
 //
 // TODO: Should this be merged with VerifyExtraPrefix?
-func VerifyExtra(rules extras.LuxRules, extra []byte) error {
+func VerifyExtra(rules extras.GenesisRules, extra []byte) error {
 	extraLen := len(extra)
-	switch {
-	case rules.IsDurango:
-		if extraLen < subnetevm.WindowSize {
-			return fmt.Errorf(
-				"%w: expected >= %d but got %d",
-				errInvalidExtraLength,
-				subnetevm.WindowSize,
-				extraLen,
-			)
-		}
-	case rules.IsEVM:
-		if extraLen != subnetevm.WindowSize {
-			return fmt.Errorf(
-				"%w: expected %d but got %d",
-				errInvalidExtraLength,
-				subnetevm.WindowSize,
-				extraLen,
-			)
-		}
-	default:
-		if uint64(extraLen) > maximumExtraDataSize {
-			return fmt.Errorf(
-				"%w: expected <= %d but got %d",
-				errInvalidExtraLength,
-				maximumExtraDataSize,
-				extraLen,
-			)
-		}
+	// For v2.0.0, all upgrades are active, so we use the Durango rules
+	// which allow extra data >= WindowSize
+	if extraLen < subnetevm.WindowSize {
+		return fmt.Errorf(
+			"%w: expected >= %d but got %d",
+			errInvalidExtraLength,
+			subnetevm.WindowSize,
+			extraLen,
+		)
 	}
 	return nil
 }

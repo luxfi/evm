@@ -1096,24 +1096,9 @@ func overrideConfig(original *params.ChainConfig, override *params.ChainConfig) 
 	}
 	
 	// Apply Lux-specific network upgrades
-	if override.MandatoryNetworkUpgrades.EVMTimestamp != nil {
-		copy.MandatoryNetworkUpgrades.EVMTimestamp = override.MandatoryNetworkUpgrades.EVMTimestamp
-		canon = false
-	}
-	if override.MandatoryNetworkUpgrades.DurangoTimestamp != nil {
-		copy.MandatoryNetworkUpgrades.DurangoTimestamp = override.MandatoryNetworkUpgrades.DurangoTimestamp
-		canon = false
-	}
-	if override.MandatoryNetworkUpgrades.EtnaTimestamp != nil {
-		copy.MandatoryNetworkUpgrades.EtnaTimestamp = override.MandatoryNetworkUpgrades.EtnaTimestamp
-		canon = false
-	}
-	if override.MandatoryNetworkUpgrades.FortunaTimestamp != nil {
-		copy.MandatoryNetworkUpgrades.FortunaTimestamp = override.MandatoryNetworkUpgrades.FortunaTimestamp
-		canon = false
-	}
-	if override.MandatoryNetworkUpgrades.GraniteTimestamp != nil {
-		copy.MandatoryNetworkUpgrades.GraniteTimestamp = override.MandatoryNetworkUpgrades.GraniteTimestamp
+	// For v2.0.0, all upgrades are active at genesis, so we only have GenesisTimestamp
+	if override.MandatoryNetworkUpgrades.GenesisTimestamp != nil {
+		copy.MandatoryNetworkUpgrades.GenesisTimestamp = override.MandatoryNetworkUpgrades.GenesisTimestamp
 		canon = false
 	}
 

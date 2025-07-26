@@ -602,7 +602,7 @@ func TestEip2929Cases(t *testing.T) {
 			byte(vm.PUSH1), 0xff, byte(vm.PUSH1), 0x0, byte(vm.STATICCALL), byte(vm.POP),
 		}
 		// prettyPrint("This calls the `identity`-precompile (cheap), then calls an account (expensive) and `staticcall`s the same"+
-			"account (cheap)", code)
+		//	"account (cheap)", code)
 	}
 }
 
