@@ -18,7 +18,7 @@ import (
 	"github.com/luxfi/node/consensus/engine/enginetest"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/proto/pb/sdk"
-	"github.com/luxfi/node/utils/logging"
+	luxlog "github.com/luxfi/log"
 	"github.com/luxfi/node/utils/set"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
@@ -61,7 +61,7 @@ func TestEthTxGossip(t *testing.T) {
 		SentAppRequest: make(chan []byte, 1),
 	}
 
-	network, err := interfaces.NewNetwork(logging.NoLog{}, peerSender, prometheus.NewRegistry(), "")
+	network, err := interfaces.NewNetwork(luxlog.NewNoOpLogger(), peerSender, prometheus.NewRegistry(), "")
 	require.NoError(err)
 	client := network.NewClient(interfaces.TxGossipHandlerID)
 

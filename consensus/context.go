@@ -8,7 +8,7 @@ import (
 	"github.com/luxfi/node/api/metrics"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/crypto/bls"
-	"github.com/luxfi/node/utils/logging"
+	luxlog "github.com/luxfi/log"
 )
 
 // Context is the context for the chain
@@ -21,7 +21,7 @@ type Context struct {
 	XChainID     ids.ID
 	CChainID     ids.ID
 	LUXAssetID   ids.ID
-	Log          logging.Logger
+	Log          luxlog.Logger
 	Metrics      metrics.MultiGatherer
 	ChainDataDir string
 	AliasManager AliasManager
