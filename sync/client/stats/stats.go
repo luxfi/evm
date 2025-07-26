@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/luxfi/evm/plugin/evm/message"
+	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/metrics"
 )
 
@@ -30,13 +31,13 @@ type MessageMetric interface {
 }
 
 type messageMetric struct {
-	requested       metrics.Counter // Number of times a request has been sent
-	succeeded       metrics.Counter // Number of times a request has succeeded
-	failed          metrics.Counter // Number of times a request failed (does not include invalid responses)
-	invalidResponse metrics.Counter // Number of times a request failed due to an invalid response
-	received        metrics.Counter // Number of items that have been received
+	requested       *metrics.Counter // Number of times a request has been sent
+	succeeded       *metrics.Counter // Number of times a request has succeeded
+	failed          *metrics.Counter // Number of times a request failed (does not include invalid responses)
+	invalidResponse *metrics.Counter // Number of times a request failed due to an invalid response
+	received        *metrics.Counter // Number of items that have been received
 
-	requestLatency metrics.Timer // Latency for this request
+	requestLatency *metrics.Timer // Latency for this request
 }
 
 func NewMessageMetric(name string) MessageMetric {
@@ -75,19 +76,17 @@ func (m *messageMetric) UpdateRequestLatency(duration time.Duration) {
 }
 
 type clientSyncerStats struct {
-	leafMetrics map[message.NodeType]MessageMetric
+	accountLeafMetric,
+	storageLeafMetric,
 	codeRequestMetric,
 	blockRequestMetric MessageMetric
 }
 
 // NewClientSyncerStats returns stats for the client syncer
-func NewClientSyncerStats(leafMetricNames map[message.NodeType]string) *clientSyncerStats {
-	leafMetrics := make(map[message.NodeType]MessageMetric, len(leafMetricNames))
-	for nodeType, name := range leafMetricNames {
-		leafMetrics[nodeType] = NewMessageMetric(name)
-	}
+func NewClientSyncerStats() *clientSyncerStats {
 	return &clientSyncerStats{
-		leafMetrics:        leafMetrics,
+		accountLeafMetric:  NewMessageMetric("sync_account_leaf"),
+		storageLeafMetric:  NewMessageMetric("sync_storage_leaf"),
 		codeRequestMetric:  NewMessageMetric("sync_code"),
 		blockRequestMetric: NewMessageMetric("sync_blocks"),
 	}
@@ -101,11 +100,11 @@ func (c *clientSyncerStats) GetMetric(msgIntf message.Request) (MessageMetric, e
 	case message.CodeRequest:
 		return c.codeRequestMetric, nil
 	case message.LeafsRequest:
-		metric, ok := c.leafMetrics[msg.NodeType]
-		if !ok {
-			return nil, fmt.Errorf("invalid leafs request for node type: %T", msg.NodeType)
+		// Determine if it's account or storage leaf request based on Account field
+		if msg.Account == (common.Hash{}) {
+			return c.accountLeafMetric, nil
 		}
-		return metric, nil
+		return c.storageLeafMetric, nil
 	default:
 		return nil, fmt.Errorf("attempted to get metric for invalid request with type %T", msg)
 	}

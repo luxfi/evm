@@ -18,7 +18,8 @@ import (
 // GetHeaderExtra returns the [HeaderExtra] from the given [Header].
 func GetHeaderExtra(h *ethtypes.Header) *HeaderExtra {
 	// TODO: extras API doesn't exist in go-ethereum v1.16.1
-	return nil
+	// For now, return an empty HeaderExtra to prevent nil pointer dereference
+	return &HeaderExtra{}
 }
 
 // SetHeaderExtra sets the given [HeaderExtra] on the [Header].
