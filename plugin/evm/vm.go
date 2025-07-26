@@ -67,8 +67,8 @@ import (
 	_ "github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
-	"github.com/luxfi/geth/log"
 	"github.com/luxfi/geth/rlp"
+	luxlog "github.com/luxfi/log"
 
 	// Additional node imports
 
@@ -152,30 +152,11 @@ var (
 	errInitializingLogger            = errors.New("failed to initialize logger")
 )
 
-// legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
-// used in attachEthService for backward configuration compatibility.
-var legacyApiNames = map[string]string{
-	"internal-public-eth":              "internal-eth",
-	"internal-public-blockchain":       "internal-blockchain",
-	"internal-public-transaction-pool": "internal-transaction",
-	"internal-public-tx-pool":          "internal-tx-pool",
-	"internal-public-debug":            "internal-debug",
-	"internal-private-debug":           "internal-debug",
-	"internal-public-account":          "internal-account",
-	"internal-private-personal":        "internal-personal",
-
-	"public-eth":        "eth",
-	"public-eth-filter": "eth-filter",
-	"private-admin":     "admin",
-	"public-debug":      "debug",
-	"private-debug":     "debug",
-}
 
 // VM implements the block.ChainVM interface
 type VM struct {
 	ctx *nodeconsensus.Context
-	// contextLock is used to coordinate global VM operations.
-	// This can be used safely instead of consensus.Context.Lock which is deprecated and should not be used.
+	// vmLock is used to coordinate global VM operations.
 	vmLock sync.RWMutex
 	// [cancel] may be nil until [commonEng.NormalOp] starts
 	cancel context.CancelFunc
@@ -244,7 +225,7 @@ type VM struct {
 
 	bootstrapped utils.Atomic[bool]
 
-	logger EVMLogger
+	logger luxlog.Logger
 	// State sync server and client
 	StateSyncServer
 	StateSyncClient
@@ -301,16 +282,14 @@ func (vm *VM) Initialize(
 	// Just use chain ID as alias
 	vm.chainAlias = vm.ctx.ChainID.String()
 
-	evmLogger, err := InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, vm.ctx.Log)
-	if err != nil {
-		return fmt.Errorf("%w: %w ", errInitializingLogger, err)
-	}
-	vm.logger = evmLogger
+	// For now, we'll need an adapter to convert between node's logging.Logger and luxfi/log.Logger
+	// This will be removed once node/utils/logging is extracted to luxfi/log
+	vm.logger = createLoggerAdapter(vm.ctx.Log, vm.chainAlias)
 
-	log.Info("Initializing Lux EVM VM", "Version", Version, "Config", vm.config)
+	vm.logger.Info("Initializing Lux EVM VM", "Version", Version, "Config", vm.config)
 
 	if deprecateMsg != "" {
-		log.Warn("Deprecation Warning", "msg", deprecateMsg)
+		vm.logger.Warn("Deprecation Warning", "msg", deprecateMsg)
 	}
 
 	if len(fxs) > 0 {
@@ -358,15 +337,16 @@ func (vm *VM) Initialize(
 
 	// Load airdrop file if provided
 	if vm.config.AirdropFile != "" {
-		g.AirdropData, err = os.ReadFile(vm.config.AirdropFile)
+		airdropData, err := os.ReadFile(vm.config.AirdropFile)
 		if err != nil {
 			return fmt.Errorf("could not read airdrop file '%s': %w", vm.config.AirdropFile, err)
 		}
+		g.AirdropData = airdropData
 	}
 	vm.syntacticBlockValidator = NewBlockValidator()
 
 	if configExtra.FeeConfig == commontype.EmptyFeeConfig {
-		log.Info("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
+		vm.logger.Info("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
 		configExtra.FeeConfig = params.DefaultFeeConfig
 	}
 
@@ -385,9 +365,9 @@ func (vm *VM) Initialize(
 		overrides := configExtra.UpgradeConfig.NetworkUpgradeOverrides
 		marshaled, err := json.Marshal(overrides)
 		if err != nil {
-			log.Warn("Failed to marshal network upgrade overrides", "error", err, "overrides", overrides)
+			vm.logger.Warn("Failed to marshal network upgrade overrides", "error", err, "overrides", overrides)
 		} else {
-			log.Info("Applying network upgrade overrides", "overrides", string(marshaled))
+			vm.logger.Info("Applying network upgrade overrides", "overrides", string(marshaled))
 		}
 		configExtra.Override(overrides)
 	}
@@ -453,7 +433,7 @@ func (vm *VM) Initialize(
 	// Create directory for offline pruning
 	if len(vm.ethConfig.OfflinePruningDataDirectory) != 0 {
 		if err := os.MkdirAll(vm.ethConfig.OfflinePruningDataDirectory, perms.ReadWriteExecute); err != nil {
-			log.Error("failed to create offline pruning data directory", "error", err)
+			vm.logger.Error("failed to create offline pruning data directory", "error", err)
 			return err
 		}
 	}
@@ -461,10 +441,10 @@ func (vm *VM) Initialize(
 	// Handle custom fee recipient
 	if common.IsHexAddress(vm.config.FeeRecipient) {
 		address := common.HexToAddress(vm.config.FeeRecipient)
-		log.Info("Setting fee recipient", "address", address)
+		vm.logger.Info("Setting fee recipient", "address", address)
 		vm.ethConfig.Miner.Etherbase = address
 	} else {
-		log.Info("Config has not specified any coinbase address. Defaulting to the blackhole address.")
+		vm.logger.Info("Config has not specified any coinbase address. Defaulting to the blackhole address.")
 		vm.ethConfig.Miner.Etherbase = evmconstants.BlackholeAddr
 	}
 
@@ -478,7 +458,7 @@ func (vm *VM) Initialize(
 	if err != nil {
 		return err
 	}
-	log.Info("read last accepted",
+	vm.logger.Info("read last accepted",
 		"hash", lastAcceptedHash,
 		"height", lastAcceptedHeight,
 	)
@@ -625,7 +605,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 					// SendAppRequestAny sends to any peer, so we use SendAppRequest for specific peer
 					return vm.client.SendAppRequest(ctx, peerID, req)
 				},
-				Logger:           log.Root(),
+				Logger:           createGethLoggerFromLuxLog(vm.logger),
 				Stats:            stats.NewClientSyncerStats(),
 				StateSyncNodeIDs: stateSyncIDs,
 				BlockParser:      vm,
@@ -867,7 +847,7 @@ func (vm *VM) Shutdown(context.Context) error {
 	}
 	// TODO: Network shutdown - p2p.Network doesn't have Shutdown method
 	if err := vm.StateSyncClient.Shutdown(); err != nil {
-		log.Error("error stopping state syncer", "err", err)
+		vm.logger.Error("error stopping state syncer", "err", err)
 	}
 	close(vm.shutdownChan)
 	// Stop RPC handlers before eth.Stop which will close the database
@@ -875,16 +855,16 @@ func (vm *VM) Shutdown(context.Context) error {
 		handler.Stop()
 	}
 	vm.eth.Stop()
-	log.Info("Ethereum backend stop completed")
+	vm.logger.Info("Ethereum backend stop completed")
 	if vm.usingStandaloneDB {
 		if err := vm.db.Close(); err != nil {
-			log.Error("failed to close database: %w", err)
+			vm.logger.Error("failed to close database", "error", err)
 		} else {
-			log.Info("Database closed")
+			vm.logger.Info("Database closed")
 		}
 	}
 	vm.shutdownWg.Wait()
-	log.Info("EVM Shutdown completed")
+	vm.logger.Info("EVM Shutdown completed")
 	return nil
 }
 
@@ -895,9 +875,9 @@ func (vm *VM) buildBlock(ctx context.Context) (linear.Block, error) {
 
 func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) (linear.Block, error) {
 	if proposerVMBlockCtx != nil {
-		log.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
+		vm.logger.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
 	} else {
-		log.Debug("Building block without context")
+		vm.logger.Debug("Building block without context")
 	}
 	// Convert consensus context to iface.ChainContext
 	chainCtx := &iface.ChainContext{
@@ -945,7 +925,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 		return nil, fmt.Errorf("block failed verification due to: %w", err)
 	}
 
-	log.Debug("built block",
+	vm.logger.Debug("built block",
 		"id", blk.ID(),
 	)
 	// Marks the current transactions from the mempool as being successfully issued
@@ -1127,10 +1107,10 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		//     return nil, err
 		// }
 		// enabledAPIs = append(enabledAPIs, "warp")
-		log.Warn("Warp API is enabled but not implemented")
+		vm.logger.Warn("Warp API is enabled but not implemented")
 	}
 
-	log.Info("enabling apis",
+	vm.logger.Info("enabling apis",
 		"apis", enabledAPIs,
 	)
 	apis[ethRPCEndpoint] = handler
@@ -1219,10 +1199,10 @@ func (vm *VM) startContinuousProfiler() {
 	vm.shutdownWg.Add(1)
 	go func() {
 		defer vm.shutdownWg.Done()
-		log.Info("Dispatching continuous profiler", "dir", vm.config.ContinuousProfilerDir, "freq", vm.config.ContinuousProfilerFrequency, "maxFiles", vm.config.ContinuousProfilerMaxFiles)
+		vm.logger.Info("Dispatching continuous profiler", "dir", vm.config.ContinuousProfilerDir, "freq", vm.config.ContinuousProfilerFrequency, "maxFiles", vm.config.ContinuousProfilerMaxFiles)
 		err := vm.profiler.Dispatch()
 		if err != nil {
-			log.Error("continuous profiler failed", "err", err)
+			vm.logger.Error("continuous profiler failed", "err", err)
 		}
 	}()
 	// Wait for shutdownChan to be closed
@@ -1260,14 +1240,6 @@ func (vm *VM) readLastAccepted() (common.Hash, uint64, error) {
 func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error {
 	enabledServicesSet := make(map[string]struct{})
 	for _, ns := range names {
-		// handle pre geth v1.10.20 api names as aliases for their updated values
-		// to allow configurations to be backwards compatible.
-		if newName, isLegacy := legacyApiNames[ns]; isLegacy {
-			log.Info("deprecated api name referenced in configuration.", "deprecated", ns, "new", newName)
-			enabledServicesSet[newName] = struct{}{}
-			continue
-		}
-
 		enabledServicesSet[ns] = struct{}{}
 	}
 

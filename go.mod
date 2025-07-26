@@ -27,7 +27,7 @@ require (
 	github.com/holiman/uint256 v1.3.2
 	github.com/kylelemons/godebug v1.1.0
 	github.com/luxfi/crypto v1.0.0
-	github.com/luxfi/database v1.1.1
+	github.com/luxfi/database v1.1.3
 	github.com/luxfi/geth v1.16.2
 	github.com/luxfi/ids v0.0.0-00010101000000-000000000000
 	github.com/luxfi/node v1.15.0
@@ -47,6 +47,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.7
 	go.uber.org/goleak v1.3.0
 	go.uber.org/mock v0.5.2
+	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.40.0
 	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792
 	golang.org/x/mod v0.26.0
@@ -155,7 +156,6 @@ require (
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/term v0.33.0 // indirect

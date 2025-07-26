@@ -29,20 +29,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// convertToEthChainConfig converts luxfi ChainConfig to ethereum ChainConfig for testing
-func testConvertToEthChainConfig(config *params.ChainConfig) *params.ChainConfig {
-	ethConfig := &params.ChainConfig{
-		ChainConfig: config.ChainConfig,
-		FeeConfig: config.FeeConfig,
-		AllowFeeRecipients: config.AllowFeeRecipients,
-		MandatoryNetworkUpgrades: config.MandatoryNetworkUpgrades,
-		OptionalNetworkUpgrades: config.OptionalNetworkUpgrades,
-		GenesisPrecompiles: config.GenesisPrecompiles,
-		UpgradeConfig: config.UpgradeConfig,
-		LuxContext: config.LuxContext,
-	}
-	return ethConfig
-}
 
 type ChainTest struct {
 	Name     string

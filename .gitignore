@@ -59,3 +59,4 @@ dist/
 
 internal/ethapi/.gocache
 internal/ethapi/.cache
+.staticcheck-cache/

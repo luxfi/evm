@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 	
 	"github.com/luxfi/geth/metrics"
 	"github.com/prometheus/client_golang/prometheus"
@@ -65,36 +66,48 @@ func metricFamily(registry Registry, name string) (mf *dto.MetricFamily, err err
     metric := registry.Get(name)
     name = strings.ReplaceAll(name, "/", "_")
 
-    // If metrics collection is disabled a *metrics.NilXYZ collector is
-    // returned.  These should be ignored entirely.
-    if strings.Contains(fmt.Sprintf("%T", metric), "Nil") {
-        return nil, fmt.Errorf("%w: %q disabled (nil) metric", errMetricSkip, name)
+    // Check for nil metric
+    if metric == nil {
+        return nil, fmt.Errorf("%w: %q metric is nil", errMetricSkip, name)
     }
 
+    // Handle types - both pointer and non-pointer versions
 	switch m := metric.(type) {
-	case nil:
-		return nil, fmt.Errorf("%w: %q metric is nil", errMetricSkip, name)
-	case metrics.Counter:
+	case *metrics.Counter:
+		snapshot := m.Snapshot()
+		// Skip nil metrics (they have zero values and are from registerNilMetrics)
+		if strings.HasPrefix(name, "nil_") && snapshot.Count() == 0 {
+			return nil, fmt.Errorf("%w: %q counter is nil", errMetricSkip, name)
+		}
 		return &dto.MetricFamily{
 			Name: &name,
 			Type: dto.MetricType_COUNTER.Enum(),
 			Metric: []*dto.Metric{{
 				Counter: &dto.Counter{
-					Value: ptrTo(float64(m.Snapshot().Count())),
+					Value: ptrTo(float64(snapshot.Count())),
 				},
 			}},
 		}, nil
-	case metrics.CounterFloat64:
+		
+	case *metrics.CounterFloat64:
+		snapshot := m.Snapshot()
+		if strings.HasPrefix(name, "nil_") && snapshot.Count() == 0 {
+			return nil, fmt.Errorf("%w: %q counter_float64 is nil", errMetricSkip, name)
+		}
 		return &dto.MetricFamily{
 			Name: &name,
 			Type: dto.MetricType_COUNTER.Enum(),
 			Metric: []*dto.Metric{{
 				Counter: &dto.Counter{
-					Value: ptrTo(m.Snapshot().Count()),
+					Value: ptrTo(snapshot.Count()),
 				},
 			}},
 		}, nil
-	case metrics.Gauge:
+		
+	case *metrics.Gauge:
+		if strings.HasPrefix(name, "nil_") && m.Snapshot().Value() == 0 {
+			return nil, fmt.Errorf("%w: %q gauge is nil", errMetricSkip, name)
+		}
 		return &dto.MetricFamily{
 			Name: &name,
 			Type: dto.MetricType_GAUGE.Enum(),
@@ -104,7 +117,11 @@ func metricFamily(registry Registry, name string) (mf *dto.MetricFamily, err err
 				},
 			}},
 		}, nil
-	case metrics.GaugeFloat64:
+		
+	case *metrics.GaugeFloat64:
+		if strings.HasPrefix(name, "nil_") && m.Snapshot().Value() == 0 {
+			return nil, fmt.Errorf("%w: %q gauge_float64 is nil", errMetricSkip, name)
+		}
 		return &dto.MetricFamily{
 			Name: &name,
 			Type: dto.MetricType_GAUGE.Enum(),
@@ -114,17 +131,23 @@ func metricFamily(registry Registry, name string) (mf *dto.MetricFamily, err err
 				},
 			}},
 		}, nil
-	case metrics.GaugeInfo:
-		return nil, fmt.Errorf("%w: %q is a %T", errMetricSkip, name, m)
+		
+	case *metrics.GaugeInfo:
+		// Always skip GaugeInfo
+		return nil, fmt.Errorf("%w: %q is a gauge_info", errMetricSkip, name)
+		
 	case metrics.Histogram:
 		snapshot := m.Snapshot()
+		if snapshot.Count() == 0 || strings.HasPrefix(name, "nil_") {
+			return nil, fmt.Errorf("%w: %q histogram has no data", errMetricSkip, name) 
+		}
 
 		quantiles := []float64{.5, .75, .95, .99, .999, .9999}
 		thresholds := snapshot.Percentiles(quantiles)
 		dtoQuantiles := make([]*dto.Quantile, len(quantiles))
-		for i := range thresholds {
+		for i, quantile := range quantiles {
 			dtoQuantiles[i] = &dto.Quantile{
-				Quantile: ptrTo(quantiles[i]),
+				Quantile: ptrTo(quantile),
 				Value:    ptrTo(thresholds[i]),
 			}
 		}
@@ -134,32 +157,41 @@ func metricFamily(registry Registry, name string) (mf *dto.MetricFamily, err err
 			Type: dto.MetricType_SUMMARY.Enum(),
 			Metric: []*dto.Metric{{
 				Summary: &dto.Summary{
-					SampleCount: ptrTo(uint64(snapshot.Count())), //nolint:gosec
+					SampleCount: ptrTo(uint64(snapshot.Count())),
 					SampleSum:   ptrTo(float64(snapshot.Sum())),
 					Quantile:    dtoQuantiles,
 				},
 			}},
 		}, nil
-	case metrics.Meter:
+		
+	case *metrics.Meter:
+		snapshot := m.Snapshot()
+		if strings.HasPrefix(name, "nil_") && snapshot.Count() == 0 {
+			return nil, fmt.Errorf("%w: %q meter is nil", errMetricSkip, name)
+		}
 		return &dto.MetricFamily{
 			Name: &name,
 			Type: dto.MetricType_GAUGE.Enum(),
 			Metric: []*dto.Metric{{
 				Gauge: &dto.Gauge{
-					Value: ptrTo(float64(m.Snapshot().Count())),
+					Value: ptrTo(float64(snapshot.Count())),
 				},
 			}},
 		}, nil
-	case metrics.Timer:
+		
+	case *metrics.Timer:
 		snapshot := m.Snapshot()
+		if snapshot.Count() == 0 || strings.HasPrefix(name, "nil_") {
+			return nil, fmt.Errorf("%w: %q timer has no data", errMetricSkip, name)
+		}
 
 		quantiles := []float64{.5, .75, .95, .99, .999, .9999}
 		thresholds := snapshot.Percentiles(quantiles)
 		dtoQuantiles := make([]*dto.Quantile, len(quantiles))
-		for i := range thresholds {
+		for i, quantile := range quantiles {
 			dtoQuantiles[i] = &dto.Quantile{
-				Quantile: ptrTo(quantiles[i]),
-				Value:    ptrTo(thresholds[i]),
+				Quantile: ptrTo(quantile),
+				Value:    ptrTo(thresholds[i] / float64(time.Millisecond)),
 			}
 		}
 
@@ -168,25 +200,26 @@ func metricFamily(registry Registry, name string) (mf *dto.MetricFamily, err err
 			Type: dto.MetricType_SUMMARY.Enum(),
 			Metric: []*dto.Metric{{
 				Summary: &dto.Summary{
-					SampleCount: ptrTo(uint64(snapshot.Count())), //nolint:gosec
+					SampleCount: ptrTo(uint64(snapshot.Count())),
 					SampleSum:   ptrTo(float64(snapshot.Sum())),
 					Quantile:    dtoQuantiles,
 				},
 			}},
 		}, nil
-	case metrics.ResettingTimer:
+		
+	case *metrics.ResettingTimer:
 		snapshot := m.Snapshot()
-		if snapshot.Count() == 0 {
-			return nil, fmt.Errorf("%w: %q resetting timer metric count is zero", errMetricSkip, name)
+		if snapshot.Count() == 0 || strings.HasPrefix(name, "nil_") {
+			return nil, fmt.Errorf("%w: %q resetting timer has no data", errMetricSkip, name)
 		}
 
 		pvShortPercent := []float64{50, 95, 99}
 		thresholds := snapshot.Percentiles(pvShortPercent)
 		dtoQuantiles := make([]*dto.Quantile, len(pvShortPercent))
-		for i := range pvShortPercent {
+		for i, p := range pvShortPercent {
 			dtoQuantiles[i] = &dto.Quantile{
-				Quantile: ptrTo(pvShortPercent[i]),
-				Value:    ptrTo(thresholds[i]),
+				Quantile: ptrTo(p / 100.0),
+				Value:    ptrTo(thresholds[i] / float64(time.Millisecond)),
 			}
 		}
 
@@ -195,22 +228,33 @@ func metricFamily(registry Registry, name string) (mf *dto.MetricFamily, err err
 			Type: dto.MetricType_SUMMARY.Enum(),
 			Metric: []*dto.Metric{{
 				Summary: &dto.Summary{
-					SampleCount: ptrTo(uint64(snapshot.Count())), //nolint:gosec
+					SampleCount: ptrTo(uint64(snapshot.Count())),
+					// ResettingTimer doesn't have Sum, calculate from mean * count
+					SampleSum:   ptrTo(snapshot.Mean() * float64(snapshot.Count()) / float64(time.Millisecond)),
 					Quantile:    dtoQuantiles,
 				},
 			}},
 		}, nil
-    default:
-        // Treat any disabled (nil) collector from github.com/luxfi/evm/metrics as
-        // a noop and skip it rather than returning an error. These collectors
-        // have types prefixed with "metrics.Nil" (e.g. metrics.NilHealthcheck)
-        // and are instantiated when metrics.Enabled == false. They carry no
-        // runtime data and therefore should not be surfaced to Prometheus.
 
-        if strings.HasPrefix(fmt.Sprintf("%T", metric), "metrics.Nil") {
-            return nil, fmt.Errorf("%w: %q disabled (nil) metric", errMetricSkip, name)
+	default:
+        // Skip or error on unsupported types
+        switch metric.(type) {
+        case *metrics.UniformSample, *metrics.ResettingTimerSnapshot:
+            // Skip samples and snapshots
+            return nil, fmt.Errorf("%w: %q is a sample/snapshot", errMetricSkip, name)
+        case *metrics.Healthcheck:
+            // Skip healthchecks from nil metrics, error for others
+            if strings.HasPrefix(name, "nil_") {
+                return nil, fmt.Errorf("%w: %q is a nil healthcheck", errMetricSkip, name)
+            }
+            return nil, fmt.Errorf("%w: %q is a healthcheck", errMetricTypeNotSupported, name)
+        case *metrics.EWMA:
+            if strings.HasPrefix(name, "nil_") {
+                return nil, fmt.Errorf("%w: %q is a nil EWMA", errMetricSkip, name)
+            }
+            return nil, fmt.Errorf("%w: %q is an EWMA", errMetricTypeNotSupported, name)
+        default:
+            return nil, fmt.Errorf("%w: metric %q type %T", errMetricTypeNotSupported, name, metric)
         }
-
-        return nil, fmt.Errorf("%w: metric %q type %T", errMetricTypeNotSupported, name, metric)
 	}
 }

@@ -4,13 +4,13 @@
 package extras
 
 import (
-	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/precompile/precompileconfig"
+	"github.com/luxfi/geth/common"
 )
 
 type Rules struct {
-	// Rules for Lux releases
-	LuxRules
+	// All historic upgrades activated at Lux Genesis
+	GenesisRules
 
 	// Precompiles maps addresses to stateful precompiled contracts that are enabled
 	// for this rule set.
@@ -38,4 +38,14 @@ func (r *Rules) PredicaterExists(addr common.Address) bool {
 func (r *Rules) IsPrecompileEnabled(addr common.Address) bool {
 	_, ok := r.Precompiles[addr]
 	return ok
+}
+
+// IsDurango returns true (always enabled in v2.0.0)
+func (r *Rules) IsDurango() bool {
+	return true
+}
+
+// IsEVM returns true (always enabled in v2.0.0)
+func (r *Rules) IsEVM() bool {
+	return true
 }

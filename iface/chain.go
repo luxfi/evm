@@ -70,23 +70,19 @@ type ChainConfig interface {
 	IsShanghai(num *big.Int, time uint64) bool
 	IsCancun(time uint64) bool
 	
-	// Lux-specific methods
-	IsEVM(time uint64) bool
-	IsDurango(time uint64) bool
+	// Lux-specific methods  
+	// For v2.0.0, all upgrades are active at genesis
+	IsGenesis(time uint64) bool
 	AllowedFeeRecipients() bool
-	LuxRules(blockNum *big.Int, timestamp uint64) LuxRules
+	GenesisRules(blockNum *big.Int, timestamp uint64) GenesisRules
 	
 	// AsGeth returns the underlying geth ChainConfig for compatibility
 	AsGeth() interface{}
 }
 
-// LuxRules defines the Lux-specific fork rules
-type LuxRules interface {
-	IsEVM() bool
-	IsDurango() bool
-	IsEtna() bool
-	IsFortuna() bool
-	IsGranite() bool
+// GenesisRules defines the Genesis-specific fork rules
+type GenesisRules interface {
+	IsGenesis() bool
 	
 	// Precompile access
 	PredicatersExist() bool
