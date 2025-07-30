@@ -33,14 +33,13 @@ import (
 	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/rpc"
-	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/geth/node"
 	"github.com/luxfi/geth/triedb"
 	triedbhashdb "github.com/luxfi/geth/triedb/hashdb"
 	nodeconsensus "github.com/luxfi/node/consensus"
 	commonEng "github.com/luxfi/node/consensus/engine/core"
-	"github.com/luxfi/node/consensus/engine/linear/block"
-	"github.com/luxfi/node/consensus/linear"
+	chainblock "github.com/luxfi/node/consensus/engine/chain/block"
+	consensuschain "github.com/luxfi/node/consensus/chain"
 	"github.com/luxfi/database"
 	"github.com/luxfi/ids"
 	statesyncclient "github.com/luxfi/node/state_sync/client"
@@ -49,6 +48,7 @@ import (
 	"github.com/luxfi/node/utils/timer/mockable"
 	"github.com/luxfi/node/utils/units"
 	"github.com/luxfi/warp/backend"
+	luxmetrics "github.com/luxfi/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 
 	// Force-load tracer engine to trigger registration
@@ -87,9 +87,9 @@ import (
 )
 
 var (
-	_ block.ChainVM                      = &VM{}
-	_ block.BuildBlockWithContextChainVM = &VM{}
-	_ block.StateSyncableVM              = &VM{}
+	_ chainblock.ChainVM                      = &VM{}
+	_ chainblock.BuildBlockWithContextChainVM = &VM{}
+	_ chainblock.StateSyncableVM              = &VM{}
 	_ statesyncclient.EthBlockParser     = &VM{}
 )
 
@@ -221,7 +221,7 @@ type VM struct {
 
 	// Metrics
 	multiGatherer nodeMetrics.MultiGatherer
-	sdkMetrics    *prometheus.Registry
+	sdkMetrics    luxmetrics.Metrics
 
 	bootstrapped utils.Atomic[bool]
 
@@ -468,14 +468,23 @@ func (vm *VM) Initialize(
 		vm.p2pSender = appSender
 	}
 
-	p2pNetwork, err := p2p.NewNetwork(vm.ctx.Log, vm.p2pSender, vm.sdkMetrics, "p2p")
-	if err != nil {
-		return fmt.Errorf("failed to initialize p2p network: %w", err)
+	// Wrap the AppSender to adapt between interfaces
+	adaptedSender := newAppSenderAdapter(vm.p2pSender)
+	
+	// Get prometheus registry from Lux metrics for p2p network
+	var p2pNetwork *p2p.Network
+	if promRegistry, ok := nodeMetrics.GetPrometheusRegistry(vm.sdkMetrics); ok {
+		p2pNetwork, err = p2p.NewNetwork(vm.ctx.Log, adaptedSender, promRegistry, "p2p")
+		if err != nil {
+			return fmt.Errorf("failed to initialize p2p network: %w", err)
+		}
+	} else {
+		return fmt.Errorf("could not get prometheus registry for p2p network")
 	}
 	vm.p2pValidators = p2p.NewValidators(p2pNetwork.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
 	vm.networkCodec = message.Codec
 	vm.Network = p2pNetwork
-	// Create peer network wrapper
+	// Create peer network wrapper (peer.NewNetwork expects core.AppSender, not appsender.AppSender)
 	peerNetwork := peer.NewNetwork(p2pNetwork, vm.p2pSender, vm.networkCodec, vm.ctx.NodeID, 16)
 	vm.client = peer.NewNetworkClient(peerNetwork)
 
@@ -526,16 +535,20 @@ func (vm *VM) Initialize(
 }
 
 func (vm *VM) initializeMetrics() error {
-	// [metrics.Enabled] is a global variable imported from go-ethereum/metrics
-	// and must be set to true to enable metrics collection.
-	// Note: metrics.Enabled is a const in newer versions, so we can't set it
-	vm.sdkMetrics = prometheus.NewRegistry()
-	vm.multiGatherer = nodeMetrics.NewPrefixGatherer()
-	// TODO: Fix metrics registration
-	// The metrics.Enabled is a const in newer versions
-	// The prometheus Gatherer conversion needs to be fixed
-	// For now, just register the SDK metrics
-	return vm.ctx.Metrics.Register(sdkMetricsPrefix, vm.sdkMetrics)
+	// Create Lux metrics with prometheus backend
+	vm.sdkMetrics = nodeMetrics.CreateLuxMetrics(sdkMetricsPrefix)
+	
+	// Type assert Metrics to MultiGatherer
+	metricsGatherer, ok := vm.ctx.Metrics.(nodeMetrics.MultiGatherer)
+	if !ok {
+		return fmt.Errorf("metrics does not implement MultiGatherer")
+	}
+	
+	// Get the prometheus registry from Lux metrics and register it
+	if promRegistry, ok := nodeMetrics.GetPrometheusRegistry(vm.sdkMetrics); ok {
+		return metricsGatherer.Register(sdkMetricsPrefix, promRegistry)
+	}
+	return fmt.Errorf("could not get prometheus registry from Lux metrics")
 }
 
 func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
@@ -635,31 +648,75 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	block := vm.newBlock(lastAcceptedBlock)
 
+	// Create wrapper functions to adapt between chainblock.Block and consensuschain.Block
+	getBlockWrapper := func(ctx context.Context, id ids.ID) (consensuschain.Block, error) {
+		blk, err := vm.getBlock(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		// Our Block now implements consensuschain.Block interface properly
+		return blk.(consensuschain.Block), nil
+	}
+	
+	unmarshalBlockWrapper := func(ctx context.Context, b []byte) (consensuschain.Block, error) {
+		blk, err := vm.parseBlock(ctx, b)
+		if err != nil {
+			return nil, err
+		}
+		return blk.(consensuschain.Block), nil
+	}
+	
+	buildBlockWrapper := func(ctx context.Context) (consensuschain.Block, error) {
+		blk, err := vm.BuildBlock(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return blk.(consensuschain.Block), nil
+	}
+	
+	buildBlockWithContextWrapper := func(ctx context.Context, blockCtx *chainblock.Context) (consensuschain.Block, error) {
+		blk, err := vm.BuildBlockWithContext(ctx, blockCtx)
+		if err != nil {
+			return nil, err
+		}
+		return blk.(consensuschain.Block), nil
+	}
+
 	config := &chain.Config{
 		DecidedCacheSize:      decidedCacheSize,
 		MissingCacheSize:      missingCacheSize,
 		UnverifiedCacheSize:   unverifiedCacheSize,
 		BytesToIDCacheSize:    bytesToIDCacheSize,
-		GetBlock:              vm.getBlock,
-		UnmarshalBlock:        vm.parseBlock,
-		BuildBlock:            vm.buildBlock,
-		BuildBlockWithContext: vm.buildBlockWithContext,
+		GetBlock:              getBlockWrapper,
+		UnmarshalBlock:        unmarshalBlockWrapper,
+		BuildBlock:            buildBlockWrapper,
+		BuildBlockWithContext: buildBlockWithContextWrapper,
 		LastAcceptedBlock:     block,
 	}
 
-	// Register chain state metrics
-	chainStateRegisterer := prometheus.NewRegistry()
+	// Register chain state metrics using Lux metrics
+	chainStateMetrics := nodeMetrics.CreateLuxMetrics(chainStateMetricsPrefix)
+	
+	// Get prometheus registry from Lux metrics for chain state
+	var chainStateRegisterer prometheus.Registerer
+	if promRegistry, ok := nodeMetrics.GetPrometheusRegistry(chainStateMetrics); ok {
+		chainStateRegisterer = promRegistry
+	} else {
+		return fmt.Errorf("could not get prometheus registry for chain state metrics")
+	}
+	
 	state, err := chain.NewMeteredState(chainStateRegisterer, config)
 	if err != nil {
 		return fmt.Errorf("could not create metered state: %w", err)
 	}
 	vm.State = state
 
-	if !metrics.Enabled() {
-		return nil
+	// Register the chain state metrics with the node's metrics gatherer
+	metricsGatherer, ok := vm.ctx.Metrics.(nodeMetrics.MultiGatherer)
+	if !ok {
+		return fmt.Errorf("metrics does not implement MultiGatherer")
 	}
-
-	return vm.ctx.Metrics.Register(chainStateMetricsPrefix, chainStateRegisterer)
+	return metricsGatherer.Register(chainStateMetricsPrefix, chainStateRegisterer.(prometheus.Gatherer))
 }
 
 func (vm *VM) SetState(_ context.Context, state nodeconsensus.State) error {
@@ -674,7 +731,7 @@ func (vm *VM) SetState(_ context.Context, state nodeconsensus.State) error {
 	case nodeconsensus.NormalOp:
 		return vm.onNormalOperationsStarted()
 	default:
-		return nodeconsensus.ErrUnknownState
+		return fmt.Errorf("unknown state: %v", state)
 	}
 }
 
@@ -712,10 +769,19 @@ func (vm *VM) onNormalOperationsStarted() error {
 	// once we enter normal operation as there is no need to handle mempool gossip before this point.
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
 	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.p2pValidators))
-	ethTxGossipMetrics, err := gossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
-	if err != nil {
-		return fmt.Errorf("failed to initialize eth tx gossip metrics: %w", err)
+	
+	// Get prometheus registry from Lux metrics for gossip metrics
+	var ethTxGossipMetrics gossip.Metrics
+	if promRegistry, ok := nodeMetrics.GetPrometheusRegistry(vm.sdkMetrics); ok {
+		var err error
+		ethTxGossipMetrics, err = gossip.NewMetrics(promRegistry, ethTxGossipNamespace)
+		if err != nil {
+			return fmt.Errorf("failed to initialize eth tx gossip metrics: %w", err)
+		}
+	} else {
+		return fmt.Errorf("could not get prometheus registry from Lux metrics")
 	}
+	
 	ethTxPool, err := NewGossipEthTxPool(vm.txPool, vm.sdkMetrics)
 	if err != nil {
 		return fmt.Errorf("failed to initialize gossip eth tx pool: %w", err)
@@ -868,12 +934,12 @@ func (vm *VM) Shutdown(context.Context) error {
 	return nil
 }
 
-// buildBlock builds a block to be wrapped by ChainState
-func (vm *VM) buildBlock(ctx context.Context) (linear.Block, error) {
-	return vm.buildBlockWithContext(ctx, nil)
+// BuildBlock builds a block to be wrapped by ChainState
+func (vm *VM) BuildBlock(ctx context.Context) (chainblock.Block, error) {
+	return vm.BuildBlockWithContext(ctx, nil)
 }
 
-func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) (linear.Block, error) {
+func (vm *VM) BuildBlockWithContext(ctx context.Context, proposerVMBlockCtx *chainblock.Context) (chainblock.Block, error) {
 	if proposerVMBlockCtx != nil {
 		vm.logger.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
 	} else {
@@ -933,8 +999,13 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	return blk, nil
 }
 
+// ParseBlock parses [b] into a block.
+func (vm *VM) ParseBlock(ctx context.Context, b []byte) (chainblock.Block, error) {
+	return vm.parseBlock(ctx, b)
+}
+
 // parseBlock parses [b] into a block to be wrapped by ChainState.
-func (vm *VM) parseBlock(_ context.Context, b []byte) (linear.Block, error) {
+func (vm *VM) parseBlock(_ context.Context, b []byte) (chainblock.Block, error) {
 	ethBlock := new(types.Block)
 	if err := rlp.DecodeBytes(b, ethBlock); err != nil {
 		return nil, err
@@ -964,9 +1035,14 @@ func (vm *VM) ParseEthBlock(b []byte) (*types.Block, error) {
 	return evmBlock.ethBlock, nil
 }
 
+// GetBlock attempts to retrieve block [id] from the VM.
+func (vm *VM) GetBlock(ctx context.Context, id ids.ID) (chainblock.Block, error) {
+	return vm.getBlock(ctx, id)
+}
+
 // getBlock attempts to retrieve block [id] from the VM to be wrapped
 // by ChainState.
-func (vm *VM) getBlock(_ context.Context, id ids.ID) (linear.Block, error) {
+func (vm *VM) getBlock(_ context.Context, id ids.ID) (chainblock.Block, error) {
 	ethBlock := vm.blockChain.GetBlockByHash(common.Hash(id))
 	// If [ethBlock] is nil, return [database.ErrNotFound] here
 	// so that the miss is considered cacheable.
@@ -979,7 +1055,7 @@ func (vm *VM) getBlock(_ context.Context, id ids.ID) (linear.Block, error) {
 
 // GetAcceptedBlock attempts to retrieve block [blkID] from the VM. This method
 // only returns accepted blocks.
-func (vm *VM) GetAcceptedBlock(ctx context.Context, blkID ids.ID) (linear.Block, error) {
+func (vm *VM) GetAcceptedBlock(ctx context.Context, blkID ids.ID) (chainblock.Block, error) {
 	blk, err := vm.GetBlock(ctx, blkID)
 	if err != nil {
 		return nil, err
@@ -1128,7 +1204,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 // WaitForEvent implements a VM interface method
 // TODO: determine proper Event type from node package
 func (vm *VM) WaitForEvent(ctx context.Context) (commonEng.Message, error) {
-	return commonEng.Message(0), fmt.Errorf("WaitForEvent not implemented")
+	return commonEng.Message{}, fmt.Errorf("WaitForEvent not implemented")
 }
 
 func (vm *VM) NewHTTPHandler(ctx context.Context) (http.Handler, error) {

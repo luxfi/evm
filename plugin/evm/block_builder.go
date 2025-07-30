@@ -111,7 +111,9 @@ func (b *blockBuilder) markBuilding() {
 	b.buildBlockTimer.Cancel() // Cancel any future attempt from the timer to send a PendingTxs message
 
 	select {
-	case b.notifyBuildBlockChan <- commonEng.PendingTxs:
+	case b.notifyBuildBlockChan <- commonEng.Message{
+		Body: commonEng.PendingTxs{},
+	}:
 		b.buildSent = true
 	default:
 		log.Error("Failed to push PendingTxs notification to the consensus common.")

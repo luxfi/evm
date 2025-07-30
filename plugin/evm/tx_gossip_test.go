@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/luxfi/node/consensus/engine/core"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/node/consensus"
@@ -46,7 +46,7 @@ func TestEthTxGossip(t *testing.T) {
 		[]byte(genesisJSONLatest),
 		nil,
 		nil,
-		make(chan common.Message),
+		make(chan core.Message),
 		nil,
 		&enginetest.Sender{},
 	))
@@ -162,7 +162,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		[]byte(genesisJSONLatest),
 		nil,
 		nil,
-		make(chan common.Message),
+		make(chan core.Message),
 		nil,
 		sender,
 	))
@@ -215,7 +215,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 		[]byte(genesisJSONLatest),
 		nil,
 		nil,
-		make(chan common.Message),
+		make(chan core.Message),
 		nil,
 		sender,
 	))

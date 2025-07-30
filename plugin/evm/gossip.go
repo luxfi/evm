@@ -11,7 +11,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/network/p2p/gossip"
-	"github.com/prometheus/client_golang/prometheus"
+	luxmetrics "github.com/luxfi/metrics"
 )
 
 var (
@@ -48,7 +48,7 @@ type GossipEthTxPool struct {
 	txPool *txpool.TxPool
 }
 
-func NewGossipEthTxPool(txPool *txpool.TxPool, sdkMetrics *prometheus.Registry) (*GossipEthTxPool, error) {
+func NewGossipEthTxPool(txPool *txpool.TxPool, sdkMetrics luxmetrics.Metrics) (*GossipEthTxPool, error) {
 	return &GossipEthTxPool{
 		txPool: txPool,
 	}, nil

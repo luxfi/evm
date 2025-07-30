@@ -16,7 +16,7 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/log"
 	commonEng "github.com/luxfi/node/consensus/engine/core"
-	"github.com/luxfi/node/consensus/engine/linear/block"
+	"github.com/luxfi/node/consensus/engine/chain/block"
 	"github.com/luxfi/database"
 	syncclient "github.com/luxfi/node/state_sync/client"
 	"github.com/luxfi/node/state_sync/statesync"
@@ -203,7 +203,9 @@ func (client *stateSyncerClient) acceptSyncSummary(proposedSummary message.SyncS
 		// this error will be propagated to the engine when it calls
 		// vm.SetState(consensus.Bootstrapping)
 		log.Info("stateSync completed, notifying engine", "err", client.stateSyncErr)
-		client.toEngine <- commonEng.StateSyncDone
+		// TODO: Implement proper state sync completion notification
+		// The new engine doesn't have StateSyncDone message type
+		// For now, we'll need to handle this differently
 	}()
 	return block.StateSyncStatic, nil
 }
