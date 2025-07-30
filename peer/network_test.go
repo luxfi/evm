@@ -11,8 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
+	
 	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/utils"
 	ethcommon "github.com/luxfi/geth/common"
@@ -20,10 +19,15 @@ import (
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/node/codec/linearcodec"
+	interfaces "github.com/luxfi/node/consensus/engine/core"
+	"github.com/luxfi/node/consensus/engine/core/appsender"
+	"github.com/luxfi/node/consensus/chain"
+	"github.com/luxfi/ids"
+	"github.com/luxfi/node/utils/set"
+	"github.com/luxfi/node/utils/logging"
+	"github.com/luxfi/node/codec"
+	"github.com/luxfi/log"
 )
 
 var (
@@ -42,7 +46,7 @@ var (
 	_ message.RequestHandler = &HelloGreetingRequestHandler{}
 	_ message.RequestHandler = &testRequestHandler{}
 
-	_ common.AppSender = testAppSender{}
+	_ appsender.AppSender = testAppSender{}
 
 	_ interfaces.Handler = &testSDKHandler{}
 )
@@ -604,7 +608,7 @@ func TestNetworkRouting(t *testing.T) {
 
 func buildCodec(t *testing.T, types ...interface{}) interfaces.Manager {
 	codecManager := interfaces.NewDefaultManager()
-	c := linearinterfaces.NewDefault()
+	c := linearcodec.NewDefault()
 	for _, typ := range types {
 		assert.NoError(t, c.RegisterType(typ))
 	}
@@ -621,7 +625,7 @@ func marshalStruct(codec interfaces.Manager, obj interface{}) ([]byte, error) {
 type testAppSender struct {
 	sendAppRequestFn  func(context.Context, set.Set[ids.NodeID], uint32, []byte) error
 	sendAppResponseFn func(ids.NodeID, uint32, []byte) error
-	sendAppGossipFn   func(common.SendConfig, []byte) error
+	sendAppGossipFn   func(appsender.SendConfig, []byte) error
 }
 
 func (t testAppSender) SendAppRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, message []byte) error {
@@ -632,7 +636,7 @@ func (t testAppSender) SendAppResponse(_ context.Context, nodeID ids.NodeID, req
 	return t.sendAppResponseFn(nodeID, requestID, message)
 }
 
-func (t testAppSender) SendAppGossip(_ context.Context, config common.SendConfig, message []byte) error {
+func (t testAppSender) SendAppGossip(_ context.Context, config appsender.SendConfig, message []byte) error {
 	return t.sendAppGossipFn(config, message)
 }
 

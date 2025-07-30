@@ -201,7 +201,7 @@ func (n *network) sendAppRequest(ctx context.Context, nodeID ids.NodeID, request
 	// This guarantees that the network should never receive an unexpected
 	// AppResponse.
 	ctxWithoutCancel := context.WithoutCancel(ctx)
-	if err := n.appSender.SendAppRequest(ctxWithoutCancel, nodeIDs, requestID, request); err != nil {
+	if err := n.appSender.SendAppRequest(ctxWithoutCancel, nodeIDs.List(), requestID, request); err != nil {
 		log.Error(
 			"request to peer failed",
 			"nodeID", nodeID,
@@ -466,13 +466,9 @@ func (n *network) Gossip(gossip []byte) error {
 	}
 
 	// Send gossip to all peers
-	sendConfig := nodeinterfaces.SendConfig{
-		NodeIDs:       nil,
-		Validators:    100, // Send to all validators
-		NonValidators: 100, // Send to all non-validators
-		Peers:         0,
-	}
-	return n.appSender.SendAppGossip(context.TODO(), sendConfig, gossip)
+	// TODO: This needs to be updated to use proper peer selection
+	// For now, just send to all peers using the simple interface
+	return n.appSender.SendAppGossip(context.TODO(), gossip)
 }
 
 // AppGossip is called by node -> VM when there is an incoming AppGossip from a peer

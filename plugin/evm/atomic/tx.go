@@ -19,7 +19,7 @@ import (
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/node/chains/atomic"
 	"github.com/luxfi/node/codec"
-	"github.com/luxfi/node/consensus/linear"
+	"github.com/luxfi/node/consensus/engine/chain/block"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/utils/crypto/secp256k1"
 	"github.com/luxfi/node/utils/hashing"
@@ -137,13 +137,13 @@ type Backend struct {
 }
 
 type BlockFetcher interface {
-	LastAcceptedBlockInternal() linear.Block
-	GetBlockInternal(context.Context, ids.ID) (linear.Block, error)
+	LastAcceptedBlockInternal() block.Block
+	GetBlockInternal(context.Context, ids.ID) (block.Block, error)
 }
 
 type AtomicBlockContext interface {
 	AtomicTxs() []*Tx
-	linear.Block
+	block.Block
 }
 
 type StateDB interface {

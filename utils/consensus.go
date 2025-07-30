@@ -152,3 +152,23 @@ func (tvs *TestValidatorState) GetCurrentValidatorSet(ctx context.Context, subne
 	}
 	return nil, 0, nil
 }
+
+func (tvs *TestValidatorState) ApplyValidatorWeightDiffs(
+	ctx context.Context,
+	validators map[ids.NodeID]*validators.GetValidatorOutput,
+	startHeight uint64,
+	endHeight uint64,
+	subnetID ids.ID,
+) error {
+	return nil
+}
+
+func (tvs *TestValidatorState) ApplyValidatorPublicKeyDiffs(
+	ctx context.Context,
+	validators map[ids.NodeID]*validators.GetValidatorOutput,
+	startHeight uint64,
+	endHeight uint64,
+	subnetID ids.ID,
+) error {
+	return nil
+}
