@@ -10,6 +10,7 @@ import (
 	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/utils"
 	ethparams "github.com/luxfi/geth/params"
+	"github.com/luxfi/node/upgrade"
 )
 
 const (
@@ -111,7 +112,9 @@ func SetNetworkUpgradeDefaults(c *ChainConfig) {
 		c.MuirGlacierBlock = big.NewInt(0)
 	}
 
-	GetExtra(c).NetworkUpgrades.SetDefaults(GetExtra(c).ConsensusCtx.NetworkUpgrades)
+	if upgrades, ok := GetExtra(c).ConsensusCtx.NetworkUpgrades.(*upgrade.Config); ok {
+		GetExtra(c).NetworkUpgrades.SetDefaults(*upgrades)
+	}
 }
 
 // GetRulesExtra returns the Lux-specific rules for the given Ethereum rules.

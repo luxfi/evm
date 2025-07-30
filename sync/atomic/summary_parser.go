@@ -5,7 +5,7 @@ package atomic
 import (
 	"fmt"
 
-	"github.com/luxfi/node/ids"
+	"github.com/luxfi/ids"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/geth/crypto"
 )

@@ -9,8 +9,9 @@ import (
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/node/consensus/engine/linear/block"
+	"github.com/luxfi/node/consensus/engine/chain/block"
 	"github.com/luxfi/ids"
+	luxids "github.com/luxfi/ids"
 )
 
 var _ block.StateSummary = &SyncSummary{}
@@ -36,11 +37,12 @@ func NewSyncSummaryFromBytes(summaryBytes []byte, acceptImpl func(SyncSummary) (
 	}
 
 	summary.bytes = summaryBytes
-	summaryID, err := ids.ToID(crypto.Keccak256(summaryBytes))
+	summaryID, err := luxids.ToID(crypto.Keccak256(summaryBytes))
 	if err != nil {
 		return SyncSummary{}, err
 	}
-	summary.summaryID = summaryID
+	// Convert from luxfi/ids.ID to luxfi/node/ids.ID
+	summary.summaryID = ids.ID(summaryID)
 	summary.acceptImpl = acceptImpl
 	return summary, nil
 }
@@ -57,11 +59,12 @@ func NewSyncSummary(blockHash common.Hash, blockNumber uint64, blockRoot common.
 	}
 
 	summary.bytes = bytes
-	summaryID, err := ids.ToID(crypto.Keccak256(bytes))
+	summaryID, err := luxids.ToID(crypto.Keccak256(bytes))
 	if err != nil {
 		return SyncSummary{}, err
 	}
-	summary.summaryID = summaryID
+	// Convert from luxfi/ids.ID to luxfi/node/ids.ID
+	summary.summaryID = ids.ID(summaryID)
 
 	return summary, nil
 }

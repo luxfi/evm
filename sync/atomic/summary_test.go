@@ -8,8 +8,8 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/luxfi/node/ids"
-	"github.com/luxfi/node/snow/engine/snowman/block"
+	"github.com/luxfi/ids"
+	"github.com/luxfi/node/consensus/engine/chain/block"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/require"
