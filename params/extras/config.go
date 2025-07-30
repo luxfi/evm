@@ -297,8 +297,10 @@ func (c *ChainConfig) Verify() error {
 	}
 
 	// Verify the network upgrades are internally consistent given the existing chainConfig.
-	if err := c.verifyNetworkUpgrades(c.ConsensusCtx.NetworkUpgrades); err != nil {
-		return fmt.Errorf("invalid network upgrades: %w", err)
+	if upgrades, ok := c.ConsensusCtx.NetworkUpgrades.(*upgrade.Config); ok {
+		if err := c.verifyNetworkUpgrades(*upgrades); err != nil {
+			return fmt.Errorf("invalid network upgrades: %w", err)
+		}
 	}
 
 	return nil

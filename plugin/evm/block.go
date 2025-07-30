@@ -20,11 +20,13 @@ import (
 	"github.com/luxfi/evm/predicate"
 	"github.com/luxfi/log"
 	"github.com/luxfi/geth/rlp"
-	"github.com/luxfi/node/consensus/engine/linear/block"
+	"github.com/luxfi/node/consensus/engine/chain/block"
+	"github.com/luxfi/node/consensus/choices"
 	"github.com/luxfi/ids"
 )
 
 var (
+	_ block.Block             = (*Block)(nil)
 	_ block.WithVerifyContext = (*Block)(nil)
 )
 
@@ -44,11 +46,11 @@ func (vm *VM) newBlock(ethBlock *types.Block) *Block {
 	}
 }
 
-// ID implements the chain.Block interface
-func (b *Block) ID() ids.ID { return ids.ID(b.id) }
+// ID implements the block.Block interface (choices.Decidable)
+func (b *Block) ID() string { return ids.ID(b.id).String() }
 
 // Accept implements the chain.Block interface
-func (b *Block) Accept(context.Context) error {
+func (b *Block) Accept() error {
 	vm := b.vm
 
 	// Although returning an error from Accept is considered fatal, it is good
@@ -57,7 +59,7 @@ func (b *Block) Accept(context.Context) error {
 		defer vm.versiondb.Abort()
 	}
 
-	blkID := b.ID()
+	blkID := ids.ID(b.id)
 	log.Debug("accepting block",
 		"hash", blkID.String(),
 		"id", blkID,
@@ -133,8 +135,8 @@ func (b *Block) handlePrecompileAccept(rules extras.Rules) error {
 }
 
 // Reject implements the chain.Block interface
-func (b *Block) Reject(context.Context) error {
-	blkID := b.ID()
+func (b *Block) Reject() error {
+	blkID := ids.ID(b.id)
 	log.Debug("rejecting block",
 		"hash", blkID.String(),
 		"id", blkID,
@@ -153,9 +155,14 @@ func (b *Block) Height() uint64 {
 	return b.ethBlock.NumberU64()
 }
 
-// Timestamp implements the chain.Block interface
+// Timestamp implements the chain.Block interface (deprecated - use Time())
 func (b *Block) Timestamp() time.Time {
 	return time.Unix(int64(b.ethBlock.Time()), 0)
+}
+
+// Time implements the chain.Block interface
+func (b *Block) Time() uint64 {
+	return b.ethBlock.Time()
 }
 
 // syntacticVerify verifies that a *Block is well-formed.
@@ -308,6 +315,13 @@ func (b *Block) Bytes() []byte {
 		panic(err)
 	}
 	return res
+}
+
+// Status implements the choices.Decidable interface
+func (b *Block) Status() choices.Status {
+	// TODO: Implement proper status tracking
+	// For now, return Processing as blocks are being processed
+	return choices.Processing
 }
 
 func (b *Block) String() string { return fmt.Sprintf("EVM block, ID = %s", b.ID()) }
