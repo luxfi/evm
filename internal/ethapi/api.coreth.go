@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxfi/evm/upgrade/etna"
+	"github.com/luxfi/evm/v2/v2/upgrade/etna"
 	"github.com/luxfi/geth/common/hexutil"
 )
 

@@ -6,8 +6,8 @@ package vm
 import (
 	"math/big"
 
-	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/precompile/contract"
+	"github.com/luxfi/evm/v2/v2/core/types"
+	"github.com/luxfi/evm/v2/v2/precompile/contract"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/tracing"
 	"github.com/holiman/uint256"

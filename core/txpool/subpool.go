@@ -31,9 +31,9 @@ import (
 	"time"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/v2/v2/core/types"
 	"github.com/luxfi/geth/event"
-	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/v2/v2/core"
 	"github.com/holiman/uint256"
 )
 

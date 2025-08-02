@@ -22,8 +22,8 @@ import (
 	"fmt"
 
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/evm/trie/trienode"
-	"github.com/luxfi/evm/trie/utils"
+	"github.com/luxfi/evm/v2/v2/trie/trienode"
+	"github.com/luxfi/evm/v2/v2/trie/utils"
 	"github.com/luxfi/geth/triedb/database"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"

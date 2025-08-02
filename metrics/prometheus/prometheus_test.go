@@ -6,7 +6,7 @@ package prometheus
 import (
 	"testing"
 	"time"
-	"github.com/luxfi/evm/internal/testutils"
+	"github.com/luxfi/evm/v2/v2/internal/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/luxfi/geth/metrics"

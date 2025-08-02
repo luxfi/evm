@@ -34,15 +34,15 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxfi/evm/accounts/abi/bind"
-	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/v2/v2/accounts/abi/bind"
+	"github.com/luxfi/evm/v2/v2/core/types"
+	"github.com/luxfi/evm/v2/v2/iface"
 	"github.com/luxfi/geth/rpc"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 
 	// Force-load precompiles to trigger registration
-	_ "github.com/luxfi/evm/precompile/registry"
+	_ "github.com/luxfi/evm/v2/v2/precompile/registry"
 )
 
 // Verify that Client implements required interfaces

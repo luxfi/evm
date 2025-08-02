@@ -6,9 +6,9 @@ package params
 import (
 	"math/big"
 
-	"github.com/luxfi/evm/commontype"
-	"github.com/luxfi/evm/params/extras"
-	"github.com/luxfi/evm/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/v2/commontype"
+	"github.com/luxfi/evm/v2/v2/params/extras"
+	"github.com/luxfi/evm/v2/v2/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
 )
 

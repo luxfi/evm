@@ -22,13 +22,13 @@ import (
 	"testing"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core/rawdb"
-	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/v2/v2/core/rawdb"
+	"github.com/luxfi/evm/v2/v2/core/types"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/ethdb"
 	ethparams "github.com/luxfi/geth/params"
-	"github.com/luxfi/evm/consensus/dummy"
-	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/v2/v2/consensus/dummy"
+	"github.com/luxfi/evm/v2/v2/params"
 	"github.com/stretchr/testify/require"
 )
 

@@ -22,11 +22,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luxfi/evm/core"
-	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/params"
-	"github.com/luxfi/evm/upgrade/lp176"
+	"github.com/luxfi/evm/v2/v2/core"
+	"github.com/luxfi/evm/v2/v2/core/types"
+	"github.com/luxfi/evm/v2/v2/iface"
+	"github.com/luxfi/evm/v2/v2/params"
+	"github.com/luxfi/evm/v2/v2/upgrade/lp176"
 )
 
 // Tests that the simulator starts with the initial gas limit in the genesis block,

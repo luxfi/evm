@@ -33,9 +33,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luxfi/evm/core/rawdb"
-	"github.com/luxfi/evm/core/state"
-	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/v2/v2/core/rawdb"
+	"github.com/luxfi/evm/v2/v2/core/state"
+	"github.com/luxfi/evm/v2/v2/core/types"
 	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/geth/triedb"
 	"github.com/holiman/uint256"

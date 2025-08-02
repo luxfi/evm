@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/v2/v2/core/vm"
 	"github.com/luxfi/geth/common"
 )
 

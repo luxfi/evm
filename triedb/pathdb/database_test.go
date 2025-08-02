@@ -34,12 +34,12 @@ import (
 	"testing"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/iface/core/rawdb"
-	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/v2/v2/iface/core/rawdb"
+	"github.com/luxfi/evm/v2/v2/core/types"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/rlp"
-	"github.com/luxfi/evm/iface/trie/testutil"
-	"github.com/luxfi/evm/trie/trienode"
+	"github.com/luxfi/evm/v2/v2/iface/trie/testutil"
+	"github.com/luxfi/evm/v2/v2/trie/trienode"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 )

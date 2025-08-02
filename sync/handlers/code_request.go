@@ -10,8 +10,8 @@ import (
 	"github.com/luxfi/node/codec"
 	"github.com/luxfi/ids"
 
-	"github.com/luxfi/evm/plugin/evm/message"
-	"github.com/luxfi/evm/sync/handlers/stats"
+	"github.com/luxfi/evm/v2/v2/plugin/evm/message"
+	"github.com/luxfi/evm/v2/v2/sync/handlers/stats"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/ethdb"

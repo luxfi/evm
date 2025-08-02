@@ -6,10 +6,10 @@ package contract
 
 import (
 	"math/big"
-	"github.com/luxfi/evm/commontype"
-	"github.com/luxfi/evm/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/v2/commontype"
+	"github.com/luxfi/evm/v2/v2/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
-	ethtypes "github.com/luxfi/evm/core/types"
+	ethtypes "github.com/luxfi/evm/v2/v2/core/types"
 	"github.com/holiman/uint256"
 )
 
