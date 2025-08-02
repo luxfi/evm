@@ -6,7 +6,6 @@ package core
 import (
 	"fmt"
 	"math/big"
-	"os"
 	"testing"
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/core/rawdb"
@@ -14,14 +13,15 @@ import (
 	"github.com/luxfi/evm/core/state/pruner"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
-	"github.com/luxfi/geth/eth/tracers/logger"
-	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/params/extras"
+	"github.com/luxfi/evm/plugin/evm/customrawdb"
+	"github.com/luxfi/node/upgrade"
+	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
-	"github.com/fsnotify/fsnotify"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	ethparams "github.com/luxfi/geth/params"
+	"github.com/holiman/uint256"
 )
 
 var (
@@ -313,7 +313,11 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
 		Config: params.WithExtra(
-			&params.ChainConfig{HomesteadBlock: new(big.Int)},
+			&params.ChainConfig{
+				ChainConfig: &ethparams.ChainConfig{
+					HomesteadBlock: new(big.Int),
+				},
+			},
 			&extras.ChainConfig{FeeConfig: params.DefaultFeeConfig},
 		),
 		Alloc: types.GenesisAlloc{addr1: {Balance: genesisBalance}},
@@ -429,7 +433,11 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
 		Config: params.WithExtra(
-			&params.ChainConfig{HomesteadBlock: new(big.Int)},
+			&params.ChainConfig{
+				ChainConfig: &ethparams.ChainConfig{
+					HomesteadBlock: new(big.Int),
+				},
+			},
 			&extras.ChainConfig{FeeConfig: params.DefaultFeeConfig},
 		),
 		Alloc: types.GenesisAlloc{addr1: {Balance: genesisBalance}},
@@ -591,7 +599,7 @@ func testCanonicalHashMarker(t *testing.T, scheme string) {
 			gspec = &Genesis{
 				Config:  params.TestChainConfig,
 				Alloc:   types.GenesisAlloc{},
-				BaseFee: big.NewInt(legacy.BaseFee),
+				BaseFee: big.NewInt(params.TestInitialBaseFee),
 			}
 			engine = dummy.NewCoinbaseFaker()
 		)
@@ -710,14 +718,20 @@ func TestTxLookupSkipIndexingBlockChain(t *testing.T) {
 func TestCreateThenDeletePreByzantium(t *testing.T) {
 	// We want to use pre-byzantium rules where we have intermediate state roots
 	// between transactions.
-	config := *params.TestPreEVMChainConfig
-	config.ByzantiumBlock = nil
-	config.ConstantinopleBlock = nil
-	config.PetersburgBlock = nil
-	config.IstanbulBlock = nil
-	config.MuirGlacierBlock = nil
-	config.BerlinBlock = nil
-	config.LondonBlock = nil
+	// In v2.0.0, create a copy of TestChainConfig and disable Byzantium features
+	config := *params.TestChainConfig
+	if config.ChainConfig != nil {
+		// Create a copy of the embedded geth config
+		gethConfig := *config.ChainConfig
+		gethConfig.ByzantiumBlock = nil
+		gethConfig.ConstantinopleBlock = nil
+		gethConfig.PetersburgBlock = nil
+		gethConfig.IstanbulBlock = nil
+		gethConfig.MuirGlacierBlock = nil
+		gethConfig.BerlinBlock = nil
+		gethConfig.LondonBlock = nil
+		config.ChainConfig = &gethConfig
+	}
 
 	testCreateThenDelete(t, &config)
 }
@@ -1080,7 +1094,8 @@ func TestEIP3651(t *testing.T) {
 
 		b.AddTx(tx)
 	})
-	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{Tracer: logger.NewMarkdownLogger(&logger.Config{}, os.Stderr)}, common.Hash{}, false)
+	// TODO: Fix logger compatibility - for now run without tracer
+	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}

@@ -1,7 +1,7 @@
 // (c) 2023, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package consensus
+package commontype
 
 // BlockContext defines the block context that will be optionally provided by the
 // proposervm to an underlying vm.

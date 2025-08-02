@@ -11,6 +11,7 @@ import (
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/params/extras"
+	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/trie"
 	"github.com/stretchr/testify/require"
@@ -64,7 +65,7 @@ func TestHandlePrecompileAccept(t *testing.T) {
 
 	// Set up the mock with the expected calls to Accept
 	txIndex := 0
-	mockAccepter := precompileinterfaces.NewMockAccepter(ctrl)
+	mockAccepter := precompileconfig.NewMockAccepter(ctrl)
 	gomock.InOrder(
 		mockAccepter.EXPECT().Accept(
 			gomock.Not(gomock.Nil()),                // acceptCtx
@@ -89,7 +90,7 @@ func TestHandlePrecompileAccept(t *testing.T) {
 	// Call handlePrecompileAccept
 	blk := vm.newBlock(ethBlock)
 	rules := extras.Rules{
-		AccepterPrecompiles: map[common.Address]precompileinterfaces.Accepter{
+		AccepterPrecompiles: map[common.Address]precompileconfig.Accepter{
 			precompileAddr: mockAccepter,
 		},
 	}

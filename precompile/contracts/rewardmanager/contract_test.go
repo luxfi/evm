@@ -6,12 +6,11 @@ package rewardmanager
 import (
 	"testing"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core/vm"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/constants"
-	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/core/extstate/testhelpers"
 	"github.com/luxfi/evm/precompile/allowlist"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/evm/precompile/precompileconfig"
@@ -24,7 +23,7 @@ var (
 	tests         = map[string]testutils.PrecompileTest{
 		"set allow fee recipients from no role fails": {
 			Caller:     allowlist.TestNoRoleAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackAllowFeeRecipients()
 				require.NoError(t, err)
@@ -37,7 +36,7 @@ var (
 		},
 		"set reward address from no role fails": {
 			Caller:     allowlist.TestNoRoleAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetRewardAddress(rewardAddress)
 				require.NoError(t, err)
@@ -50,7 +49,7 @@ var (
 		},
 		"disable rewards from no role fails": {
 			Caller:     allowlist.TestNoRoleAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackDisableRewards()
 				require.NoError(t, err)
@@ -63,7 +62,7 @@ var (
 		},
 		"set allow fee recipients from enabled succeeds": {
 			Caller:     allowlist.TestEnabledAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackAllowFeeRecipients()
 				require.NoError(t, err)
@@ -83,7 +82,7 @@ var (
 		},
 		"set fee recipients should not emit events pre-Durango": {
 			Caller:     allowlist.TestEnabledAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackAllowFeeRecipients()
 				require.NoError(t, err)
@@ -109,7 +108,7 @@ var (
 		},
 		"set reward address from enabled succeeds": {
 			Caller:     allowlist.TestEnabledAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetRewardAddress(rewardAddress)
 				require.NoError(t, err)
@@ -130,7 +129,7 @@ var (
 		},
 		"set allow fee recipients from manager succeeds": {
 			Caller:     allowlist.TestManagerAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackAllowFeeRecipients()
 				require.NoError(t, err)
@@ -150,7 +149,7 @@ var (
 		},
 		"set reward address from manager succeeds": {
 			Caller:     allowlist.TestManagerAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetRewardAddress(rewardAddress)
 				require.NoError(t, err)
@@ -171,7 +170,7 @@ var (
 		},
 		"change reward address should not emit events pre-Durango": {
 			Caller:     allowlist.TestManagerAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetRewardAddress(rewardAddress)
 				require.NoError(t, err)
@@ -197,7 +196,7 @@ var (
 		},
 		"disable rewards from manager succeeds": {
 			Caller:     allowlist.TestManagerAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackDisableRewards()
 				require.NoError(t, err)
@@ -218,7 +217,7 @@ var (
 		},
 		"disable rewards from enabled succeeds": {
 			Caller:     allowlist.TestEnabledAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackDisableRewards()
 				require.NoError(t, err)
@@ -239,7 +238,7 @@ var (
 		},
 		"disable rewards should not emit event pre-Durango": {
 			Caller:     allowlist.TestManagerAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackDisableRewards()
 				require.NoError(t, err)
@@ -266,7 +265,7 @@ var (
 		"get current reward address from no role succeeds": {
 			Caller: allowlist.TestNoRoleAddr,
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
-				allowlist.SetDefaultRoles(Module.Address)(t, state)
+				allowlist.SetDefaultRoles(Module.Address())(t, state)
 				StoreRewardAddress(state, rewardAddress)
 			},
 			InputFn: func(t testing.TB) []byte {
@@ -288,7 +287,7 @@ var (
 		"get are fee recipients allowed from no role succeeds": {
 			Caller: allowlist.TestNoRoleAddr,
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
-				allowlist.SetDefaultRoles(Module.Address)(t, state)
+				allowlist.SetDefaultRoles(Module.Address())(t, state)
 				EnableAllowFeeRecipients(state)
 			},
 			InputFn: func(t testing.TB) []byte {
@@ -308,7 +307,7 @@ var (
 		},
 		"get initial config with address": {
 			Caller:     allowlist.TestNoRoleAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackCurrentRewardAddress()
 				require.NoError(t, err)
@@ -331,7 +330,7 @@ var (
 		},
 		"get initial config with allow fee recipients enabled": {
 			Caller:     allowlist.TestNoRoleAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackAreFeeRecipientsAllowed()
 				require.NoError(t, err)
@@ -354,7 +353,7 @@ var (
 		},
 		"readOnly allow fee recipients with allowed role fails": {
 			Caller:     allowlist.TestEnabledAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackAllowFeeRecipients()
 				require.NoError(t, err)
@@ -363,11 +362,11 @@ var (
 			},
 			SuppliedGas: AllowFeeRecipientsGasCost,
 			ReadOnly:    true,
-			ExpectedErr: vm.ErrWriteProtection.Error(),
+			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly set reward address with allowed role fails": {
 			Caller:     allowlist.TestEnabledAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetRewardAddress(rewardAddress)
 				require.NoError(t, err)
@@ -376,11 +375,11 @@ var (
 			},
 			SuppliedGas: SetRewardAddressGasCost,
 			ReadOnly:    true,
-			ExpectedErr: vm.ErrWriteProtection.Error(),
+			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"insufficient gas set reward address from allowed role": {
 			Caller:     allowlist.TestEnabledAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetRewardAddress(rewardAddress)
 				require.NoError(t, err)
@@ -389,11 +388,11 @@ var (
 			},
 			SuppliedGas: SetRewardAddressGasCost + RewardAddressChangedEventGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"insufficient gas allow fee recipients from allowed role": {
 			Caller:     allowlist.TestEnabledAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackAllowFeeRecipients()
 				require.NoError(t, err)
@@ -402,11 +401,11 @@ var (
 			},
 			SuppliedGas: AllowFeeRecipientsGasCost + FeeRecipientsAllowedEventGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"insufficient gas read current reward address from allowed role": {
 			Caller:     allowlist.TestEnabledAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackCurrentRewardAddress()
 				require.NoError(t, err)
@@ -415,11 +414,11 @@ var (
 			},
 			SuppliedGas: CurrentRewardAddressGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"insufficient gas are fee recipients allowed from allowed role": {
 			Caller:     allowlist.TestEnabledAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address()),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackAreFeeRecipientsAllowed()
 				require.NoError(t, err)
@@ -428,17 +427,17 @@ var (
 			},
 			SuppliedGas: AreFeeRecipientsAllowedGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 	}
 )
 
 func TestRewardManagerRun(t *testing.T) {
-	allowlist.RunPrecompileWithAllowListTests(t, Module, extstate.NewTestStateDB, tests)
+	allowlist.RunPrecompileWithAllowListTests(t, Module, testhelpers.NewTestStateDB, tests)
 }
 
 func BenchmarkRewardManager(b *testing.B) {
-	allowlist.BenchPrecompileWithAllowList(b, Module, extstate.NewTestStateDB, tests)
+	allowlist.BenchPrecompileWithAllowList(b, Module, testhelpers.NewTestStateDB, tests)
 }
 
 func assertRewardAddressChanged(

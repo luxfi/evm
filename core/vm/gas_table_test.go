@@ -33,10 +33,10 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/luxfi/geth/core/rawdb"
-	"github.com/luxfi/geth/core/state"
-	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
@@ -162,9 +162,8 @@ func TestCreateGas(t *testing.T) {
 				config.ExtraEips = []int{3860}
 			}
 
-			// Note: we use Cortina instead of AllEthashProtocolChanges (upstream)
-			// because it is the last fork before the activation of EIP-3860
-			vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestCortinaChainConfig, config)
+			// All upgrades are active by default in v2.0.0
+			vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, config)
 			var startGas = uint64(testGas)
 			ret, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, startGas, new(uint256.Int))
 			if err != nil {

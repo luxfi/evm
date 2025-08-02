@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/luxfi/evm/plugin/evm/message"
-	"github.com/luxfi/node/consensus/engine/core"
+	"github.com/luxfi/node/quasar/engine/core"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/network/p2p"
 )

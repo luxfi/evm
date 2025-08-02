@@ -43,15 +43,15 @@ import (
 
 	"github.com/luxfi/geth/accounts"
 	"github.com/luxfi/geth/accounts/keystore"
-	"github.com/luxfi/geth/consensus"
+	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/bloombits"
-	"github.com/luxfi/geth/core/rawdb"
+	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/upgrade/ap3"
 	"github.com/luxfi/geth/rpc"
 	"github.com/luxfi/evm/utils"
@@ -555,7 +555,7 @@ func (b testBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.R
 	if header == nil || err != nil {
 		return nil, err
 	}
-	receipts := rawdb.ReadReceipts(b.db, hash, header.Number.Uint64(), header.Time, b.chain.Config())
+	receipts := rawdb.ReadReceipts(b.db, hash, header.Number.Uint64(), header.Time, b.chain.Config().(*params.ChainConfig))
 	return receipts, nil
 }
 func (b testBackend) GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockContext *vm.BlockContext) *vm.EVM {
@@ -567,7 +567,7 @@ func (b testBackend) GetEVM(ctx context.Context, msg *core.Message, state *state
 	if blockContext != nil {
 		context = *blockContext
 	}
-	return vm.NewEVM(context, txContext, state, b.chain.Config(), *vmConfig)
+	return vm.NewEVM(context, txContext, state, b.chain.Config().(*params.ChainConfig), *vmConfig)
 }
 func (b testBackend) SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription {
 	panic("implement me")
@@ -600,7 +600,7 @@ func (b testBackend) TxPoolContentFrom(addr common.Address) ([]*types.Transactio
 func (b testBackend) SubscribeNewTxsEvent(events chan<- core.NewTxsEvent) event.Subscription {
 	panic("implement me")
 }
-func (b testBackend) ChainConfig() *params.ChainConfig { return b.chain.Config() }
+func (b testBackend) ChainConfig() *params.ChainConfig { return b.chain.Config().(*params.ChainConfig) }
 func (b testBackend) Engine() consensus.Engine         { return b.chain.Engine() }
 func (b testBackend) GetLogs(ctx context.Context, blockHash common.Hash, number uint64) ([][]*types.Log, error) {
 	panic("implement me")
@@ -1109,8 +1109,8 @@ func TestFillBlobTransaction(t *testing.T) {
 			Alloc:  types.GenesisAlloc{},
 		}
 		emptyBlob                      = kzg4844.Blob{}
-		emptyBlobCommit, _             = kzg4844.BlobToCommitment(emptyBlob)
-		emptyBlobProof, _              = kzg4844.ComputeBlobProof(emptyBlob, emptyBlobCommit)
+		emptyBlobCommit, _             = kzg4844.BlobToCommitment(&emptyBlob)
+		emptyBlobProof, _              = kzg4844.ComputeBlobProof(&emptyBlob, emptyBlobCommit)
 		emptyBlobHash      common.Hash = kzg4844.CalcBlobHashV1(sha256.New(), &emptyBlobCommit)
 	)
 	b := newTestBackend(t, 1, genesis, dummy.NewCoinbaseFaker(), func(i int, b *core.BlockGen) {

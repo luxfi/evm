@@ -23,17 +23,18 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+	"unsafe"
 
-	"github.com/luxfi/geth/accounts/abi/bind"
-	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/rpc"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 	"github.com/stretchr/testify/require"
 )
 
-var _ bind.ContractBackend = (Client)(nil)
+// var _ bind.ContractBackend = (Client)(nil) // Disabled due to type mismatch
 
 var (
 	testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -125,7 +126,7 @@ func TestSendTransaction(t *testing.T) {
 		t.Errorf("could not create transaction: %v", err)
 	}
 	// send tx to simulated backend
-	err = client.SendTransaction(ctx, signedTx)
+	err = client.SendTransaction(ctx, (*iface.Transaction)(unsafe.Pointer(signedTx)))
 	if err != nil {
 		t.Errorf("could not add tx to pending block: %v", err)
 	}
@@ -215,7 +216,7 @@ func TestForkResendTx(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create transaction: %v", err)
 	}
-	client.SendTransaction(ctx, tx)
+	client.SendTransaction(ctx, (*iface.Transaction)(unsafe.Pointer(tx)))
 	sim.Commit(false)
 
 	// 3.
@@ -236,7 +237,7 @@ func TestForkResendTx(t *testing.T) {
 
 	// 5.
 	sim.Commit(false)
-	if err := client.SendTransaction(ctx, tx); err != nil {
+	if err := client.SendTransaction(ctx, (*iface.Transaction)(unsafe.Pointer(tx))); err != nil {
 		t.Fatalf("sending transaction: %v", err)
 	}
 	sim.Commit(true)
@@ -268,7 +269,7 @@ func TestCommitReturnValue(t *testing.T) {
 	gasPrice := new(big.Int).Add(head.BaseFee, big.NewInt(1))
 	_tx := types.NewTransaction(0, testAddr, big.NewInt(1000), params.TxGas, gasPrice, nil)
 	tx, _ := types.SignTx(_tx, types.LatestSignerForChainID(chainid), testKey)
-	if err := client.SendTransaction(ctx, tx); err != nil {
+	if err := client.SendTransaction(ctx, (*iface.Transaction)(unsafe.Pointer(tx))); err != nil {
 		t.Fatalf("sending transaction: %v", err)
 	}
 

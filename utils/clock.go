@@ -6,18 +6,16 @@ package utils
 import (
 	"sync"
 	"time"
-
-	"github.com/luxfi/evm/iface"
 )
 
-// MockableClock implements iface.MockableTimer
+// MockableClock implements MockableTimer
 type MockableClock struct {
 	mu   sync.RWMutex
 	time time.Time
 }
 
 // NewMockableClock creates a new mockable clock
-func NewMockableClock() iface.MockableTimer {
+func NewMockableClock() MockableTimer {
 	return &MockableClock{
 		time: time.Now(),
 	}

@@ -13,7 +13,7 @@ import (
 	"github.com/luxfi/geth/common"
 	gethparams "github.com/luxfi/geth/params"
 	upgrade "github.com/luxfi/node/upgrade"
-	consensus "github.com/luxfi/node/consensus"
+	"github.com/luxfi/node/quasar"
 	constants "github.com/luxfi/node/utils/constants"
 )
 
@@ -39,6 +39,7 @@ var (
 	}
 
 	TestChainConfig = &ChainConfig{
+		ChainConfig:        &gethparams.ChainConfig{},
 		LuxContext:         LuxContext{ConsensusCtx: utils.TestConsensusContext()},
 		FeeConfig:          DefaultFeeConfig,
 		NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
@@ -49,6 +50,12 @@ var (
 	// Only future upgrades (Fortuna, Granite) remain unscheduled
 	TestAllEnabledChainConfig = TestChainConfig // All current upgrades enabled by default
 )
+
+// GetTestChainConfig returns a copy of the test chain config
+func GetTestChainConfig() *ChainConfig {
+	copy := *TestChainConfig
+	return &copy
+}
 
 func copyAndSet(c *ChainConfig, set func(*ChainConfig)) *ChainConfig {
 	newConfig := *c
@@ -72,7 +79,7 @@ type UpgradeConfig struct {
 
 // LuxContext provides Lux specific context directly into the EVM.
 type LuxContext struct {
-	ConsensusCtx *consensus.Context
+	ConsensusCtx *quasar.Context
 }
 
 type ChainConfig struct {
@@ -297,9 +304,17 @@ func (c *ChainConfig) Verify() error {
 	}
 
 	// Verify the network upgrades are internally consistent given the existing chainConfig.
-	if upgrades, ok := c.ConsensusCtx.NetworkUpgrades.(*upgrade.Config); ok {
-		if err := c.verifyNetworkUpgrades(*upgrades); err != nil {
-			return fmt.Errorf("invalid network upgrades: %w", err)
+	// First check if NetworkUpgrades itself is valid
+	if err := c.NetworkUpgrades.verifyNetworkUpgrades(upgrade.Config{}); err != nil {
+		return fmt.Errorf("invalid network upgrades: %w", err)
+	}
+	
+	// Then verify against actual upgrade config if available
+	if c.ConsensusCtx != nil {
+		if upgrades, ok := c.ConsensusCtx.NetworkUpgrades.(*upgrade.Config); ok {
+			if err := c.verifyNetworkUpgrades(*upgrades); err != nil {
+				return fmt.Errorf("invalid network upgrades: %w", err)
+			}
 		}
 	}
 

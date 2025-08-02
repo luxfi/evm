@@ -7,11 +7,10 @@
 package iface
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/ids"
 	"github.com/holiman/uint256"
 )
 
@@ -21,16 +20,16 @@ type ChainHeaderReader interface {
 	Config() ChainConfig
 	
 	// CurrentHeader retrieves the current header from the local chain.
-	CurrentHeader() *types.Header
+	CurrentHeader() *Header
 	
 	// GetHeader retrieves a block header from the database by hash and number.
-	GetHeader(hash common.Hash, number uint64) *types.Header
+	GetHeader(hash common.Hash, number uint64) *Header
 	
 	// GetHeaderByNumber retrieves a block header from the database by number.
-	GetHeaderByNumber(number uint64) *types.Header
+	GetHeaderByNumber(number uint64) *Header
 	
 	// GetHeaderByHash retrieves a block header from the database by its hash.
-	GetHeaderByHash(hash common.Hash) *types.Header
+	GetHeaderByHash(hash common.Hash) *Header
 	
 	// GetTd retrieves the total difficulty from the database by hash and number.
 	GetTd(hash common.Hash, number uint64) *big.Int
@@ -48,7 +47,7 @@ type ChainReader interface {
 	ChainHeaderReader
 	
 	// GetBlock retrieves a block from the database by hash and number.
-	GetBlock(hash common.Hash, number uint64) *types.Block
+	GetBlock(hash common.Hash, number uint64) *ETHBlock
 }
 
 // ChainConfig represents the chain configuration
@@ -112,79 +111,15 @@ type PrecompileConfig interface {
 	Timestamp() *uint64
 }
 
-// PrecompileRegistry manages precompile modules
-type PrecompileRegistry interface {
-	// GetPrecompileModule returns a precompile module by key
-	GetPrecompileModule(key string) (PrecompileModule, bool)
-	
-	// GetPrecompileModuleByAddress returns a precompile module by address
-	GetPrecompileModuleByAddress(address common.Address) (PrecompileModule, bool)
-	
-	// RegisteredModules returns all registered modules
-	RegisteredModules() []PrecompileModule
-}
 
-// PrecompileModule represents a precompile module
-type PrecompileModule interface {
-	// Address returns the address of the precompile
-	Address() common.Address
-	
-	// Contract returns the precompile contract
-	Contract() interface{}
-	
-	// Configurator returns the configurator for this precompile
-	Configurator() interface{}
-	
-	// DefaultConfig returns the default config for this precompile
-	DefaultConfig() interface{}
-	
-	// MakeConfig creates a new config instance
-	MakeConfig() interface{}
-	
-	// ConfigKey returns the configuration key for this module
-	ConfigKey() string
-}
+// NodeID is an alias to ids.NodeID
+type NodeID = ids.NodeID
 
-// ChainContext provides consensus context  
-type ChainContext struct {
-	NetworkID uint32
-	SubnetID  SubnetID
-	ChainID   ChainID
-	NodeID    NodeID
+// SubnetID is an alias to ids.SubnetID
+type SubnetID = ids.SubnetID
 
-	// Node version
-	AppVersion uint32
-
-	// Chain configuration
-	ChainDataDir string
-	
-	// Validator state
-	ValidatorState ValidatorState
-}
-
-// NodeID is a 32-byte identifier for nodes
-type NodeID [32]byte
-
-// String returns the string representation of a NodeID
-func (id NodeID) String() string {
-	return fmt.Sprintf("%x", id[:])
-}
-
-// SubnetID is a 32-byte subnet identifier  
-type SubnetID [32]byte
-
-// String returns the string representation of a SubnetID
-func (id SubnetID) String() string {
-	return fmt.Sprintf("%x", id[:])
-}
-
-// ChainID is a 32-byte chain identifier
-type ChainID [32]byte
-
-// String returns the string representation of a ChainID
-func (id ChainID) String() string {
-	return fmt.Sprintf("%x", id[:])
-}
+// ChainID is an alias to ids.ChainID
+type ChainID = ids.ChainID
 
 // StateDB is an EVM database for full state querying
 type StateDB interface {
@@ -220,36 +155,36 @@ type Bits interface {
 // Engine is an algorithm agnostic consensus engine.
 type Engine interface {
 	// Author retrieves the Ethereum address of the account that minted the given block.
-	Author(header *types.Header) (common.Address, error)
+	Author(header *Header) (common.Address, error)
 
 	// VerifyHeader checks whether a header conforms to the consensus rules of a given engine.
-	VerifyHeader(chain ChainHeaderReader, header *types.Header, seal bool) error
+	VerifyHeader(chain ChainHeaderReader, header *Header, seal bool) error
 
 	// VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers concurrently.
-	VerifyHeaders(chain ChainHeaderReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error)
+	VerifyHeaders(chain ChainHeaderReader, headers []*Header, seals []bool) (chan<- struct{}, <-chan error)
 
 	// VerifyUncles verifies that the given block's uncles conform to the consensus rules.
-	VerifyUncles(chain ChainReader, block *types.Block) error
+	VerifyUncles(chain ChainReader, block *ETHBlock) error
 
 	// Prepare initializes the consensus fields of a block header according to the rules.
-	Prepare(chain ChainHeaderReader, header *types.Header) error
+	Prepare(chain ChainHeaderReader, header *Header) error
 
 	// Finalize runs any post-transaction state modifications and assembles the final block.
-	Finalize(chain ChainHeaderReader, header *types.Header, state StateDB, txs []*types.Transaction,
-		uncles []*types.Header) (*types.Block, error)
+	Finalize(chain ChainHeaderReader, header *Header, state StateDB, txs []*Transaction,
+		uncles []*Header) (*ETHBlock, error)
 
 	// FinalizeAndAssemble runs any post-transaction state modifications and assembles the final block.
-	FinalizeAndAssemble(chain ChainHeaderReader, header *types.Header, state StateDB, txs []*types.Transaction,
-		uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error)
+	FinalizeAndAssemble(chain ChainHeaderReader, header *Header, state StateDB, txs []*Transaction,
+		uncles []*Header, receipts []*Receipt) (*ETHBlock, error)
 
 	// Seal generates a new sealing request for the given input block and pushes it to the sealer.
-	Seal(chain ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error
+	Seal(chain ChainHeaderReader, block *ETHBlock, results chan<- *ETHBlock, stop <-chan struct{}) error
 
 	// SealHash returns the hash of a block prior to it being sealed.
-	SealHash(header *types.Header) common.Hash
+	SealHash(header *Header) common.Hash
 
 	// CalcDifficulty is the difficulty adjustment algorithm.
-	CalcDifficulty(chain ChainHeaderReader, time uint64, parent *types.Header) *big.Int
+	CalcDifficulty(chain ChainHeaderReader, time uint64, parent *Header) *big.Int
 
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error

@@ -68,6 +68,11 @@ type Hash struct {
 	Hash [32]byte
 }
 
+// Bytes returns the byte representation of the hash
+func (h *Hash) Bytes() []byte {
+	return h.Hash[:]
+}
+
 // ParseHash parses a hash payload
 func ParseHash(bytes []byte) (*Hash, error) {
 	if len(bytes) != 32 {
@@ -80,7 +85,15 @@ func ParseHash(bytes []byte) (*Hash, error) {
 
 // SignatureFromBytes creates a signature from bytes
 func SignatureFromBytes(bytes []byte) (*BLSSignature, error) {
-	return &BLSSignature{bytes: bytes}, nil
+	return &BLSSignature{Bytes: bytes}, nil
+}
+
+// SignatureToBytes converts a signature to bytes
+func SignatureToBytes(sig *BLSSignature) []byte {
+	if sig == nil {
+		return nil
+	}
+	return sig.Bytes
 }
 
 // AggregateSignatures aggregates multiple BLS signatures
@@ -93,25 +106,53 @@ func AggregateSignatures(sigs []*BLSSignature) (*BLSSignature, error) {
 }
 
 // NewUnsignedMessage creates a new unsigned warp message
-func NewUnsignedMessage(networkID uint32, chainID [32]byte, payload []byte) (*UnsignedMessage, error) {
+func NewUnsignedMessage(networkID uint32, chainID interface{}, payload []byte) (*UnsignedMessage, error) {
+	var sourceChainID common.Hash
+	switch cid := chainID.(type) {
+	case [32]byte:
+		sourceChainID = common.Hash(cid)
+	case ID:
+		sourceChainID = common.Hash(cid)
+	case common.Hash:
+		sourceChainID = cid
+	default:
+		return nil, errors.New("unsupported chain ID type")
+	}
+	
 	return &UnsignedMessage{
 		NetworkID:     networkID,
-		SourceChainID: common.Hash(chainID),
+		SourceChainID: sourceChainID,
 		Payload:       payload,
 	}, nil
 }
 
 // NewMessage creates a new signed warp message
-func NewMessage(unsignedMsg *UnsignedMessage, sig *BLSSignature) (*WarpSignedMessage, error) {
+func NewMessage(unsignedMsg *UnsignedMessage, sig interface{}) (*WarpSignedMessage, error) {
+	var blsSig *BLSSignature
+	switch s := sig.(type) {
+	case *BLSSignature:
+		blsSig = s
+	case *BitSetSignature:
+		// Convert BitSetSignature to BLSSignature
+		blsSig = &BLSSignature{
+			Bytes: s.Signature[:],
+		}
+	default:
+		return nil, errors.New("unsupported signature type")
+	}
+	
 	return &WarpSignedMessage{
 		UnsignedMessage: *unsignedMsg,
-		Signature:       sig,
+		Signature:       blsSig,
 		SourceChainID:   unsignedMsg.SourceChainID,
 	}, nil
 }
 
 // MaxUint64 is the maximum uint64 value
 const MaxUint64 = ^uint64(0)
+
+// MaxInt64 is the maximum int64 value
+const MaxInt64 = int64(^uint64(0) >> 1)
 
 // Math helpers
 

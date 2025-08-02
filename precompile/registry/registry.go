@@ -9,7 +9,7 @@ import (
 	"sort"
 	
 	"github.com/luxfi/evm/constants"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/precompile"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
 )
@@ -38,11 +38,11 @@ var (
 // globalRegistry is the singleton registry instance
 type precompileRegistry struct{}
 
-// Ensure precompileRegistry implements iface.PrecompileRegistry
-var _ iface.PrecompileRegistry = (*precompileRegistry)(nil)
+// Ensure precompileRegistry implements precompile.PrecompileRegistry
+var _ precompile.PrecompileRegistry = (*precompileRegistry)(nil)
 
 // GetPrecompileModule returns a precompile module by key
-func (r *precompileRegistry) GetPrecompileModule(key string) (iface.PrecompileModule, bool) {
+func (r *precompileRegistry) GetPrecompileModule(key string) (precompile.PrecompileModule, bool) {
 	for _, stm := range registeredModules {
 		if stm.configKey == key {
 			return stm, true
@@ -52,7 +52,7 @@ func (r *precompileRegistry) GetPrecompileModule(key string) (iface.PrecompileMo
 }
 
 // GetPrecompileModuleByAddress returns a precompile module by address
-func (r *precompileRegistry) GetPrecompileModuleByAddress(address common.Address) (iface.PrecompileModule, bool) {
+func (r *precompileRegistry) GetPrecompileModuleByAddress(address common.Address) (precompile.PrecompileModule, bool) {
 	for _, stm := range registeredModules {
 		if stm.address == address {
 			return stm, true
@@ -62,8 +62,8 @@ func (r *precompileRegistry) GetPrecompileModuleByAddress(address common.Address
 }
 
 // RegisteredModules returns all registered modules
-func (r *precompileRegistry) RegisteredModules() []iface.PrecompileModule {
-	result := make([]iface.PrecompileModule, len(registeredModules))
+func (r *precompileRegistry) RegisteredModules() []precompile.PrecompileModule {
+	result := make([]precompile.PrecompileModule, len(registeredModules))
 	for i, m := range registeredModules {
 		result[i] = m
 	}
@@ -71,7 +71,7 @@ func (r *precompileRegistry) RegisteredModules() []iface.PrecompileModule {
 }
 
 // GetRegistry returns the global registry instance
-func GetRegistry() iface.PrecompileRegistry {
+func GetRegistry() precompile.PrecompileRegistry {
 	return &precompileRegistry{}
 }
 

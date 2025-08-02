@@ -36,7 +36,7 @@ import (
 	"github.com/luxfi/geth/accounts/external"
 	"github.com/luxfi/geth/accounts/keystore"
 	"github.com/luxfi/evm/core/types"
-	gethtypes "github.com/luxfi/geth/core/types"
+	ethtypes "github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/log"
@@ -183,7 +183,8 @@ func NewClefTransactor(clef *external.ExternalSigner, account accounts.Account) 
 				return nil, ErrNotAuthorized
 			}
 			// Convert EVM transaction to geth transaction for signing
-			gethTx := gethtypes.NewTx(&gethtypes.LegacyTx{
+			// Create a geth transaction for clef signing
+			gethTx := ethtypes.NewTx(&ethtypes.LegacyTx{
 				Nonce:    transaction.Nonce(),
 				GasPrice: transaction.GasPrice(),
 				Gas:      transaction.Gas(),

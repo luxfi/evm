@@ -256,7 +256,7 @@ func (eth *Ethereum) stateAtTransaction(ctx context.Context, block *types.Block,
 	} else {
 		return nil, vm.BlockContext{}, nil, nil, errors.New("chain config is not *params.ChainConfig")
 	}
-	signer := types.MakeSigner(chainConfig.ToEthChainConfig(), block.Number(), block.Time())
+	signer := types.MakeSigner(chainConfig, block.Number(), block.Time())
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := core.TransactionToMessage(tx, signer, block.BaseFee())

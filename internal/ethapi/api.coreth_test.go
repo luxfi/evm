@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/upgrade/lp176"
 	"github.com/luxfi/evm/upgrade/etna"
 	"github.com/luxfi/geth/common"
@@ -88,7 +88,7 @@ func TestSuggestPriceOptions(t *testing.T) {
 			estimateBaseFee:  bigMinBaseFee,
 			suggestGasTipCap: bigMinGasTip,
 			cfg:              testCfg,
-			chainCfg:         params.TestEtnaChainConfig,
+			chainCfg:         params.TestChainConfig,
 			want: &PriceOptions{
 				Slow: newPrice(
 					minGasTip,
@@ -109,7 +109,7 @@ func TestSuggestPriceOptions(t *testing.T) {
 			estimateBaseFee:  bigFortunaMinBaseFee,
 			suggestGasTipCap: bigMinGasTip,
 			cfg:              testCfg,
-			chainCfg:         params.TestFortunaChainConfig,
+			chainCfg:         params.TestChainConfig,
 			want: &PriceOptions{
 				Slow: newPrice(
 					minGasTip,
@@ -135,7 +135,7 @@ func TestSuggestPriceOptions(t *testing.T) {
 				MaxBaseFee:        100 * params.GWei,
 				MaxTip:            20 * params.GWei,
 			},
-			chainCfg: params.TestEtnaChainConfig,
+			chainCfg: params.TestChainConfig,
 			want: &PriceOptions{
 				Slow: newPrice(
 					20*params.GWei,
@@ -154,7 +154,7 @@ func TestSuggestPriceOptions(t *testing.T) {
 		{
 			name:             "maximum_values",
 			cfg:              testCfg,
-			chainCfg:         params.TestEtnaChainConfig,
+			chainCfg:         params.TestChainConfig,
 			estimateBaseFee:  new(big.Int).SetUint64(maxNormalBaseFee),
 			suggestGasTipCap: new(big.Int).SetUint64(maxNormalGasTip),
 			want: &PriceOptions{
@@ -177,7 +177,7 @@ func TestSuggestPriceOptions(t *testing.T) {
 			estimateBaseFee:  big.NewInt(2 * int64(maxNormalBaseFee)),
 			suggestGasTipCap: big.NewInt(2 * int64(maxNormalGasTip)),
 			cfg:              testCfg,
-			chainCfg:         params.TestEtnaChainConfig,
+			chainCfg:         params.TestChainConfig,
 			want: &PriceOptions{
 				Slow: newPrice(
 					(slowFeeNumerator*maxNormalGasTip)/feeDenominator,

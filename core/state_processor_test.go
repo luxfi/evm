@@ -32,15 +32,18 @@ import (
 	"testing"
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/consensus/dummy"
+	"github.com/luxfi/evm/consensus/misc/eip4844"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
 	"github.com/luxfi/evm/params"
-	"github.com/luxfi/evm/precompile/contracts/txallowlist"
+	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/geth/trie"
-	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
+	ethparams "github.com/luxfi/geth/params"
+	"github.com/luxfi/node/upgrade"
+	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -53,9 +56,11 @@ func u64(val uint64) *uint64 { return &val }
 func TestStateProcessorErrors(t *testing.T) {
 	cpcfg := params.Copy(params.TestChainConfig)
 	config := &cpcfg
-	config.ShanghaiTime = u64(0)
-	config.CancunTime = u64(0)
-	params.GetExtra(config).FeeConfig.MinBaseFee = big.NewInt(legacy.BaseFee)
+	if config.ChainConfig != nil {
+		config.ChainConfig.ShanghaiTime = u64(0)
+		config.ChainConfig.CancunTime = u64(0)
+	}
+	params.GetExtra(config).FeeConfig.MinBaseFee = big.NewInt(params.TestInitialBaseFee)
 
 	var (
 		signer  = types.LatestSigner(config)
@@ -111,7 +116,7 @@ func TestStateProcessorErrors(t *testing.T) {
 				Config:    config,
 				Timestamp: uint64(upgrade.InitiallyActiveTime.Unix()),
 				Alloc: types.GenesisAlloc{
-					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): types.Account{
+					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): types.GenesisAccount{
 						Balance: big.NewInt(4000000000000000000), // 4 ether
 						Nonce:   0,
 					},
@@ -221,13 +226,13 @@ func TestStateProcessorErrors(t *testing.T) {
 			},
 			{ // ErrMaxInitCodeSizeExceeded
 				txs: []*types.Transaction{
-					mkDynamicCreationTx(0, 500000, common.Big0, big.NewInt(legacy.BaseFee), tooBigInitCode[:]),
+					mkDynamicCreationTx(0, 500000, common.Big0, big.NewInt(params.TestInitialBaseFee), tooBigInitCode[:]),
 				},
 				want: "could not apply tx 0 [0x18a05f40f29ff16d5287f6f88b21c9f3c7fbc268f707251144996294552c4cd6]: max initcode size exceeded: code size 49153 limit 49152",
 			},
 			{ // ErrIntrinsicGas: Not enough gas to cover init code
 				txs: []*types.Transaction{
-					mkDynamicCreationTx(0, 54299, common.Big0, big.NewInt(legacy.BaseFee), make([]byte, 320)),
+					mkDynamicCreationTx(0, 54299, common.Big0, big.NewInt(params.TestInitialBaseFee), make([]byte, 320)),
 				},
 				want: "could not apply tx 0 [0x849278f616d51ab56bba399551317213ce7a10e4d9cbc3d14bb663e50cb7ab99]: intrinsic gas too low: have 54299, want 54300",
 			},
@@ -256,21 +261,23 @@ func TestStateProcessorErrors(t *testing.T) {
 			gspec = &Genesis{
 				Config: params.WithExtra(
 					&params.ChainConfig{
-						ChainID:             big.NewInt(1),
-						HomesteadBlock:      big.NewInt(0),
-						EIP150Block:         big.NewInt(0),
-						EIP155Block:         big.NewInt(0),
-						EIP158Block:         big.NewInt(0),
-						ByzantiumBlock:      big.NewInt(0),
-						ConstantinopleBlock: big.NewInt(0),
-						PetersburgBlock:     big.NewInt(0),
-						IstanbulBlock:       big.NewInt(0),
-						MuirGlacierBlock:    big.NewInt(0),
+						ChainConfig: &ethparams.ChainConfig{
+							ChainID:             big.NewInt(1),
+							HomesteadBlock:      big.NewInt(0),
+							EIP150Block:         big.NewInt(0),
+							EIP155Block:         big.NewInt(0),
+							EIP158Block:         big.NewInt(0),
+							ByzantiumBlock:      big.NewInt(0),
+							ConstantinopleBlock: big.NewInt(0),
+							PetersburgBlock:     big.NewInt(0),
+							IstanbulBlock:       big.NewInt(0),
+							MuirGlacierBlock:    big.NewInt(0),
+						},
 					},
 					&extras.ChainConfig{FeeConfig: params.DefaultFeeConfig},
 				),
 				Alloc: types.GenesisAlloc{
-					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): types.Account{
+					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): types.GenesisAccount{
 						Balance: big.NewInt(1000000000000000000), // 1 ether
 						Nonce:   0,
 					},
@@ -309,7 +316,7 @@ func TestStateProcessorErrors(t *testing.T) {
 			gspec = &Genesis{
 				Config: config,
 				Alloc: types.GenesisAlloc{
-					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): types.Account{
+					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): types.GenesisAccount{
 						Balance: big.NewInt(1000000000000000000), // 1 ether
 						Nonce:   0,
 						Code:    common.FromHex("0xB0B0FACE"),
@@ -348,24 +355,13 @@ func TestStateProcessorErrors(t *testing.T) {
 // valid to be considered for import:
 // - valid pow (fake), ancestry, difficulty, gaslimit etc
 func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Transactions, config *params.ChainConfig) *types.Block {
-	fakeChainReader := newChainMaker(nil, config, engine)
 	time := parent.Time() + 10
-	feeConfig, _, err := fakeChainReader.GetFeeConfigAt(parent.Header())
-	if err != nil {
-		panic(err)
-	}
-	configExtra := params.GetExtra(config)
-	gasLimit, _ := customheader.GasLimit(configExtra, feeConfig, parent.Header(), time)
-	baseFee, _ := customheader.BaseFee(configExtra, feeConfig, parent.Header(), time)
+	gasLimit := params.GetExtra(config).FeeConfig.GasLimit.Uint64()
+	baseFee := big.NewInt(params.TestInitialBaseFee)
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
-		Difficulty: common.CalcDifficulty(fakeChainReader, parent.Time()+10, &types.Header{
-			Number:     parent.Number(),
-			Time:       parent.Time(),
-			Difficulty: parent.Difficulty(),
-			UncleHash:  parent.UncleHash(),
-		}),
+		Difficulty: big.NewInt(1),
 		GasLimit:  gasLimit,
 		Number:    new(big.Int).Add(parent.Number(), common.Big1),
 		Time:      time,
@@ -373,10 +369,6 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 		BaseFee:   baseFee,
 	}
 
-	if params.GetExtra(config).IsEVM(header.Time) {
-		headerExtra := customtypes.GetHeaderExtra(header)
-		headerExtra.BlockGasCost = big.NewInt(0)
-	}
 	var receipts []*types.Receipt
 	// The post-state result doesn't need to be correct (this is a bad block), but we do need something there
 	// Preferably something unique. So let's use a combo of blocknum + txhash
@@ -394,9 +386,9 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 		cumulativeGas += tx.Gas()
 		nBlobs += len(tx.BlobHashes())
 	}
-	header.Extra, _ = customheader.ExtraPrefix(configExtra, parent.Header(), header)
+	header.Extra = []byte{}
 	header.Root = common.BytesToHash(hasher.Sum(nil))
-	if config.IsCancun(header.Number, header.Time) {
+	if config.IsCancun(header.Time) {
 		var pExcess, pUsed = uint64(0), uint64(0)
 		if parent.ExcessBlobGas() != nil {
 			pExcess = *parent.ExcessBlobGas()

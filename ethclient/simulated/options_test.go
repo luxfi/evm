@@ -22,10 +22,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luxfi/geth/core"
-	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/upgrade/lp176"
 )
 
@@ -64,7 +64,7 @@ func TestWithCallGasLimitOption(t *testing.T) {
 	defer sim.Close()
 
 	client := sim.Client()
-	_, err := client.CallContract(context.Background(), interfaces.CallMsg{
+	_, err := client.CallContract(context.Background(), iface.CallMsg{
 		From: testAddr,
 		To:   &testAddr,
 		Gas:  21000,

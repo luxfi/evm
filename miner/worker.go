@@ -35,7 +35,7 @@ import (
 	"math/big"
 	"sync"
 	"time"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/node/utils/units"
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/core"
@@ -43,6 +43,7 @@ import (
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/commontype"
 	customheader "github.com/luxfi/evm/plugin/evm/header"
@@ -126,11 +127,11 @@ type worker struct {
 	mux        *event.TypeMux // TODO replace
 	mu         sync.RWMutex   // The lock used to protect the coinbase and extra fields
 	coinbase   common.Address
-	clock      iface.MockableTimer // Allows us mock the clock for testing
+	clock      utils.MockableTimer // Allows us mock the clock for testing
 	beaconRoot *common.Hash    // TODO: set to empty hash, retained for upstream compatibility and future use
 }
 
-func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, clock iface.MockableTimer) *worker {
+func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, clock utils.MockableTimer) *worker {
 	worker := &worker{
 		config:      config,
 		chainConfig: chainConfig,
@@ -223,7 +224,10 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 		header.Coinbase = configuredCoinbase
 	}
 
-	if err := w.engine.Prepare(w.chain, header); err != nil {
+	// Convert chain adapter for consensus engine
+	chainAdapter := core.NewChainHeaderReaderAdapter(w.chain)
+	headerAdapter := types.ConvertHeaderFromEVM(header)
+	if err := w.engine.Prepare(chainAdapter, headerAdapter); err != nil {
 		return nil, fmt.Errorf("failed to prepare header for mining: %w", err)
 	}
 
@@ -312,7 +316,7 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 	}
 	currentState.StartPrefetcher("miner", nil)
 	return &environment{
-		signer:           types.MakeSigner(w.chainConfig.ToEthChainConfig(), header.Number, header.Time),
+		signer:           types.MakeSigner(w.chainConfig, header.Number, header.Time),
 		state:            currentState,
 		parent:           parent,
 		header:           header,
@@ -514,10 +518,23 @@ func (w *worker) commit(env *environment) (*types.Block, error) {
 	}
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := copyReceipts(env.receipts)
-	block, err := w.engine.FinalizeAndAssemble(w.chain, env.header, env.state, env.txs, nil, receipts)
+	// Convert types for the consensus engine
+	chainAdapter := core.NewChainHeaderReaderAdapter(w.chain)
+	headerAdapter := types.ConvertHeaderFromEVM(env.header)
+	var txAdapters []*iface.Transaction
+	for _, tx := range env.txs {
+		txAdapters = append(txAdapters, types.ConvertTransactionFromEVM(tx))
+	}
+	var receiptAdapters []*iface.Receipt
+	for _, receipt := range receipts {
+		receiptAdapters = append(receiptAdapters, types.ConvertReceiptFromEVM(receipt))
+	}
+	blockIface, err := w.engine.FinalizeAndAssemble(chainAdapter, headerAdapter, env.state, txAdapters, nil, receiptAdapters)
 	if err != nil {
 		return nil, err
 	}
+	// Convert back to EVM block
+	block := types.ConvertBlockToEVM(blockIface)
 
 	return w.handleResult(env, block, time.Now(), receipts)
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/luxfi/evm/core/vm"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
+	ethparams "github.com/luxfi/geth/params"
 	"github.com/holiman/uint256"
 )
 
@@ -56,7 +57,24 @@ func TestStoreCapture(t *testing.T) {
 	contract.Code = []byte{byte(vm.PUSH1), 0x1, byte(vm.PUSH1), 0x0, byte(vm.SSTORE)}
 	var index common.Hash
 	logger.CaptureStart(env, common.Address{}, contract.Address(), false, nil, 0, nil)
-	statedb.Prepare(params.TestRules, common.Address{}, common.Address{}, nil, nil, nil)
+	// Convert EVM rules to geth rules for statedb.Prepare
+	testRules := params.TestChainConfig.Rules(big.NewInt(0), 0)
+	gethRules := ethparams.Rules{
+		ChainID:          testRules.ChainID,
+		IsHomestead:      testRules.IsHomestead,
+		IsEIP150:         testRules.IsEIP150,
+		IsEIP155:         testRules.IsEIP155,
+		IsEIP158:         testRules.IsEIP158,
+		IsByzantium:      testRules.IsByzantium,
+		IsConstantinople: testRules.IsConstantinople,
+		IsPetersburg:     testRules.IsPetersburg,
+		IsIstanbul:       testRules.IsIstanbul,
+		IsBerlin:         testRules.IsBerlin,
+		IsLondon:         testRules.IsLondon,
+		IsShanghai:       testRules.IsShanghai,
+		IsCancun:         testRules.IsCancun,
+	}
+	statedb.Prepare(gethRules, common.Address{}, common.Address{}, nil, nil, nil)
 	_, err := env.Interpreter().Run(contract, []byte{}, false)
 	if err != nil {
 		t.Fatal(err)

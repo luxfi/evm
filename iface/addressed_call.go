@@ -18,6 +18,18 @@ type AddressedCall struct {
 	Payload       []byte
 }
 
+// NewAddressedCall creates a new addressed call
+func NewAddressedCall(sourceAddress []byte, payload []byte) (*AddressedCall, error) {
+	ac := &AddressedCall{
+		SourceAddress: sourceAddress,
+		Payload:       payload,
+	}
+	if err := ac.Verify(); err != nil {
+		return nil, err
+	}
+	return ac, nil
+}
+
 // Verify validates the addressed call
 func (a *AddressedCall) Verify() error {
 	if len(a.SourceAddress) != 20 { // Ethereum addresses are 20 bytes

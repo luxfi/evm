@@ -1,0 +1,85 @@
+// Copyright 2025 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+
+package simulated
+
+import (
+	"context"
+	"math/big"
+	"unsafe"
+
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/geth/common"
+)
+
+// testClient wraps minimalClient to provide SendTransaction that accepts EVM types
+type testClient struct {
+	*minimalClient
+}
+
+// SendTransaction accepts EVM transaction types for tests
+func (t *testClient) SendTransaction(ctx context.Context, tx *types.Transaction) error {
+	// Convert to iface.Transaction and call the underlying method
+	return t.minimalClient.SendTransaction(ctx, (*iface.Transaction)(unsafe.Pointer(tx)))
+}
+
+// Delegated methods
+func (t *testClient) Close() { t.minimalClient.Close() }
+func (t *testClient) ChainID(ctx context.Context) (*big.Int, error) { return t.minimalClient.ChainID(ctx) }
+func (t *testClient) BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
+	return t.minimalClient.BlockByNumber(ctx, number)
+}
+func (t *testClient) BlockNumber(ctx context.Context) (uint64, error) {
+	return t.minimalClient.BlockNumber(ctx)
+}
+func (t *testClient) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
+	return t.minimalClient.HeaderByNumber(ctx, number)
+}
+func (t *testClient) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
+	return t.minimalClient.HeaderByHash(ctx, hash)
+}
+func (t *testClient) TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
+	return t.minimalClient.TransactionReceipt(ctx, txHash)
+}
+func (t *testClient) TransactionByHash(ctx context.Context, hash common.Hash) (*types.Transaction, bool, error) {
+	return t.minimalClient.TransactionByHash(ctx, hash)
+}
+func (t *testClient) BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error) {
+	return t.minimalClient.BalanceAt(ctx, account, blockNumber)
+}
+func (t *testClient) NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error) {
+	return t.minimalClient.NonceAt(ctx, account, blockNumber)
+}
+func (t *testClient) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
+	return t.minimalClient.SuggestGasPrice(ctx)
+}
+func (t *testClient) EstimateBaseFee(ctx context.Context) (*big.Int, error) {
+	return t.minimalClient.EstimateBaseFee(ctx)
+}
+
+// ContractBackend methods - delegate to minimalClient
+func (t *testClient) CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) ([]byte, error) {
+	return t.minimalClient.CodeAt(ctx, contract, blockNumber)
+}
+func (t *testClient) CallContract(ctx context.Context, call iface.CallMsg, blockNumber *big.Int) ([]byte, error) {
+	return t.minimalClient.CallContract(ctx, call, blockNumber)
+}
+func (t *testClient) AcceptedCodeAt(ctx context.Context, account common.Address) ([]byte, error) {
+	return t.minimalClient.AcceptedCodeAt(ctx, account)
+}
+func (t *testClient) AcceptedNonceAt(ctx context.Context, account common.Address) (uint64, error) {
+	return t.minimalClient.AcceptedNonceAt(ctx, account)
+}
+func (t *testClient) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
+	return t.minimalClient.SuggestGasTipCap(ctx)
+}
+func (t *testClient) EstimateGas(ctx context.Context, call iface.CallMsg) (uint64, error) {
+	return t.minimalClient.EstimateGas(ctx, call)
+}
+func (t *testClient) FilterLogs(ctx context.Context, query iface.FilterQuery) ([]iface.Log, error) {
+	return t.minimalClient.FilterLogs(ctx, query)
+}
+func (t *testClient) SubscribeFilterLogs(ctx context.Context, query iface.FilterQuery, ch chan<- iface.Log) (iface.Subscription, error) {
+	return t.minimalClient.SubscribeFilterLogs(ctx, query, ch)
+}

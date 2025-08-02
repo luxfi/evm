@@ -1319,11 +1319,14 @@ func (bc *BlockChain) InsertBlockManual(block *types.Block, writes bool) error {
 
 func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	start := time.Now()
-	// Use ToEthChainConfig to convert to ethereum ChainConfig
-	bc.senderCacher.Recover(types.MakeSigner(bc.chainConfig.ToEthChainConfig(), block.Number(), block.Time()), block.Transactions())
+	// Use the chainConfig directly since MakeSigner expects params.ChainConfig
+	bc.senderCacher.Recover(types.MakeSigner(bc.chainConfig, block.Number(), block.Time()), block.Transactions())
 
 	substart := time.Now()
-	err := bc.engine.VerifyHeader(bc, block.Header(), false)
+	// Create adapter to convert between EVM and iface types
+	chainAdapter := NewChainHeaderReaderAdapter(bc)
+	headerAdapter := types.ConvertHeaderFromEVM(block.Header())
+	err := bc.engine.VerifyHeader(chainAdapter, headerAdapter, false)
 	if err == nil {
 		err = bc.validator.ValidateBody(block)
 	}
@@ -1456,8 +1459,8 @@ func (bc *BlockChain) collectUnflattenedLogs(b *types.Block, removed bool) [][]*
 		blobGasPrice = eip4844.CalcBlobFee(*excessBlobGas)
 	}
 	receipts := rawdb.ReadRawReceipts(bc.db, b.Hash(), b.NumberU64())
-	// Remove unused ethConfig variable
-	if err := receipts.DeriveFields(bc.chainConfig.ToEthChainConfig(), b.Hash(), b.NumberU64(), b.Time(), b.BaseFee(), blobGasPrice, b.Transactions()); err != nil {
+	// Use chainConfig directly
+	if err := receipts.DeriveFields(bc.chainConfig, b.Hash(), b.NumberU64(), b.Time(), b.BaseFee(), blobGasPrice, b.Transactions()); err != nil {
 		log.Error("Failed to derive block receipts fields", "hash", b.Hash(), "number", b.NumberU64(), "err", err)
 	}
 

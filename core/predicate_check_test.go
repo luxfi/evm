@@ -6,12 +6,12 @@ package core
 import (
 	"errors"
 	"testing"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/utils"
+	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
+	"github.com/luxfi/node/utils/set"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -32,7 +32,7 @@ func TestCheckPredicate(t *testing.T) {
 	addr3 := common.HexToAddress("0xcc")
 	addr4 := common.HexToAddress("0xdd")
 	predicateContext := &precompileconfig.PredicateContext{
-		ProposerVMBlockCtx: &interfaces.Context{
+		ProposerVMBlockCtx: &commontype.BlockContext{
 			PChainHeight: 10,
 		},
 	}
@@ -295,7 +295,7 @@ func TestCheckPredicate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			require := require.New(t)
 			// Create the rules from TestChainConfig and update the predicates based on the test params
-			rules := params.TestChainConfig.LuxRules(common.Big0, 0)
+			rules := params.TestChainConfig.Rules(common.Big0, 0)
 			if test.createPredicates != nil {
 				for address, predicater := range test.createPredicates(t) {
 					rules := params.GetRulesExtra(rules)
@@ -328,7 +328,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 	validHash := common.Hash{1}
 	invalidHash := common.Hash{2}
 	predicateContext := &precompileconfig.PredicateContext{
-		ProposerVMBlockCtx: &interfaces.Context{
+		ProposerVMBlockCtx: &commontype.BlockContext{
 			PChainHeight: 10,
 		},
 	}
@@ -422,7 +422,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
 			// Create the rules from TestChainConfig and update the predicates based on the test params
-			rules := params.TestChainConfig.LuxRules(common.Big0, 0)
+			rules := params.TestChainConfig.Rules(common.Big0, 0)
 			predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
 			predicater.EXPECT().PredicateGas(gomock.Any()).Return(uint64(0), nil).Times(len(test.testTuple))
 

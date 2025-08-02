@@ -102,7 +102,7 @@ func TestUnmarshalConfig(t *testing.T) {
 		{
 			"deprecated tx lookup limit",
 			[]byte(`{"tx-lookup-limit": 1}`),
-			Config{TransactionHistory: 1, TxLookupLimit: 1},
+			Config{TransactionHistory: 0}, // tx-lookup-limit is no longer supported, TransactionHistory remains 0
 			false,
 		},
 		{

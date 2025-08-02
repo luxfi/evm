@@ -28,7 +28,7 @@
 package miner
 
 import (
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/txpool"
@@ -55,7 +55,7 @@ type Miner struct {
 	worker *worker
 }
 
-func New(eth Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, clock iface.MockableTimer) *Miner {
+func New(eth Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, clock utils.MockableTimer) *Miner {
 	return &Miner{
 		worker: newWorker(config, chainConfig, engine, eth, mux, clock),
 	}

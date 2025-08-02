@@ -10,15 +10,13 @@ import (
 	"github.com/luxfi/geth/crypto"
 )
 
-var _ message.SyncableParser = (*summaryParser)(nil)
-
 type summaryParser struct{}
 
 func NewSummaryParser() *summaryParser {
 	return &summaryParser{}
 }
 
-func (a *summaryParser) Parse(summaryBytes []byte, acceptImpl message.AcceptImplFn) (message.Syncable, error) {
+func (a *summaryParser) Parse(summaryBytes []byte, acceptImpl func(*Summary) error) (*Summary, error) {
 	summary := Summary{}
 	if _, err := message.Codec.Unmarshal(summaryBytes, &summary); err != nil {
 		return nil, fmt.Errorf("failed to parse syncable summary: %w", err)

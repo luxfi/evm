@@ -14,7 +14,7 @@ var (
 
 // BLSPublicKey represents a BLS public key
 type BLSPublicKey struct {
-	bytes [96]byte // BLS public keys are 96 bytes uncompressed
+	Bytes [96]byte // BLS public keys are 96 bytes uncompressed
 }
 
 // NewBLSPublicKey creates a new BLS public key from bytes
@@ -23,23 +23,23 @@ func NewBLSPublicKey(bytes []byte) (*BLSPublicKey, error) {
 		return nil, ErrInvalidPublicKeyLength
 	}
 	pk := &BLSPublicKey{}
-	copy(pk.bytes[:], bytes)
+	copy(pk.Bytes[:], bytes)
 	return pk, nil
 }
 
 // UncompressedBytes returns the uncompressed bytes of the public key
 func (pk *BLSPublicKey) UncompressedBytes() []byte {
-	return pk.bytes[:]
+	return pk.Bytes[:]
 }
 
 // String returns the hex representation of the public key
 func (pk *BLSPublicKey) String() string {
-	return hex.EncodeToString(pk.bytes[:])
+	return hex.EncodeToString(pk.Bytes[:])
 }
 
 // BLSSignature represents a BLS signature
 type BLSSignature struct {
-	bytes []byte
+	Bytes []byte
 }
 
 // Verify verifies a BLS signature
@@ -59,7 +59,7 @@ func (sig *BLSSignature) Verify(
 func (sig *BLSSignature) NumSigners() (int, error) {
 	// TODO: Implement proper signer count calculation
 	// For now, return a placeholder value
-	if sig == nil || len(sig.bytes) == 0 {
+	if sig == nil || len(sig.Bytes) == 0 {
 		return 0, nil
 	}
 	// In a real implementation, this would parse the signature

@@ -35,6 +35,7 @@ import (
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
 	gethtypes "github.com/luxfi/geth/core/types"
@@ -89,7 +90,7 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 	context := NewEVMBlockContext(header, p.bc, nil)
 	txContext := vm.TxContext{} // Empty initial tx context
 	vmenv := vm.NewEVM(context, txContext, statedb, p.config, cfg)
-	signer := types.MakeSigner(p.config.ChainConfig, header.Number, header.Time)
+	signer := types.MakeSigner(p.config, header.Number, header.Time)
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
@@ -108,7 +109,18 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		allLogs = append(allLogs, receipt.Logs...)
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	if _, err := p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles()); err != nil {
+	// Convert types for the consensus engine
+	chainAdapter := NewChainHeaderReaderAdapter(p.bc)
+	headerAdapter := types.ConvertHeaderFromEVM(header)
+	var txAdapters []*iface.Transaction
+	for _, tx := range block.Transactions() {
+		txAdapters = append(txAdapters, types.ConvertTransactionFromEVM(tx))
+	}
+	var uncleAdapters []*iface.Header
+	for _, uncle := range block.Uncles() {
+		uncleAdapters = append(uncleAdapters, types.ConvertHeaderFromEVM(uncle))
+	}
+	if _, err := p.engine.Finalize(chainAdapter, headerAdapter, statedb, txAdapters, uncleAdapters); err != nil {
 		return nil, nil, 0, fmt.Errorf("engine finalization check failed: %w", err)
 	}
 
@@ -172,7 +184,7 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, sta
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc ChainContext, blockContext vm.BlockContext, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, error) {
-	msg, err := TransactionToMessage(tx, types.MakeSigner(config.ToEthChainConfig(), header.Number, header.Time), header.BaseFee)
+	msg, err := TransactionToMessage(tx, types.MakeSigner(config, header.Number, header.Time), header.BaseFee)
 	if err != nil {
 		return nil, err
 	}

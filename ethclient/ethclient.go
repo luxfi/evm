@@ -88,8 +88,8 @@ type Client interface {
 	CodeAtHash(ctx context.Context, account common.Address, blockHash common.Hash) ([]byte, error)
 	NonceAt(context.Context, common.Address, *big.Int) (uint64, error)
 	NonceAtHash(ctx context.Context, account common.Address, blockHash common.Hash) (uint64, error)
-	FilterLogs(context.Context, iface.FilterQuery) ([]types.Log, error)
-	SubscribeFilterLogs(context.Context, iface.FilterQuery, chan<- types.Log) (iface.Subscription, error)
+	FilterLogs(context.Context, iface.FilterQuery) ([]iface.Log, error)
+	SubscribeFilterLogs(context.Context, iface.FilterQuery, chan<- iface.Log) (iface.Subscription, error)
 	AcceptedCodeAt(context.Context, common.Address) ([]byte, error)
 	AcceptedNonceAt(context.Context, common.Address) (uint64, error)
 	AcceptedCallContract(context.Context, iface.CallMsg) ([]byte, error)
@@ -100,7 +100,7 @@ type Client interface {
 	FeeHistory(ctx context.Context, blockCount uint64, lastBlock *big.Int, rewardPercentiles []float64) (*iface.FeeHistory, error)
 	EstimateGas(context.Context, iface.CallMsg) (uint64, error)
 	EstimateBaseFee(context.Context) (*big.Int, error)
-	SendTransaction(context.Context, *types.Transaction) error
+	SendTransaction(context.Context, *iface.Transaction) error
 }
 
 // client defines implementation for typed wrappers for the Ethereum RPC API.
@@ -512,8 +512,9 @@ func (ec *client) NonceAtHash(ctx context.Context, account common.Address, block
 // Filters
 
 // FilterLogs executes a filter query.
-func (ec *client) FilterLogs(ctx context.Context, q iface.FilterQuery) ([]types.Log, error) {
-	var result []types.Log
+func (ec *client) FilterLogs(ctx context.Context, q iface.FilterQuery) ([]iface.Log, error) {
+	// Use iface.Log directly
+	var result []iface.Log
 	arg, err := toFilterArg(q)
 	if err != nil {
 		return nil, err
@@ -523,11 +524,12 @@ func (ec *client) FilterLogs(ctx context.Context, q iface.FilterQuery) ([]types.
 }
 
 // SubscribeFilterLogs subscribes to the results of a streaming filter query.
-func (ec *client) SubscribeFilterLogs(ctx context.Context, q iface.FilterQuery, ch chan<- types.Log) (iface.Subscription, error) {
+func (ec *client) SubscribeFilterLogs(ctx context.Context, q iface.FilterQuery, ch chan<- iface.Log) (iface.Subscription, error) {
 	arg, err := toFilterArg(q)
 	if err != nil {
 		return nil, err
 	}
+	// Subscribe directly with the interface channel
 	sub, err := ec.c.EthSubscribe(ctx, ch, "logs", arg)
 	if err != nil {
 		// Defensively prefer returning nil interface explicitly on error-path, instead
@@ -685,7 +687,7 @@ func (ec *client) EstimateBaseFee(ctx context.Context) (*big.Int, error) {
 //
 // If the transaction was a contract creation use the TransactionReceipt method to get the
 // contract address after the transaction has been mined.
-func (ec *client) SendTransaction(ctx context.Context, tx *types.Transaction) error {
+func (ec *client) SendTransaction(ctx context.Context, tx *iface.Transaction) error {
 	data, err := tx.MarshalBinary()
 	if err != nil {
 		return err

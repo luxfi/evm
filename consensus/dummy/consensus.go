@@ -32,6 +32,11 @@ var (
 	errUnclesUnsupported = errors.New("uncles unsupported")
 )
 
+// convertHeader is now just a wrapper around types.ConvertHeaderToEVM
+func convertHeader(h *iface.Header) *types.Header {
+	return types.ConvertHeaderToEVM(h)
+}
+
 // adaptFeeConfig converts an interface FeeConfig to commontype.FeeConfig
 func adaptFeeConfig(fc iface.FeeConfig) commontype.FeeConfig {
 	return commontype.FeeConfig{
@@ -54,7 +59,7 @@ type Mode struct {
 
 type (
 	DummyEngine struct {
-		clock         iface.MockableTimer
+		clock         utils.MockableTimer
 		consensusMode Mode
 	}
 )
@@ -85,7 +90,7 @@ func convertToExtrasConfig(paramsConfig *params.ChainConfig) *extras.ChainConfig
 
 func NewDummyEngine(
 	mode Mode,
-	clock iface.MockableTimer,
+	clock utils.MockableTimer,
 ) *DummyEngine {
 	return &DummyEngine{
 		clock:         clock,
@@ -106,7 +111,7 @@ func NewFaker() *DummyEngine {
 	}
 }
 
-func NewFakerWithClock(clock iface.MockableTimer) *DummyEngine {
+func NewFakerWithClock(clock utils.MockableTimer) *DummyEngine {
 	return &DummyEngine{
 		clock: clock,
 	}
@@ -119,7 +124,7 @@ func NewFakerWithMode(mode Mode) *DummyEngine {
 	}
 }
 
-func NewFakerWithModeAndClock(mode Mode, clock iface.MockableTimer) *DummyEngine {
+func NewFakerWithModeAndClock(mode Mode, clock utils.MockableTimer) *DummyEngine {
 	return &DummyEngine{
 		clock:         clock,
 		consensusMode: mode,
@@ -276,46 +281,52 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 	return nil
 }
 
-func (*DummyEngine) Author(header *types.Header) (common.Address, error) {
+func (*DummyEngine) Author(header *iface.Header) (common.Address, error) {
 	return header.Coinbase, nil
 }
 
-func (eng *DummyEngine) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header, seal bool) error {
+func (eng *DummyEngine) VerifyHeader(chain consensus.ChainHeaderReader, header *iface.Header, seal bool) error {
 	// If we're running a full engine faking, accept any input as valid
 	if eng.consensusMode.ModeSkipHeader {
 		return nil
 	}
+	// Convert iface.Header to types.Header for internal use
+	evmHeader := convertHeader(header)
+	
 	// Short circuit if the header is known, or it's parent not
-	number := header.Number.Uint64()
-	if chain.GetHeader(header.Hash(), number) != nil {
+	number := evmHeader.Number.Uint64()
+	if chain.GetHeader(evmHeader.Hash(), number) != nil {
 		return nil
 	}
-	parent := chain.GetHeader(header.ParentHash, number-1)
+	parent := chain.GetHeader(evmHeader.ParentHash, number-1)
 	if parent == nil {
 		return consensus.ErrUnknownAncestor
 	}
 	// Sanity checks passed, do a proper verification
-	return eng.verifyHeader(chain, header, parent, false)
+	return eng.verifyHeader(chain, evmHeader, convertHeader(parent), false)
 }
 
-func (eng *DummyEngine) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
+func (eng *DummyEngine) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*iface.Header, seals []bool) (chan<- struct{}, <-chan error) {
 	abort := make(chan struct{})
 	results := make(chan error, len(headers))
 
 	go func() {
 		for i, header := range headers {
+			// Convert iface.Header to types.Header
+			evmHeader := convertHeader(header)
+			
 			var parent *types.Header
 			if i == 0 {
-				parent = chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
+				parent = convertHeader(chain.GetHeader(evmHeader.ParentHash, evmHeader.Number.Uint64()-1))
 			} else {
-				parent = headers[i-1]
+				parent = convertHeader(headers[i-1])
 			}
 
 			var err error
 			if parent == nil {
 				err = errors.New("unknown ancestor")
 			} else {
-				err = eng.verifyHeader(chain, header, parent, false)
+				err = eng.verifyHeader(chain, evmHeader, parent, false)
 			}
 
 			select {
@@ -329,14 +340,14 @@ func (eng *DummyEngine) VerifyHeaders(chain consensus.ChainHeaderReader, headers
 	return abort, results
 }
 
-func (*DummyEngine) VerifyUncles(chain consensus.ChainReader, block *types.Block) error {
+func (*DummyEngine) VerifyUncles(chain consensus.ChainReader, block *iface.ETHBlock) error {
 	if len(block.Uncles()) > 0 {
 		return errUnclesUnsupported
 	}
 	return nil
 }
 
-func (*DummyEngine) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
+func (*DummyEngine) Prepare(chain consensus.ChainHeaderReader, header *iface.Header) error {
 	header.Difficulty = big.NewInt(1)
 	return nil
 }
@@ -401,20 +412,48 @@ func (eng *DummyEngine) verifyBlockFee(
 	return nil
 }
 
-func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state iface.StateDB, txs []*types.Transaction, uncles []*types.Header) (*types.Block, error) {
+func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, header *iface.Header, state iface.StateDB, txs []*iface.Transaction, uncles []*iface.Header) (*iface.ETHBlock, error) {
+	// Convert iface types to EVM types
+	evmHeader := convertHeader(header)
+	evmTxs := make([]*types.Transaction, len(txs))
+	for i, tx := range txs {
+		evmTxs[i] = types.ConvertTransactionToEVM(tx)
+	}
+	evmUncles := make([]*types.Header, len(uncles))
+	for i, uncle := range uncles {
+		evmUncles[i] = convertHeader(uncle)
+	}
+	
 	// For the dummy engine, we just create a block without any special finalization
 	// The actual verification logic is moved to VerifyHeader
-	return types.NewBlock(header, txs, uncles, nil, trie.NewStackTrie(nil)), nil
+	evmBlock := types.NewBlock(evmHeader, evmTxs, evmUncles, nil, trie.NewStackTrie(nil))
+	return types.ConvertBlockFromEVM(evmBlock), nil
 }
 
-func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state iface.StateDB, txs []*types.Transaction,
-	uncles []*types.Header, receipts []*types.Receipt,
-) (*types.Block, error) {
+func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *iface.Header, state iface.StateDB, txs []*iface.Transaction,
+	uncles []*iface.Header, receipts []*iface.Receipt,
+) (*iface.ETHBlock, error) {
+	// Convert iface types to EVM types
+	evmHeader := convertHeader(header)
+	evmTxs := make([]*types.Transaction, len(txs))
+	for i, tx := range txs {
+		evmTxs[i] = types.ConvertTransactionToEVM(tx)
+	}
+	evmUncles := make([]*types.Header, len(uncles))
+	for i, uncle := range uncles {
+		evmUncles[i] = convertHeader(uncle)
+	}
+	evmReceipts := make([]*types.Receipt, len(receipts))
+	for i, receipt := range receipts {
+		evmReceipts[i] = types.ConvertReceiptToEVM(receipt)
+	}
+	
 	// Get the parent header
-	parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
-	if parent == nil {
+	parentIface := chain.GetHeader(evmHeader.ParentHash, evmHeader.Number.Uint64()-1)
+	if parentIface == nil {
 		return nil, errors.New("parent header not found")
 	}
+	parent := convertHeader(parentIface)
 	
 	// we use the parent to determine the fee config
 	// since the current block has not been finalized yet.
@@ -426,7 +465,7 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 	config := chain.Config()
 
 	// Calculate the required block gas cost for this block.
-	headerExtra := customtypes.GetHeaderExtra(header)
+	headerExtra := customtypes.GetHeaderExtra(evmHeader)
 	// Convert to extras.ChainConfig for BlockGasCost
 	paramsConfig := getParamsConfig(config)
 	extrasConfig := convertToExtrasConfig(paramsConfig)
@@ -434,15 +473,15 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 		extrasConfig,
 		feeConfig,
 		parent,
-		header.Time,
+		evmHeader.Time,
 	)
-	if extrasConfig.IsEVM(header.Time) {
+	if extrasConfig.IsEVM(evmHeader.Time) {
 		// Verify that this block covers the block fee.
 		if err := eng.verifyBlockFee(
-			header.BaseFee,
+			evmHeader.BaseFee,
 			headerExtra.BlockGasCost,
-			txs,
-			receipts,
+			evmTxs,
+			evmReceipts,
 		); err != nil {
 			return nil, err
 		}
@@ -452,18 +491,18 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 	// Convert to extras.ChainConfig for ExtraPrefix
 	paramsConfig = getParamsConfig(config)
 	extrasConfig = convertToExtrasConfig(paramsConfig)
-	extraPrefix, err := customheader.ExtraPrefix(extrasConfig, parent, header)
+	extraPrefix, err := customheader.ExtraPrefix(extrasConfig, parent, evmHeader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate new header.Extra: %w", err)
 	}
-	header.Extra = append(extraPrefix, header.Extra...)
+	evmHeader.Extra = append(extraPrefix, evmHeader.Extra...)
 
 	// commit the final state root
 	// Try to get IntermediateRoot if the state supports it
 	if stateDB, ok := state.(interface {
 		IntermediateRoot(deleteEmptyObjects bool) common.Hash
 	}); ok {
-		header.Root = stateDB.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+		evmHeader.Root = stateDB.IntermediateRoot(chain.Config().IsEIP158(evmHeader.Number))
 	} else {
 		// If IntermediateRoot is not available, we cannot set the root
 		// This is a limitation of the minimal StateDB interface
@@ -472,14 +511,15 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 
 	// Header seems complete, assemble into a block and return
 	// Use the NewBlockWithExtData function to properly handle Lux extensions
-	return types.NewBlockWithExtData(header, txs, uncles, nil, trie.NewStackTrie(nil), nil, false), nil
+	evmBlock := types.NewBlockWithExtData(evmHeader, evmTxs, evmUncles, nil, trie.NewStackTrie(nil), nil, false)
+	return types.ConvertBlockFromEVM(evmBlock), nil
 }
 
-func (*DummyEngine) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *types.Header) *big.Int {
+func (*DummyEngine) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *iface.Header) *big.Int {
 	return big.NewInt(1)
 }
 
-func (*DummyEngine) Seal(chain consensus.ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+func (*DummyEngine) Seal(chain consensus.ChainHeaderReader, block *iface.ETHBlock, results chan<- *iface.ETHBlock, stop <-chan struct{}) error {
 	// For the dummy engine, we don't actually seal blocks
 	// Just return the block as-is
 	go func() {
@@ -491,7 +531,7 @@ func (*DummyEngine) Seal(chain consensus.ChainHeaderReader, block *types.Block, 
 	return nil
 }
 
-func (*DummyEngine) SealHash(header *types.Header) common.Hash {
+func (*DummyEngine) SealHash(header *iface.Header) common.Hash {
 	// For the dummy engine, just return the header hash
 	return header.Hash()
 }

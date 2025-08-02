@@ -68,7 +68,8 @@ func testHeaderEncodeDecode(
 	gotExtra := GetHeaderExtra(gotHeader)
 
 	wantHeader, wantExtra := headerWithNonZeroFields()
-	wantHeader.WithdrawalsHash = nil
+	// TODO: WithdrawalsHash doesn't exist in current Header struct
+	// wantHeader.WithdrawalsHash = nil
 	assert.Equal(t, wantHeader, gotHeader)
 	assert.Equal(t, wantExtra, gotExtra)
 
@@ -108,10 +109,11 @@ func headerWithNonZeroFields() (*Header, *HeaderExtra) {
 		MixDigest:        common.Hash{14},
 		Nonce:            BlockNonce{15},
 		BaseFee:          big.NewInt(16),
-		WithdrawalsHash:  &common.Hash{17},
-		BlobGasUsed:      ptrTo(uint64(18)),
-		ExcessBlobGas:    ptrTo(uint64(19)),
-		ParentBeaconRoot: &common.Hash{20},
+		// TODO: These fields don't exist in current Header struct
+		// WithdrawalsHash:  &common.Hash{17},
+		// BlobGasUsed:      ptrTo(uint64(18)),
+		// ExcessBlobGas:    ptrTo(uint64(19)),
+		// ParentBeaconRoot: &common.Hash{20},
 	}
 	extra := &HeaderExtra{
 		BlockGasCost: big.NewInt(21),

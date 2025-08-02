@@ -9,15 +9,15 @@ import (
 	"testing"
 
 	"github.com/luxfi/evm/consensus/dummy"
-	"github.com/luxfi/evm/core/extstate"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/upgrade/ap4"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/luxfi/geth/common"
+	"github.com/luxfi/geth/crypto"
+	"github.com/luxfi/geth/ethdb"
+	ethparams "github.com/luxfi/geth/params"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 )
@@ -149,7 +149,11 @@ func checkBlockChainStateExt(
 		t.Fatalf("Check state failed for original blockchain due to: %s", err)
 	}
 
-	oldChainDataDir := bc.CacheConfig().ChainDataDir // cacheConfig uses same reference in most tests
+	// Get ChainDataDir from the chain config's LuxContext
+	oldChainDataDir := ""
+	if cfg, ok := bc.Config().(*params.ChainConfig); ok && cfg.ConsensusCtx != nil {
+		oldChainDataDir = cfg.ConsensusCtx.ChainDataDir
+	}
 	newBlockChain, err := create(newDB, gspec, common.Hash{}, t.TempDir())
 	if err != nil {
 		t.Fatalf("Failed to create new blockchain instance: %s", err)
@@ -225,7 +229,11 @@ func InsertChainAcceptSingleBlockTest(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -295,7 +303,11 @@ func InsertLongForkedChainTest(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -461,7 +473,11 @@ func AcceptNonCanonicalBlockTest(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -570,7 +586,11 @@ func SetPreferenceRewindTest(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -704,7 +724,11 @@ func BuildOnVariousStagesTest(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc: types.GenesisAlloc{
 			addr1: {Balance: genesisBalance},
 			addr3: {Balance: genesisBalance},
@@ -862,7 +886,11 @@ func EmptyBlocksTest(t *testing.T, create createFunc) {
 
 	// Ensure that key1 has some funds in the genesis block.
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc:  types.GenesisAlloc{},
 	}
 
@@ -908,7 +936,11 @@ func EmptyAndNonEmptyBlocksTest(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -978,7 +1010,11 @@ func ReorgReInsertTest(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -1084,7 +1120,11 @@ func AcceptBlockIdenticalStateRootTest(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -1228,7 +1268,11 @@ func ReprocessAcceptBlockIdenticalStateRootTest(t *testing.T, create createFunc)
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -1553,7 +1597,11 @@ func ReexecBlocksTest(t *testing.T, create ReexecTestFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -1683,7 +1731,11 @@ func ReexecMaxBlocksTest(t *testing.T, create ReexecTestFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 

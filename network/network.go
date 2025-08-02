@@ -18,11 +18,10 @@ import (
 	"github.com/luxfi/node/codec"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/network/p2p"
-	"github.com/luxfi/node/consensus"
-	"github.com/luxfi/node/consensus/engine/core"
-	"github.com/luxfi/node/consensus/validators"
+	quasar "github.com/luxfi/node/quasar"
+	"github.com/luxfi/node/quasar/engine/core"
+	"github.com/luxfi/node/quasar/validators"
 	"github.com/luxfi/node/utils"
-	"github.com/luxfi/node/utils/set"
 	"github.com/luxfi/node/version"
 
 	"github.com/luxfi/evm/network/stats"
@@ -123,13 +122,14 @@ type network struct {
 }
 
 func NewNetwork(
-	ctx *consensus.Context,
+	ctx *quasar.Context,
 	appSender core.AppSender,
 	codec codec.Manager,
 	maxActiveAppRequests int64,
 	registerer prometheus.Registerer,
 ) (Network, error) {
-	p2pNetwork, err := p2p.NewNetwork(ctx.Log, appSender, registerer, "p2p")
+	appSenderAdapter := NewAppSenderAdapter(appSender)
+	p2pNetwork, err := p2p.NewNetwork(ctx.Log, appSenderAdapter, registerer, "p2p")
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize p2p network: %w", err)
 	}
@@ -219,8 +219,7 @@ func (n *network) sendAppRequest(ctx context.Context, nodeID ids.NodeID, request
 	requestID := n.nextRequestID()
 	n.outstandingRequestHandlers[requestID] = responseHandler
 
-	nodeIDs := set.NewSet[ids.NodeID](1)
-	nodeIDs.Add(nodeID)
+	nodeIDs := []ids.NodeID{nodeID}
 
 	// Send app request to [nodeID].
 	// On failure, release the slot from [activeAppRequests] and delete request

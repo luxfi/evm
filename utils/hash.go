@@ -6,13 +6,13 @@ package utils
 import (
 	"crypto/sha256"
 	
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/ids"
 )
 
 // ComputeHash256Array computes SHA256 hash and returns it as an ID
-func ComputeHash256Array(data []byte) iface.ID {
+func ComputeHash256Array(data []byte) ids.ID {
 	hash := sha256.Sum256(data)
-	var id iface.ID
+	var id ids.ID
 	copy(id[:], hash[:])
 	return id
 }

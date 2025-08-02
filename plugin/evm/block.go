@@ -9,19 +9,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/iface"
+	evmids "github.com/luxfi/evm/ids"
 	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/plugin/evm/header"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/predicate"
 	"github.com/luxfi/log"
 	"github.com/luxfi/geth/rlp"
-	"github.com/luxfi/node/consensus/engine/chain/block"
-	"github.com/luxfi/node/consensus/choices"
+	"github.com/luxfi/node/quasar/engine/chain/block"
+	"github.com/luxfi/node/quasar/choices"
 	"github.com/luxfi/ids"
 )
 
@@ -32,7 +32,7 @@ var (
 
 // Block implements the chain.Block interface
 type Block struct {
-	id       iface.ID
+	id       ids.ID
 	ethBlock *types.Block
 	vm       *VM
 }
@@ -40,14 +40,14 @@ type Block struct {
 // newBlock returns a new Block wrapping the ethBlock type and implementing the chain.Block interface
 func (vm *VM) newBlock(ethBlock *types.Block) *Block {
 	return &Block{
-		id:       iface.ID(ethBlock.Hash()),
+		id:       ids.ID(ethBlock.Hash()),
 		ethBlock: ethBlock,
 		vm:       vm,
 	}
 }
 
 // ID implements the block.Block interface (choices.Decidable)
-func (b *Block) ID() string { return ids.ID(b.id).String() }
+func (b *Block) ID() string { return b.id.String() }
 
 // Accept implements the chain.Block interface
 func (b *Block) Accept() error {
@@ -98,22 +98,25 @@ func (b *Block) handlePrecompileAccept(rules extras.Rules) error {
 	}
 
 	// Read receipts from disk
-	receipts := rawdb.ReadReceipts(b.vm.chaindb, b.ethBlock.Hash(), b.ethBlock.NumberU64(), b.ethBlock.Time(), b.vm.chainConfig.ChainConfig)
+	receipts := rawdb.ReadReceipts(b.vm.chaindb, b.ethBlock.Hash(), b.ethBlock.NumberU64(), b.ethBlock.Time(), b.vm.chainConfig)
 	// If there are no receipts, ReadReceipts may be nil, so we check the length and confirm the ReceiptHash
 	// is empty to ensure that missing receipts results in an error on accept.
 	if len(receipts) == 0 && b.ethBlock.ReceiptHash() != types.EmptyRootHash {
 		return fmt.Errorf("failed to fetch receipts for accepted block with non-empty root hash (%s) (Block: %s, Height: %d)", b.ethBlock.ReceiptHash(), b.ethBlock.Hash(), b.ethBlock.NumberU64())
 	}
-	// Convert consensus.Context to iface.ChainContext
-	chainCtx := &iface.ChainContext{
+	// Convert consensus.Context to commontype.ChainContext
+	chainCtx := &commontype.ChainContext{
 		NetworkID: b.vm.ctx.NetworkID,
-		SubnetID:  iface.SubnetID(b.vm.ctx.SubnetID),
-		ChainID:   iface.ChainID(b.vm.ctx.ChainID),
-		NodeID: func() iface.NodeID {
-			var nodeID iface.NodeID
+		SubnetID:  evmids.SubnetID(b.vm.ctx.SubnetID),
+		ChainID:   evmids.ChainID(b.vm.ctx.ChainID),
+		NodeID: func() evmids.NodeID {
+			var nodeID evmids.NodeID
 			copy(nodeID[:], b.vm.ctx.NodeID[:])
 			return nodeID
 		}(),
+		AppVersion: 0, // TODO: Get app version
+		ChainDataDir: "", // TODO: Get chain data dir
+		ValidatorState: nil, // TODO: Implement ValidatorState interface
 	}
 	acceptCtx := &precompileconfig.AcceptContext{
 		ConsensusCtx: chainCtx,
@@ -178,16 +181,19 @@ func (b *Block) syntacticVerify() error {
 
 // Verify implements the chain.Block interface
 func (b *Block) Verify(context.Context) error {
-	// Convert consensus.Context to iface.ChainContext
-	chainCtx := &iface.ChainContext{
+	// Convert consensus.Context to commontype.ChainContext
+	chainCtx := &commontype.ChainContext{
 		NetworkID: b.vm.ctx.NetworkID,
-		SubnetID:  iface.SubnetID(b.vm.ctx.SubnetID),
-		ChainID:   iface.ChainID(b.vm.ctx.ChainID),
-		NodeID: func() iface.NodeID {
-			var nodeID iface.NodeID
+		SubnetID:  evmids.SubnetID(b.vm.ctx.SubnetID),
+		ChainID:   evmids.ChainID(b.vm.ctx.ChainID),
+		NodeID: func() evmids.NodeID {
+			var nodeID evmids.NodeID
 			copy(nodeID[:], b.vm.ctx.NodeID[:])
 			return nodeID
 		}(),
+		AppVersion: 0, // TODO: Get app version
+		ChainDataDir: "", // TODO: Get chain data dir
+		ValidatorState: nil, // TODO: Implement ValidatorState interface
 	}
 	return b.verify(&precompileconfig.PredicateContext{
 		ConsensusCtx:       chainCtx,
@@ -221,21 +227,24 @@ func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
 
 // VerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) error {
-	// Convert consensus.Context to iface.ChainContext
-	chainCtx := &iface.ChainContext{
+	// Convert consensus.Context to commontype.ChainContext
+	chainCtx := &commontype.ChainContext{
 		NetworkID: b.vm.ctx.NetworkID,
-		SubnetID:  iface.SubnetID(b.vm.ctx.SubnetID),
-		ChainID:   iface.ChainID(b.vm.ctx.ChainID),
-		NodeID: func() iface.NodeID {
-			var nodeID iface.NodeID
+		SubnetID:  evmids.SubnetID(b.vm.ctx.SubnetID),
+		ChainID:   evmids.ChainID(b.vm.ctx.ChainID),
+		NodeID: func() evmids.NodeID {
+			var nodeID evmids.NodeID
 			copy(nodeID[:], b.vm.ctx.NodeID[:])
 			return nodeID
 		}(),
+		AppVersion: 0, // TODO: Get app version
+		ChainDataDir: "", // TODO: Get chain data dir
+		ValidatorState: nil, // TODO: Implement ValidatorState interface
 	}
-	// Convert block.Context to consensus.BlockContext
-	var blockCtx *consensus.BlockContext
+	// Convert block.Context to commontype.BlockContext
+	var blockCtx *commontype.BlockContext
 	if proposerVMBlockCtx != nil {
-		blockCtx = &consensus.BlockContext{
+		blockCtx = &commontype.BlockContext{
 			PChainHeight: proposerVMBlockCtx.PChainHeight,
 		}
 	}
@@ -273,7 +282,7 @@ func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writ
 	// Additionally, if a block is already in processing, then it has already passed verification and
 	// at this point we have checked the predicates are still valid in the different context so we
 	// can return nil.
-	if b.vm.State.IsProcessing(ids.ID(b.id)) {
+	if b.vm.State.IsProcessing(b.id) {
 		return nil
 	}
 

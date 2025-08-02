@@ -31,6 +31,7 @@ import (
 	"math/big"
 	"testing"
 	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"

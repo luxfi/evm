@@ -292,7 +292,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 		if err != nil {
 			return state, common.Hash{}, err
 		}
-		if _, err := types.Sender(types.LatestSigner(config.ToEthChainConfig()), &ttx); err != nil {
+		if _, err := types.Sender(types.LatestSigner(config), &ttx); err != nil {
 			return state, common.Hash{}, err
 		}
 	}
