@@ -33,7 +33,7 @@ import (
 	"testing"
 
 	"github.com/luxfi/geth/core/rawdb"
-	"github.com/luxfi/evm/v2/v2/trie/testutil"
+	"github.com/luxfi/evm/v2/trie/testutil"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/metrics"

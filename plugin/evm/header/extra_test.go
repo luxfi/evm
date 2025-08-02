@@ -7,11 +7,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/evm/v2/v2/core/types"
-	"github.com/luxfi/evm/v2/v2/params/extras"
-	"github.com/luxfi/evm/v2/v2/plugin/evm/customtypes"
-	"github.com/luxfi/evm/v2/v2/upgrade/subnetevm"
-	"github.com/luxfi/evm/v2/v2/utils"
+	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/v2/params/extras"
+	"github.com/luxfi/evm/v2/plugin/evm/customtypes"
+	"github.com/luxfi/evm/v2/upgrade/subnetevm"
+	"github.com/luxfi/evm/v2/utils"
 	"github.com/stretchr/testify/require"
 )
 

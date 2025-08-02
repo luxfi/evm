@@ -23,9 +23,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/luxfi/evm/v2/v2/core"
-	"github.com/luxfi/evm/v2/v2/params"
-	"github.com/luxfi/evm/v2/v2/core/types"
+	"github.com/luxfi/evm/v2/core"
+	"github.com/luxfi/evm/v2/params"
+	"github.com/luxfi/evm/v2/core/types"
 	"github.com/luxfi/node/network/p2p/gossip"
 	"github.com/luxfi/node/quasar/consensus/engine/enginetest"
 	nodeatomic "github.com/luxfi/node/chains/atomic"

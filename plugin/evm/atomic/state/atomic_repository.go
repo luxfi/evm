@@ -7,7 +7,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/luxfi/evm/v2/v2/plugin/evm/atomic"
+	"github.com/luxfi/evm/v2/plugin/evm/atomic"
 	luxatomic "github.com/luxfi/node/chains/atomic"
 	"github.com/luxfi/node/codec"
 	"github.com/luxfi/database"

@@ -33,9 +33,9 @@ import (
 	"math/big"
 	"runtime"
 	"runtime/debug"
-	"github.com/luxfi/evm/v2/v2/core/types"
-	ethereum "github.com/luxfi/evm/v2/v2/iface"
-	"github.com/luxfi/evm/v2/v2/rpc"
+	"github.com/luxfi/evm/v2/core/types"
+	ethereum "github.com/luxfi/evm/v2/iface"
+	"github.com/luxfi/evm/v2/rpc"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 )

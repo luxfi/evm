@@ -23,7 +23,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/luxfi/evm/v2/v2/internal/version"
+	"github.com/luxfi/evm/v2/internal/version"
 	"github.com/luxfi/log"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"

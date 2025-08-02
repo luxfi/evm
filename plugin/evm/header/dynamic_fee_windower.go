@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxfi/evm/v2/v2/commontype"
-	"github.com/luxfi/evm/v2/v2/core/types"
-	"github.com/luxfi/evm/v2/v2/params/extras"
-	"github.com/luxfi/evm/v2/v2/upgrade/subnetevm"
+	"github.com/luxfi/evm/v2/commontype"
+	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/v2/params/extras"
+	"github.com/luxfi/evm/v2/upgrade/subnetevm"
 	"github.com/luxfi/geth/common"
 )
 

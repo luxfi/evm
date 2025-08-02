@@ -28,7 +28,7 @@ package trie
 
 import (
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/evm/v2/v2/trie/triestate"
+	"github.com/luxfi/evm/v2/trie/triestate"
 	"github.com/luxfi/geth/triedb/database"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/log"

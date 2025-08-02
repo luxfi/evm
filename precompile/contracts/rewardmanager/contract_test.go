@@ -8,14 +8,14 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"github.com/luxfi/evm/v2/v2/commontype"
-	"github.com/luxfi/evm/v2/v2/constants"
-	"github.com/luxfi/evm/v2/v2/core/extstate/testhelpers"
-	"github.com/luxfi/evm/v2/v2/precompile/allowlist"
-	"github.com/luxfi/evm/v2/v2/precompile/contract"
-	"github.com/luxfi/evm/v2/v2/precompile/precompileconfig"
-	"github.com/luxfi/evm/v2/v2/precompile/testutils"
-	"github.com/luxfi/evm/v2/v2/vmerrs"
+	"github.com/luxfi/evm/v2/commontype"
+	"github.com/luxfi/evm/v2/constants"
+	"github.com/luxfi/evm/v2/core/extstate/testhelpers"
+	"github.com/luxfi/evm/v2/precompile/allowlist"
+	"github.com/luxfi/evm/v2/precompile/contract"
+	"github.com/luxfi/evm/v2/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/precompile/testutils"
+	"github.com/luxfi/evm/v2/vmerrs"
 )
 
 var (

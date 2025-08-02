@@ -32,9 +32,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/luxfi/evm/v2/v2/core/types"
-	"github.com/luxfi/evm/v2/v2/internal/blocktest"
-	"github.com/luxfi/evm/v2/v2/params"
+	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/v2/internal/blocktest"
+	"github.com/luxfi/evm/v2/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/math"
 	"github.com/luxfi/geth/crypto"
@@ -43,7 +43,7 @@ import (
 	// This test file has to be in package types_test to avoid a circular
 	// dependency when importing `params`. We dot-import the package to mimic
 	// regular same-package behaviour.
-	. "github.com/luxfi/evm/v2/v2/plugin/evm/customtypes"
+	. "github.com/luxfi/evm/v2/plugin/evm/customtypes"
 )
 
 func TestBlockEncoding(t *testing.T) {

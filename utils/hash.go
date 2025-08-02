@@ -6,7 +6,7 @@ package utils
 import (
 	"crypto/sha256"
 	
-	"github.com/luxfi/evm/v2/v2/ids"
+	"github.com/luxfi/evm/v2/ids"
 )
 
 // ComputeHash256Array computes SHA256 hash and returns it as an ID

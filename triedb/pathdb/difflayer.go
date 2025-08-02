@@ -32,7 +32,7 @@ import (
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/log"
-	"github.com/luxfi/evm/v2/v2/trie/trienode"
+	"github.com/luxfi/evm/v2/trie/trienode"
 )
 
 // diffLayer represents a collection of modifications made to the in-memory tries

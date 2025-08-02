@@ -26,7 +26,7 @@
 
 package bind
 
-import "github.com/luxfi/evm/v2/v2/accounts/abi"
+import "github.com/luxfi/evm/v2/accounts/abi"
 
 // tmplData is the data structure required to fill the binding template.
 type tmplData struct {
@@ -100,10 +100,10 @@ import (
 	"math/big"
 	"strings"
 	"errors"
-	"github.com/luxfi/evm/v2/v2/accounts/abi"
-	"github.com/luxfi/evm/v2/v2/accounts/abi/bind"
-	"github.com/luxfi/evm/v2/v2/core/types"
-	"github.com/luxfi/evm/v2/v2/iface"
+	"github.com/luxfi/evm/v2/accounts/abi"
+	"github.com/luxfi/evm/v2/accounts/abi/bind"
+	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/v2/iface"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/event"
 )

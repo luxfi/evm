@@ -42,7 +42,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxfi/evm/v2/v2/log"
+	"github.com/luxfi/evm/v2/log"
 	"github.com/davecgh/go-spew/spew"
 )
 

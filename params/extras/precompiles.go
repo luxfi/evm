@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/luxfi/evm/v2/v2/precompile/registry"
-	"github.com/luxfi/evm/v2/v2/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/precompile/registry"
+	"github.com/luxfi/evm/v2/precompile/precompileconfig"
 )
 
 type Precompiles map[string]precompileconfig.Config

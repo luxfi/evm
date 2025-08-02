@@ -12,7 +12,7 @@ import (
 	"github.com/luxfi/node/utils/ulimit"
 	"github.com/luxfi/node/vms/rpcchainvm"
 
-	"github.com/luxfi/evm/v2/v2/plugin/evm"
+	"github.com/luxfi/evm/v2/plugin/evm"
 )
 
 func Run(versionStr string) {

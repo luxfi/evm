@@ -6,10 +6,10 @@ package header
 import (
 	"testing"
 
-	"github.com/luxfi/evm/v2/v2/commontype"
-	"github.com/luxfi/evm/v2/v2/core/types"
-	evmparams "github.com/luxfi/evm/v2/v2/params"
-	"github.com/luxfi/evm/v2/v2/params/extras"
+	"github.com/luxfi/evm/v2/commontype"
+	"github.com/luxfi/evm/v2/core/types"
+	evmparams "github.com/luxfi/evm/v2/params"
+	"github.com/luxfi/evm/v2/params/extras"
 	"github.com/luxfi/geth/params"
 	"github.com/stretchr/testify/require"
 )

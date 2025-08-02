@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"math/big"
 	
-	"github.com/luxfi/evm/v2/v2/precompile/contract"
-	"github.com/luxfi/evm/v2/v2/precompile/registry"
-	"github.com/luxfi/evm/v2/v2/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/precompile/contract"
+	"github.com/luxfi/evm/v2/precompile/registry"
+	"github.com/luxfi/evm/v2/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
 	"github.com/holiman/uint256"
 )

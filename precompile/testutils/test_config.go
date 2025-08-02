@@ -6,8 +6,8 @@ package testutils
 import (
 	"testing"
 
-	"github.com/luxfi/evm/v2/v2/commontype"
-	"github.com/luxfi/evm/v2/v2/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/commontype"
+	"github.com/luxfi/evm/v2/precompile/precompileconfig"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )

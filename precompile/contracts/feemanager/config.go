@@ -4,9 +4,9 @@
 package feemanager
 
 import (
-	"github.com/luxfi/evm/v2/v2/commontype"
-	"github.com/luxfi/evm/v2/v2/precompile/allowlist"
-	"github.com/luxfi/evm/v2/v2/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/commontype"
+	"github.com/luxfi/evm/v2/precompile/allowlist"
+	"github.com/luxfi/evm/v2/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
 )
 
