@@ -6,7 +6,7 @@ package modules
 import (
 	"math/big"
 	"testing"
-	"github.com/luxfi/evm/constants"
+	"github.com/luxfi/evm/v2/constants"
 	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/require"
 )

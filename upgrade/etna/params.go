@@ -4,7 +4,7 @@
 // Etna defines constants used after the Etna upgrade.
 package etna
 
-import "github.com/luxfi/evm/utils"
+import "github.com/luxfi/evm/v2/utils"
 
 // MinBaseFee is the minimum base fee specified in LP-125 that is allowed after
 // the Etna upgrade.

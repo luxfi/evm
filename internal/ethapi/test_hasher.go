@@ -7,7 +7,7 @@ import (
 	"hash"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/v2/core/types"
 	"golang.org/x/crypto/sha3"
 )
 

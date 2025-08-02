@@ -6,7 +6,7 @@ package peer
 import (
 	"testing"
 
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/v2/iface"
 	"github.com/stretchr/testify/require"
 )
 

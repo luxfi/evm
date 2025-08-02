@@ -11,9 +11,9 @@ import (
 	"sync"
 
 	"github.com/luxfi/node/utils/wrappers"
-	"github.com/luxfi/evm/plugin/evm/customrawdb"
-	syncclient "github.com/luxfi/evm/sync/client"
-	"github.com/luxfi/evm/utils"
+	"github.com/luxfi/evm/v2/plugin/evm/customrawdb"
+	syncclient "github.com/luxfi/evm/v2/sync/client"
+	"github.com/luxfi/evm/v2/utils"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/ethdb"

@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"github.com/luxfi/evm/accounts/abi"
+	"github.com/luxfi/evm/v2/accounts/abi"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/evm/vmerrs"
+	"github.com/luxfi/evm/v2/vmerrs"
 )
 
 // Gas costs for stateful precompiles

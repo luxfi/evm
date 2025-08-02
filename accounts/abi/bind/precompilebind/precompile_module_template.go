@@ -13,9 +13,9 @@ package {{.Package}}
 import (
 	"fmt"
 
-	"github.com/luxfi/evm/precompile/precompileconfig"
-	"github.com/luxfi/evm/precompile/contract"
-	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/v2/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/precompile/contract"
+	"github.com/luxfi/evm/v2/precompile/modules"
 
 	"github.com/luxfi/geth/common"
 )

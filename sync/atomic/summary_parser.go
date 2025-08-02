@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/luxfi/ids"
-	"github.com/luxfi/evm/plugin/evm/message"
+	"github.com/luxfi/evm/v2/plugin/evm/message"
 	"github.com/luxfi/geth/crypto"
 )
 

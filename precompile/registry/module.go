@@ -5,7 +5,7 @@ package registry
 
 import (
 	"bytes"
-	"github.com/luxfi/evm/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
 )
 

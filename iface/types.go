@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/ids"
+	"github.com/luxfi/evm/v2/ids"
 )
 
 // Size constants

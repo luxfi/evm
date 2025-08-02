@@ -31,10 +31,10 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/luxfi/evm/accounts/abi/bind"
+	"github.com/luxfi/evm/v2/accounts/abi/bind"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/v2/iface"
 )
 
 // SimulatedBackend is a simulated blockchain.

@@ -3,7 +3,7 @@
 
 package precompileconfig
 
-import "github.com/luxfi/evm/utils"
+import "github.com/luxfi/evm/v2/utils"
 
 // Upgrade contains the timestamp for the upgrade along with
 // a boolean [Disable]. If [Disable] is set, the upgrade deactivates
