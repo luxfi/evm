@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"testing"
 	"github.com/stretchr/testify/require"
-	avagoUtils "github.com/luxfi/node/v2/utils"
+	avagoUtils "github.com/luxfi/node/utils"
 )
 
 func testPackPredicate(t testing.TB, b []byte) {

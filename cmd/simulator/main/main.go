@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"github.com/luxfi/evm/v2/cmd/simulator/config"
-	"github.com/luxfi/evm/v2/cmd/simulator/load"
+	"github.com/luxfi/evm/cmd/simulator/config"
+	"github.com/luxfi/evm/cmd/simulator/load"
 	"github.com/luxfi/log"
 	"github.com/spf13/pflag"
 )

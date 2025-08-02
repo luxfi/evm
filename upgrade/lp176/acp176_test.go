@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/node/v2/vms/components/gas"
+	"github.com/luxfi/node/vms/components/gas"
 	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/require"
 )

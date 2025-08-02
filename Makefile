@@ -86,7 +86,7 @@ test-ginkgo:
 	@if command -v ginkgo >/dev/null 2>&1; then \
 		TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) ginkgo -v -r --race --fail-fast --randomize-all --randomize-suites; \
 	else \
-		echo "ginkgo not installed. Install with: go install github.com/onsi/ginkgo/v2/ginkgo@latest"; \
+		echo "ginkgo not installed. Install with: go install github.com/onsi/ginkgo/ginkgo@latest"; \
 		exit 1; \
 	fi
 
@@ -98,7 +98,7 @@ test-ginkgo-filter:
 	@if command -v ginkgo >/dev/null 2>&1; then \
 		TMPDIR=$(TMPDIR) GOCACHE=$(GOCACHE) ginkgo -v -r --race --fail-fast --randomize-all --randomize-suites --focus="$(filter)"; \
 	else \
-		echo "ginkgo not installed. Install with: go install github.com/onsi/ginkgo/v2/ginkgo@latest"; \
+		echo "ginkgo not installed. Install with: go install github.com/onsi/ginkgo/ginkgo@latest"; \
 		exit 1; \
 	fi
 
@@ -121,7 +121,7 @@ test-coverage-ginkgo:
 		go tool cover -html=coverage.out -o coverage.html; \
 		echo "Coverage report generated: coverage.html"; \
 	else \
-		echo "ginkgo not installed. Install with: go install github.com/onsi/ginkgo/v2/ginkgo@latest"; \
+		echo "ginkgo not installed. Install with: go install github.com/onsi/ginkgo/ginkgo@latest"; \
 		exit 1; \
 	fi
 
@@ -173,7 +173,7 @@ security:
 	@if command -v gosec >/dev/null 2>&1; then \
 		gosec ./...; \
 	else \
-		echo "gosec not installed. Install with: go install github.com/securego/gosec/v2/cmd/gosec@latest"; \
+		echo "gosec not installed. Install with: go install github.com/securego/gosec/cmd/gosec@latest"; \
 		exit 1; \
 	fi
 

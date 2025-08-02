@@ -5,8 +5,8 @@ package predicate
 
 import (
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/v2/core/types"
-	"github.com/luxfi/evm/v2/utils"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/utils"
 )
 
 type PredicaterExistChecker interface {
