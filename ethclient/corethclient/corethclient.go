@@ -35,7 +35,7 @@ import (
 	"runtime/debug"
 
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/evm/v2/v2/iface"
+	"github.com/luxfi/evm/v2/iface"
 	"github.com/luxfi/geth/rpc"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"

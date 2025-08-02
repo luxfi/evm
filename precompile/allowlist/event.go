@@ -6,7 +6,7 @@ package allowlist
 
 import (
 	"math/big"
-	"github.com/luxfi/evm/v2/v2/precompile/contract"
+	"github.com/luxfi/evm/v2/precompile/contract"
 	"github.com/luxfi/geth/common"
 )
 

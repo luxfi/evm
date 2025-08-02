@@ -21,7 +21,7 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/luxfi/evm/v2/v2/core/vm"
+	"github.com/luxfi/evm/v2/core/vm"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/math"
 )

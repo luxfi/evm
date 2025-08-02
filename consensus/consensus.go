@@ -7,7 +7,7 @@ package consensus
 import (
 	"math/big"
 
-	"github.com/luxfi/evm/v2/v2/iface"
+	"github.com/luxfi/evm/v2/iface"
 	"github.com/luxfi/ids"
 )
 

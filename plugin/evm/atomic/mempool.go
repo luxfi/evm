@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/luxfi/evm/v2/v2/consensus"
+	"github.com/luxfi/evm/v2/consensus"
 	"github.com/luxfi/node/cache/lru"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/network/p2p/gossip"

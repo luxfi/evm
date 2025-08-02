@@ -34,12 +34,12 @@ import (
 	
 	"github.com/luxfi/geth/common"
 	ethparams "github.com/luxfi/geth/params"
-	"github.com/luxfi/evm/v2/v2/commontype"
-	"github.com/luxfi/evm/v2/v2/iface"
-	"github.com/luxfi/evm/v2/v2/params/extras"
-	"github.com/luxfi/evm/v2/v2/precompile/registry"
-	"github.com/luxfi/evm/v2/v2/precompile/precompileconfig"
-	"github.com/luxfi/evm/v2/v2/utils"
+	"github.com/luxfi/evm/v2/commontype"
+	"github.com/luxfi/evm/v2/iface"
+	"github.com/luxfi/evm/v2/params/extras"
+	"github.com/luxfi/evm/v2/precompile/registry"
+	"github.com/luxfi/evm/v2/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/utils"
 )
 
 // Type aliases for extras package types

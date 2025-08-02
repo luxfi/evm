@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"sort"
 	
-	"github.com/luxfi/evm/v2/v2/constants"
-	"github.com/luxfi/evm/v2/v2/precompile"
-	"github.com/luxfi/evm/v2/v2/utils"
+	"github.com/luxfi/evm/v2/constants"
+	"github.com/luxfi/evm/v2/precompile"
+	"github.com/luxfi/evm/v2/utils"
 	"github.com/luxfi/geth/common"
 )
 

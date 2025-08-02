@@ -5,8 +5,8 @@ package txallowlist
 
 import (
 	"testing"
-	"github.com/luxfi/evm/v2/v2/core/extstate/testhelpers"
-	"github.com/luxfi/evm/v2/v2/precompile/allowlist"
+	"github.com/luxfi/evm/v2/core/extstate/testhelpers"
+	"github.com/luxfi/evm/v2/precompile/allowlist"
 )
 
 func TestTxAllowListRun(t *testing.T) {

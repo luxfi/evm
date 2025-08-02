@@ -19,8 +19,8 @@ package core
 import (
 	"context"
 	"time"
-	"github.com/luxfi/evm/v2/v2/core/bloombits"
-	"github.com/luxfi/evm/v2/v2/core/types"
+	"github.com/luxfi/evm/v2/core/bloombits"
+	"github.com/luxfi/evm/v2/core/types"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/common"
 )

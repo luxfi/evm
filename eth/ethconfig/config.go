@@ -29,13 +29,13 @@ package ethconfig
 import (
 	"time"
 
-	"github.com/luxfi/evm/v2/v2/core"
-	"github.com/luxfi/evm/v2/v2/core/txpool/blobpool"
-	"github.com/luxfi/evm/v2/v2/core/txpool/legacypool"
-	"github.com/luxfi/evm/v2/v2/eth/gasprice"
-	"github.com/luxfi/evm/v2/v2/internal/ethapi"
-	"github.com/luxfi/evm/v2/v2/miner"
-	"github.com/luxfi/evm/v2/v2/params"
+	"github.com/luxfi/evm/v2/core"
+	"github.com/luxfi/evm/v2/core/txpool/blobpool"
+	"github.com/luxfi/evm/v2/core/txpool/legacypool"
+	"github.com/luxfi/evm/v2/eth/gasprice"
+	"github.com/luxfi/evm/v2/internal/ethapi"
+	"github.com/luxfi/evm/v2/miner"
+	"github.com/luxfi/evm/v2/params"
 	"github.com/luxfi/geth/common"
 )
 

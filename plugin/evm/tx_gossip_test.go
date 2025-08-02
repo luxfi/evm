@@ -12,9 +12,9 @@ import (
 	"time"
 
 	commonEng "github.com/luxfi/node/quasar/engine/core"
-	"github.com/luxfi/evm/v2/v2/core/types"
-	"github.com/luxfi/evm/v2/v2/utils"
-	"github.com/luxfi/evm/v2/v2/peer"
+	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/v2/utils"
+	"github.com/luxfi/evm/v2/peer"
 	"github.com/luxfi/node/quasar"
 	"github.com/luxfi/node/quasar/consensus/engine/enginetest"
 	"github.com/luxfi/node/quasar/validators"

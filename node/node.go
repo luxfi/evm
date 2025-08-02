@@ -28,7 +28,7 @@ package node
 
 import (
 	"github.com/luxfi/geth/accounts"
-	"github.com/luxfi/evm/v2/v2/rpc"
+	"github.com/luxfi/evm/v2/rpc"
 )
 
 // Node is a container on which services can be registered.

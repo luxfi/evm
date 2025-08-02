@@ -9,9 +9,9 @@ import (
 	"fmt"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/v2/v2/precompile/registry"
-	"github.com/luxfi/evm/v2/v2/precompile/precompileconfig"
-	"github.com/luxfi/evm/v2/v2/utils"
+	"github.com/luxfi/evm/v2/precompile/registry"
+	"github.com/luxfi/evm/v2/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/utils"
 	gethparams "github.com/luxfi/geth/params"
 )
 

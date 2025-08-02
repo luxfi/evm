@@ -13,9 +13,9 @@ import (
 
 	"github.com/luxfi/ids"
 
-	"github.com/luxfi/evm/v2/v2/network"
-	"github.com/luxfi/evm/v2/v2/params"
-	"github.com/luxfi/evm/v2/v2/sync/client/stats"
+	"github.com/luxfi/evm/v2/network"
+	"github.com/luxfi/evm/v2/params"
+	"github.com/luxfi/evm/v2/sync/client/stats"
 
 	"github.com/luxfi/node/codec"
 	"github.com/luxfi/node/version"
@@ -24,7 +24,7 @@ import (
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/log"
 
-	"github.com/luxfi/evm/v2/v2/plugin/evm/message"
+	"github.com/luxfi/evm/v2/plugin/evm/message"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/ethdb"

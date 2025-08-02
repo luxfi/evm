@@ -41,7 +41,7 @@ import (
 	"math/big"
 	"os"
 	"strconv"
-	"github.com/luxfi/evm/v2/v2/core"
+	"github.com/luxfi/evm/v2/core"
 	"github.com/luxfi/geth/rlp"
 )
 
