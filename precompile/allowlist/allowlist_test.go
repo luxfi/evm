@@ -5,9 +5,10 @@ package allowlist_test
 
 import (
 	"testing"
-	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/core/extstate/testhelpers"
+	"github.com/luxfi/evm/precompile/allowlist"
 	"github.com/luxfi/evm/precompile/contract"
-	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/precompile/registry"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
 )
@@ -21,7 +22,7 @@ var (
 
 type dummyConfig struct {
 	precompileconfig.Upgrade
-	AllowListConfig
+	allowlist.AllowListConfig
 }
 
 func (d *dummyConfig) Key() string      { return "dummy" }
@@ -55,21 +56,21 @@ func (d *dummyConfigurator) Configure(
 }
 
 func TestAllowListRun(t *testing.T) {
-	dummyModule := modules.Module{
-		Address:      dummyAddr,
-		Contract:     CreateAllowListPrecompile(dummyAddr),
-		Configurator: &dummyConfigurator{},
-		ConfigKey:    "dummy",
-	}
-	RunPrecompileWithAllowListTests(t, dummyModule, extstate.NewTestStateDB, nil)
+	dummyModule := registry.NewModule(
+		"dummy",
+		dummyAddr,
+		allowlist.CreateAllowListPrecompile(dummyAddr),
+		&dummyConfigurator{},
+	)
+	allowlist.RunPrecompileWithAllowListTests(t, dummyModule, testhelpers.NewTestStateDB, nil)
 }
 
 func BenchmarkAllowList(b *testing.B) {
-	dummyModule := modules.Module{
-		Address:      dummyAddr,
-		Contract:     CreateAllowListPrecompile(dummyAddr),
-		Configurator: &dummyConfigurator{},
-		ConfigKey:    "dummy",
-	}
-	BenchPrecompileWithAllowList(b, dummyModule, extstate.NewTestStateDB, nil)
+	dummyModule := registry.NewModule(
+		"dummy",
+		dummyAddr,
+		allowlist.CreateAllowListPrecompile(dummyAddr),
+		&dummyConfigurator{},
+	)
+	allowlist.BenchPrecompileWithAllowList(b, dummyModule, testhelpers.NewTestStateDB, nil)
 }

@@ -4,25 +4,18 @@
 package warp
 
 import (
-	"math"
 	"math/big"
 	"testing"
+	"github.com/luxfi/evm/core/extstate/testhelpers"
 	"github.com/luxfi/evm/iface"
-	agoUtils "github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/utils"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/evm/precompile/testutils"
 	"github.com/luxfi/evm/predicate"
 	"github.com/luxfi/evm/utils"
+	"github.com/luxfi/evm/utils/set"
 	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/core/vm"
-	"github.com/luxfi/evm/core/extstate"
+	agoUtils "github.com/luxfi/node/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,11 +70,11 @@ func TestGetBlockchainID(t *testing.T) {
 			},
 			SuppliedGas: GetBlockchainIDGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 	}
 
-	testutils.RunPrecompileTests(t, Module, extstate.NewTestStateDB, tests)
+	testutils.RunPrecompileTests(t, Module, testhelpers.NewTestStateDB, tests)
 }
 
 func TestSendWarpMessage(t *testing.T) {
@@ -111,21 +104,21 @@ func TestSendWarpMessage(t *testing.T) {
 			InputFn:     func(t testing.TB) []byte { return sendWarpMessageInput },
 			SuppliedGas: SendWarpMessageGasCost + uint64(len(sendWarpMessageInput[4:])*int(SendWarpMessageGasCostPerByte)),
 			ReadOnly:    true,
-			ExpectedErr: vm.ErrWriteProtection.Error(),
+			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"send warp message insufficient gas for first step": {
 			Caller:      callerAddr,
 			InputFn:     func(t testing.TB) []byte { return sendWarpMessageInput },
 			SuppliedGas: SendWarpMessageGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"send warp message insufficient gas for payload bytes": {
 			Caller:      callerAddr,
 			InputFn:     func(t testing.TB) []byte { return sendWarpMessageInput },
 			SuppliedGas: SendWarpMessageGasCost + uint64(len(sendWarpMessageInput[4:])*int(SendWarpMessageGasCostPerByte)) - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"send warp message invalid input": {
 			Caller: callerAddr,
@@ -171,14 +164,14 @@ func TestSendWarpMessage(t *testing.T) {
 		},
 	}
 
-	testutils.RunPrecompileTests(t, Module, extstate.NewTestStateDB, tests)
+	testutils.RunPrecompileTests(t, Module, testhelpers.NewTestStateDB, tests)
 }
 
 func TestGetVerifiedWarpMessage(t *testing.T) {
 	networkID := uint32(54321)
 	callerAddr := common.HexToAddress("0x0123")
 	sourceAddress := common.HexToAddress("0x456789")
-	sourceChainID := ids.GenerateTestID()
+	sourceChainID := GenerateTestID()
 	packagedPayloadBytes := []byte("mcsorley")
 	addressedPayload, err := iface.NewAddressedCall(
 		sourceAddress.Bytes(),
@@ -364,7 +357,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"get message out of gas": {
 			Caller:  callerAddr,
@@ -377,7 +370,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)) - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"get message invalid predicate packing": {
 			Caller:  callerAddr,
@@ -456,14 +449,14 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 		},
 	}
 
-	testutils.RunPrecompileTests(t, Module, extstate.NewTestStateDB, tests)
+	testutils.RunPrecompileTests(t, Module, testhelpers.NewTestStateDB, tests)
 }
 
 func TestGetVerifiedWarpBlockHash(t *testing.T) {
 	networkID := uint32(54321)
 	callerAddr := common.HexToAddress("0x0123")
-	sourceChainID := ids.GenerateTestID()
-	blockHash := ids.GenerateTestID()
+	sourceChainID := GenerateTestID()
+	blockHash := GenerateTestID()
 	blockHashPayload, err := iface.NewHash(blockHash)
 	require.NoError(t, err)
 	unsignedWarpMsg, err := iface.NewUnsignedMessage(networkID, sourceChainID, blockHashPayload.Bytes())
@@ -642,7 +635,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"get message out of gas": {
 			Caller:  callerAddr,
@@ -655,7 +648,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)) - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"get message invalid predicate packing": {
 			Caller:  callerAddr,
@@ -734,11 +727,11 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 		},
 	}
 
-	testutils.RunPrecompileTests(t, Module, extstate.NewTestStateDB, tests)
+	testutils.RunPrecompileTests(t, Module, testhelpers.NewTestStateDB, tests)
 }
 
 func TestPackEvents(t *testing.T) {
-	sourceChainID := ids.GenerateTestID()
+	sourceChainID := GenerateTestID()
 	sourceAddress := common.HexToAddress("0x0123")
 	payloadData := []byte("mcsorley")
 	networkID := uint32(54321)
@@ -758,7 +751,7 @@ func TestPackEvents(t *testing.T) {
 
 	_, data, err := PackSendWarpMessageEvent(
 		sourceAddress,
-		common.Hash(unsignedMsg.ID()),
+		common.Hash(unsignedWarpMessage.ID()),
 		unsignedWarpMessage.Bytes(),
 	)
 	require.NoError(t, err)

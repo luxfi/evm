@@ -31,7 +31,7 @@ import (
 	crand "crypto/rand"
 	"math/rand"
 	"testing"
-	"github.com/luxfi/evm/ethdb/memorydb"
+	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
@@ -244,7 +244,7 @@ func TestInsertAndMerge(t *testing.T) {
 
 func emptyLayer() *diskLayer {
 	return &diskLayer{
-		diskdb: memorydb.New(),
+		diskdb: rawdb.NewMemoryDatabase(),
 		cache:  utils.NewMeteredCache(500*1024, "", 0),
 	}
 }

@@ -182,7 +182,7 @@ func (api *FilterAPI) NewPendingTransactions(ctx context.Context, fullTx *bool) 
 				latest := api.sys.backend.CurrentHeader()
 				for _, tx := range txs {
 					if fullTx != nil && *fullTx {
-						rpcTx := ethapi.NewRPCTransaction(tx, latest, latest.BaseFee, chainConfig.ToEthChainConfig())
+						rpcTx := ethapi.NewRPCTransaction(tx, latest, latest.BaseFee, chainConfig)
 						notifier.Notify(rpcSub.ID, rpcTx)
 					} else {
 						notifier.Notify(rpcSub.ID, tx.Hash())
@@ -223,7 +223,7 @@ func (api *FilterAPI) NewAcceptedTransactions(ctx context.Context, fullTx *bool)
 				latest := api.sys.backend.LastAcceptedBlock().Header()
 				for _, tx := range txs {
 					if fullTx != nil && *fullTx {
-						rpcTx := ethapi.NewRPCTransaction(tx, latest, latest.BaseFee, chainConfig.ToEthChainConfig())
+						rpcTx := ethapi.NewRPCTransaction(tx, latest, latest.BaseFee, chainConfig)
 						notifier.Notify(rpcSub.ID, rpcTx)
 					} else {
 						notifier.Notify(rpcSub.ID, tx.Hash())
@@ -545,7 +545,7 @@ func (api *FilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 			if f.fullTx {
 				txs := make([]*ethapi.RPCTransaction, 0, len(f.txs))
 				for _, tx := range f.txs {
-					txs = append(txs, ethapi.NewRPCTransaction(tx, latest, baseFee, chainConfig.ToEthChainConfig()))
+					txs = append(txs, ethapi.NewRPCTransaction(tx, latest, baseFee, chainConfig))
 				}
 				f.txs = nil
 				return txs, nil

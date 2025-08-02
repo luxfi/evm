@@ -30,7 +30,6 @@ import (
 	"math/rand"
 	"testing"
 	"github.com/luxfi/evm/core/rawdb"
-	"github.com/luxfi/evm/ethdb/memorydb"
 	"github.com/luxfi/geth/common"
 )
 
@@ -38,11 +37,11 @@ import (
 // can be crrectly wiped without touching anything else.
 func TestWipe(t *testing.T) {
 	// Create a database with some random snapshot data
-	db := memorydb.New()
+	db := rawdb.NewMemoryDatabase()
 	for i := 0; i < 128; i++ {
 		rawdb.WriteAccountSnapshot(db, randomHash(), randomHash().Bytes())
 	}
-	customrawdb.WriteSnapshotBlockHash(db, randomHash())
+	WriteSnapshotBlockHash(db, randomHash())
 	rawdb.WriteSnapshotRoot(db, randomHash())
 
 	// Add some random non-snapshot data too to make wiping harder
@@ -69,7 +68,7 @@ func TestWipe(t *testing.T) {
 	if items := count(); items != 128 {
 		t.Fatalf("snapshot size mismatch: have %d, want %d", items, 128)
 	}
-	if hash := customrawdb.ReadSnapshotBlockHash(db); hash == (common.Hash{}) {
+	if hash := ReadSnapshotBlockHash(db); hash == (common.Hash{}) {
 		t.Errorf("snapshot block hash marker mismatch: have %#x, want <not-nil>", hash)
 	}
 	if hash := rawdb.ReadSnapshotRoot(db); hash == (common.Hash{}) {
@@ -93,7 +92,7 @@ func TestWipe(t *testing.T) {
 		t.Fatalf("misc item count mismatch: have %d, want %d", items, 1000)
 	}
 
-	if hash := customrawdb.ReadSnapshotBlockHash(db); hash != (common.Hash{}) {
+	if hash := ReadSnapshotBlockHash(db); hash != (common.Hash{}) {
 		t.Errorf("snapshot block hash marker remained after wipe: %#x", hash)
 	}
 	if hash := rawdb.ReadSnapshotRoot(db); hash != (common.Hash{}) {

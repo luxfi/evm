@@ -11,19 +11,83 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxfi/node/consensus/engine/core"
+	commonEng "github.com/luxfi/node/quasar/engine/core"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/utils"
-	"github.com/luxfi/node/consensus"
-	"github.com/luxfi/node/consensus/engine/enginetest"
+	"github.com/luxfi/evm/peer"
+	"github.com/luxfi/node/quasar"
+	"github.com/luxfi/node/quasar/consensus/engine/enginetest"
+	"github.com/luxfi/node/quasar/validators"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/proto/pb/sdk"
 	luxlog "github.com/luxfi/log"
 	"github.com/luxfi/node/utils/set"
+	agoUtils "github.com/luxfi/node/utils"
+	"github.com/luxfi/database/memdb"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 )
+
+// testAppSender is a test implementation of commonEng.AppSender
+type testAppSender struct {
+	SendAppRequestF            func(ctx context.Context, nodeIDs []ids.NodeID, requestID uint32, msg []byte) error
+	SendAppResponseF           func(ctx context.Context, nodeID ids.NodeID, requestID uint32, msg []byte) error
+	SendAppErrorF              func(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error
+	SendAppGossipF             func(ctx context.Context, msg []byte) error
+	SendCrossChainAppRequestF  func(ctx context.Context, chainID ids.ID, requestID uint32, msg []byte) error
+	SendCrossChainAppResponseF func(ctx context.Context, chainID ids.ID, requestID uint32, msg []byte) error
+	SendCrossChainAppErrorF    func(ctx context.Context, chainID ids.ID, requestID uint32, errorCode int32, errorMessage string) error
+}
+
+func (t *testAppSender) SendAppRequest(ctx context.Context, nodeIDs []ids.NodeID, requestID uint32, msg []byte) error {
+	if t.SendAppRequestF != nil {
+		return t.SendAppRequestF(ctx, nodeIDs, requestID, msg)
+	}
+	return nil
+}
+
+func (t *testAppSender) SendAppResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, msg []byte) error {
+	if t.SendAppResponseF != nil {
+		return t.SendAppResponseF(ctx, nodeID, requestID, msg)
+	}
+	return nil
+}
+
+func (t *testAppSender) SendAppError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
+	if t.SendAppErrorF != nil {
+		return t.SendAppErrorF(ctx, nodeID, requestID, errorCode, errorMessage)
+	}
+	return nil
+}
+
+func (t *testAppSender) SendAppGossip(ctx context.Context, msg []byte) error {
+	if t.SendAppGossipF != nil {
+		return t.SendAppGossipF(ctx, msg)
+	}
+	return nil
+}
+
+func (t *testAppSender) SendCrossChainAppRequest(ctx context.Context, chainID ids.ID, requestID uint32, msg []byte) error {
+	if t.SendCrossChainAppRequestF != nil {
+		return t.SendCrossChainAppRequestF(ctx, chainID, requestID, msg)
+	}
+	return nil
+}
+
+func (t *testAppSender) SendCrossChainAppResponse(ctx context.Context, chainID ids.ID, requestID uint32, msg []byte) error {
+	if t.SendCrossChainAppResponseF != nil {
+		return t.SendCrossChainAppResponseF(ctx, chainID, requestID, msg)
+	}
+	return nil
+}
+
+func (t *testAppSender) SendCrossChainAppError(ctx context.Context, chainID ids.ID, requestID uint32, errorCode int32, errorMessage string) error {
+	if t.SendCrossChainAppErrorF != nil {
+		return t.SendCrossChainAppErrorF(ctx, chainID, requestID, errorCode, errorMessage)
+	}
+	return nil
+}
 
 func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
@@ -39,18 +103,22 @@ func TestEthTxGossip(t *testing.T) {
 		p2pSender: responseSender,
 	}
 
+	db := memdb.New()
+	// Create a custom app sender that implements the simpler interface
+	appSender := &testAppSender{
+		SendAppGossipF: func(context.Context, []byte) error { return nil },
+	}
 	require.NoError(vm.Initialize(
 		ctx,
 		consensusCtx,
-		interfaces.New(),
+		db,
 		[]byte(genesisJSONLatest),
 		nil,
 		nil,
-		make(chan core.Message),
-		nil,
-		&enginetest.Sender{},
+		[]*commonEng.Fx{},
+		appSender,
 	))
-	require.NoError(vm.SetState(ctx, consensus.NormalOp))
+	require.NoError(vm.SetState(ctx, quasar.NormalOp))
 
 	defer func() {
 		require.NoError(vm.Shutdown(ctx))
@@ -61,9 +129,9 @@ func TestEthTxGossip(t *testing.T) {
 		SentAppRequest: make(chan []byte, 1),
 	}
 
-	network, err := interfaces.NewNetwork(luxlog.NewNoOpLogger(), peerSender, prometheus.NewRegistry(), "")
+	network, err := peer.NewNetwork(luxlog.NewNoOpLogger(), peerSender, prometheus.NewRegistry(), "")
 	require.NoError(err)
-	client := network.NewClient(interfaces.TxGossipHandlerID)
+	client := network.NewClient(peer.TxGossipHandlerID)
 
 	// we only accept gossip requests from validators
 	requestingNodeID := ids.GenerateTestNodeID()
@@ -71,8 +139,8 @@ func TestEthTxGossip(t *testing.T) {
 	validatorState.GetCurrentHeightF = func(context.Context) (uint64, error) {
 		return 0, nil
 	}
-	validatorState.GetValidatorSetF = func(context.Context, uint64, ids.ID) (map[ids.NodeID]*interfaces.GetValidatorOutput, error) {
-		return map[ids.NodeID]*interfaces.GetValidatorOutput{
+	validatorState.GetValidatorSetF = func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+		return map[ids.NodeID]*validators.GetValidatorOutput{
 			requestingNodeID: {
 				NodeID: requestingNodeID,
 				Weight: 1,
@@ -81,7 +149,7 @@ func TestEthTxGossip(t *testing.T) {
 	}
 
 	// Ask the VM for any new transactions. We should get nothing at first.
-	emptyBloomFilter, err := interfaces.NewBloomFilter(prometheus.NewRegistry(), "", txGossipBloomMinTargetElements, txGossipBloomTargetFalsePositiveRate, txGossipBloomResetFalsePositiveRate)
+	emptyBloomFilter, err := peer.NewBloomFilter(prometheus.NewRegistry(), "", txGossipBloomMinTargetElements, txGossipBloomTargetFalsePositiveRate, txGossipBloomResetFalsePositiveRate)
 	require.NoError(err)
 	emptyBloomFilterBytes, _ := emptyBloomFilter.Marshal()
 	request := &sdk.PullGossipRequest{
@@ -152,13 +220,13 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 	}
 
 	vm := &VM{
-		ethTxPullGossiper: interfaces.NoOpGossiper{},
+		ethTxPullGossiper: peer.NoOpGossiper{},
 	}
 
 	require.NoError(vm.Initialize(
 		ctx,
 		consensusCtx,
-		interfaces.New(),
+		memdb.New(),
 		[]byte(genesisJSONLatest),
 		nil,
 		nil,
@@ -166,7 +234,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		nil,
 		sender,
 	))
-	require.NoError(vm.SetState(ctx, consensus.NormalOp))
+	require.NoError(vm.SetState(ctx, quasar.NormalOp))
 
 	defer func() {
 		require.NoError(vm.Shutdown(ctx))
@@ -187,7 +255,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 
 	// we should get a message that has the protocol prefix and the gossip
 	// message
-	require.Equal(byte(interfaces.TxGossipHandlerID), sent[0])
+	require.Equal(byte(peer.TxGossipHandlerID), sent[0])
 	require.NoError(proto.Unmarshal(sent[1:], got))
 
 	marshaller := GossipEthTxMarshaller{}
@@ -205,13 +273,13 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 
 	sender := &enginetest.Sender{}
 	vm := &VM{
-		ethTxPullGossiper: interfaces.NoOpGossiper{},
+		ethTxPullGossiper: peer.NoOpGossiper{},
 	}
 
 	require.NoError(vm.Initialize(
 		ctx,
 		consensusCtx,
-		interfaces.New(),
+		memdb.New(),
 		[]byte(genesisJSONLatest),
 		nil,
 		nil,
@@ -219,7 +287,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 		nil,
 		sender,
 	))
-	require.NoError(vm.SetState(ctx, consensus.NormalOp))
+	require.NoError(vm.SetState(ctx, quasar.NormalOp))
 
 	defer func() {
 		require.NoError(vm.Shutdown(ctx))
@@ -245,7 +313,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 	inboundGossipBytes, err := proto.Marshal(inboundGossip)
 	require.NoError(err)
 
-	inboundGossipMsg := append(binary.AppendUvarint(nil, interfaces.TxGossipHandlerID), inboundGossipBytes...)
+	inboundGossipMsg := append(binary.AppendUvarint(nil, peer.TxGossipHandlerID), inboundGossipBytes...)
 	require.NoError(vm.AppGossip(ctx, ids.EmptyNodeID, inboundGossipMsg))
 
 	require.True(vm.txPool.Has(signedTx.Hash()))

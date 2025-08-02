@@ -36,6 +36,7 @@ import (
 	"github.com/luxfi/evm/trie/testutil"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
+	"github.com/luxfi/geth/metrics"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/exp/slices"
 )
@@ -419,7 +420,8 @@ func buildPartialTree(entries []*kv, t *testing.T) map[string]common.Hash {
 			noRight = true
 		}
 	}
-	options = options.WithSkipBoundary(noLeft, noRight, nil)
+	var nilGauge metrics.Gauge
+	options = options.WithSkipBoundary(noLeft, noRight, nilGauge)
 	options = options.WithWriter(func(path []byte, hash common.Hash, blob []byte) {
 		nodes[string(path)] = hash
 	})

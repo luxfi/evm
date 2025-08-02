@@ -31,7 +31,7 @@ func TestExtraPrefix(t *testing.T) {
 	}{
 		{
 			name:     "pre_subnet_evm",
-			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.NetworkUpgrades{}, // Empty upgrades for pre-EVM
 			header:   &types.Header{},
 			want:     nil,
 			wantErr:  nil,
@@ -39,7 +39,7 @@ func TestExtraPrefix(t *testing.T) {
 		{
 			name: "subnet_evm_first_block",
 			upgrades: extras.NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
+				GenesisTimestamp: utils.NewUint64(1),
 			},
 			parent: &types.Header{
 				Number: big.NewInt(1),
@@ -51,7 +51,7 @@ func TestExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_genesis_block",
-			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
@@ -60,7 +60,7 @@ func TestExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_invalid_fee_window",
-			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
 			},
@@ -69,7 +69,7 @@ func TestExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_invalid_timestamp",
-			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
 				Time:   1,
@@ -82,7 +82,7 @@ func TestExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_normal",
-			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestChainConfig.NetworkUpgrades,
 			parent: customtypes.WithHeaderExtra(
 				&types.Header{
 					Number:  big.NewInt(1),
@@ -132,13 +132,13 @@ func TestVerifyExtraPrefix(t *testing.T) {
 	}{
 		{
 			name:     "pre_subnet_evm",
-			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.NetworkUpgrades{}, // Empty upgrades for pre-EVM
 			header:   &types.Header{},
 			wantErr:  nil,
 		},
 		{
 			name:     "subnet_evm_invalid_parent_header",
-			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
 			},
@@ -147,7 +147,7 @@ func TestVerifyExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_invalid_header",
-			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
@@ -156,7 +156,7 @@ func TestVerifyExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_valid",
-			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
@@ -180,67 +180,55 @@ func TestVerifyExtraPrefix(t *testing.T) {
 func TestVerifyExtra(t *testing.T) {
 	tests := []struct {
 		name     string
-		rules    extras.LuxRules
+		rules    extras.GenesisRules
 		extra    []byte
 		expected error
 	}{
 		{
 			name:     "initial_valid",
-			rules:    extras.LuxRules{},
+			rules:    extras.GenesisRules{IsGenesis: false},
 			extra:    make([]byte, maximumExtraDataSize),
 			expected: nil,
 		},
 		{
 			name:     "initial_invalid",
-			rules:    extras.LuxRules{},
+			rules:    extras.GenesisRules{IsGenesis: false},
 			extra:    make([]byte, maximumExtraDataSize+1),
 			expected: errInvalidExtraLength,
 		},
 		{
 			name: "subnet_evm_valid",
-			rules: extras.LuxRules{
-				IsEVM: true,
-			},
+			rules: extras.GenesisRules{IsGenesis: true},
 			extra:    make([]byte, subnetevm.WindowSize),
 			expected: nil,
 		},
 		{
 			name: "subnet_evm_invalid_less",
-			rules: extras.LuxRules{
-				IsEVM: true,
-			},
+			rules: extras.GenesisRules{IsGenesis: true},
 			extra:    make([]byte, subnetevm.WindowSize-1),
 			expected: errInvalidExtraLength,
 		},
 		{
 			name: "subnet_evm_invalid_more",
-			rules: extras.LuxRules{
-				IsEVM: true,
-			},
+			rules: extras.GenesisRules{IsGenesis: true},
 			extra:    make([]byte, subnetevm.WindowSize+1),
 			expected: errInvalidExtraLength,
 		},
 		{
 			name: "durango_valid_min",
-			rules: extras.LuxRules{
-				IsDurango: true,
-			},
+			rules: extras.GenesisRules{IsGenesis: true},
 			extra:    make([]byte, subnetevm.WindowSize),
 			expected: nil,
 		},
 		{
 			name: "durango_valid_extra",
-			rules: extras.LuxRules{
-				IsDurango: true,
-			},
+			rules: extras.GenesisRules{IsGenesis: true},
 			extra:    make([]byte, subnetevm.WindowSize+1),
 			expected: nil,
 		},
 		{
 			name: "durango_invalid",
-			rules: extras.LuxRules{
-				IsDurango: true,
-			},
+			rules: extras.GenesisRules{IsGenesis: true},
 			extra:    make([]byte, subnetevm.WindowSize-1),
 			expected: errInvalidExtraLength,
 		},

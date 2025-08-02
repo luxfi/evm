@@ -9,9 +9,9 @@ import (
 
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/utils"
-	"github.com/luxfi/node/consensus"
-	"github.com/luxfi/node/consensus/engine/enginetest"
-	"github.com/luxfi/node/consensus/validators/validatorstest"
+	"github.com/luxfi/node/quasar"
+	"github.com/luxfi/node/quasar/consensus/engine/enginetest"
+	"github.com/luxfi/node/quasar/validators/validatorstest"
 	"github.com/luxfi/database"
 	"github.com/luxfi/ids"
 	"github.com/stretchr/testify/assert"
@@ -75,14 +75,14 @@ func TestValidatorState(t *testing.T) {
 	require.NoError(err, "error initializing GenesisVM")
 
 	// Test case 1: state should not be populated until bootstrapped
-	require.NoError(vm.SetState(context.Background(), consensus.Bootstrapping))
+	require.NoError(vm.SetState(context.Background(), quasar.Bootstrapping))
 	require.Equal(0, vm.validatorsManager.GetValidationIDs().Len())
 	_, _, err = vm.validatorsManager.CalculateUptime(testNodeIDs[0])
 	require.ErrorIs(database.ErrNotFound, err)
 	require.False(vm.validatorsManager.StartedTracking())
 
 	// Test case 2: state should be populated after bootstrapped
-	require.NoError(vm.SetState(context.Background(), consensus.NormalOp))
+	require.NoError(vm.SetState(context.Background(), quasar.NormalOp))
 	require.Len(vm.validatorsManager.GetValidationIDs(), 3)
 	_, _, err = vm.validatorsManager.CalculateUptime(testNodeIDs[0])
 	require.NoError(err)
@@ -141,8 +141,8 @@ func TestValidatorState(t *testing.T) {
 		},
 	}
 	// set VM as bootstrapped
-	require.NoError(vm.SetState(context.Background(), consensus.Bootstrapping))
-	require.NoError(vm.SetState(context.Background(), consensus.NormalOp))
+	require.NoError(vm.SetState(context.Background(), quasar.Bootstrapping))
+	require.NoError(vm.SetState(context.Background(), quasar.NormalOp))
 
 	vm.ctx.ValidatorState = testState
 

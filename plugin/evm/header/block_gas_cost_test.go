@@ -67,7 +67,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		{
 			name:       "before_subnet_evm",
 			parentTime: 10,
-			upgrades:   extras.TestPreEVMChainConfig.NetworkUpgrades,
+			upgrades:   extras.NetworkUpgrades{}, // Empty upgrades for pre-EVM
 			parentCost: maxBlockGasCostBig,
 			timestamp:  10 + targetBlockRate + 1,
 			expected:   nil,
@@ -301,7 +301,7 @@ func TestEstimateRequiredTip(t *testing.T) {
 
 			config := &extras.ChainConfig{
 				NetworkUpgrades: extras.NetworkUpgrades{
-					EVMTimestamp: test.evmTimestamp,
+					GenesisTimestamp: test.evmTimestamp,
 				},
 			}
 			requiredTip, err := EstimateRequiredTip(config, test.header)

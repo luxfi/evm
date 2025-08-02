@@ -33,7 +33,7 @@ import (
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"
-	ethparams "github.com/luxfi/evm/ethparams"
+	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/geth/trie"
 )
 
@@ -69,7 +69,10 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	// Header validity is known at this point. Here we verify that uncle and transactions
 	// given in the block body match the header.
 	header := block.Header()
-	if err := v.engine.VerifyUncles(v.bc, block); err != nil {
+	// Create adapters for the consensus engine
+	chainReader := NewChainReaderAdapter(v.bc)
+	ethBlock := types.ConvertBlockFromEVM(block)
+	if err := v.engine.VerifyUncles(chainReader, ethBlock); err != nil {
 		return err
 	}
 	if hash := types.CalcUncleHash(block.Uncles()); hash != header.UncleHash {

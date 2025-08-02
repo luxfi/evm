@@ -4,27 +4,28 @@
 package iface
 
 import (
+	"github.com/luxfi/evm/precompile"
 	"github.com/luxfi/geth/common"
 )
 
 // Global registry instance that will be set by the application
 var (
-	precompileRegistry PrecompileRegistry
+	precompileRegistry precompile.PrecompileRegistry
 )
 
 // SetPrecompileRegistry sets the global precompile registry
 // This should be called during application initialization
-func SetPrecompileRegistry(registry PrecompileRegistry) {
+func SetPrecompileRegistry(registry precompile.PrecompileRegistry) {
 	precompileRegistry = registry
 }
 
 // GetPrecompileRegistry returns the global precompile registry
-func GetPrecompileRegistry() PrecompileRegistry {
+func GetPrecompileRegistry() precompile.PrecompileRegistry {
 	return precompileRegistry
 }
 
 // GetPrecompileModule is a convenience function that uses the global registry
-func GetPrecompileModule(key string) (PrecompileModule, bool) {
+func GetPrecompileModule(key string) (precompile.PrecompileModule, bool) {
 	if precompileRegistry == nil {
 		return nil, false
 	}
@@ -32,7 +33,7 @@ func GetPrecompileModule(key string) (PrecompileModule, bool) {
 }
 
 // GetPrecompileModuleByAddress is a convenience function that uses the global registry
-func GetPrecompileModuleByAddress(address common.Address) (PrecompileModule, bool) {
+func GetPrecompileModuleByAddress(address common.Address) (precompile.PrecompileModule, bool) {
 	if precompileRegistry == nil {
 		return nil, false
 	}

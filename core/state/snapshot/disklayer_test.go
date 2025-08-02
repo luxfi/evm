@@ -30,7 +30,6 @@ import (
 	"bytes"
 	"testing"
 	"github.com/luxfi/evm/core/rawdb"
-	"github.com/luxfi/evm/ethdb/memorydb"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/rlp"
 )
@@ -49,7 +48,7 @@ func reverse(blob []byte) []byte {
 // and invalidates any previously written and cached values.
 func TestDiskMerge(t *testing.T) {
 	// Create some accounts in the disk layer
-	db := memorydb.New()
+	db := rawdb.NewMemoryDatabase()
 
 	var (
 		accNoModNoCache     = common.Hash{0x1}
@@ -105,7 +104,7 @@ func TestDiskMerge(t *testing.T) {
 	rawdb.WriteAccountSnapshot(db, conNukeCache, conNukeCache[:])
 	rawdb.WriteStorageSnapshot(db, conNukeCache, conNukeCacheSlot, conNukeCacheSlot[:])
 
-	customrawdb.WriteSnapshotBlockHash(db, baseBlockHash)
+	WriteSnapshotBlockHash(db, baseBlockHash)
 	rawdb.WriteSnapshotRoot(db, baseRoot)
 
 	// Create a disk layer based on the above and cache in some data
@@ -223,7 +222,7 @@ func TestDiskPartialMerge(t *testing.T) {
 	// for the data slots as well as the progress marker.
 	for i := 0; i < 1024; i++ {
 		// Create some accounts in the disk layer
-		db := memorydb.New()
+		db := rawdb.NewMemoryDatabase()
 
 		var (
 			accNoModNoCache     = randomHash()
@@ -296,7 +295,7 @@ func TestDiskPartialMerge(t *testing.T) {
 		insertAccount(conNukeCache, conNukeCache[:])
 		insertStorage(conNukeCache, conNukeCacheSlot, conNukeCacheSlot[:])
 
-		customrawdb.WriteSnapshotBlockHash(db, baseBlockHash)
+		WriteSnapshotBlockHash(db, baseBlockHash)
 		rawdb.WriteSnapshotRoot(db, baseRoot)
 
 		// Create a disk layer based on the above using a random progress marker
@@ -451,7 +450,7 @@ func TestDiskGeneratorPersistence(t *testing.T) {
 	rawdb.WriteAccountSnapshot(db, accOne, accOne[:])
 	rawdb.WriteStorageSnapshot(db, accOne, accOneSlotOne, accOneSlotOne[:])
 	rawdb.WriteStorageSnapshot(db, accOne, accOneSlotTwo, accOneSlotTwo[:])
-	customrawdb.WriteSnapshotBlockHash(db, baseBlockHash)
+	WriteSnapshotBlockHash(db, baseBlockHash)
 	rawdb.WriteSnapshotRoot(db, baseRoot)
 
 	// Create a disk layer based on all above updates
@@ -526,7 +525,7 @@ func TestDiskSeek(t *testing.T) {
 
 	baseRoot := randomHash()
 	baseBlockHash := randomHash()
-	customrawdb.WriteSnapshotBlockHash(db, baseBlockHash)
+	WriteSnapshotBlockHash(db, baseBlockHash)
 	rawdb.WriteSnapshotRoot(db, baseRoot)
 
 	snaps := NewTestTree(db, baseBlockHash, baseRoot)
@@ -549,7 +548,8 @@ func TestDiskSeek(t *testing.T) {
 		}
 		count := 0
 		for it.Next() {
-			k, v, err := it.Hash()[0], it.Account()[0], it.Error()
+			hash, acc := it.Account()
+			k, v, err := hash[0], acc[0], it.Error()
 			if err != nil {
 				t.Fatalf("test %d, item %d, error: %v", i, count, err)
 			}

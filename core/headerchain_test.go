@@ -74,7 +74,7 @@ func TestHeaderInsertion(t *testing.T) {
 	var (
 		db    = rawdb.NewMemoryDatabase()
 		gspec = &Genesis{
-			BaseFee: big.NewInt(legacy.BaseFee),
+			BaseFee: big.NewInt(params.TestInitialBaseFee),
 			Config:  params.TestChainConfig,
 		}
 	)

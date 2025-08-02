@@ -207,7 +207,7 @@ func (b *BlockGen) Gas() uint64 {
 
 // Signer returns a valid signer instance for the current block.
 func (b *BlockGen) Signer() types.Signer {
-	return types.MakeSigner(b.cm.config.ToEthChainConfig(), b.header.Number, b.header.Time)
+	return types.MakeSigner(b.cm.config, b.header.Number, b.header.Time)
 }
 
 // AddUncheckedReceipt forcefully adds a receipts to the block without a
@@ -254,7 +254,10 @@ func (b *BlockGen) OffsetTime(seconds int64) {
 	if b.header.Time <= b.cm.bottom.Header().Time {
 		panic("block time out of range")
 	}
-	b.header.Difficulty = b.engine.CalcDifficulty(b.cm, b.header.Time, b.parent.Header())
+	// Create adapter for the consensus engine
+	chainAdapter := &chainMakerAdapter{cm: b.cm}
+	parentHeader := types.ConvertHeaderFromEVM(b.parent.Header())
+	b.header.Difficulty = b.engine.CalcDifficulty(chainAdapter, b.header.Time, parentHeader)
 }
 
 // SetOnBlockGenerated sets a callback function to be invoked after each block is generated
@@ -298,10 +301,27 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			gen(i, b)
 		}
 		// Finalize and seal the block
-		block, err := b.engine.FinalizeAndAssemble(cm, b.header, statedb, b.txs, b.uncles, b.receipts)
+		// Convert types for the consensus engine
+		chainAdapter := &chainMakerAdapter{cm: cm}
+		headerAdapter := types.ConvertHeaderFromEVM(b.header)
+		var txAdapters []*iface.Transaction
+		for _, tx := range b.txs {
+			txAdapters = append(txAdapters, types.ConvertTransactionFromEVM(tx))
+		}
+		var uncleAdapters []*iface.Header
+		for _, uncle := range b.uncles {
+			uncleAdapters = append(uncleAdapters, types.ConvertHeaderFromEVM(uncle))
+		}
+		var receiptAdapters []*iface.Receipt
+		for _, receipt := range b.receipts {
+			receiptAdapters = append(receiptAdapters, types.ConvertReceiptFromEVM(receipt))
+		}
+		blockIface, err := b.engine.FinalizeAndAssemble(chainAdapter, headerAdapter, statedb, txAdapters, uncleAdapters, receiptAdapters)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Failed to finalize and assemble block at index %d: %w", i, err)
 		}
+		// Convert back to EVM block
+		block := types.ConvertBlockToEVM(blockIface)
 
 		// Write state changes to db
 		root, err := statedb.Commit(b.header.Number.Uint64(), config.IsEIP158(b.header.Number), false)
@@ -347,7 +367,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		if block.ExcessBlobGas() != nil {
 			blobGasPrice = eip4844.CalcBlobFee(*block.ExcessBlobGas())
 		}
-		if err := receipts.DeriveFields(config.ToEthChainConfig(), block.Hash(), block.NumberU64(), block.Time(), block.BaseFee(), blobGasPrice, txs); err != nil {
+		if err := receipts.DeriveFields(config, block.Hash(), block.NumberU64(), block.Time(), block.BaseFee(), blobGasPrice, txs); err != nil {
 			panic(err)
 		}
 
@@ -398,7 +418,7 @@ func (cm *chainMaker) makeHeader(parent *types.Block, gap uint64, state *state.S
 		Root:       state.IntermediateRoot(cm.config.IsEIP158(parent.Number())),
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
-		Difficulty: engine.CalcDifficulty(cm, time, parent.Header()),
+		Difficulty: engine.CalcDifficulty(&chainMakerAdapter{cm: cm}, time, types.ConvertHeaderFromEVM(parent.Header())),
 		GasLimit:   gasLimit,
 		Number:     new(big.Int).Add(parent.Number(), common.Big1),
 		Time:       time,
@@ -523,6 +543,43 @@ func (cm *chainMaker) GetCoinbaseAtHeader(parent *types.Header) (common.Address,
 
 // convertToEthChainConfig converts a Lux ChainConfig to ethereum ChainConfig
 // convertToEthChainConfig converts a Lux ChainConfig to an ethereum ChainConfig.
+// chainMakerAdapter adapts chainMaker to iface.ChainHeaderReader
+type chainMakerAdapter struct {
+	cm *chainMaker
+}
+
+func (a *chainMakerAdapter) Config() iface.ChainConfig {
+	return a.cm.config
+}
+
+func (a *chainMakerAdapter) CurrentHeader() *iface.Header {
+	return types.ConvertHeaderFromEVM(a.cm.CurrentHeader())
+}
+
+func (a *chainMakerAdapter) GetHeader(hash common.Hash, number uint64) *iface.Header {
+	return types.ConvertHeaderFromEVM(a.cm.GetHeader(hash, number))
+}
+
+func (a *chainMakerAdapter) GetHeaderByNumber(number uint64) *iface.Header {
+	return types.ConvertHeaderFromEVM(a.cm.GetHeaderByNumber(number))
+}
+
+func (a *chainMakerAdapter) GetHeaderByHash(hash common.Hash) *iface.Header {
+	return types.ConvertHeaderFromEVM(a.cm.GetHeaderByHash(hash))
+}
+
+func (a *chainMakerAdapter) GetTd(hash common.Hash, number uint64) *big.Int {
+	return a.cm.GetTd(hash, number)
+}
+
+func (a *chainMakerAdapter) GetCoinbaseAt(timestamp uint64) common.Address {
+	return a.cm.GetCoinbaseAt(timestamp)
+}
+
+func (a *chainMakerAdapter) GetFeeConfigAt(timestamp uint64) (iface.FeeConfig, error) {
+	return a.cm.GetFeeConfigAt(timestamp)
+}
+
 func convertToEthChainConfig(config *params.ChainConfig) *ethparams.ChainConfig {
 	return config.ChainConfig
 }

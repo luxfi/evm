@@ -39,8 +39,7 @@ func main() {
 	// Set up logging
 	logLevel := v.GetString(config.LogLevelKey)
 	// Set up logging using the geth log package
-	handler := log.NewTerminalHandler(os.Stderr, true)
-	log.SetDefault(log.NewLogger(handler))
+	log.SetDefault(log.NewLogger("simulator"))
 	// TODO: Apply log level from config
 	_ = logLevel
 

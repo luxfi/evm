@@ -37,7 +37,7 @@ import (
 
 	bloomfilter "github.com/holiman/bloomfilter/v2"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/rlp"
 	"slices"
 )

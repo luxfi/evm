@@ -5,11 +5,10 @@ package iface
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/ids"
 )
 
 // Size constants
@@ -19,16 +18,11 @@ const (
 	GiB = 1024 * MiB // 1 gibibyte
 )
 
-// ID represents a generic identifier
-type ID [32]byte
+// ID is an alias to ids.ID
+type ID = ids.ID
 
-// String returns the string representation of an ID
-func (id ID) String() string {
-	return fmt.Sprintf("%x", id[:])
-}
-
-// BlockID represents a block identifier
-type BlockID = ID
+// BlockID is an alias to ids.BlockID
+type BlockID = ids.BlockID
 
 // Status represents the status of a block
 type Status int
@@ -68,7 +62,7 @@ type CallMsg struct {
 	BlobGasFeeCap *big.Int       // EIP-4844 blob gas fee cap
 	BlobHashes  []common.Hash    // EIP-4844 blob hashes
 
-	AccessList types.AccessList // EIP-2930 access list.
+	AccessList AccessList // EIP-2930 access list.
 }
 
 // FilterQuery contains options for contract log filtering.
@@ -100,16 +94,16 @@ type FilterQuery struct {
 //
 // The returned error is NotFound if the requested item does not exist.
 type EVMChainReader interface {
-	BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error)
-	BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error)
-	HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error)
-	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
+	BlockByHash(ctx context.Context, hash common.Hash) (*ETHBlock, error)
+	BlockByNumber(ctx context.Context, number *big.Int) (*ETHBlock, error)
+	HeaderByHash(ctx context.Context, hash common.Hash) (*Header, error)
+	HeaderByNumber(ctx context.Context, number *big.Int) (*Header, error)
 	TransactionCount(ctx context.Context, blockHash common.Hash) (uint, error)
-	TransactionInBlock(ctx context.Context, blockHash common.Hash, index uint) (*types.Transaction, error)
+	TransactionInBlock(ctx context.Context, blockHash common.Hash, index uint) (*Transaction, error)
 
 	// This method subscribes to notifications about changes of the head block of
 	// the canonical chain.
-	SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (Subscription, error)
+	SubscribeNewHead(ctx context.Context, ch chan<- *Header) (Subscription, error)
 }
 
 // TransactionReader provides access to past transactions and their receipts.
@@ -126,11 +120,11 @@ type TransactionReader interface {
 	// blockchain. The isPending return value indicates whether the transaction has been
 	// mined yet. Note that the transaction may not be part of the canonical chain even if
 	// it's not pending.
-	TransactionByHash(ctx context.Context, txHash common.Hash) (tx *types.Transaction, isPending bool, err error)
+	TransactionByHash(ctx context.Context, txHash common.Hash) (tx *Transaction, isPending bool, err error)
 	// TransactionReceipt returns the receipt of a mined transaction. Note that the
 	// transaction may not be included in the current canonical chain even if a receipt
 	// exists.
-	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
+	TransactionReceipt(ctx context.Context, txHash common.Hash) (*Receipt, error)
 }
 
 // ChainStateReader wraps access to the state trie of the canonical blockchain. Note that
@@ -168,8 +162,8 @@ type ContractCaller interface {
 //
 // TODO(karalabe): Deprecate when the subscription one can return past data too.
 type LogFilterer interface {
-	FilterLogs(ctx context.Context, q FilterQuery) ([]types.Log, error)
-	SubscribeFilterLogs(ctx context.Context, q FilterQuery, ch chan<- types.Log) (Subscription, error)
+	FilterLogs(ctx context.Context, q FilterQuery) ([]Log, error)
+	SubscribeFilterLogs(ctx context.Context, q FilterQuery, ch chan<- Log) (Subscription, error)
 }
 
 // TransactionSender wraps transaction sending. The SendTransaction method injects a
@@ -179,7 +173,7 @@ type LogFilterer interface {
 //
 // The transaction must be signed and have a valid nonce.
 type TransactionSender interface {
-	SendTransaction(ctx context.Context, tx *types.Transaction) error
+	SendTransaction(ctx context.Context, tx *Transaction) error
 }
 
 // GasPricer wraps the gas price oracle, which monitors the blockchain to determine the
@@ -240,7 +234,7 @@ type GasEstimator interface {
 // A PendingStateEventer provides access to real time notifications about changes to the
 // pending state.
 type PendingStateEventer interface {
-	SubscribePendingTransactions(ctx context.Context, ch chan<- *types.Transaction) (Subscription, error)
+	SubscribePendingTransactions(ctx context.Context, ch chan<- *Transaction) (Subscription, error)
 }
 
 // Subscription represents an event subscription where events are

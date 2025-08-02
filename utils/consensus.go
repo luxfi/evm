@@ -7,16 +7,17 @@ import (
 	"context"
 	"errors"
 
+	"github.com/luxfi/crypto/bls"
 	"github.com/luxfi/ids"
 	luxlog "github.com/luxfi/log"
+	"github.com/luxfi/metrics"
 	"github.com/luxfi/node/utils/constants"
 	"github.com/luxfi/node/vms/platformvm/warp"
-	"github.com/luxfi/node/consensus"
-	"github.com/luxfi/node/api/metrics"
-	"github.com/luxfi/node/consensus/validators"
+	"github.com/luxfi/node/quasar"
+	"github.com/luxfi/node/quasar/validators"
 	"github.com/luxfi/node/upgrade"
 	"github.com/luxfi/evm/localsigner"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/commontype"
 )
 
 var (
@@ -25,7 +26,46 @@ var (
 	testXChainID = ids.ID{2, 3, 4, 5, 6}
 )
 
-func TestConsensusContext() *consensus.Context {
+// warpSignerAdapter adapts warp.Signer to quasar.WarpSigner
+type warpSignerAdapter struct {
+	signer warp.Signer
+}
+
+// Sign implements the WarpSigner interface
+func (w *warpSignerAdapter) Sign(msg *quasar.WarpMessage) (*quasar.WarpSignature, error) {
+	// For testing, we'll create a simple implementation
+	// In production, this would need proper conversion between message types
+	unsignedMsg := &warp.UnsignedMessage{
+		// Convert fields from msg
+	}
+	_, err := w.signer.Sign(unsignedMsg)
+	if err != nil {
+		return nil, err
+	}
+	// Convert the signature to quasar.WarpSignature
+	return &quasar.WarpSignature{
+		// Signature fields would be populated from sig
+	}, nil
+}
+
+// noopRegistry is a no-op implementation of metrics.Registry for testing
+type noopRegistry struct{}
+
+func (n *noopRegistry) Register(c metrics.Collector) error {
+	return nil
+}
+
+func (n *noopRegistry) MustRegister(c metrics.Collector) {}
+
+func (n *noopRegistry) Unregister(c metrics.Collector) bool {
+	return true
+}
+
+func (n *noopRegistry) Gather() ([]*metrics.MetricFamily, error) {
+	return nil, nil
+}
+
+func TestConsensusContext() *quasar.Context {
 	signer, err := localsigner.New()
 	if err != nil {
 		panic(err)
@@ -34,19 +74,19 @@ func TestConsensusContext() *consensus.Context {
 	networkID := constants.UnitTestID
 	chainID := testChainID
 
-	ctx := &consensus.Context{
+	ctx := &quasar.Context{
 		NetworkID:       networkID,
 		SubnetID:        ids.Empty,
 		ChainID:         chainID,
 		NodeID:          ids.GenerateTestNodeID(),
 		XChainID:        testXChainID,
 		CChainID:        testCChainID,
-		NetworkUpgrades: upgrade.Default,
-		PublicKey:       pk,
-		WarpSigner:      warp.NewSigner(signer, networkID, chainID),
+		NetworkUpgrades: &upgrade.Default,
+		PublicKey:       bls.PublicKeyToUncompressedBytes(pk),
+		WarpSigner:      &warpSignerAdapter{signer: warp.NewSigner(signer, networkID, chainID)},
 		Log:             luxlog.NewNoOpLogger(),
 		BCLookup:        ids.NewAliaser(),
-		Metrics:         metrics.NewPrefixGatherer(),
+		Metrics:         &noopRegistry{},
 		ChainDataDir:    "",
 		ValidatorState:  NewTestValidatorState(),
 	}
@@ -60,16 +100,16 @@ func TestConsensusContext() *consensus.Context {
 	return ctx
 }
 
-// ConvertToChainContext converts a consensus.Context to iface.ChainContext
-func ConvertToChainContext(ctx *consensus.Context) *iface.ChainContext {
+// ConvertToChainContext converts a quasar.Context to commontype.ChainContext
+func ConvertToChainContext(ctx *quasar.Context) *commontype.ChainContext {
 	// Convert 20-byte NodeID to 32-byte NodeID by padding with zeros
-	var nodeID iface.NodeID
+	var nodeID commontype.NodeID
 	copy(nodeID[:], ctx.NodeID[:])
 	
-	return &iface.ChainContext{
+	return &commontype.ChainContext{
 		NetworkID:    ctx.NetworkID,
-		SubnetID:     iface.SubnetID(ctx.SubnetID),
-		ChainID:      iface.ChainID(ctx.ChainID),
+		SubnetID:     commontype.SubnetID(ctx.SubnetID),
+		ChainID:      commontype.ChainID(ctx.ChainID),
 		NodeID:       nodeID,
 		AppVersion:   uint32(0), // Default for testing
 		ChainDataDir: ctx.ChainDataDir,
@@ -77,7 +117,7 @@ func ConvertToChainContext(ctx *consensus.Context) *iface.ChainContext {
 }
 
 // TestChainContext returns a test ChainContext
-func TestChainContext() *iface.ChainContext {
+func TestChainContext() *commontype.ChainContext {
 	return ConvertToChainContext(TestConsensusContext())
 }
 
@@ -100,7 +140,7 @@ func NewTestValidatorState() *TestValidatorState {
 		},
 		GetSubnetIDF: func(_ context.Context, chainID ids.ID) (ids.ID, error) {
 			subnetID, ok := map[ids.ID]ids.ID{
-				constants.PlatformChainID: constants.PrimaryNetworkID,
+				constants.QuantumChainID: constants.PrimaryNetworkID,
 				testXChainID:              constants.PrimaryNetworkID,
 				testCChainID:              constants.PrimaryNetworkID,
 			}[chainID]

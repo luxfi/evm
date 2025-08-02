@@ -31,7 +31,7 @@ import (
 	"math/big"
 
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/log"

@@ -33,19 +33,19 @@ func TestWindow_Add(t *testing.T) {
 			window: Window{
 				1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 			},
-			amount: math.MaxUint64,
+			amount: ^uint64(0),
 			expected: Window{
-				1, 2, 3, 4, 5, 6, 7, 8, 9, math.MaxUint64,
+				1, 2, 3, 4, 5, 6, 7, 8, 9, ^uint64(0),
 			},
 		},
 		{
 			name: "window_overflow",
 			window: Window{
-				1, 2, 3, 4, 5, 6, 7, 8, 9, math.MaxUint64,
+				1, 2, 3, 4, 5, 6, 7, 8, 9, ^uint64(0),
 			},
 			amount: 5,
 			expected: Window{
-				1, 2, 3, 4, 5, 6, 7, 8, 9, math.MaxUint64,
+				1, 2, 3, 4, 5, 6, 7, 8, 9, ^uint64(0),
 			},
 		},
 	}
@@ -162,9 +162,9 @@ func TestWindow_Sum(t *testing.T) {
 		{
 			name: "overflow",
 			window: Window{
-				math.MaxUint64, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+				^uint64(0), 2, 3, 4, 5, 6, 7, 8, 9, 10,
 			},
-			expected: math.MaxUint64,
+			expected: ^uint64(0),
 		},
 	}
 	for _, test := range tests {

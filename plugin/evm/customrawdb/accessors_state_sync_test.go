@@ -6,7 +6,7 @@ package customrawdb
 import (
 	"testing"
 
-	ethrawdb "github.com/luxfi/evm/iface/core/rawdb"
+	ethrawdb "github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/require"
 )

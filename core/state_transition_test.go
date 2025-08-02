@@ -40,14 +40,14 @@ import (
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/upgrade/ap0"
 	"github.com/luxfi/evm/upgrade/ap1"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	gethparams "github.com/luxfi/geth/params"
+	"github.com/luxfi/geth/common"
+	"github.com/luxfi/geth/crypto"
+	ethparams "github.com/luxfi/geth/params"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	signer     = types.LatestSigner(params.TestChainConfig.AsGeth().(*gethparams.ChainConfig))
+	signer     = types.LatestSigner(params.TestChainConfig)
 	testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	testAddr   = crypto.PubkeyToAddress(testKey.PublicKey)
 )
@@ -102,7 +102,7 @@ func executeStateTransitionTest(t *testing.T, st stateTransitionTest) {
 		gspec = &Genesis{
 			Config: st.config,
 			Alloc: types.GenesisAlloc{
-				common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): types.Account{
+				common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): types.GenesisAccount{
 					Balance: big.NewInt(2000000000000000000), // 2 ether
 					Nonce:   0,
 				},
@@ -115,7 +115,7 @@ func executeStateTransitionTest(t *testing.T, st stateTransitionTest) {
 	)
 	defer blockchain.Stop()
 
-	statedb, err := state.New(genesis.Root(), blockchain.stateCache, blockchain.snaps)
+	statedb, err := state.New(genesis.Root(), blockchain.stateCache, nil)
 	require.NoError(err)
 
 	block := GenerateBadBlock(genesis, engine, st.txs, blockchain.chainConfig)
@@ -146,38 +146,8 @@ func TestNativeAssetContractCall(t *testing.T) {
 	}
 
 	tests := map[string]stateTransitionTest{
-		"phase5": {
-			config:  params.TestApricotPhase5Config,
-			txs:     txs,
-			gasUsed: []uint64{132091, 41618},
-			want:    "",
-		},
-		"prePhase6": {
-			config:  params.TestApricotPhasePre6Config,
-			txs:     txs,
-			gasUsed: []uint64{132091, 21618},
-			want:    "",
-		},
-		"phase6": {
-			config:  params.TestApricotPhase6Config,
-			txs:     txs,
-			gasUsed: []uint64{132091, 41618},
-			want:    "",
-		},
-		"banff": {
-			config:  params.TestBanffChainConfig,
-			txs:     txs,
-			gasUsed: []uint64{132091, 21618},
-			want:    "",
-		},
-		"durango": {
-			config:  params.TestDurangoChainConfig,
-			txs:     txs,
-			gasUsed: []uint64{132117, 21618},
-			want:    "",
-		},
-		"etna": {
-			config:  params.TestEtnaChainConfig,
+		"default": {
+			config:  params.TestChainConfig,
 			txs:     txs,
 			gasUsed: []uint64{132117, 21618},
 			want:    "",
@@ -202,38 +172,8 @@ func TestNativeAssetContractConstructor(t *testing.T) {
 	}
 
 	tests := map[string]stateTransitionTest{
-		"phase5": {
-			config:  params.TestApricotPhase5Config,
-			txs:     txs,
-			gasUsed: []uint64{120727},
-			want:    "",
-		},
-		"prePhase6": {
-			config:  params.TestApricotPhasePre6Config,
-			txs:     txs,
-			gasUsed: []uint64{100727},
-			want:    "",
-		},
-		"phase6": {
-			config:  params.TestApricotPhase6Config,
-			txs:     txs,
-			gasUsed: []uint64{120727},
-			want:    "",
-		},
-		"banff": {
-			config:  params.TestBanffChainConfig,
-			txs:     txs,
-			gasUsed: []uint64{100727},
-			want:    "",
-		},
-		"durango": {
-			config:  params.TestDurangoChainConfig,
-			txs:     txs,
-			gasUsed: []uint64{100775},
-			want:    "",
-		},
-		"etna": {
-			config:  params.TestEtnaChainConfig,
+		"default": {
+			config:  params.TestChainConfig,
 			txs:     txs,
 			gasUsed: []uint64{100775},
 			want:    "",
@@ -260,12 +200,14 @@ func TestFailingNativeAssetContractCall(t *testing.T) {
 	
 	// Config without native asset precompile
 	configWithoutNativeAsset := &params.ChainConfig{
-		ChainID:        big.NewInt(43114),
-		HomesteadBlock: big.NewInt(0),
-		ByzantiumBlock: big.NewInt(0),
-		IstanbulBlock:  big.NewInt(0),
-		LondonBlock:    big.NewInt(0),
-		CancunTime:     nil,
+		ChainConfig: &ethparams.ChainConfig{
+			ChainID:        big.NewInt(43114),
+			HomesteadBlock: big.NewInt(0),
+			ByzantiumBlock: big.NewInt(0),
+			IstanbulBlock:  big.NewInt(0),
+			LondonBlock:    big.NewInt(0),
+			CancunTime:     nil,
+		},
 	}
 
 	txs := []*types.Transaction{
@@ -289,12 +231,12 @@ func TestStateTransitionErrors(t *testing.T) {
 		gspec = &Genesis{
 			Config: params.TestChainConfig,
 			Alloc: types.GenesisAlloc{
-				testAddr: types.Account{
+				testAddr: types.GenesisAccount{
 					Balance: big.NewInt(1000000000000000000), // 1 ether
 					Nonce:   0,
 				},
 			},
-			GasLimit: params.GenesisGasLimit,
+			GasLimit: params.GetExtra(params.TestChainConfig).FeeConfig.GasLimit.Uint64(),
 		}
 		genesis       = gspec.ToBlock()
 		engine        = dummy.NewFaker()
@@ -302,7 +244,7 @@ func TestStateTransitionErrors(t *testing.T) {
 	)
 	defer blockchain.Stop()
 
-	statedb, err := state.New(genesis.Root(), blockchain.stateCache, blockchain.snaps)
+	statedb, err := state.New(genesis.Root(), blockchain.stateCache, nil)
 	require.NoError(t, err)
 
 	// Test insufficient balance error
@@ -359,14 +301,14 @@ func TestTransactionGasMetering(t *testing.T) {
 			var (
 				db    = rawdb.NewMemoryDatabase()
 				gspec = &Genesis{
-					Config: params.TestApricotPhase5Config,
+					Config: params.TestChainConfig,
 					Alloc: types.GenesisAlloc{
-						testAddr: types.Account{
+						testAddr: types.GenesisAccount{
 							Balance: big.NewInt(10000000000000000), // 0.01 ether
 							Nonce:   0,
 						},
 					},
-					GasLimit: params.GenesisGasLimit,
+					GasLimit: params.GetExtra(params.TestChainConfig).FeeConfig.GasLimit.Uint64(),
 				}
 				genesis       = gspec.ToBlock()
 				engine        = dummy.NewFaker()
@@ -374,7 +316,7 @@ func TestTransactionGasMetering(t *testing.T) {
 			)
 			defer blockchain.Stop()
 
-			statedb, err := state.New(genesis.Root(), blockchain.stateCache, blockchain.snaps)
+			statedb, err := state.New(genesis.Root(), blockchain.stateCache, nil)
 			require.NoError(err)
 
 			// Deploy contract first if needed

@@ -5,8 +5,6 @@ package utils
 
 import (
 	"sync"
-
-	"github.com/luxfi/evm/iface"
 )
 
 // LRUCache implements an LRU cache using a simple map with a fixed size
@@ -18,7 +16,7 @@ type LRUCache[K comparable, V any] struct {
 }
 
 // NewLRUCache creates a new LRU cache with the specified capacity
-func NewLRUCache[K comparable, V any](capacity int) iface.Cacher[K, V] {
+func NewLRUCache[K comparable, V any](capacity int) Cacher[K, V] {
 	if capacity <= 0 {
 		capacity = 1
 	}

@@ -5,6 +5,7 @@ package registry
 
 import (
 	"bytes"
+	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
 )
 
@@ -56,7 +57,7 @@ func (m Module) ConfigKey() string {
 	return m.configKey
 }
 
-// Interface methods to satisfy iface.PrecompileModule
+// Interface methods to satisfy precompile.PrecompileModule
 func (m Module) Address() common.Address {
 	return m.address
 }
@@ -77,6 +78,11 @@ func (m Module) DefaultConfig() interface{} {
 func (m Module) MakeConfig() interface{} {
 	// Use the configurator to make the config
 	if m.configurator != nil {
+		// Try the precompileconfig.Config signature first
+		if conf, ok := m.configurator.(interface{ MakeConfig() precompileconfig.Config }); ok {
+			return conf.MakeConfig()
+		}
+		// Fall back to generic interface{} signature
 		if conf, ok := m.configurator.(interface{ MakeConfig() interface{} }); ok {
 			return conf.MakeConfig()
 		}

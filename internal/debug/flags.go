@@ -272,7 +272,7 @@ func Setup(ctx *cli.Context) error {
 	}
 	glogger.Vmodule(vmodule)
 
-	log.SetDefault(log.NewLogger(glogger))
+	log.SetDefault(log.NewLogger("debug"))
 
 	// profiling, tracing
 	runtime.MemProfileRate = memprofilerateFlag.Value

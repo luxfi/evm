@@ -11,8 +11,8 @@ import (
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/log"
-	"github.com/luxfi/node/consensus"
-	commonEng "github.com/luxfi/node/consensus/engine/core"
+	"github.com/luxfi/node/quasar"
+	commonEng "github.com/luxfi/node/quasar/engine/core"
 	"github.com/luxfi/node/utils/timer"
 )
 
@@ -23,7 +23,7 @@ const (
 )
 
 type blockBuilder struct {
-	ctx         *consensus.Context // Keep the original context for logging
+	ctx         *quasar.Context // Keep the original context for logging
 	chainConfig *params.ChainConfig
 
 	txPool *txpool.TxPool
