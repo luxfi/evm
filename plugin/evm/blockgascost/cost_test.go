@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/evm/commontype"
+	"github.com/luxfi/evm/v2/v2/commontype"
 	"github.com/stretchr/testify/require"
 )
 

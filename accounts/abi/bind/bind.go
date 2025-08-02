@@ -38,7 +38,7 @@ import (
 	"strings"
 	"text/template"
 	"unicode"
-	"github.com/luxfi/evm/accounts/abi"
+	"github.com/luxfi/evm/v2/v2/accounts/abi"
 	"github.com/luxfi/log"
 )
 

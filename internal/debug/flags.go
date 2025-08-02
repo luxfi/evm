@@ -36,7 +36,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/luxfi/evm/internal/flags"
+	"github.com/luxfi/evm/v2/v2/internal/flags"
 	"github.com/luxfi/log"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"

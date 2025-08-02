@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/luxfi/evm/utils"
+	"github.com/luxfi/evm/v2/v2/utils"
 	gethparams "github.com/luxfi/geth/params"
 	upgrade "github.com/luxfi/node/upgrade"
 )

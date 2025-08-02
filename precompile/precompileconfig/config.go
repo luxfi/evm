@@ -5,8 +5,8 @@
 package precompileconfig
 
 import (
-	"github.com/luxfi/evm/commontype"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/v2/v2/commontype"
+	"github.com/luxfi/evm/v2/v2/iface"
 	"github.com/luxfi/geth/common"
 )
 

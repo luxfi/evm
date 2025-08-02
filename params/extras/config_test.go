@@ -7,10 +7,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/evm/params/extras"
+	"github.com/luxfi/evm/v2/v2/params/extras"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/commontype"
-	"github.com/luxfi/evm/precompile/contracts/txallowlist"
+	"github.com/luxfi/evm/v2/v2/commontype"
+	"github.com/luxfi/evm/v2/v2/precompile/contracts/txallowlist"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -6,12 +6,12 @@ package warp
 import (
 	"fmt"
 	"math"
-	"github.com/luxfi/evm/utils/set"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/precompile/contract"
-	"github.com/luxfi/evm/predicate"
+	"github.com/luxfi/evm/v2/v2/utils/set"
+	"github.com/luxfi/evm/v2/v2/iface"
+	"github.com/luxfi/evm/v2/v2/precompile/contract"
+	"github.com/luxfi/evm/v2/v2/predicate"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/vmerrs"
+	"github.com/luxfi/evm/v2/v2/vmerrs"
 )
 
 var (

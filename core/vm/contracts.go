@@ -35,9 +35,9 @@ import (
 	"math/big"
 
 	gethparams "github.com/luxfi/geth/params"
-	"github.com/luxfi/evm/precompile/contract"
-	"github.com/luxfi/evm/precompile/registry"
-	"github.com/luxfi/evm/vmerrs"
+	"github.com/luxfi/evm/v2/v2/precompile/contract"
+	"github.com/luxfi/evm/v2/v2/precompile/registry"
+	"github.com/luxfi/evm/v2/v2/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/crypto/blake2b"

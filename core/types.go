@@ -27,9 +27,9 @@
 package core
 
 import (
-	"github.com/luxfi/evm/core/state"
-	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/v2/v2/core/state"
+	"github.com/luxfi/evm/v2/v2/core/types"
+	"github.com/luxfi/evm/v2/v2/core/vm"
 )
 
 // Validator is an interface which defines the standard for block validation. It
