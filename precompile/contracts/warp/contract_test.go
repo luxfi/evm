@@ -15,7 +15,7 @@ import (
 	"github.com/luxfi/evm/v2/utils/set"
 	"github.com/luxfi/evm/v2/vmerrs"
 	"github.com/luxfi/geth/common"
-	agoUtils "github.com/luxfi/node/utils"
+	agoUtils "github.com/luxfi/node/v2/utils"
 	"github.com/stretchr/testify/require"
 )
 

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/luxfi/node/utils/wrappers"
+	"github.com/luxfi/node/v2/utils/wrappers"
 	"github.com/luxfi/evm/v2/plugin/evm/customrawdb"
 	syncclient "github.com/luxfi/evm/v2/sync/client"
 	"github.com/luxfi/evm/v2/utils"

@@ -8,7 +8,7 @@ package ap4
 import (
 	"math"
 
-	safemath "github.com/luxfi/node/utils/math"
+	safemath "github.com/luxfi/node/v2/utils/math"
 	"github.com/luxfi/evm/v2/utils"
 )
 

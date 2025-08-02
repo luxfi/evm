@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/utils/set"
+	"github.com/luxfi/node/v2/utils/set"
 	"github.com/luxfi/evm/v2/plugin/evm/customrawdb"
 	"github.com/luxfi/evm/v2/plugin/evm/message"
 	synccommon "github.com/luxfi/evm/v2/sync"

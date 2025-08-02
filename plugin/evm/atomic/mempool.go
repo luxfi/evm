@@ -9,9 +9,9 @@ import (
 	"sync"
 
 	"github.com/luxfi/evm/v2/consensus"
-	"github.com/luxfi/node/cache/lru"
+	"github.com/luxfi/node/v2/cache/lru"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/network/p2p/gossip"
+	"github.com/luxfi/node/v2/network/p2p/gossip"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/luxfi/log"

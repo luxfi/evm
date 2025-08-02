@@ -10,7 +10,7 @@ import (
 	"github.com/luxfi/evm/v2/core/types"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/network/p2p/gossip"
+	"github.com/luxfi/node/v2/network/p2p/gossip"
 	luxmetrics "github.com/luxfi/metrics"
 )
 

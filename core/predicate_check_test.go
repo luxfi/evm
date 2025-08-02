@@ -11,7 +11,7 @@ import (
 	"github.com/luxfi/evm/v2/params"
 	"github.com/luxfi/evm/v2/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/node/utils/set"
+	"github.com/luxfi/node/v2/utils/set"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )

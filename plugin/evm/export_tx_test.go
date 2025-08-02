@@ -11,11 +11,11 @@ import (
 
 	"github.com/luxfi/evm/v2/plugin/evm/atomic"
 	"github.com/luxfi/ids"
-	luxatomic "github.com/luxfi/node/chains/atomic"
-	"github.com/luxfi/node/utils/crypto/secp256k1"
-	"github.com/luxfi/node/utils/units"
-	"github.com/luxfi/node/vms/components/lux"
-	"github.com/luxfi/node/vms/secp256k1fx"
+	luxatomic "github.com/luxfi/node/v2/chains/atomic"
+	"github.com/luxfi/node/v2/utils/crypto/secp256k1"
+	"github.com/luxfi/node/v2/utils/units"
+	"github.com/luxfi/node/v2/vms/components/lux"
+	"github.com/luxfi/node/v2/vms/secp256k1fx"
 	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/require"
 	
