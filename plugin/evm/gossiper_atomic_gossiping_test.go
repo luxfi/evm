@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	evmatomic "github.com/luxfi/evm/plugin/evm/atomic"
+	evmatomic "github.com/luxfi/evm/v2/plugin/evm/atomic"
 	nodeatomic "github.com/luxfi/node/v2/chains/atomic"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/v2/network/p2p"
