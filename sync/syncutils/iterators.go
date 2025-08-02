@@ -4,7 +4,7 @@
 package syncutils
 
 import (
-	"github.com/luxfi/evm/v2/core/state/snapshot"
+	"github.com/luxfi/evm/core/state/snapshot"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/ethdb"
 )

@@ -30,7 +30,7 @@ import (
 	"math/big"
 	"math/rand"
 	"testing"
-	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/common"
 	"github.com/holiman/uint256"

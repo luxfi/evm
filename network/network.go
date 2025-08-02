@@ -15,17 +15,17 @@ import (
 	"github.com/luxfi/log"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/luxfi/node/v2/codec"
+	"github.com/luxfi/node/codec"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/v2/network/p2p"
-	quasar "github.com/luxfi/node/v2/quasar"
-	"github.com/luxfi/node/v2/quasar/engine/core"
-	"github.com/luxfi/node/v2/quasar/validators"
-	"github.com/luxfi/node/v2/utils"
-	"github.com/luxfi/node/v2/version"
+	"github.com/luxfi/node/network/p2p"
+	quasar "github.com/luxfi/node/quasar"
+	"github.com/luxfi/node/quasar/engine/core"
+	"github.com/luxfi/node/quasar/validators"
+	"github.com/luxfi/node/utils"
+	"github.com/luxfi/node/version"
 
-	"github.com/luxfi/evm/v2/network/stats"
-	"github.com/luxfi/evm/v2/plugin/evm/message"
+	"github.com/luxfi/evm/network/stats"
+	"github.com/luxfi/evm/plugin/evm/message"
 )
 
 // Minimum amount of time to handle a request

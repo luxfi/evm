@@ -19,7 +19,7 @@ package eip4844
 import (
 	"math/big"
 
-	"github.com/luxfi/evm/v2/params"
+	"github.com/luxfi/evm/params"
 )
 
 // CalcExcessBlobGas calculates the excess blob gas after the change.

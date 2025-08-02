@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"github.com/luxfi/evm/v2/cmd/simulator/metrics"
+	"github.com/luxfi/evm/cmd/simulator/metrics"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/log"
 )

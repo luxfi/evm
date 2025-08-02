@@ -30,7 +30,7 @@ import (
 	"fmt"
 
 	"github.com/luxfi/geth/accounts/abi"
-	"github.com/luxfi/evm/v2/vmerrs"
+	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common/hexutil"
 )
 

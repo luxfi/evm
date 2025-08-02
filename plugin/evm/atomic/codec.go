@@ -7,10 +7,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/luxfi/node/v2/codec"
-	"github.com/luxfi/node/v2/codec/linearcodec"
-	"github.com/luxfi/node/v2/utils/wrappers"
-	"github.com/luxfi/node/v2/vms/secp256k1fx"
+	"github.com/luxfi/node/codec"
+	"github.com/luxfi/node/codec/linearcodec"
+	"github.com/luxfi/node/utils/wrappers"
+	"github.com/luxfi/node/vms/secp256k1fx"
 )
 
 const CodecVersion = uint16(0)

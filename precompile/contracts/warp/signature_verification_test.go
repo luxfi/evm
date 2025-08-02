@@ -6,8 +6,8 @@ package warp
 import (
 	"context"
 	"testing"
-	"github.com/luxfi/evm/v2/iface"
-	"github.com/luxfi/evm/v2/utils/set"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/utils/set"
 	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"

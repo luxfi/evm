@@ -6,8 +6,8 @@ package evm
 import (
 	"time"
 
-	"github.com/luxfi/evm/v2/utils"
-	"github.com/luxfi/node/v2/utils/timer/mockable"
+	"github.com/luxfi/evm/utils"
+	"github.com/luxfi/node/utils/timer/mockable"
 )
 
 // ClockWrapper wraps a mockable.Clock to implement utils.MockableTimer

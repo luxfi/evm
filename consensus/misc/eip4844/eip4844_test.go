@@ -21,7 +21,7 @@ import (
 	"math/big"
 	"testing"
 	
-	"github.com/luxfi/evm/v2/params"
+	"github.com/luxfi/evm/params"
 )
 
 func TestCalcExcessBlobGas(t *testing.T) {

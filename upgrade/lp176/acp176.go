@@ -13,9 +13,9 @@ import (
 	"math/big"
 	"sort"
 
-	safemath "github.com/luxfi/node/v2/utils/math"
-	"github.com/luxfi/node/v2/utils/wrappers"
-	"github.com/luxfi/node/v2/vms/components/gas"
+	safemath "github.com/luxfi/node/utils/math"
+	"github.com/luxfi/node/utils/wrappers"
+	"github.com/luxfi/node/vms/components/gas"
 	"github.com/holiman/uint256"
 )
 
