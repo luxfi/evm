@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/utils/set"
+	"github.com/luxfi/node/v2/utils/set"
 
-	commonEng "github.com/luxfi/node/quasar/consensus/engine"
+	commonEng "github.com/luxfi/node/v2/quasar/consensus/engine"
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
@@ -26,10 +26,10 @@ import (
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/node/network/p2p/gossip"
-	"github.com/luxfi/node/quasar/consensus/engine/enginetest"
-	nodeatomic "github.com/luxfi/node/chains/atomic"
-	enginecore "github.com/luxfi/node/quasar/engine/core"
+	"github.com/luxfi/node/v2/network/p2p/gossip"
+	"github.com/luxfi/node/v2/quasar/consensus/engine/enginetest"
+	nodeatomic "github.com/luxfi/node/v2/chains/atomic"
+	enginecore "github.com/luxfi/node/v2/quasar/engine/core"
 )
 
 

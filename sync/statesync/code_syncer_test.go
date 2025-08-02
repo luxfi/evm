@@ -8,7 +8,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/luxfi/node/utils"
+	"github.com/luxfi/node/v2/utils"
 
 	"github.com/luxfi/evm/plugin/evm/customrawdb"
 	"github.com/luxfi/evm/plugin/evm/message"

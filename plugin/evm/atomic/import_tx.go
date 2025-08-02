@@ -16,15 +16,15 @@ import (
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/log"
-	"github.com/luxfi/node/chains/atomic"
+	"github.com/luxfi/node/v2/chains/atomic"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/utils"
-	"github.com/luxfi/node/utils/constants"
-	"github.com/luxfi/node/utils/crypto/secp256k1"
-	"github.com/luxfi/node/utils/math"
-	"github.com/luxfi/node/utils/set"
-	"github.com/luxfi/node/vms/components/lux"
-	"github.com/luxfi/node/vms/secp256k1fx"
+	"github.com/luxfi/node/v2/utils"
+	"github.com/luxfi/node/v2/utils/constants"
+	"github.com/luxfi/node/v2/utils/crypto/secp256k1"
+	"github.com/luxfi/node/v2/utils/math"
+	"github.com/luxfi/node/v2/utils/set"
+	"github.com/luxfi/node/v2/vms/components/lux"
+	"github.com/luxfi/node/v2/vms/secp256k1fx"
 )
 
 var (

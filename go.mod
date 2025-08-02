@@ -4,7 +4,21 @@ go 1.24.5
 
 replace github.com/crate-crypto/go-kzg-4844 => github.com/crate-crypto/go-kzg-4844 v1.1.0
 
-replace github.com/luxfi/node => ../node
+replace (
+	github.com/luxfi/node/v2 => ../node
+	github.com/luxfi/bft => ../bft
+	github.com/luxfi/crypto => ../crypto
+	github.com/luxfi/database => ../database
+	github.com/luxfi/ids => ../ids
+	github.com/luxfi/ledger-lux-go => ../ledger-lux-go
+	github.com/luxfi/log => ../log
+	github.com/luxfi/ringtail => ../ringtail
+	github.com/luxfi/trace => ../trace
+	github.com/luxfi/geth => ../geth
+	github.com/luxfi/warp => ../warp
+	github.com/luxfi/metrics => ../metrics
+	github.com/luxfi/cli/v2 => ../cli
+)
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.5
@@ -29,11 +43,11 @@ require (
 	github.com/kylelemons/godebug v1.1.0
 	github.com/luxfi/crypto v1.1.1
 	github.com/luxfi/database v1.1.4
-	github.com/luxfi/geth v1.16.6
+	github.com/luxfi/geth v1.16.1
 	github.com/luxfi/ids v0.1.1
 	github.com/luxfi/log v0.1.1
 	github.com/luxfi/metrics v1.1.1
-	github.com/luxfi/node v1.13.3
+	github.com/luxfi/node/v2 v2.0.0-alpha.1
 	github.com/luxfi/warp v0.1.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
