@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/luxfi/node/codec"
+	"github.com/luxfi/node/v2/codec"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/sync/handlers"

@@ -17,8 +17,8 @@ import (
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/sync/client/stats"
 
-	"github.com/luxfi/node/codec"
-	"github.com/luxfi/node/version"
+	"github.com/luxfi/node/v2/codec"
+	"github.com/luxfi/node/v2/version"
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"

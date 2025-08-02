@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxfi/node/network/p2p"
-	"github.com/luxfi/node/quasar/engine/core"
-	"github.com/luxfi/node/quasar/consensustest"
+	"github.com/luxfi/node/v2/network/p2p"
+	"github.com/luxfi/node/v2/quasar/engine/core"
+	"github.com/luxfi/node/v2/quasar/consensustest"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/stretchr/testify/assert"
@@ -23,10 +23,10 @@ import (
 	"github.com/luxfi/evm/network/peertest"
 	"github.com/luxfi/evm/plugin/evm/message"
 
-	"github.com/luxfi/node/codec"
-	"github.com/luxfi/node/codec/linearcodec"
+	"github.com/luxfi/node/v2/codec"
+	"github.com/luxfi/node/v2/codec/linearcodec"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/version"
+	"github.com/luxfi/node/v2/version"
 )
 
 var (

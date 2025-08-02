@@ -16,7 +16,7 @@ import (
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/plugin/evm/customrawdb"
-	"github.com/luxfi/node/upgrade"
+	"github.com/luxfi/node/v2/upgrade"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"

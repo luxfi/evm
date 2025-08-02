@@ -9,7 +9,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	avagoUtils "github.com/luxfi/node/utils"
+	avagoUtils "github.com/luxfi/node/v2/utils"
 )
 
 func TestIncrOne(t *testing.T) {

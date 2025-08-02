@@ -5,7 +5,7 @@ package atomic
 
 import (
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/utils/hashing"
+	"github.com/luxfi/node/v2/utils/hashing"
 )
 
 type Metadata struct {

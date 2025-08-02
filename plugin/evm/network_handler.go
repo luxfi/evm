@@ -12,8 +12,8 @@ import (
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/ids"
-	syncHandlers "github.com/luxfi/node/state_sync/handlers"
-	syncStats "github.com/luxfi/node/state_sync/handlers/stats"
+	syncHandlers "github.com/luxfi/node/v2/state_sync/handlers"
+	syncStats "github.com/luxfi/node/v2/state_sync/handlers/stats"
 	warp "github.com/luxfi/warp/backend"
 	// warpHandlers "github.com/luxfi/warp/handlers" // TODO: restore when handlers are fixed
 )
