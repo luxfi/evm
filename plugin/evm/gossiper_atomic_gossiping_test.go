@@ -11,19 +11,19 @@ import (
 	"time"
 
 	evmatomic "github.com/luxfi/evm/plugin/evm/atomic"
-	nodeatomic "github.com/luxfi/node/chains/atomic"
+	nodeatomic "github.com/luxfi/node/v2/chains/atomic"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/network/p2p"
-	"github.com/luxfi/node/proto/pb/sdk"
-	"github.com/luxfi/node/utils/set"
+	"github.com/luxfi/node/v2/network/p2p"
+	"github.com/luxfi/node/v2/proto/pb/sdk"
+	"github.com/luxfi/node/v2/utils/set"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
 
-	commonEng "github.com/luxfi/node/quasar/consensus/engine"
-	"github.com/luxfi/node/quasar/consensus/engine/enginetest"
-	"github.com/luxfi/node/network/p2p/gossip"
-	"github.com/luxfi/node/vms/components/lux"
-	"github.com/luxfi/node/quasar/engine/core/appsender"
+	commonEng "github.com/luxfi/node/v2/quasar/consensus/engine"
+	"github.com/luxfi/node/v2/quasar/consensus/engine/enginetest"
+	"github.com/luxfi/node/v2/network/p2p/gossip"
+	"github.com/luxfi/node/v2/vms/components/lux"
+	"github.com/luxfi/node/v2/quasar/engine/core/appsender"
 )
 
 // testVMConfig contains configuration for test VM

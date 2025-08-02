@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/utils/units"
+	"github.com/luxfi/node/v2/utils/units"
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/rawdb"

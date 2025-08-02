@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxfi/node/network/p2p/gossip"
+	"github.com/luxfi/node/v2/network/p2p/gossip"
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/txpool"

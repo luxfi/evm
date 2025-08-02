@@ -9,8 +9,8 @@ import (
 	"os"
 
 	luxlog "github.com/luxfi/log"
-	"github.com/luxfi/node/utils/ulimit"
-	"github.com/luxfi/node/vms/rpcchainvm"
+	"github.com/luxfi/node/v2/utils/ulimit"
+	"github.com/luxfi/node/v2/vms/rpcchainvm"
 
 	"github.com/luxfi/evm/plugin/evm"
 )
