@@ -31,12 +31,12 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-	"github.com/luxfi/evm/v2/consensus"
-	"github.com/luxfi/evm/v2/consensus/dummy"
-	"github.com/luxfi/evm/v2/core/rawdb"
-	"github.com/luxfi/evm/v2/core/types"
-	"github.com/luxfi/evm/v2/core/vm"
-	"github.com/luxfi/evm/v2/params"
+	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/evm/consensus/dummy"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
 )
 

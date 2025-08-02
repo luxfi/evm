@@ -38,21 +38,21 @@ import (
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/prque"
-	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/event"
 	"github.com/luxfi/log"
 	"github.com/luxfi/geth/metrics"
-	"github.com/luxfi/evm/v2/commontype"
-	"github.com/luxfi/evm/v2/core"
-	"github.com/luxfi/evm/v2/core/state"
-	"github.com/luxfi/evm/v2/core/txpool"
-	"github.com/luxfi/evm/v2/params"
-	"github.com/luxfi/evm/v2/plugin/evm/header"
-	"github.com/luxfi/evm/v2/precompile/contracts/feemanager"
+	"github.com/luxfi/evm/commontype"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/core/txpool"
+	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/plugin/evm/header"
+	"github.com/luxfi/evm/precompile/contracts/feemanager"
 	"github.com/holiman/uint256"
 
 	// Force libevm metrics of the same name to be registered first.
-	_ "github.com/luxfi/evm/v2/iface/core/txpool/legacypool"
+	_ "github.com/luxfi/evm/iface/core/txpool/legacypool"
 )
 
 const (

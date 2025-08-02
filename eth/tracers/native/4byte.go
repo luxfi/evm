@@ -32,8 +32,8 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	"github.com/luxfi/evm/v2/core/vm"
-	"github.com/luxfi/evm/v2/eth/tracers"
+	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/eth/tracers"
 	"github.com/luxfi/geth/common"
 )
 

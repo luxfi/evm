@@ -32,7 +32,7 @@ import (
 	"sync"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/v2/trie/trienode"
+	"github.com/luxfi/evm/trie/trienode"
 )
 
 // layerTree is a group of state layers identified by the state root.

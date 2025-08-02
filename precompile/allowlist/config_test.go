@@ -5,8 +5,8 @@ package allowlist_test
 
 import (
 	"testing"
-	"github.com/luxfi/evm/v2/precompile/allowlist"
-	"github.com/luxfi/evm/v2/precompile/registry"
+	"github.com/luxfi/evm/precompile/allowlist"
+	"github.com/luxfi/evm/precompile/registry"
 )
 
 var testModule = registry.NewModule(

@@ -32,11 +32,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/evm/v2/core"
-	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/luxfi/evm/v2/params"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/rpc"
 	"github.com/luxfi/geth/common"
 )

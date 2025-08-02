@@ -6,7 +6,7 @@ package predicate
 import (
 	"fmt"
 	"strings"
-	"github.com/luxfi/evm/v2/iface"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/node/codec"
 	"github.com/luxfi/node/codec/linearcodec"
 	"github.com/luxfi/geth/common"

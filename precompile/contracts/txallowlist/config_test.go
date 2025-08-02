@@ -5,10 +5,10 @@ package txallowlist
 
 import (
 	"testing"
-	"github.com/luxfi/evm/v2/precompile/allowlist"
-	"github.com/luxfi/evm/v2/precompile/precompileconfig"
-	"github.com/luxfi/evm/v2/precompile/testutils"
-	"github.com/luxfi/evm/v2/utils"
+	"github.com/luxfi/evm/precompile/allowlist"
+	"github.com/luxfi/evm/precompile/precompileconfig"
+	"github.com/luxfi/evm/precompile/testutils"
+	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
 	"go.uber.org/mock/gomock"
 )

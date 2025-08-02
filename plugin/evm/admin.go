@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/luxfi/evm/v2/plugin/evm/client"
+	"github.com/luxfi/evm/plugin/evm/client"
 	"github.com/luxfi/log"
 	"github.com/luxfi/node/api"
 	"github.com/luxfi/node/utils/profiler"
