@@ -31,7 +31,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	"github.com/luxfi/evm/v2/v2/core/types"
+	"github.com/luxfi/evm/v2/core/types"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 )

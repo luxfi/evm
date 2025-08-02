@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/luxfi/evm/v2/v2/plugin/evm/message"
-	"github.com/luxfi/evm/v2/v2/sync/handlers/stats/statstest"
+	"github.com/luxfi/evm/v2/plugin/evm/message"
+	"github.com/luxfi/evm/v2/sync/handlers/stats/statstest"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/ids"

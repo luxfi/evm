@@ -4,7 +4,7 @@
 package evm
 
 import (
-	"github.com/luxfi/evm/v2/v2/iface"
+	"github.com/luxfi/evm/v2/iface"
 	"github.com/luxfi/node/codec"
 )
 

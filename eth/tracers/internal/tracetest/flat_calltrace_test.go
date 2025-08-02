@@ -19,17 +19,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luxfi/evm/v2/v2/core"
-	"github.com/luxfi/evm/v2/v2/core/rawdb"
-	"github.com/luxfi/evm/v2/v2/core/types"
-	"github.com/luxfi/evm/v2/v2/core/vm"
-	"github.com/luxfi/evm/v2/v2/tests"
+	"github.com/luxfi/evm/v2/core"
+	"github.com/luxfi/evm/v2/core/rawdb"
+	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/v2/core/vm"
+	"github.com/luxfi/evm/v2/tests"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/rlp"
 
 	// Force-load the native, to trigger registration
-	"github.com/luxfi/evm/v2/v2/eth/tracers"
+	"github.com/luxfi/evm/v2/eth/tracers"
 )
 
 // flatCallTrace is the result of a callTracerParity run.

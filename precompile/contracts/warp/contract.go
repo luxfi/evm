@@ -7,12 +7,12 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"github.com/luxfi/evm/v2/v2/iface"
-	"github.com/luxfi/evm/v2/v2/accounts/abi"
-	"github.com/luxfi/evm/v2/v2/precompile/contract"
+	"github.com/luxfi/evm/v2/iface"
+	"github.com/luxfi/evm/v2/accounts/abi"
+	"github.com/luxfi/evm/v2/precompile/contract"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/v2/v2/core/types"
-	"github.com/luxfi/evm/v2/v2/vmerrs"
+	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/v2/vmerrs"
 )
 
 const (

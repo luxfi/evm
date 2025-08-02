@@ -4,8 +4,8 @@
 package commontype
 
 import (
-	"github.com/luxfi/evm/v2/v2/ids"
-	"github.com/luxfi/evm/v2/v2/iface"
+	"github.com/luxfi/evm/v2/ids"
+	"github.com/luxfi/evm/v2/iface"
 )
 
 // ChainContext provides Lux-specific blockchain context

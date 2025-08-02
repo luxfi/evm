@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/evm/v2/v2/core"
-	"github.com/luxfi/evm/v2/v2/core/txpool"
-	"github.com/luxfi/evm/v2/v2/params"
+	"github.com/luxfi/evm/v2/core"
+	"github.com/luxfi/evm/v2/core/txpool"
+	"github.com/luxfi/evm/v2/params"
 	"github.com/luxfi/log"
 	"github.com/luxfi/node/quasar"
 	commonEng "github.com/luxfi/node/quasar/engine/core"

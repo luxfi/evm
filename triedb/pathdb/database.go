@@ -32,13 +32,13 @@ import (
 	"sync"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/v2/v2/core/rawdb"
-	"github.com/luxfi/evm/v2/v2/core/types"
+	"github.com/luxfi/evm/v2/core/rawdb"
+	"github.com/luxfi/evm/v2/core/types"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/log"
-	"github.com/luxfi/evm/v2/v2/trie/trienode"
+	"github.com/luxfi/evm/v2/trie/trienode"
 	"github.com/luxfi/geth/triedb/database"
-	"github.com/luxfi/evm/v2/v2/params"
+	"github.com/luxfi/evm/v2/params"
 )
 
 // StateSetWithOrigin wraps the state set with origin meta

@@ -28,8 +28,8 @@ package snapshot
 
 import (
 	"fmt"
-	"github.com/luxfi/evm/v2/v2/core/rawdb"
-	"github.com/luxfi/evm/v2/v2/core/types"
+	"github.com/luxfi/evm/v2/core/rawdb"
+	"github.com/luxfi/evm/v2/core/types"
 	"github.com/luxfi/geth/trie/trienode"
 	"github.com/luxfi/geth/triedb/hashdb"
 	"github.com/luxfi/geth/triedb/pathdb"

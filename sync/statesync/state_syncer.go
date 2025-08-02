@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/luxfi/evm/v2/v2/core/state/snapshot"
-	synccommon "github.com/luxfi/evm/v2/v2/sync"
-	syncclient "github.com/luxfi/evm/v2/v2/sync/client"
+	"github.com/luxfi/evm/v2/core/state/snapshot"
+	synccommon "github.com/luxfi/evm/v2/sync"
+	syncclient "github.com/luxfi/evm/v2/sync/client"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/triedb"

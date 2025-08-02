@@ -6,7 +6,7 @@ package warp
 import (
 	"context"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/v2/v2/iface"
+	"github.com/luxfi/evm/v2/iface"
 )
 
 // ValidatorState wraps the validator state to provide special handling for the Primary Network
