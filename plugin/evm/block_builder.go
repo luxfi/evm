@@ -11,9 +11,9 @@ import (
 	"github.com/luxfi/evm/v2/core/txpool"
 	"github.com/luxfi/evm/v2/params"
 	"github.com/luxfi/log"
-	"github.com/luxfi/node/quasar"
-	commonEng "github.com/luxfi/node/quasar/engine/core"
-	"github.com/luxfi/node/utils/timer"
+	"github.com/luxfi/node/v2/quasar"
+	commonEng "github.com/luxfi/node/v2/quasar/engine/core"
+	"github.com/luxfi/node/v2/utils/timer"
 )
 
 const (

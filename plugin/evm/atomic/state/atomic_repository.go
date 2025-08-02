@@ -8,13 +8,13 @@ import (
 	"fmt"
 
 	"github.com/luxfi/evm/v2/plugin/evm/atomic"
-	luxatomic "github.com/luxfi/node/chains/atomic"
-	"github.com/luxfi/node/codec"
+	luxatomic "github.com/luxfi/node/v2/chains/atomic"
+	"github.com/luxfi/node/v2/codec"
 	"github.com/luxfi/database"
 	"github.com/luxfi/database/prefixdb"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/utils"
-	"github.com/luxfi/node/utils/wrappers"
+	"github.com/luxfi/node/v2/utils"
+	"github.com/luxfi/node/v2/utils/wrappers"
 )
 
 var (

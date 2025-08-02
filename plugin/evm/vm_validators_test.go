@@ -9,9 +9,9 @@ import (
 
 	"github.com/luxfi/evm/v2/core"
 	"github.com/luxfi/evm/v2/utils"
-	"github.com/luxfi/node/quasar"
-	"github.com/luxfi/node/quasar/consensus/engine/enginetest"
-	"github.com/luxfi/node/quasar/validators/validatorstest"
+	"github.com/luxfi/node/v2/quasar"
+	"github.com/luxfi/node/v2/quasar/consensus/engine/enginetest"
+	"github.com/luxfi/node/v2/quasar/validators/validatorstest"
 	"github.com/luxfi/database"
 	"github.com/luxfi/ids"
 	"github.com/stretchr/testify/assert"

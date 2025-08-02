@@ -10,7 +10,7 @@ import (
 	"github.com/luxfi/evm/v2/params/extras"
 	"github.com/luxfi/evm/v2/utils"
 	ethparams "github.com/luxfi/geth/params"
-	"github.com/luxfi/node/upgrade"
+	"github.com/luxfi/node/v2/upgrade"
 )
 
 const (

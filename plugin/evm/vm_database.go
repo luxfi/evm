@@ -15,7 +15,7 @@ import (
 	nodedb "github.com/luxfi/database"
 	"github.com/luxfi/database/factory"
 	"github.com/luxfi/database/prefixdb"
-	"github.com/luxfi/node/utils/constants"
+	"github.com/luxfi/node/v2/utils/constants"
 	"github.com/luxfi/log"
 )
 

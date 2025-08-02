@@ -36,7 +36,7 @@ import (
 	"sync"
 	"time"
 	"github.com/luxfi/evm/v2/utils"
-	"github.com/luxfi/node/utils/units"
+	"github.com/luxfi/node/v2/utils/units"
 	"github.com/luxfi/evm/v2/consensus"
 	"github.com/luxfi/evm/v2/core"
 	"github.com/luxfi/evm/v2/core/state"

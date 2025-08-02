@@ -10,7 +10,7 @@ import (
 	"github.com/luxfi/ids"
 	"github.com/luxfi/evm/v2/network"
 
-	"github.com/luxfi/node/version"
+	"github.com/luxfi/node/v2/version"
 )
 
 var _ network.SyncedNetworkClient = (*testNetwork)(nil)
