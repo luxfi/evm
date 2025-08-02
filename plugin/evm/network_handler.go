@@ -6,8 +6,8 @@ package evm
 import (
 	"context"
 
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/plugin/evm/message"
+	"github.com/luxfi/evm/v2/v2/iface"
+	"github.com/luxfi/evm/v2/v2/plugin/evm/message"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/geth/triedb"

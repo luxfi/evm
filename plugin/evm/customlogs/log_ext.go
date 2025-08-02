@@ -2,7 +2,7 @@
 // See the file LICENSE for licensing terms.
 package customlogs
 
-import ethtypes "github.com/luxfi/evm/core/types"
+import ethtypes "github.com/luxfi/evm/v2/v2/core/types"
 
 // FlattenLogs converts a nested array of logs to a single array of logs.
 func FlattenLogs(list [][]*ethtypes.Log) []*ethtypes.Log {

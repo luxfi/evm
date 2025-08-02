@@ -6,7 +6,7 @@ package statesync
 import (
 	"fmt"
 
-	"github.com/luxfi/evm/sync/syncutils"
+	"github.com/luxfi/evm/v2/v2/sync/syncutils"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/types"

@@ -30,7 +30,7 @@ import (
 	"math"
 
 	"github.com/luxfi/geth/params"
-	"github.com/luxfi/evm/vmerrs"
+	"github.com/luxfi/evm/v2/v2/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/geth/crypto"

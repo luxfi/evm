@@ -4,7 +4,7 @@
 package iface
 
 import (
-	"github.com/luxfi/evm/precompile"
+	"github.com/luxfi/evm/v2/v2/precompile"
 	"github.com/luxfi/geth/common"
 )
 

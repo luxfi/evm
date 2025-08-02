@@ -29,7 +29,7 @@ package snapshot
 import (
 	"bytes"
 	"testing"
-	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/v2/v2/core/rawdb"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/rlp"
 )

@@ -17,7 +17,7 @@
 package simulated
 
 import (
-	"github.com/luxfi/evm/eth/ethconfig"
+	"github.com/luxfi/evm/v2/v2/eth/ethconfig"
 )
 
 // WithBlockGasLimit configures the simulated backend to target a specific gas limit

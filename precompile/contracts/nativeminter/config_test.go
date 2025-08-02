@@ -5,10 +5,10 @@ package nativeminter
 
 import (
 	"testing"
-	"github.com/luxfi/evm/precompile/allowlist"
-	"github.com/luxfi/evm/precompile/precompileconfig"
-	"github.com/luxfi/evm/precompile/testutils"
-	"github.com/luxfi/evm/utils"
+	"github.com/luxfi/evm/v2/v2/precompile/allowlist"
+	"github.com/luxfi/evm/v2/v2/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/v2/precompile/testutils"
+	"github.com/luxfi/evm/v2/v2/utils"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/math"
 	"go.uber.org/mock/gomock"

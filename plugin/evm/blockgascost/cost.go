@@ -7,7 +7,7 @@ package blockgascost
 import (
 	"math"
 
-	"github.com/luxfi/evm/commontype"
+	"github.com/luxfi/evm/v2/v2/commontype"
 	safemath "github.com/luxfi/node/utils/math"
 )
 

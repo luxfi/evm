@@ -6,7 +6,7 @@ package atomic
 import (
 	"testing"
 
-	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/evm/v2/v2/consensus"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/utils/crypto/secp256k1"
 	"github.com/luxfi/node/vms/components/verify"

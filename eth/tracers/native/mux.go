@@ -30,8 +30,8 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/luxfi/evm/core/vm"
-	"github.com/luxfi/evm/eth/tracers"
+	"github.com/luxfi/evm/v2/v2/core/vm"
+	"github.com/luxfi/evm/v2/v2/eth/tracers"
 	"github.com/luxfi/geth/common"
 )
 

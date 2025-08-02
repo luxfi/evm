@@ -12,8 +12,8 @@ import (
 
 	"golang.org/x/sync/semaphore"
 
-	"github.com/luxfi/evm/peer/stats"
-	"github.com/luxfi/evm/plugin/evm/message"
+	"github.com/luxfi/evm/v2/v2/peer/stats"
+	"github.com/luxfi/evm/v2/v2/plugin/evm/message"
 	"github.com/luxfi/log"
 	"github.com/luxfi/node/codec"
 	"github.com/luxfi/ids"
