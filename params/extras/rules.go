@@ -49,3 +49,35 @@ func (r *Rules) IsDurango() bool {
 func (r *Rules) IsEVM() bool {
 	return true
 }
+
+// IsGenesis returns true (always enabled in v2.0.0)
+func (r *Rules) IsGenesis() bool {
+	return true
+}
+
+// GetActivePrecompiles returns the active precompiles as an interface map
+func (r *Rules) GetActivePrecompiles() map[common.Address]interface{} {
+	result := make(map[common.Address]interface{})
+	for addr, config := range r.Precompiles {
+		result[addr] = config
+	}
+	return result
+}
+
+// GetPredicaters returns the predicaters as an interface map
+func (r *Rules) GetPredicaters() map[common.Address]interface{} {
+	result := make(map[common.Address]interface{})
+	for addr, predicater := range r.Predicaters {
+		result[addr] = predicater
+	}
+	return result
+}
+
+// GetAccepterPrecompiles returns the accepter precompiles as an interface map
+func (r *Rules) GetAccepterPrecompiles() map[common.Address]interface{} {
+	result := make(map[common.Address]interface{})
+	for addr, accepter := range r.AccepterPrecompiles {
+		result[addr] = accepter
+	}
+	return result
+}

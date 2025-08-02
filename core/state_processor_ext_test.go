@@ -8,11 +8,11 @@ import (
 	"testing"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/iface/core/rawdb"
+	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/core/vm"
 	"github.com/luxfi/geth/crypto"
-	ethparams "github.com/luxfi/evm/params"
+	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/params/extras"
@@ -30,23 +30,25 @@ func TestBadTxAllowListBlock(t *testing.T) {
 
 		config = params.WithExtra(
 			&params.ChainConfig{
-				ChainID:             big.NewInt(1),
-				HomesteadBlock:      big.NewInt(0),
-				EIP150Block:         big.NewInt(0),
-				EIP155Block:         big.NewInt(0),
-				EIP158Block:         big.NewInt(0),
-				ByzantiumBlock:      big.NewInt(0),
-				ConstantinopleBlock: big.NewInt(0),
-				PetersburgBlock:     big.NewInt(0),
-				IstanbulBlock:       big.NewInt(0),
-				MuirGlacierBlock:    big.NewInt(0),
-				BerlinBlock:         big.NewInt(0),
-				LondonBlock:         big.NewInt(0),
+				ChainConfig: &ethparams.ChainConfig{
+					ChainID:             big.NewInt(1),
+					HomesteadBlock:      big.NewInt(0),
+					EIP150Block:         big.NewInt(0),
+					EIP155Block:         big.NewInt(0),
+					EIP158Block:         big.NewInt(0),
+					ByzantiumBlock:      big.NewInt(0),
+					ConstantinopleBlock: big.NewInt(0),
+					PetersburgBlock:     big.NewInt(0),
+					IstanbulBlock:       big.NewInt(0),
+					MuirGlacierBlock:    big.NewInt(0),
+					BerlinBlock:         big.NewInt(0),
+					LondonBlock:         big.NewInt(0),
+				},
 			},
 			&extras.ChainConfig{
 				FeeConfig: params.DefaultFeeConfig,
 				NetworkUpgrades: extras.NetworkUpgrades{
-					EVMTimestamp: utils.NewUint64(0),
+					GenesisTimestamp: utils.NewUint64(0),
 				},
 				GenesisPrecompiles: extras.Precompiles{
 					txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), nil, nil, nil),
@@ -58,8 +60,8 @@ func TestBadTxAllowListBlock(t *testing.T) {
 
 		gspec = &Genesis{
 			Config: config,
-			Alloc: GenesisAlloc{
-				testAddr: GenesisAccount{
+			Alloc: types.GenesisAlloc{
+				testAddr: types.GenesisAccount{
 					Balance: big.NewInt(1000000000000000000), // 1 ether
 					Nonce:   0,
 				},

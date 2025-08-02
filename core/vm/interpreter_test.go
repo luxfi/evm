@@ -30,12 +30,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxfi/geth/core/rawdb"
-	"github.com/luxfi/geth/core/state"
-	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/common/math"
+	"math"
 	"github.com/holiman/uint256"
 )
 

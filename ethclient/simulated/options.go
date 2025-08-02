@@ -17,22 +17,21 @@
 package simulated
 
 import (
-	"github.com/luxfi/geth/eth/ethconfig"
-	"github.com/luxfi/geth/node"
+	"github.com/luxfi/evm/eth/ethconfig"
 )
 
 // WithBlockGasLimit configures the simulated backend to target a specific gas limit
 // when producing blocks.
-func WithBlockGasLimit(gaslimit uint64) func(nodeConf *node.Config, ethConf *ethconfig.Config) {
-	return func(nodeConf *node.Config, ethConf *ethconfig.Config) {
+func WithBlockGasLimit(gaslimit uint64) func(ethConf *ethconfig.Config) {
+	return func(ethConf *ethconfig.Config) {
 		ethConf.Genesis.GasLimit = gaslimit
 	}
 }
 
 // WithCallGasLimit configures the simulated backend to cap eth_calls to a specific
 // gas limit when running client operations.
-func WithCallGasLimit(gaslimit uint64) func(nodeConf *node.Config, ethConf *ethconfig.Config) {
-	return func(nodeConf *node.Config, ethConf *ethconfig.Config) {
+func WithCallGasLimit(gaslimit uint64) func(ethConf *ethconfig.Config) {
+	return func(ethConf *ethconfig.Config) {
 		ethConf.RPCGasCap = gaslimit
 	}
 }

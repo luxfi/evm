@@ -30,17 +30,16 @@ import (
 	"fmt"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/trie/trienode"
+	"github.com/luxfi/geth/trie/trienode"
 	"github.com/luxfi/geth/triedb/hashdb"
 	"github.com/luxfi/geth/triedb/pathdb"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
-	"github.com/luxfi/log"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/geth/triedb"
+	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
-	"os"
 	"testing"
 	"time"
 )
@@ -172,11 +171,15 @@ type testHelper struct {
 
 func newHelper(scheme string) *testHelper {
 	diskdb := rawdb.NewMemoryDatabase()
-	config := &triedb.Config{}
+	var config *triedb.Config
 	if scheme == rawdb.PathScheme {
-		config.DBOverride = pathdb.Config{}.BackendConstructor // disable caching
+		config = &triedb.Config{
+			PathDB: &pathdb.Config{},
+		}
 	} else {
-		config.DBOverride = hashdb.Config{}.BackendConstructor // disable caching
+		config = &triedb.Config{
+			HashDB: &hashdb.Config{},
+		}
 	}
 	triedb := triedb.NewDatabase(diskdb, config)
 	accTrie, _ := trie.NewStateTrie(trie.StateTrieID(types.EmptyRootHash), triedb)
@@ -219,7 +222,7 @@ func (t *testHelper) makeStorageTrie(owner common.Hash, keys []string, vals []st
 	if !commit {
 		return stTrie.Hash()
 	}
-	root, nodes, _ := stTrie.Commit(false)
+	root, nodes := stTrie.Commit(false)
 	if nodes != nil {
 		t.nodes.Merge(nodes)
 	}
@@ -227,7 +230,7 @@ func (t *testHelper) makeStorageTrie(owner common.Hash, keys []string, vals []st
 }
 
 func (t *testHelper) Commit() common.Hash {
-	root, nodes, _ := t.accTrie.Commit(true)
+	root, nodes := t.accTrie.Commit(true)
 	if nodes != nil {
 		t.nodes.Merge(nodes)
 	}
@@ -611,7 +614,8 @@ func testGenerateWithExtraAccounts(t *testing.T, scheme string) {
 }
 
 func enableLogging() {
-	log.SetDefault(log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stderr, log.LevelTrace, true)))
+	// Enable trace logging for debugging
+	// Logging setup has changed in newer versions
 }
 
 // Tests that snapshot generation when an extra account with storage exists in the snap state.

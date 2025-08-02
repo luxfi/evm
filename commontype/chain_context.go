@@ -4,28 +4,32 @@
 package commontype
 
 import (
+	"github.com/luxfi/evm/ids"
 	"github.com/luxfi/evm/iface"
 )
 
 // ChainContext provides Lux-specific blockchain context
 type ChainContext struct {
 	NetworkID uint32
-	SubnetID  iface.SubnetID
-	ChainID   iface.ChainID
-	NodeID    iface.NodeID
+	SubnetID  ids.SubnetID
+	ChainID   ids.ChainID
+	NodeID    ids.NodeID
 
 	// Node version
 	AppVersion uint32
 
 	// Chain configuration
 	ChainDataDir string
+	
+	// ValidatorState provides access to validator information
+	ValidatorState iface.ValidatorState
 }
 
-// NodeID is an alias to iface.NodeID for compatibility
-type NodeID = iface.NodeID
+// NodeID is an alias to ids.NodeID for compatibility
+type NodeID = ids.NodeID
 
-// SubnetID is an alias to iface.SubnetID for compatibility
-type SubnetID = iface.SubnetID
+// SubnetID is an alias to ids.SubnetID for compatibility
+type SubnetID = ids.SubnetID
 
-// ChainID is an alias to iface.ChainID for compatibility
-type ChainID = iface.ChainID
+// ChainID is an alias to ids.ChainID for compatibility
+type ChainID = ids.ChainID

@@ -190,8 +190,8 @@ func (bc *BlockChain) GetReceiptsByHash(hash common.Hash) types.Receipts {
 	if header == nil {
 		return nil
 	}
-	// Use the embedded geth ChainConfig directly
-	receipts := rawdb.ReadReceipts(bc.db, hash, *number, header.Time, bc.chainConfig.ChainConfig)
+	// Use the EVM ChainConfig
+	receipts := rawdb.ReadReceipts(bc.db, hash, *number, header.Time, bc.chainConfig)
 	if receipts == nil {
 		return nil
 	}

@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core/types"
 )
 
 // EVM is the interface for the Ethereum Virtual Machine
@@ -88,5 +87,5 @@ type Message interface {
 	Nonce() uint64
 	IsFake() bool
 	Data() []byte
-	AccessList() types.AccessList
+	AccessList() AccessList
 }

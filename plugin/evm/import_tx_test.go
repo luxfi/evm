@@ -4,6 +4,8 @@
 package evm
 
 import (
+	"bytes"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -14,10 +16,14 @@ import (
 	"github.com/luxfi/node/utils/units"
 	"github.com/luxfi/node/vms/components/lux"
 	"github.com/luxfi/node/vms/secp256k1fx"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/luxfi/geth/common"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
+	
+	"github.com/luxfi/evm/consensus"
+	gethparams "github.com/luxfi/geth/params"
 )
+
 
 func TestImportTxVerify(t *testing.T) {
 	importAmount := uint64(10000000)
@@ -57,7 +63,7 @@ func TestImportTxVerify(t *testing.T) {
 		Outs: []atomic.EVMOutput{
 			{
 				Address: exportTestEthAddrs[0],
-				Amount:  importAmount - atomic.TxBytesGas*atomic.NativeAssetCallGasPrice,
+				Amount:  importAmount - atomic.TxBytesGas*100, // Use a fixed gas price for tests
 				AssetID: exportTestLUXAssetID,
 			},
 		},
@@ -111,18 +117,31 @@ func TestImportTxVerify(t *testing.T) {
 				}
 				return &tx
 			}(),
-			expectedErr: atomic.ErrNoValueOutput.Error(),
+			expectedErr: "output has no value",
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ctx := &atomic.Context{
+			ctx := &consensus.Context{
 				NetworkID:   exportTestNetworkID,
 				ChainID:     exportTestCChainID,
-				AVAXAssetID: exportTestLUXAssetID,
+				LUXAssetID: exportTestLUXAssetID,
 			}
-			err := test.tx.Verify(ctx)
+			rules := gethparams.Rules{
+				ChainID:    big.NewInt(int64(exportTestNetworkID)),
+				IsHomestead: true,
+				IsEIP150: true,
+				IsEIP155: true,
+				IsEIP158: true,
+				IsByzantium: true,
+				IsConstantinople: true,
+				IsPetersburg: true,
+				IsIstanbul: true,
+				IsBerlin: true,
+				IsLondon: true,
+			}
+			err := test.tx.Verify(ctx, rules)
 			if test.expectedErr == "" {
 				require.NoError(t, err)
 			} else {
@@ -274,7 +293,7 @@ func TestImportTxGasCost(t *testing.T) {
 				t.Fatalf("Expected gasUsed to be %d, but found %d", test.expectedGasUsed, gasUsed)
 			}
 
-			fee, err := atomic.CalculateDynamicFee(gasUsed, big.NewInt(25*units.GWei))
+			fee, err := atomic.CalculateDynamicFee(gasUsed, big.NewInt(25*gethparams.GWei))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -289,7 +308,7 @@ func TestImportTxEVMStateTransfer(t *testing.T) {
 	key := exportTestKeys[0]
 	ethAddr := key.PublicKey().Address().Hex()
 
-	importAmount := uint64(10 * units.Avax)
+	importAmount := uint64(10 * units.Lux)
 	customAssetID := ids.ID{1, 2, 3, 4, 5}
 	customAmount := uint64(100)
 
@@ -382,7 +401,12 @@ func TestImportTxEVMStateTransfer(t *testing.T) {
 			}
 
 			// Execute state transfer
-			err := importTx.EVMStateTransfer(stateDB)
+			ctx := &consensus.Context{
+				NetworkID:   exportTestNetworkID,
+				ChainID:     exportTestCChainID,
+				LUXAssetID: exportTestLUXAssetID,
+			}
+			err := importTx.EVMStateTransfer(ctx, stateDB)
 			require.NoError(t, err)
 
 			// Verify balances
@@ -418,12 +442,13 @@ func TestImportTxAtomicOps(t *testing.T) {
 	
 	// Verify the consumed UTXOs are in remove requests
 	consumedUTXOs := tx.InputUTXOs()
-	require.Equal(t, len(importTx.ImportedInputs), len(consumedUTXOs))
+	require.Equal(t, len(importTx.ImportedInputs), consumedUTXOs.Len())
 	
-	for _, utxo := range consumedUTXOs {
+	// Check that each consumed UTXO is in the remove requests
+	for utxoID := range consumedUTXOs {
 		found := false
 		for _, removeReq := range atomicRequests.RemoveRequests {
-			if string(removeReq) == string(utxo[:]) {
+			if bytes.Equal(removeReq, utxoID[:]) {
 				found = true
 				break
 			}
@@ -457,7 +482,7 @@ func createTestImportTx(t *testing.T, importAmount uint64, key *secp256k1.Privat
 		Outs: []atomic.EVMOutput{
 			{
 				Address: GetEthAddress(key),
-				Amount:  importAmount - atomic.TxBytesGas*atomic.NativeAssetCallGasPrice,
+				Amount:  importAmount - atomic.TxBytesGas*100, // Use a fixed gas price for tests
 				AssetID: exportTestLUXAssetID,
 			},
 		},
@@ -467,7 +492,7 @@ func createTestImportTx(t *testing.T, importAmount uint64, key *secp256k1.Privat
 func verifyImportTxSemantics(tx *atomic.Tx) error {
 	importTx, ok := tx.UnsignedAtomicTx.(*atomic.UnsignedImportTx)
 	if !ok {
-		return atomic.ErrWrongTxType
+		return errWrongTxType
 	}
 
 	if len(importTx.ImportedInputs) == 0 {
@@ -476,7 +501,7 @@ func verifyImportTxSemantics(tx *atomic.Tx) error {
 
 	// Verify signatures match inputs
 	if len(tx.Creds) != len(importTx.ImportedInputs) {
-		return atomic.ErrSignatureVerification
+		return errSignatureVerification
 	}
 
 	// Additional semantic checks would go here
@@ -521,6 +546,19 @@ func (m *mockStateDB) AddBalanceMultiCoin(addr common.Address, coinID common.Has
 	}
 	current := m.GetBalanceMultiCoin(addr, coinID)
 	m.balancesMultiCoin[addr][coinID] = new(big.Int).Add(current, amount)
+}
+
+func (m *mockStateDB) SubBalance(addr common.Address, amount *uint256.Int) {
+	current := m.GetBalance(addr)
+	m.SetBalance(addr, new(uint256.Int).Sub(current, amount))
+}
+
+func (m *mockStateDB) SubBalanceMultiCoin(addr common.Address, coinID common.Hash, amount *big.Int) {
+	if _, ok := m.balancesMultiCoin[addr]; !ok {
+		m.balancesMultiCoin[addr] = make(map[common.Hash]*big.Int)
+	}
+	current := m.GetBalanceMultiCoin(addr, coinID)
+	m.balancesMultiCoin[addr][coinID] = new(big.Int).Sub(current, amount)
 }
 
 func (m *mockStateDB) GetNonce(addr common.Address) uint64 {

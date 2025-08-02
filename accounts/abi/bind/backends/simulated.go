@@ -1,5 +1,3 @@
-//go:build ignore
-
 // (c) 2020-2020, Lux Industries, Inc.
 //
 // This file is a derived work, based on the go-ethereum library whose original
@@ -30,71 +28,127 @@ package backends
 
 import (
 	"context"
-	"github.com/luxfi/geth/eth"
-	"github.com/luxfi/evm/vmerrs"
-	"github.com/luxfi/evm/accounts/abi"
+	"errors"
+	"math/big"
+
 	"github.com/luxfi/evm/accounts/abi/bind"
-	"github.com/luxfi/evm/consensus/dummy"
-	"github.com/luxfi/evm/core"
-	"github.com/luxfi/evm/core/bloombits"
-	"github.com/luxfi/evm/core/rawdb"
-	"github.com/luxfi/evm/core/state"
-	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/core/vm"
-	"github.com/luxfi/geth/eth/filters"
-	"github.com/luxfi/geth/ethdb"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/params"
-	"github.com/luxfi/evm/rpc"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/common/hexutil"
-	"github.com/luxfi/geth/common/math"
-	"github.com/luxfi/geth/event"
-	"github.com/luxfi/log"
-	"github.com/luxfi/evm/ethclient/simulated"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/iface"
 )
+
+// SimulatedBackend is a simulated blockchain.
+// Deprecated: This is a stub implementation. Use a real backend for testing.
+type SimulatedBackend struct {
+	// Stub implementation
+}
 
 // Verify that SimulatedBackend implements required interfaces
 var (
 	_ bind.AcceptedContractCaller = (*SimulatedBackend)(nil)
 	_ bind.ContractBackend        = (*SimulatedBackend)(nil)
 	_ bind.DeployBackend          = (*SimulatedBackend)(nil)
-
-	_ iface.ChainReader              = (*SimulatedBackend)(nil)
-	_ iface.ChainStateReader         = (*SimulatedBackend)(nil)
-	_ iface.TransactionReader        = (*SimulatedBackend)(nil)
-	_ iface.TransactionSender        = (*SimulatedBackend)(nil)
-	_ iface.ContractCaller           = (*SimulatedBackend)(nil)
-	_ iface.GasEstimator             = (*SimulatedBackend)(nil)
-	_ iface.GasPricer                = (*SimulatedBackend)(nil)
-	_ iface.LogFilterer              = (*SimulatedBackend)(nil)
-	_ iface.AcceptedStateReader    = (*SimulatedBackend)(nil)
-	_ iface.AcceptedContractCaller = (*SimulatedBackend)(nil)
 )
-
-// SimulatedBackend is a simulated blockchain.
-// Deprecated: use package github.com/luxfi/evm/ethclient/simulated instead.
-type SimulatedBackend struct {
-	*simulated.Backend
-	simulated.Client
-}
-
-// Fork sets the head to a new block, which is based on the provided parentHash.
-func (b *SimulatedBackend) Fork(ctx context.Context, parentHash common.Hash) error {
-	return b.Backend.Fork(parentHash)
-}
 
 // NewSimulatedBackend creates a new binding backend using a simulated blockchain
 // for testing purposes.
 //
-// A simulated backend always uses chainID 1337.
-//
-// Deprecated: please use simulated.Backend from package
-// github.com/luxfi/evm/ethclient/simulated instead.
+// Deprecated: This is a stub implementation.
 func NewSimulatedBackend(alloc types.GenesisAlloc, gasLimit uint64) *SimulatedBackend {
-	b := simulated.NewBackend(alloc, simulated.WithBlockGasLimit(gasLimit))
-	return &SimulatedBackend{
-		Backend: b,
-		Client:  b.Client(),
-	}
+	return &SimulatedBackend{}
+}
+
+// CodeAt returns the code associated with a certain account in the blockchain.
+func (b *SimulatedBackend) CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) ([]byte, error) {
+	return nil, errors.New("simulated backend is deprecated")
+}
+
+// CallContract executes a contract call.
+func (b *SimulatedBackend) CallContract(ctx context.Context, call iface.CallMsg, blockNumber *big.Int) ([]byte, error) {
+	return nil, errors.New("simulated backend is deprecated")
+}
+
+// PendingCodeAt returns the code associated with an account in the pending state.
+func (b *SimulatedBackend) PendingCodeAt(ctx context.Context, account common.Address) ([]byte, error) {
+	return nil, errors.New("simulated backend is deprecated")
+}
+
+// PendingNonceAt retrieves the current pending nonce associated with an account.
+func (b *SimulatedBackend) PendingNonceAt(ctx context.Context, account common.Address) (uint64, error) {
+	return 0, errors.New("simulated backend is deprecated")
+}
+
+// SuggestGasPrice retrieves the currently suggested gas price.
+func (b *SimulatedBackend) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
+	return nil, errors.New("simulated backend is deprecated")
+}
+
+// SuggestGasTipCap retrieves the currently suggested gas tip cap.
+func (b *SimulatedBackend) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
+	return nil, errors.New("simulated backend is deprecated")
+}
+
+// EstimateGas estimates the gas needed to execute a specific transaction.
+func (b *SimulatedBackend) EstimateGas(ctx context.Context, call iface.CallMsg) (uint64, error) {
+	return 0, errors.New("simulated backend is deprecated")
+}
+
+// SendTransaction injects a signed transaction into the pending pool for execution.
+func (b *SimulatedBackend) SendTransaction(ctx context.Context, tx *iface.Transaction) error {
+	return errors.New("simulated backend is deprecated")
+}
+
+// FilterLogs executes a log filter operation.
+func (b *SimulatedBackend) FilterLogs(ctx context.Context, query iface.FilterQuery) ([]iface.Log, error) {
+	return nil, errors.New("simulated backend is deprecated")
+}
+
+// SubscribeFilterLogs creates a background log filtering operation.
+func (b *SimulatedBackend) SubscribeFilterLogs(ctx context.Context, query iface.FilterQuery, ch chan<- iface.Log) (iface.Subscription, error) {
+	return nil, errors.New("simulated backend is deprecated")
+}
+
+// HeaderByNumber returns a block header from the blockchain.
+func (b *SimulatedBackend) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
+	return nil, errors.New("simulated backend is deprecated")
+}
+
+// AcceptedCodeAt returns the code associated with a certain account at the accepted state.
+func (b *SimulatedBackend) AcceptedCodeAt(ctx context.Context, contract common.Address) ([]byte, error) {
+	return nil, errors.New("simulated backend is deprecated")
+}
+
+// AcceptedNonceAt retrieves the current accepted nonce associated with an account.
+func (b *SimulatedBackend) AcceptedNonceAt(ctx context.Context, account common.Address) (uint64, error) {
+	return 0, errors.New("simulated backend is deprecated")
+}
+
+// AcceptedCallContract executes a contract call at the accepted state.
+func (b *SimulatedBackend) AcceptedCallContract(ctx context.Context, call iface.CallMsg) ([]byte, error) {
+	return nil, errors.New("simulated backend is deprecated")
+}
+
+// Fork sets the head to a new block, which is based on the provided parentHash.
+func (b *SimulatedBackend) Fork(ctx context.Context, parentHash common.Hash) error {
+	return errors.New("simulated backend is deprecated")
+}
+
+// Commit mines a new block with the pending state.
+func (b *SimulatedBackend) Commit() common.Hash {
+	return common.Hash{}
+}
+
+// Rollback reverts all pending transactions.
+func (b *SimulatedBackend) Rollback() {
+	// No-op
+}
+
+// TransactionReceipt retrieves the receipt associated with a transaction.
+func (b *SimulatedBackend) TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
+	return nil, errors.New("simulated backend is deprecated")
+}
+
+// NonceAt retrieves the current nonce associated with an account.
+func (b *SimulatedBackend) NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error) {
+	return 0, errors.New("simulated backend is deprecated")
 }

@@ -993,30 +993,33 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 // GenesisRules returns the Genesis modified rules to support Genesis
 // network upgrades
 func (c *ChainConfig) GenesisRules(blockNum *big.Int, timestamp uint64) iface.GenesisRules {
-	rules := c.rules(blockNum, timestamp)
-	// IsEVM is already a field in Rules struct, set during initialization
+	// Create an extras.Rules struct
+	extrasRules := &extras.Rules{
+		GenesisRules: extras.GenesisRules{
+			IsGenesis: true,
+		},
+		Precompiles: make(map[common.Address]precompileconfig.Config),
+		Predicaters: make(map[common.Address]precompileconfig.Predicater),
+		AccepterPrecompiles: make(map[common.Address]precompileconfig.Accepter),
+	}
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
-	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
-	rules.Predicaters = make(map[common.Address]precompileconfig.Predicater)
-	rules.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
-	
 	extra := GetExtra(c)
 	if extra != nil {
 		for _, module := range registry.RegisteredModules() {
 			if config := extra.GetActivePrecompileConfig(module.Address(), timestamp); config != nil && !config.IsDisabled() {
-				rules.ActivePrecompiles[module.Address()] = config
+				extrasRules.Precompiles[module.Address()] = config
 				if predicater, ok := config.(precompileconfig.Predicater); ok {
-					rules.Predicaters[module.Address()] = predicater
+					extrasRules.Predicaters[module.Address()] = predicater
 				}
 				if precompileAccepter, ok := config.(precompileconfig.Accepter); ok {
-					rules.AccepterPrecompiles[module.Address()] = precompileAccepter
+					extrasRules.AccepterPrecompiles[module.Address()] = precompileAccepter
 				}
 			}
 		}
 	}
 
-	return &rules
+	return extrasRules
 }
 
 // IsFortuna returns whether [time] represents a block
@@ -1028,7 +1031,6 @@ func (c *ChainConfig) IsFortuna(time uint64) bool {
 
 // IsGenesis returns whether all network upgrades are active at genesis.
 // For v2.0.0, this is always true since all upgrades are active at genesis.
-// Implements iface.ChainConfig interface.
 func (c *ChainConfig) IsGenesis(time uint64) bool {
 	return true
 }

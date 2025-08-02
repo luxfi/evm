@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/luxfi/crypto/bls"
 	"github.com/luxfi/ids"
 	"github.com/stretchr/testify/require"
 )
@@ -51,7 +52,7 @@ func TestMarshalBlockSignatureRequest(t *testing.T) {
 // TestMarshalSignatureResponse asserts that the structure or serialization logic hasn't changed, primarily to
 // ensure compatibility with the network.
 func TestMarshalSignatureResponse(t *testing.T) {
-	var signature [interfaces.SignatureLen]byte
+	var signature [bls.SignatureLen]byte
 	sig, err := hex.DecodeString("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
 	require.NoError(t, err, "failed to decode string to hex")
 

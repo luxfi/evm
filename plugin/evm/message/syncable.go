@@ -9,7 +9,7 @@ import (
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/node/consensus/engine/chain/block"
+	"github.com/luxfi/node/quasar/engine/chain/block"
 	"github.com/luxfi/ids"
 	luxids "github.com/luxfi/ids"
 )

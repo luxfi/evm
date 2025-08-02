@@ -6,7 +6,6 @@ package precompileconfig
 
 import (
 	"github.com/luxfi/evm/commontype"
-	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/common"
 )
@@ -32,9 +31,9 @@ type Config interface {
 // PredicateContext is the context passed in to the Predicater interface to verify
 // a precompile predicate within a specific ProposerVM wrapper.
 type PredicateContext struct {
-	ConsensusCtx *iface.ChainContext
+	ConsensusCtx *commontype.ChainContext
 	// ProposerVMBlockCtx defines the ProposerVM context the predicate is verified within
-	ProposerVMBlockCtx *consensus.BlockContext
+	ProposerVMBlockCtx *commontype.BlockContext
 }
 
 // Predicater is an optional interface for StatefulPrecompileContracts to implement.
@@ -55,7 +54,7 @@ type WarpMessageWriter interface {
 
 // AcceptContext defines the context passed in to a precompileconfig's Accepter
 type AcceptContext struct {
-	ConsensusCtx *iface.ChainContext
+	ConsensusCtx *commontype.ChainContext
 	Warp    WarpMessageWriter
 }
 

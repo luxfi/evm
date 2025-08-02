@@ -7,8 +7,10 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"math/big"
+	"unsafe"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/ethclient"
+	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
@@ -50,7 +52,7 @@ func IssueTxsToActivateProposerVMFork(
 		if err != nil {
 			return err
 		}
-		if err := client.SendTransaction(ctx, triggerTx); err != nil {
+		if err := client.SendTransaction(ctx, (*iface.Transaction)(unsafe.Pointer(triggerTx))); err != nil {
 			return err
 		}
 		<-newHeads // wait for block to be accepted

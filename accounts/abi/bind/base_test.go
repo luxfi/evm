@@ -36,7 +36,7 @@ import (
 	"github.com/luxfi/evm/accounts/abi"
 	"github.com/luxfi/evm/accounts/abi/bind"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/iface"
+	ethereum "github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/crypto"
@@ -80,7 +80,7 @@ func (mt *mockTransactor) EstimateGas(ctx context.Context, call ethereum.CallMsg
 	return 0, nil
 }
 
-func (mt *mockTransactor) SendTransaction(ctx context.Context, tx *types.Transaction) error {
+func (mt *mockTransactor) SendTransaction(ctx context.Context, tx *ethereum.Transaction) error {
 	return nil
 }
 

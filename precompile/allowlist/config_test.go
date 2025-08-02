@@ -5,20 +5,21 @@ package allowlist_test
 
 import (
 	"testing"
-	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/precompile/allowlist"
+	"github.com/luxfi/evm/precompile/registry"
 )
 
-var testModule = modules.Module{
-	Address:      dummyAddr,
-	Contract:     CreateAllowListPrecompile(dummyAddr),
-	Configurator: &dummyConfigurator{},
-	ConfigKey:    "dummy",
-}
+var testModule = registry.NewModule(
+	"dummy",
+	dummyAddr,
+	allowlist.CreateAllowListPrecompile(dummyAddr),
+	&dummyConfigurator{},
+)
 
 func TestVerifyAllowlist(t *testing.T) {
-	VerifyPrecompileWithAllowListTests(t, testModule, nil)
+	allowlist.VerifyPrecompileWithAllowListTests(t, testModule, nil)
 }
 
 func TestEqualAllowList(t *testing.T) {
-	EqualPrecompileWithAllowListTests(t, testModule, nil)
+	allowlist.EqualPrecompileWithAllowListTests(t, testModule, nil)
 }

@@ -23,7 +23,7 @@ import (
 
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/trie/utils"
+	"github.com/luxfi/evm/trie/utils"
 	"github.com/luxfi/geth/common"
 	"github.com/holiman/uint256"
 )

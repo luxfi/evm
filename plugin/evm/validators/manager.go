@@ -3,8 +3,8 @@
 package validators
 
 import (
-	"github.com/luxfi/node/consensus"
-	"github.com/luxfi/node/consensus/validators"
+	"github.com/luxfi/node/quasar"
+	"github.com/luxfi/node/quasar/validators"
 	"github.com/luxfi/database"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/utils/timer/mockable"
@@ -13,7 +13,7 @@ import (
 // manager wraps the consensus validator manager for EVM usage
 type manager struct {
 	validators.Manager
-	ctx      *consensus.Context
+	ctx      *quasar.Context
 	subnetID ids.ID
 	chainID  ids.ID
 	db       database.Database
@@ -22,7 +22,7 @@ type manager struct {
 
 // NewManager returns the actual validator manager implementation.
 func NewManager(
-	ctx *consensus.Context,
+	ctx *quasar.Context,
 	db database.Database,
 	clock *mockable.Clock,
 ) (*manager, error) {

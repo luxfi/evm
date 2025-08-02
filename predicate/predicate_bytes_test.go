@@ -6,9 +6,8 @@ package predicate
 import (
 	"bytes"
 	"testing"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/params"
 	"github.com/stretchr/testify/require"
+	avagoUtils "github.com/luxfi/node/utils"
 )
 
 func testPackPredicate(t testing.TB, b []byte) {
@@ -20,7 +19,7 @@ func testPackPredicate(t testing.TB, b []byte) {
 
 func FuzzPackPredicate(f *testing.F) {
 	for i := 0; i < 100; i++ {
-		f.Add(utils.RandomBytes(i))
+		f.Add(avagoUtils.RandomBytes(i))
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
@@ -39,7 +38,7 @@ func TestUnpackInvalidPredicate(t *testing.T) {
 	}
 
 	for _, l := range []int{0, 1, 31, 32, 33, 63, 64, 65} {
-		validPredicate := PackPredicate(utils.RandomBytes(l))
+		validPredicate := PackPredicate(avagoUtils.RandomBytes(l))
 
 		for _, padding := range paddingCases {
 			invalidPredicate := append(validPredicate, padding...)

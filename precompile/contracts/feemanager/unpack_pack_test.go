@@ -5,13 +5,14 @@ package feemanager
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"testing"
 	"github.com/luxfi/evm/accounts/abi"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/common/math"
+	gethmath "github.com/luxfi/geth/common/math"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,9 +26,9 @@ func FuzzPackGetFeeConfigOutputEqualTest(f *testing.F) {
 	f.Add([]byte{}, uint64(0))
 	f.Add(big.NewInt(0).Bytes(), uint64(0))
 	f.Add(big.NewInt(1).Bytes(), uint64(math.MaxUint64))
-	f.Add(math.MaxBig256.Bytes(), uint64(0))
-	f.Add(math.MaxBig256.Sub(math.MaxBig256, common.Big1).Bytes(), uint64(0))
-	f.Add(math.MaxBig256.Add(math.MaxBig256, common.Big1).Bytes(), uint64(0))
+	f.Add(gethmath.MaxBig256.Bytes(), uint64(0))
+	f.Add(gethmath.MaxBig256.Sub(gethmath.MaxBig256, common.Big1).Bytes(), uint64(0))
+	f.Add(gethmath.MaxBig256.Add(gethmath.MaxBig256, common.Big1).Bytes(), uint64(0))
 	f.Fuzz(func(t *testing.T, bigIntBytes []byte, blockRate uint64) {
 		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
 		feeConfig := commontype.FeeConfig{
@@ -165,9 +166,9 @@ func FuzzPackGetLastChangedAtOutput(f *testing.F) {
 	f.Add([]byte{})
 	f.Add(big.NewInt(0).Bytes())
 	f.Add(big.NewInt(1).Bytes())
-	f.Add(math.MaxBig256.Bytes())
-	f.Add(math.MaxBig256.Sub(math.MaxBig256, common.Big1).Bytes())
-	f.Add(math.MaxBig256.Add(math.MaxBig256, common.Big1).Bytes())
+	f.Add(gethmath.MaxBig256.Bytes())
+	f.Add(gethmath.MaxBig256.Sub(gethmath.MaxBig256, common.Big1).Bytes())
+	f.Add(gethmath.MaxBig256.Add(gethmath.MaxBig256, common.Big1).Bytes())
 	f.Fuzz(func(t *testing.T, bigIntBytes []byte) {
 		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
 		doCheckOutputs := true
@@ -185,9 +186,9 @@ func FuzzPackSetFeeConfigEqualTest(f *testing.F) {
 	f.Add([]byte{}, uint64(0))
 	f.Add(big.NewInt(0).Bytes(), uint64(0))
 	f.Add(big.NewInt(1).Bytes(), uint64(math.MaxUint64))
-	f.Add(math.MaxBig256.Bytes(), uint64(0))
-	f.Add(math.MaxBig256.Sub(math.MaxBig256, common.Big1).Bytes(), uint64(0))
-	f.Add(math.MaxBig256.Add(math.MaxBig256, common.Big1).Bytes(), uint64(0))
+	f.Add(gethmath.MaxBig256.Bytes(), uint64(0))
+	f.Add(gethmath.MaxBig256.Sub(gethmath.MaxBig256, common.Big1).Bytes(), uint64(0))
+	f.Add(gethmath.MaxBig256.Add(gethmath.MaxBig256, common.Big1).Bytes(), uint64(0))
 	f.Fuzz(func(t *testing.T, bigIntBytes []byte, blockRate uint64) {
 		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
 		feeConfig := commontype.FeeConfig{

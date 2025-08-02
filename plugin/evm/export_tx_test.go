@@ -5,17 +5,23 @@ package evm
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"testing"
 
 	"github.com/luxfi/evm/plugin/evm/atomic"
 	"github.com/luxfi/ids"
+	luxatomic "github.com/luxfi/node/chains/atomic"
 	"github.com/luxfi/node/utils/crypto/secp256k1"
 	"github.com/luxfi/node/utils/units"
 	"github.com/luxfi/node/vms/components/lux"
 	"github.com/luxfi/node/vms/secp256k1fx"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/require"
+	
+	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/evm/params"
+	gethparams "github.com/luxfi/geth/params"
 )
 
 func TestExportTxVerify(t *testing.T) {
@@ -126,12 +132,25 @@ func TestExportTxVerify(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ctx := &atomic.Context{
+			ctx := &consensus.Context{
 				NetworkID:   exportTestNetworkID,
 				ChainID:     exportTestCChainID,
-				AVAXAssetID: exportTestLUXAssetID,
+				LUXAssetID: exportTestLUXAssetID,
 			}
-			err := test.tx.Verify(ctx)
+			rules := gethparams.Rules{
+				ChainID:    big.NewInt(int64(exportTestNetworkID)),
+				IsHomestead: true,
+				IsEIP150: true,
+				IsEIP155: true,
+				IsEIP158: true,
+				IsByzantium: true,
+				IsConstantinople: true,
+				IsPetersburg: true,
+				IsIstanbul: true,
+				IsBerlin: true,
+				IsLondon: true,
+			}
+			err := test.tx.Verify(ctx, rules)
 			if test.expectedErr == "" {
 				require.NoError(t, err)
 			} else {
@@ -220,7 +239,7 @@ func TestExportTxGasCost(t *testing.T) {
 			Keys:            [][]*secp256k1.PrivateKey{{exportTestKeys[0]}},
 			ExpectedGasUsed: 1230,
 			ExpectedFee:     30750,
-			BaseFee:         big.NewInt(25 * units.GWei),
+			BaseFee:         big.NewInt(25 * params.GWei),
 		},
 	}
 
@@ -258,7 +277,7 @@ func TestExportTxSemanticVerify(t *testing.T) {
 	ethAddr := exportTestEthAddrs[0]
 
 	var (
-		avaxBalance           = 10 * units.Avax
+		avaxBalance           = 10 * units.Lux
 		custom0Balance uint64 = 100
 		custom0AssetID        = ids.ID{1, 2, 3, 4, 5}
 	)
@@ -360,7 +379,7 @@ func TestExportTxAccept(t *testing.T) {
 	ethAddr := exportTestEthAddrs[0]
 
 	var (
-		avaxBalance           = 10 * units.Avax
+		avaxBalance           = 10 * units.Lux
 		custom0Balance uint64 = 100
 		custom0AssetID        = ids.ID{1, 2, 3, 4, 5}
 	)
@@ -437,7 +456,7 @@ func TestExportTxAccept(t *testing.T) {
 	customInputID := customUTXOID.InputID()
 
 	// Find the requests by their keys
-	var avaxRequest, customRequest *atomic.Element
+	var avaxRequest, customRequest *luxatomic.Element
 	for _, req := range atomicRequests.PutRequests {
 		if bytes.Equal(req.Key, avaxInputID[:]) {
 			avaxRequest = req
@@ -454,20 +473,27 @@ func TestExportTxAccept(t *testing.T) {
 	require.Contains(t, customRequest.Traits, addr.Bytes())
 }
 
+// Test errors for export transaction verification
+var (
+	errWrongTxType           = errors.New("wrong transaction type")
+	errNoExportOutputs       = errors.New("no export outputs")
+	errSignatureVerification = errors.New("signature verification failed")
+)
+
 // Helper function for semantic verification
 func verifyExportTxSemantics(tx *atomic.Tx) error {
 	exportTx, ok := tx.UnsignedAtomicTx.(*atomic.UnsignedExportTx)
 	if !ok {
-		return atomic.ErrWrongTxType
+		return errWrongTxType
 	}
 
 	if len(exportTx.ExportedOutputs) == 0 {
-		return atomic.ErrNoExportOutputs
+		return errNoExportOutputs
 	}
 
 	// Verify signatures match inputs
 	if len(tx.Creds) != len(exportTx.Ins) {
-		return atomic.ErrSignatureVerification
+		return errSignatureVerification
 	}
 
 	// Additional semantic checks would go here

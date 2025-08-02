@@ -10,34 +10,30 @@ import (
 	"github.com/luxfi/ids"
 	"github.com/luxfi/evm/plugin/evm/message"
 
-	"github.com/luxfi/node/consensus/engine/chain/block"
-
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 )
 
-var _ message.Syncable = (*Summary)(nil)
-
 // Summary provides the information necessary to sync a node starting
 // at the given block.
 type Summary struct {
-	*message.BlockSyncSummary `serialize:"true"`
-	AtomicRoot                common.Hash `serialize:"true"`
+	BlockNumber uint64      `serialize:"true"`
+	BlockHash   common.Hash `serialize:"true"`
+	BlockRoot   common.Hash `serialize:"true"`
+	AtomicRoot  common.Hash `serialize:"true"`
 
 	summaryID  ids.ID
 	bytes      []byte
-	acceptImpl message.AcceptImplFn
+	acceptImpl func(*Summary) error
 }
 
 func NewSummary(blockHash common.Hash, blockNumber uint64, blockRoot common.Hash, atomicRoot common.Hash) (*Summary, error) {
 	// We intentionally do not use the acceptImpl here and leave it for the parser to set.
 	summary := Summary{
-		BlockSyncSummary: &message.BlockSyncSummary{
-			BlockNumber: blockNumber,
-			BlockHash:   blockHash,
-			BlockRoot:   blockRoot,
-		},
-		AtomicRoot: atomicRoot,
+		BlockNumber: blockNumber,
+		BlockHash:   blockHash,
+		BlockRoot:   blockRoot,
+		AtomicRoot:  atomicRoot,
 	}
 	bytes, err := message.Codec.Marshal(message.Version, &summary)
 	if err != nil {
@@ -66,9 +62,9 @@ func (a *Summary) String() string {
 	return fmt.Sprintf("Summary(BlockHash=%s, BlockNumber=%d, BlockRoot=%s, AtomicRoot=%s)", a.BlockHash, a.BlockNumber, a.BlockRoot, a.AtomicRoot)
 }
 
-func (a *Summary) Accept(context.Context) (block.StateSyncMode, error) {
+func (a *Summary) Accept(context.Context) error {
 	if a.acceptImpl == nil {
-		return block.StateSyncSkipped, fmt.Errorf("accept implementation not specified for summary: %s", a)
+		return fmt.Errorf("accept implementation not specified for summary: %s", a)
 	}
 	return a.acceptImpl(a)
 }

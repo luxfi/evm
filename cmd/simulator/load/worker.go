@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"unsafe"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/ethclient"
 	ethereum "github.com/luxfi/evm/iface"
@@ -64,7 +65,7 @@ func NewTxReceiptWorker(ctx context.Context, client ethclient.Client) *ethereumT
 }
 
 func (tw *ethereumTxWorker) IssueTx(ctx context.Context, tx *types.Transaction) error {
-	return tw.client.SendTransaction(ctx, tx)
+	return tw.client.SendTransaction(ctx, (*ethereum.Transaction)(unsafe.Pointer(tx)))
 }
 
 func (tw *ethereumTxWorker) ConfirmTx(ctx context.Context, tx *types.Transaction) error {

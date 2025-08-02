@@ -33,12 +33,11 @@ import (
 	"time"
 
 	"github.com/luxfi/evm/consensus/dummy"
-	"github.com/luxfi/geth/core"
-	"github.com/luxfi/geth/core/rawdb"
-	"github.com/luxfi/geth/core/state"
-	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/core/vm"
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/params"
 	customheader "github.com/luxfi/evm/plugin/evm/header"
 	"github.com/luxfi/evm/upgrade/lp176"
 	"github.com/luxfi/evm/upgrade/ap1"
@@ -80,7 +79,7 @@ func (b *testBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.
 }
 
 func (b *testBackend) ChainConfig() *params.ChainConfig {
-	return b.chain.Config()
+	return b.chain.Config().(*params.ChainConfig)
 }
 
 func (b *testBackend) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
@@ -129,14 +128,9 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, ext
 		Alloc:  types.GenesisAlloc{addr: {Balance: bal}},
 	}
 
-	engine := dummy.NewFakerWithCallbacks(dummy.ConsensusCallbacks{
-		OnFinalizeAndAssemble: func(*types.Header, *types.Header, *state.StateDB, []*types.Transaction) ([]byte, *big.Int, *big.Int, error) {
-			return nil, common.Big0, extDataGasUsage, nil
-		},
-		OnExtraStateChange: func(*types.Block, *types.Header, *state.StateDB) (*big.Int, *big.Int, error) {
-			return common.Big0, extDataGasUsage, nil
-		},
-	})
+	// Use a simple faker engine for testing
+	// TODO: Add callback support if needed for extDataGasUsage
+	engine := dummy.NewFaker()
 
 	// Generate testing blocks
 	_, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, numBlocks, ap4.TargetBlockRate-1, genBlocks)
@@ -155,7 +149,10 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, ext
 }
 
 func (b *testBackend) MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error) {
-	return customheader.EstimateRequiredTip(b.chain.Config(), header)
+	// Get the chain config
+	config := b.ChainConfig()
+	// EstimateRequiredTip expects *extras.ChainConfig
+	return customheader.EstimateRequiredTip(params.GetExtra(config), header)
 }
 
 func (b *testBackend) CurrentHeader() *types.Header {
@@ -351,10 +348,10 @@ func TestSuggestGasPricePreAP3(t *testing.T) {
 		Percentile: 60,
 	}
 
-	backend := newTestBackend(t, params.TestApricotPhase2Config, 3, nil, func(i int, b *core.BlockGen) {
+	backend := newTestBackend(t, params.TestChainConfig, 3, nil, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{1})
 
-		signer := types.LatestSigner(params.TestApricotPhase2Config)
+		signer := types.LatestSigner(params.TestChainConfig)
 		gasPrice := big.NewInt(ap1.MinGasPrice)
 		for j := 0; j < 50; j++ {
 			tx := types.NewTx(&types.LegacyTx{

@@ -6,10 +6,10 @@ package utils
 import (
 	"bytes"
 	"testing"
-	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	avagoUtils "github.com/luxfi/node/utils"
 )
 
 func TestIncrOne(t *testing.T) {
@@ -56,7 +56,7 @@ func testBytesToHashSlice(t testing.TB, b []byte) {
 
 func FuzzHashSliceToBytes(f *testing.F) {
 	for i := 0; i < 100; i++ {
-		f.Add(utils.RandomBytes(i))
+		f.Add(avagoUtils.RandomBytes(i))
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
