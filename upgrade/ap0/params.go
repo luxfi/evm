@@ -5,7 +5,7 @@
 package ap0
 
 import (
-	"github.com/luxfi/node/utils/units"
+	"github.com/luxfi/node/v2/utils/units"
 	"github.com/luxfi/evm/v2/utils"
 )
 

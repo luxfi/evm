@@ -10,9 +10,9 @@ import (
 	"log/slog"
 
 	"github.com/luxfi/evm/v2/plugin/evm/config"
-	"github.com/luxfi/node/api"
+	"github.com/luxfi/node/v2/api"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/utils/rpc"
+	"github.com/luxfi/node/v2/utils/rpc"
 )
 
 // Interface compliance
