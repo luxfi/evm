@@ -4,22 +4,6 @@ go 1.24.5
 
 replace github.com/crate-crypto/go-kzg-4844 => github.com/crate-crypto/go-kzg-4844 v1.1.0
 
-replace (
-	github.com/luxfi/node/v2 => ../node
-	github.com/luxfi/bft => ../bft
-	github.com/luxfi/crypto => ../crypto
-	github.com/luxfi/database => ../database
-	github.com/luxfi/ids => ../ids
-	github.com/luxfi/ledger-lux-go => ../ledger-lux-go
-	github.com/luxfi/log => ../log
-	github.com/luxfi/ringtail => ../ringtail
-	github.com/luxfi/trace => ../trace
-	github.com/luxfi/geth => ../geth
-	github.com/luxfi/warp => ../warp
-	github.com/luxfi/metrics => ../metrics
-	github.com/luxfi/cli/v2 => ../cli
-)
-
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.5
 	github.com/cespare/cp v0.1.0
