@@ -8,9 +8,9 @@ import (
 	"errors"
 
 	"github.com/luxfi/ids"
-	"github.com/luxfi/evm/v2/network"
+	"github.com/luxfi/evm/network"
 
-	"github.com/luxfi/node/v2/version"
+	"github.com/luxfi/node/version"
 )
 
 var _ network.SyncedNetworkClient = (*testNetwork)(nil)

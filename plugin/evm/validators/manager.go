@@ -3,11 +3,11 @@
 package validators
 
 import (
-	"github.com/luxfi/node/v2/quasar"
-	"github.com/luxfi/node/v2/quasar/validators"
+	"github.com/luxfi/node/quasar"
+	"github.com/luxfi/node/quasar/validators"
 	"github.com/luxfi/database"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/v2/utils/timer/mockable"
+	"github.com/luxfi/node/utils/timer/mockable"
 )
 
 // manager wraps the consensus validator manager for EVM usage

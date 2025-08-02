@@ -12,17 +12,17 @@ import (
 
 	"golang.org/x/sync/semaphore"
 
-	"github.com/luxfi/evm/v2/peer/stats"
-	"github.com/luxfi/evm/v2/plugin/evm/message"
+	"github.com/luxfi/evm/peer/stats"
+	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/log"
-	"github.com/luxfi/node/v2/codec"
+	"github.com/luxfi/node/codec"
 	"github.com/luxfi/ids"
-	nodeinterfaces "github.com/luxfi/node/v2/quasar/engine/core"
-	"github.com/luxfi/node/v2/quasar/validators"
-	"github.com/luxfi/node/v2/network/p2p"
-	"github.com/luxfi/node/v2/version"
-	"github.com/luxfi/node/v2/utils"
-	"github.com/luxfi/node/v2/utils/set"
+	nodeinterfaces "github.com/luxfi/node/quasar/engine/core"
+	"github.com/luxfi/node/quasar/validators"
+	"github.com/luxfi/node/network/p2p"
+	"github.com/luxfi/node/version"
+	"github.com/luxfi/node/utils"
+	"github.com/luxfi/node/utils/set"
 )
 
 // Minimum amount of time to handle a request

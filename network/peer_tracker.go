@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/luxfi/ids"
-	utils_math "github.com/luxfi/node/v2/utils/math"
-	"github.com/luxfi/node/v2/utils/set"
-	"github.com/luxfi/node/v2/version"
+	utils_math "github.com/luxfi/node/utils/math"
+	"github.com/luxfi/node/utils/set"
+	"github.com/luxfi/node/version"
 
 	"github.com/luxfi/log"
 

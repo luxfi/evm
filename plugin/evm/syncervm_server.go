@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/luxfi/evm/v2/core"
-	"github.com/luxfi/evm/v2/plugin/evm/message"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/log"
-	"github.com/luxfi/node/v2/quasar/engine/chain/block"
+	"github.com/luxfi/node/quasar/engine/chain/block"
 	"github.com/luxfi/database"
 )
 

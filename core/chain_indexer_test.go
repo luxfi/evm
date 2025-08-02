@@ -34,8 +34,8 @@ import (
 	"math/rand"
 	"testing"
 	"time"
-	"github.com/luxfi/evm/v2/core/rawdb"
-	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/common"
 )
 

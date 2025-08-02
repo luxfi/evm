@@ -32,9 +32,9 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"github.com/luxfi/evm/v2/params"
-	"github.com/luxfi/evm/v2/params/extras"
-	"github.com/luxfi/evm/v2/utils"
+	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/params/extras"
+	"github.com/luxfi/evm/utils"
 	ethparams "github.com/luxfi/geth/params"
 )
 

@@ -11,9 +11,9 @@ import (
 	"github.com/luxfi/log"
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/v2/utils/set"
-	safemath "github.com/luxfi/node/v2/utils/math"
-	"github.com/luxfi/node/v2/version"
+	"github.com/luxfi/node/utils/set"
+	safemath "github.com/luxfi/node/utils/math"
+	"github.com/luxfi/node/version"
 )
 
 const (

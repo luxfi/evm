@@ -15,7 +15,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/require"
-	"github.com/luxfi/node/v2/api/health"
+	"github.com/luxfi/node/api/health"
 )
 
 // RunCommand starts the command [bin] with the given [args] and returns the command to the caller

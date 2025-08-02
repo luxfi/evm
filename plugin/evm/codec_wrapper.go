@@ -4,8 +4,8 @@
 package evm
 
 import (
-	"github.com/luxfi/evm/v2/iface"
-	"github.com/luxfi/node/v2/codec"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/node/codec"
 )
 
 // codecWrapper wraps a node codec.Manager to implement iface.Codec
