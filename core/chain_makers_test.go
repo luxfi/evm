@@ -36,6 +36,8 @@ import (
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
+	"github.com/luxfi/geth/triedb"
+	ethparams "github.com/luxfi/geth/params"
 )
 
 func ExampleGenerateChain() {
@@ -52,7 +54,11 @@ func ExampleGenerateChain() {
 
 	// Ensure that key1 has some funds in the genesis block.
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{
+			ChainConfig: &ethparams.ChainConfig{
+				HomesteadBlock: new(big.Int),
+			},
+		},
 		Alloc:  types.GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
 	}
 	genesis := gspec.MustCommit(genDb, triedb.NewDatabase(genDb, triedb.HashDefaults))

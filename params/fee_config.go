@@ -6,8 +6,6 @@ package params
 import (
 	"fmt"
 	"math/big"
-
-	"github.com/luxfi/evm/core/types"
 )
 
 // DynamicFeeConfig implements Octane (ACP-176) style dynamic fees
@@ -58,15 +56,21 @@ func (f *DynamicFeeConfig) Verify() error {
 	return nil
 }
 
+// BaseFeeCalculator is an interface for headers used in base fee calculation
+type BaseFeeCalculator interface {
+	GetBaseFee() *big.Int
+	GetGasUsed() uint64
+}
+
 // CalcBaseFee calculates the base fee for the next block based on parent
-func CalcBaseFee(config *DynamicFeeConfig, parent *types.Header) *big.Int {
+func CalcBaseFee(config *DynamicFeeConfig, parent BaseFeeCalculator) *big.Int {
 	// If parent has no basefee, use initial base fee
-	if parent.BaseFee == nil {
+	parentFee := parent.GetBaseFee()
+	if parentFee == nil {
 		return new(big.Int).Set(config.MinBaseFee)
 	}
 
-	parentGasUsed := parent.GasUsed
-	parentFee := parent.BaseFee
+	parentGasUsed := parent.GetGasUsed()
 	targetGas := config.TargetGas
 	changeDenominator := config.BaseFeeChangeDenominator
 

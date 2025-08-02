@@ -12,8 +12,13 @@ import (
 )
 
 var (
-	ErrUnknownValidator = errors.New("unknown validator")
-	ErrWeightOverflow   = errors.New("weight overflowed")
+	ErrUnknownValidator   = errors.New("unknown validator")
+	ErrWeightOverflow     = errors.New("weight overflowed")
+	ErrInvalidBitSet      = errors.New("invalid bit set")
+	ErrInsufficientWeight = errors.New("insufficient weight")
+	ErrParseSignature     = errors.New("failed to parse signature")
+	ErrNoPublicKeys       = errors.New("no public keys")
+	ErrInvalidSignature   = errors.New("invalid signature")
 )
 
 // Context defines the block context for warp validation

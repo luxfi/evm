@@ -196,15 +196,30 @@ func verifyIterator(t *testing.T, expCount int, it Iterator, verify verifyConten
 		last  = common.Hash{}
 	)
 	for it.Next() {
-		hash := it.Hash()
+		var hash common.Hash
+		if accIt, ok := it.(AccountIterator); ok {
+			hash, _ = accIt.Account()
+		} else if storIt, ok := it.(StorageIterator); ok {
+			hash, _ = storIt.Slot()
+		}
 		if bytes.Compare(last[:], hash[:]) >= 0 {
 			t.Errorf("wrong order: %x >= %x", last, hash)
 		}
 		count++
-		if verify == verifyAccount && len(it.(AccountIterator).Account()) == 0 {
-			t.Errorf("iterator returned nil-value for hash %x", hash)
-		} else if verify == verifyStorage && len(it.(StorageIterator).Slot()) == 0 {
-			t.Errorf("iterator returned nil-value for hash %x", hash)
+		if verify == verifyAccount {
+			if accIt, ok := it.(AccountIterator); ok {
+				_, acc := accIt.Account()
+				if len(acc) == 0 {
+					t.Errorf("iterator returned nil-value for hash %x", hash)
+				}
+			}
+		} else if verify == verifyStorage {
+			if storIt, ok := it.(StorageIterator); ok {
+				_, slot := storIt.Slot()
+				if len(slot) == 0 {
+					t.Errorf("iterator returned nil-value for hash %x", hash)
+				}
+			}
 		}
 		last = hash
 	}
@@ -353,13 +368,13 @@ func TestAccountIteratorTraversalValues(t *testing.T) {
 	it, _ := snaps.AccountIterator(common.HexToHash("0xff09"), common.Hash{}, false)
 	head := snaps.Snapshot(common.HexToHash("0xff09"))
 	for it.Next() {
-		hash := it.Hash()
+		hash, acc := it.Account()
 		want, err := head.AccountRLP(hash)
 		if err != nil {
 			t.Fatalf("failed to retrieve expected account: %v", err)
 		}
-		if have := it.Account(); !bytes.Equal(want, have) {
-			t.Fatalf("hash %x: account mismatch: have %x, want %x", hash, have, want)
+		if !bytes.Equal(want, acc) {
+			t.Fatalf("hash %x: account mismatch: have %x, want %x", hash, acc, want)
 		}
 	}
 	it.Release()
@@ -380,13 +395,13 @@ func TestAccountIteratorTraversalValues(t *testing.T) {
 
 	it, _ = snaps.AccountIterator(common.HexToHash("0xff09"), common.Hash{}, false)
 	for it.Next() {
-		hash := it.Hash()
+		hash, acc := it.Account()
 		want, err := head.AccountRLP(hash)
 		if err != nil {
 			t.Fatalf("failed to retrieve expected account: %v", err)
 		}
-		if have := it.Account(); !bytes.Equal(want, have) {
-			t.Fatalf("hash %x: account mismatch: have %x, want %x", hash, have, want)
+		if !bytes.Equal(want, acc) {
+			t.Fatalf("hash %x: account mismatch: have %x, want %x", hash, acc, want)
 		}
 	}
 	it.Release()
@@ -448,13 +463,13 @@ func TestStorageIteratorTraversalValues(t *testing.T) {
 	it, _ := snaps.StorageIterator(common.HexToHash("0xff09"), common.HexToHash("0xaa"), common.Hash{})
 	head := snaps.Snapshot(common.HexToHash("0xff09"))
 	for it.Next() {
-		hash := it.Hash()
+		hash, slot := it.Slot()
 		want, err := head.Storage(common.HexToHash("0xaa"), hash)
 		if err != nil {
 			t.Fatalf("failed to retrieve expected storage slot: %v", err)
 		}
-		if have := it.Slot(); !bytes.Equal(want, have) {
-			t.Fatalf("hash %x: slot mismatch: have %x, want %x", hash, have, want)
+		if !bytes.Equal(want, slot) {
+			t.Fatalf("hash %x: slot mismatch: have %x, want %x", hash, slot, want)
 		}
 	}
 	it.Release()
@@ -475,13 +490,13 @@ func TestStorageIteratorTraversalValues(t *testing.T) {
 
 	it, _ = snaps.StorageIterator(common.HexToHash("0xff09"), common.HexToHash("0xaa"), common.Hash{})
 	for it.Next() {
-		hash := it.Hash()
+		hash, slot := it.Slot()
 		want, err := head.Storage(common.HexToHash("0xaa"), hash)
 		if err != nil {
 			t.Fatalf("failed to retrieve expected slot: %v", err)
 		}
-		if have := it.Slot(); !bytes.Equal(want, have) {
-			t.Fatalf("hash %x: slot mismatch: have %x, want %x", hash, have, want)
+		if !bytes.Equal(want, slot) {
+			t.Fatalf("hash %x: slot mismatch: have %x, want %x", hash, slot, want)
 		}
 	}
 	it.Release()
@@ -699,8 +714,8 @@ func TestAccountIteratorDeletions(t *testing.T) {
 	it, _ = snaps.AccountIterator(common.HexToHash("0xff04"), common.Hash{}, false)
 	defer it.Release()
 	for it.Next() {
-		hash := it.Hash()
-		if it.Account() == nil {
+		hash, acc := it.Account()
+		if acc == nil {
 			t.Errorf("iterator returned nil-value for hash %x", hash)
 		}
 		if hash == deleted {
@@ -807,7 +822,8 @@ func BenchmarkAccountIteratorTraversal(b *testing.B) {
 			it := head.(*diffLayer).newBinaryAccountIterator()
 			for it.Next() {
 				got++
-				head.(*diffLayer).accountRLP(it.Hash(), 0)
+				hash, _ := it.Account()
+				head.(*diffLayer).accountRLP(hash, 0)
 			}
 			if exp := 200; got != exp {
 				b.Errorf("iterator len wrong, expected %d, got %d", exp, got)
@@ -895,7 +911,7 @@ func BenchmarkAccountIteratorLargeBaselayer(b *testing.B) {
 			it := head.(*diffLayer).newBinaryAccountIterator()
 			for it.Next() {
 				got++
-				v := it.Hash()
+				v, _ := it.Account()
 				head.(*diffLayer).accountRLP(v, 0)
 			}
 			if exp := 2000; got != exp {

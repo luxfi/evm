@@ -33,6 +33,8 @@ import (
 	"math/big"
 	"strings"
 	"sync"
+	"reflect"
+	"unsafe"
 	"github.com/luxfi/evm/accounts/abi"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/types"
@@ -434,7 +436,8 @@ func (c *BoundContract) transact(opts *TransactOpts, contract *common.Address, i
 	if opts.NoSend {
 		return signedTx, nil
 	}
-	if err := c.transactor.SendTransaction(ensureContext(opts.Context), signedTx); err != nil {
+	// Use unsafe cast to work around type alias issues
+	if err := c.transactor.SendTransaction(ensureContext(opts.Context), (*ethereum.Transaction)(unsafe.Pointer(signedTx))); err != nil {
 		return nil, err
 	}
 	return signedTx, nil
@@ -474,8 +477,11 @@ func (c *BoundContract) FilterLogs(opts *FilterOpts, name string, query ...[]int
 	}
 	sub, err := event.NewSubscription(func(quit <-chan struct{}) error {
 		for _, log := range buff {
+			// Use reflection to convert log
+			v := reflect.ValueOf(log).Convert(reflect.TypeOf(types.Log{}))
+			typedLog := v.Interface().(types.Log)
 			select {
-			case logs <- log:
+			case logs <- typedLog:
 			case <-quit:
 				return nil
 			}
@@ -505,6 +511,8 @@ func (c *BoundContract) WatchLogs(opts *WatchOpts, name string, query ...[]inter
 	}
 	// Start the background filtering
 	logs := make(chan types.Log, 128)
+	// Create an iface.Log channel for the interface
+	ifaceLogs := make(chan ethereum.Log, 128)
 
 	config := ethereum.FilterQuery{
 		Addresses: []common.Address{c.address},
@@ -513,10 +521,24 @@ func (c *BoundContract) WatchLogs(opts *WatchOpts, name string, query ...[]inter
 	if opts.Start != nil {
 		config.FromBlock = new(big.Int).SetUint64(*opts.Start)
 	}
-	sub, err := c.filterer.SubscribeFilterLogs(ensureContext(opts.Context), config, logs)
+	
+	// Subscribe with iface.Log channel
+	sub, err := c.filterer.SubscribeFilterLogs(ensureContext(opts.Context), config, ifaceLogs)
 	if err != nil {
 		return nil, nil, err
 	}
+	
+	// Forward logs from iface channel to types channel
+	go func() {
+		for log := range ifaceLogs {
+			// Use reflection to convert log
+			v := reflect.ValueOf(log).Convert(reflect.TypeOf(types.Log{}))
+			typedLog := v.Interface().(types.Log)
+			logs <- typedLog
+		}
+		close(logs)
+	}()
+	
 	return logs, sub, nil
 }
 

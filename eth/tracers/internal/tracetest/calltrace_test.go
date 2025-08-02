@@ -268,7 +268,7 @@ func benchTracer(tracerName string, test *callTracerTest, b *testing.B) {
 
 func TestInternals(t *testing.T) {
 	var (
-		config    = params.TestLaunchConfig
+		config    = params.TestChainConfig
 		to        = common.HexToAddress("0x00000000000000000000000000000000deadbeef")
 		origin    = common.HexToAddress("0x00000000000000000000000000000000feed")
 		txContext = vm.TxContext{

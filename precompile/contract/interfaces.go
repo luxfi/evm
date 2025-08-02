@@ -6,7 +6,7 @@ package contract
 
 import (
 	"math/big"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
 	ethtypes "github.com/luxfi/evm/core/types"
@@ -53,7 +53,7 @@ type StateDB interface {
 type AccessibleState interface {
 	GetStateDB() StateDB
 	GetBlockContext() BlockContext
-	GetConsensusContext() *iface.ChainContext
+	GetConsensusContext() *commontype.ChainContext
 	GetChainConfig() precompileconfig.ChainConfig
 	NativeAssetCall(caller common.Address, input []byte, suppliedGas uint64, gasCost uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 }

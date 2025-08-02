@@ -35,12 +35,12 @@ import (
 	"testing"
 
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/iface/core/rawdb"
-	"github.com/luxfi/evm/iface/trie"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
+	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/rlp"
+	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/geth/triedb"
 )
 

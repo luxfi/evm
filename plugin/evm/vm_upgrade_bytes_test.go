@@ -21,18 +21,19 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/crypto"
-	"github.com/luxfi/node/consensus"
-	"github.com/luxfi/node/consensus/engine/enginetest"
+	"github.com/luxfi/node/quasar"
+	"github.com/luxfi/node/quasar/consensus/engine/enginetest"
 	"github.com/luxfi/node/vms/components/chain"
+	"github.com/luxfi/node/upgrade"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var DefaultEtnaTime = uint64(interfaces.GetConfig(testNetworkID).EtnaTime.Unix())
+var DefaultEtnaTime = uint64(upgrade.GetConfig(testNetworkID).EtnaTime.Unix())
 
 func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Make a TxAllowListConfig upgrade at genesis and convert it to JSON to apply as upgradeBytes.
-	enableAllowListTimestamp := interfaces.InitiallyActiveTime // enable at initial time
+	enableAllowListTimestamp := upgrade.InitiallyActiveTime // enable at initial time
 	upgradeConfig := &extras.UpgradeConfig{
 		PrecompileUpgrades: []extras.PrecompileUpgrade{
 			{
@@ -104,10 +105,10 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 		}
 	}()
 	// Set the VM's state to NormalOp to initialize the tx pool.
-	if err := vm.SetState(context.Background(), consensus.Bootstrapping); err != nil {
+	if err := vm.SetState(context.Background(), quasar.Bootstrapping); err != nil {
 		t.Fatal(err)
 	}
-	if err := vm.SetState(context.Background(), consensus.NormalOp); err != nil {
+	if err := vm.SetState(context.Background(), quasar.NormalOp); err != nil {
 		t.Fatal(err)
 	}
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -195,8 +196,8 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 	)
 	require.NoError(t, err, "error initializing GenesisVM")
 
-	require.NoError(t, vm.SetState(context.Background(), consensus.Bootstrapping))
-	require.NoError(t, vm.SetState(context.Background(), consensus.NormalOp))
+	require.NoError(t, vm.SetState(context.Background(), quasar.Bootstrapping))
+	require.NoError(t, vm.SetState(context.Background(), quasar.NormalOp))
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -252,7 +253,7 @@ func TestVMStateUpgrade(t *testing.T) {
 		Code:          upgradedCode,
 	}
 
-	upgradeTimestamp := interfaces.InitiallyActiveTime.Add(10 * time.Hour)
+	upgradeTimestamp := upgrade.InitiallyActiveTime.Add(10 * time.Hour)
 	upgradeBytesJSON := fmt.Sprintf(
 		`{
 			"stateUpgrades": [

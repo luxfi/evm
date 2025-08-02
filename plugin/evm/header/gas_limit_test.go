@@ -34,12 +34,12 @@ func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	}{
 		{
 			name:     "subnet_evm",
-			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestChainConfig.NetworkUpgrades,
 			want:     feeConfig.GasLimit.Uint64(),
 		},
 		{
 			name:     "pre_subnet_evm",
-			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.NetworkUpgrades{}, // Empty upgrades for pre-EVM
 			parent: &types.Header{
 				GasLimit: 1,
 			},
@@ -79,14 +79,14 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	}{
 		{
 			name:     "subnet_evm_valid",
-			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestChainConfig.NetworkUpgrades,
 			header: &types.Header{
 				GasLimit: feeConfig.GasLimit.Uint64(),
 			},
 		},
 		{
 			name:     "subnet_evm_invalid",
-			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestChainConfig.NetworkUpgrades,
 			header: &types.Header{
 				GasLimit: feeConfig.GasLimit.Uint64() + 1,
 			},
@@ -94,7 +94,7 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:     "pre_subnet_evm_valid",
-			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.NetworkUpgrades{}, // Empty upgrades for pre-EVM
 			parent: &types.Header{
 				GasLimit: 50_000,
 			},
@@ -104,7 +104,7 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:     "pre_subnet_evm_too_low",
-			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.NetworkUpgrades{}, // Empty upgrades for pre-EVM
 			parent: &types.Header{
 				GasLimit: params.MinGasLimit,
 			},
@@ -115,7 +115,7 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:     "pre_subnet_evm_too_high",
-			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.NetworkUpgrades{}, // Empty upgrades for pre-EVM
 			parent: &types.Header{
 				GasLimit: params.MaxGasLimit,
 			},
@@ -126,7 +126,7 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:     "pre_subnet_evm_too_large",
-			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.NetworkUpgrades{}, // Empty upgrades for pre-EVM
 			parent: &types.Header{
 				GasLimit: params.MinGasLimit,
 			},
@@ -167,7 +167,7 @@ func GasCapacityTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	}{
 		{
 			name:     "subnet_evm",
-			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestChainConfig.NetworkUpgrades,
 			want:     feeConfig.GasLimit.Uint64(),
 		},
 	}

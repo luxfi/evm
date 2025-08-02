@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/iface/core/rawdb"
+	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/utils"
+	ethparams "github.com/luxfi/geth/params"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,30 +24,32 @@ func TestGenesisEthUpgrades(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 	preEthUpgrades := params.WithExtra(
 		&params.ChainConfig{
-			ChainID:        big.NewInt(43114), // Specifically refers to mainnet for this UT
-			HomesteadBlock: big.NewInt(0),
-			// For this test to be a proper regression test, DAOForkBlock and
-			// DAOForkSupport should be set to match the values in
-			// [params.SetEthUpgrades]. Otherwise, in case of a regression, the test
-			// would pass as there would be a mismatch at genesis, which is
-			// incorrectly considered a success.
-			DAOForkBlock:        big.NewInt(0),
-			DAOForkSupport:      true,
-			EIP150Block:         big.NewInt(0),
-			EIP155Block:         big.NewInt(0),
-			EIP158Block:         big.NewInt(0),
-			ByzantiumBlock:      big.NewInt(0),
-			ConstantinopleBlock: big.NewInt(0),
-			PetersburgBlock:     big.NewInt(0),
-			IstanbulBlock:       big.NewInt(0),
-			MuirGlacierBlock:    big.NewInt(0),
+			ChainConfig: &ethparams.ChainConfig{
+				ChainID:        big.NewInt(43114), // Specifically refers to mainnet for this UT
+				HomesteadBlock: big.NewInt(0),
+				// For this test to be a proper regression test, DAOForkBlock and
+				// DAOForkSupport should be set to match the values in
+				// [params.SetEthUpgrades]. Otherwise, in case of a regression, the test
+				// would pass as there would be a mismatch at genesis, which is
+				// incorrectly considered a success.
+				DAOForkBlock:        big.NewInt(0),
+				DAOForkSupport:      true,
+				EIP150Block:         big.NewInt(0),
+				EIP155Block:         big.NewInt(0),
+				EIP158Block:         big.NewInt(0),
+				ByzantiumBlock:      big.NewInt(0),
+				ConstantinopleBlock: big.NewInt(0),
+				PetersburgBlock:     big.NewInt(0),
+				IstanbulBlock:       big.NewInt(0),
+				MuirGlacierBlock:    big.NewInt(0),
+			},
 		},
 		&extras.ChainConfig{
 			FeeConfig: commontype.FeeConfig{
 				MinBaseFee: big.NewInt(1),
 			},
 			NetworkUpgrades: extras.NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(0),
+				GenesisTimestamp: utils.NewUint64(0),
 			},
 		},
 	)

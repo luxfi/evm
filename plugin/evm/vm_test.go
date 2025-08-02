@@ -33,14 +33,21 @@ import (
 	"github.com/luxfi/geth/trie"
 
 	"github.com/luxfi/node/chains/atomic"
-	"github.com/luxfi/node/consensus"
-	"github.com/luxfi/node/consensus/engine/enginetest"
+	"github.com/luxfi/node/quasar"
+	commonEng "github.com/luxfi/node/quasar/engine/core"
+	"github.com/luxfi/node/quasar/consensus/engine/enginetest"
+	"github.com/luxfi/node/quasar/engine/chain/block"
 	"github.com/luxfi/database"
+	"github.com/luxfi/database/prefixdb"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/utils/formatting"
+	"github.com/luxfi/warp"
+	"github.com/luxfi/metrics"
+	"github.com/luxfi/node/message"
 
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/constants"
+	nodeconstants "github.com/luxfi/node/utils/constants"
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/precompile/allowlist"
@@ -52,7 +59,7 @@ import (
 )
 
 var (
-	testNetworkID   uint32 = interfaces.UnitTestID
+	testNetworkID   uint32 = nodeconstants.UnitTestID
 	testCChainID           = ids.ID{'c', 'c', 'h', 'a', 'i', 'n', 't', 'e', 's', 't'}
 	testXChainID           = ids.ID{'t', 'e', 's', 't', 'x'}
 	testMinGasPrice int64  = 225_000_000_000
@@ -63,10 +70,10 @@ var (
 	password        = "CjasdjhiPeirbSenfeI13" // #nosec G101
 	// Use chainId: 43111, so that it does not overlap with any Lux ChainIDs, which may have their
 	// config overridden in vm.Initialize.
-	genesisJSONEVM      = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0,\"evmTimestamp\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
-	genesisJSONDUpgrade = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0,\"evmTimestamp\":0,\"dUpgradeTimestamp\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
-	genesisJSONPreEVM   = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
-	genesisJSONLatest   = genesisJSONDUpgrade
+	// genesisJSONEVM      = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0,\"evmTimestamp\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
+	// genesisJSONDUpgrade = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0,\"evmTimestamp\":0,\"dUpgradeTimestamp\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
+	// genesisJSONPreEVM   = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
+	// genesisJSONLatest   = genesisJSONDUpgrade
 
 	firstTxAmount = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*100))
 
@@ -92,12 +99,12 @@ var (
 		return string(b)
 	}
 
-	genesisJSONPreEVM  = genesisJSON(params.TestPreEVMChainConfig)
-	genesisJSONEVM     = genesisJSON(params.TestEVMChainConfig)
-	genesisJSONDurango = genesisJSON(params.TestDurangoChainConfig)
-	genesisJSONEtna    = genesisJSON(params.TestEtnaChainConfig)
-	// genesisJSONFortuna      = genesisJSON(params.TestFortunaChainConfig)
-	genesisJSONGranite = genesisJSON(params.TestGraniteChainConfig)
+	// In Lux v2.0.0, all upgrades are active at genesis, so we use the same config
+	genesisJSONPreEVM  = genesisJSON(params.TestChainConfig)
+	genesisJSONEVM     = genesisJSON(params.TestChainConfig)
+	genesisJSONDurango = genesisJSON(params.TestChainConfig)
+	genesisJSONEtna    = genesisJSON(params.TestChainConfig)
+	genesisJSONGranite = genesisJSON(params.TestChainConfig)
 	genesisJSONLatest  = genesisJSONGranite
 )
 
@@ -131,7 +138,7 @@ func buildGenesisTest(t *testing.T, genesisJSON string) []byte {
 	return genesisBytes
 }
 
-func NewContext() *consensus.Context {
+func NewContext() *quasar.Context {
 	ctx := utils.TestConsensusContext()
 	ctx.NetworkID = testNetworkID
 	ctx.NodeID = ids.GenerateTestNodeID()
@@ -156,12 +163,12 @@ func NewContext() *consensus.Context {
 			return subnetID, nil
 		},
 	}
-	blsSecretKey, err := interfaces.NewSecretKey()
+	blsSecretKey, err := warp.NewSecretKey()
 	if err != nil {
 		panic(err)
 	}
-	ctx.WarpSigner = interfaces.NewSigner(blsSecretKey, ctx.NetworkID, ctx.ChainID)
-	ctx.PublicKey = interfaces.PublicFromSecretKey(blsSecretKey)
+	ctx.WarpSigner = warp.NewSigner(blsSecretKey, ctx.NetworkID, ctx.ChainID)
+	ctx.PublicKey = warp.PublicFromSecretKey(blsSecretKey)
 	return ctx
 }
 
@@ -169,10 +176,10 @@ func NewContext() *consensus.Context {
 func setupGenesis(
 	t *testing.T,
 	genesisJSON string,
-) (*consensus.Context,
+) (*quasar.Context,
 	database.Database,
 	[]byte,
-	chan interfaces.Message,
+	chan commonEng.Message,
 	*atomic.Memory,
 ) {
 	if len(genesisJSON) == 0 {
@@ -180,14 +187,14 @@ func setupGenesis(
 	}
 	ctx := utils.TestConsensusContext()
 
-	baseDB := interfaces.New()
+	baseDB := database.New()
 
 	// initialize the atomic memory
-	atomicMemory := atomic.NewMemory(interfaces.New([]byte{0}, baseDB))
+	atomicMemory := atomic.NewMemory(prefixdb.New([]byte{0}, baseDB))
 	ctx.SharedMemory = atomicMemory.NewSharedMemory(ctx.ChainID)
 
-	issuer := make(chan interfaces.Message, 1)
-	prefixedDB := interfaces.New([]byte{1}, baseDB)
+	issuer := make(chan commonEng.Message, 1)
+	prefixedDB := prefixdb.New([]byte{1}, baseDB)
 	return ctx, prefixedDB, []byte(genesisJSON), issuer, atomicMemory
 }
 
@@ -201,7 +208,7 @@ func GenesisVM(t *testing.T,
 	configJSON string,
 	upgradeJSON string,
 ) (
-	chan interfaces.Message,
+	chan commonEng.Message,
 	*VM,
 	database.Database,
 	*enginetest.Sender,
@@ -219,14 +226,14 @@ func GenesisVM(t *testing.T,
 		[]byte(upgradeJSON),
 		[]byte(configJSON),
 		issuer,
-		[]*interfaces.Fx{},
+		[]*commonEng.Fx{},
 		appSender,
 	)
 	require.NoError(t, err, "error initializing GenesisVM")
 
 	if finishBootstrapping {
-		require.NoError(t, vm.SetState(context.Background(), consensus.Bootstrapping))
-		require.NoError(t, vm.SetState(context.Background(), consensus.NormalOp))
+		require.NoError(t, vm.SetState(context.Background(), quasar.Bootstrapping))
+		require.NoError(t, vm.SetState(context.Background(), quasar.NormalOp))
 	}
 
 	return issuer, vm, dbManager, appSender
@@ -328,7 +335,7 @@ func TestVMUpgrades(t *testing.T) {
 	}
 }
 
-func issueAndAccept(t *testing.T, issuer <-chan interfaces.Message, vm *VM) chain.Block {
+func issueAndAccept(t *testing.T, issuer <-chan commonEng.Message, vm *VM) block.Block {
 	t.Helper()
 	<-issuer
 
@@ -448,7 +455,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 		[]byte(""),
 		[]byte(`{"pruning-enabled":true}`),
 		issuer,
-		[]*interfaces.Fx{},
+		[]*commonEng.Fx{},
 		nil,
 	); err != nil {
 		t.Fatal(err)
@@ -2232,7 +2239,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 		[]byte(""),
 		[]byte(""),
 		issuer,
-		[]*interfaces.Fx{},
+		[]*commonEng.Fx{},
 		nil,
 	)
 	require.ErrorIs(t, err, allowlist.ErrCannotAddManagersBeforeDurango)
@@ -2263,7 +2270,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 		upgradeBytesJSON,
 		[]byte(""),
 		issuer,
-		[]*interfaces.Fx{},
+		[]*commonEng.Fx{},
 		nil,
 	)
 	require.ErrorIs(t, err, allowlist.ErrCannotAddManagersBeforeDurango)
@@ -2950,18 +2957,18 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	require.NoError(t, err)
 
 	// Reset metrics to allow re-initialization
-	vm.ctx.Metrics = interfaces.NewPrefixGatherer()
+	vm.ctx.Metrics = metrics.NewPrefixGatherer()
 
 	// this will not be allowed
-	err = reinitVM.Initialize(context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, []byte{}, issuer, []*interfaces.Fx{}, appSender)
+	err = reinitVM.Initialize(context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, []byte{}, issuer, []*commonEng.Fx{}, appSender)
 	require.ErrorContains(t, err, "mismatching EVM fork block timestamp in database")
 
 	// Reset metrics to allow re-initialization
-	vm.ctx.Metrics = interfaces.NewPrefixGatherer()
+	vm.ctx.Metrics = metrics.NewPrefixGatherer()
 
 	// try again with skip-upgrade-check
 	config := []byte(`{"skip-upgrade-check": true}`)
-	err = reinitVM.Initialize(context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, config, issuer, []*interfaces.Fx{}, appSender)
+	err = reinitVM.Initialize(context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, config, issuer, []*commonEng.Fx{}, appSender)
 	require.NoError(t, err)
 	require.NoError(t, reinitVM.Shutdown(context.Background()))
 }
@@ -3076,11 +3083,11 @@ func TestParentBeaconRootBlock(t *testing.T) {
 func TestStandaloneDB(t *testing.T) {
 	vm := &VM{}
 	ctx := utils.TestConsensusContext()
-	baseDB := interfaces.New()
-	atomicMemory := atomic.NewMemory(interfaces.New([]byte{0}, baseDB))
+	baseDB := database.New()
+	atomicMemory := atomic.NewMemory(prefixdb.New([]byte{0}, baseDB))
 	ctx.SharedMemory = atomicMemory.NewSharedMemory(ctx.ChainID)
-	issuer := make(chan interfaces.Message, 1)
-	sharedDB := interfaces.New([]byte{1}, baseDB)
+	issuer := make(chan commonEng.Message, 1)
+	sharedDB := prefixdb.New([]byte{1}, baseDB)
 	// alter network ID to use standalone database
 	ctx.NetworkID = 123456
 	appSender := &enginetest.Sender{T: t}
@@ -3104,13 +3111,13 @@ func TestStandaloneDB(t *testing.T) {
 		nil,
 		[]byte(configJSON),
 		issuer,
-		[]*interfaces.Fx{},
+		[]*commonEng.Fx{},
 		appSender,
 	)
 	defer vm.Shutdown(context.Background())
 	require.NoError(t, err, "error initializing VM")
-	require.NoError(t, vm.SetState(context.Background(), consensus.Bootstrapping))
-	require.NoError(t, vm.SetState(context.Background(), consensus.NormalOp))
+	require.NoError(t, vm.SetState(context.Background(), quasar.Bootstrapping))
+	require.NoError(t, vm.SetState(context.Background(), quasar.NormalOp))
 
 	// Issue a block
 	acceptedBlockEvent := make(chan core.ChainEvent, 1)
@@ -3270,21 +3277,21 @@ func TestFeeManagerRegressionMempoolMinFeeAfterRestart(t *testing.T) {
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 }
 
-func restartVM(vm *VM, sharedDB database.Database, genesisBytes []byte, issuer chan interfaces.Message, appSender interfaces.AppSender, finishBootstrapping bool) (*VM, error) {
+func restartVM(vm *VM, sharedDB database.Database, genesisBytes []byte, issuer chan message.InboundMessage, appSender commonEng.AppSender, finishBootstrapping bool) (*VM, error) {
 	vm.Shutdown(context.Background())
 	restartedVM := &VM{}
-	vm.ctx.Metrics = interfaces.NewPrefixGatherer()
-	err := restartedVM.Initialize(context.Background(), vm.ctx, sharedDB, genesisBytes, nil, nil, issuer, []*interfaces.Fx{}, appSender)
+	vm.ctx.Metrics = metrics.NewPrefixGatherer()
+	err := restartedVM.Initialize(context.Background(), vm.ctx, sharedDB, genesisBytes, nil, nil, issuer, []*commonEng.Fx{}, appSender)
 	if err != nil {
 		return nil, err
 	}
 
 	if finishBootstrapping {
-		err = restartedVM.SetState(context.Background(), consensus.Bootstrapping)
+		err = restartedVM.SetState(context.Background(), quasar.Bootstrapping)
 		if err != nil {
 			return nil, err
 		}
-		err = restartedVM.SetState(context.Background(), consensus.NormalOp)
+		err = restartedVM.SetState(context.Background(), quasar.NormalOp)
 		if err != nil {
 			return nil, err
 		}

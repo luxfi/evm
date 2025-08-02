@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"testing"
 	
-	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/precompile/testutils"
 	"github.com/luxfi/evm/utils"

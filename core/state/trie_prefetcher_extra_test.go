@@ -12,15 +12,15 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/ethdb"
-	"github.com/luxfi/evm/iface/metrics"
+	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/evm/core/state/snapshot"
 	"github.com/luxfi/geth/triedb/hashdb"
+	"github.com/luxfi/geth/core/tracing"
 	"github.com/stretchr/testify/require"
 )
 
@@ -98,14 +98,18 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 
 		// update the tracking keys
 		require.NoError(levelDB.Put(rootKey, root.Bytes()))
-		require.NoError(database.PutUInt64(levelDB, blockKey, block))
-		require.NoError(database.PutUInt64(levelDB, countKey, count))
+		blockBytes := make([]byte, 8)
+		binary.BigEndian.PutUint64(blockBytes, block)
+		require.NoError(levelDB.Put(blockKey, blockBytes))
+		countBytes := make([]byte, 8)
+		binary.BigEndian.PutUint64(countBytes, count)
+		require.NoError(levelDB.Put(countKey, countBytes))
 	}
 
 	tdbConfig := &triedb.Config{
-		DBOverride: hashdb.Config{
+		HashDB: &hashdb.Config{
 			CleanCacheSize: 3 * 1024 * 1024 * 1024,
-		}.BackendConstructor,
+		},
 	}
 	db := NewDatabaseWithConfig(levelDB, tdbConfig)
 	snaps := snapshot.NewTestTree(levelDB, fakeHash(block), root)
@@ -139,7 +143,7 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 				snaps := snapshot.NewTestTree(levelDB, fakeHash(block), root)
 				db := NewDatabaseWithConfig(levelDB, tdbConfig)
 				getMetric := func(metric string) int64 {
-					meter := interfaces.GetOrRegisterMeter(triePrefetchMetricsPrefix+namespace+"/storage/"+metric, nil)
+					meter := metrics.GetOrRegisterMeter(triePrefetchMetricsPrefix+namespace+"/storage/"+metric, nil)
 					return meter.Snapshot().Count()
 				}
 				startLoads := getMetric("load")
@@ -164,7 +168,7 @@ func addKVs(
 	address1, address2 common.Address, root common.Hash, block uint64,
 	count int, prefetchers int,
 ) (*StateDB, common.Hash, error) {
-	statedb, err := New(root, db, snaps)
+	statedb, err := New(root, db, nil)
 	if err != nil {
 		return nil, common.Hash{}, fmt.Errorf("creating state with snapshot: %w", err)
 	}
@@ -173,7 +177,7 @@ func addKVs(
 		defer statedb.StopPrefetcher()
 	}
 	for _, address := range []common.Address{address1, address2} {
-		statedb.SetNonce(address, 1)
+		statedb.SetNonce(address, 1, tracing.NonceChangeUnspecified)
 		for i := 0; i < count/2; i++ {
 			key := make([]byte, 32)
 			value := make([]byte, 32)
@@ -183,7 +187,7 @@ func addKVs(
 			statedb.SetState(address, common.BytesToHash(key), common.BytesToHash(value))
 		}
 	}
-	root, err = statedb.Commit(block+1, true)
+	root, err = statedb.Commit(block+1, true, false)
 	if err != nil {
 		return nil, common.Hash{}, fmt.Errorf("committing with snap: %w", err)
 	}

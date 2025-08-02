@@ -5,22 +5,17 @@ package warp
 
 import (
 	"context"
-	"math"
 	"testing"
 	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/utils"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/node/consensus/validators/validatorsmock"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/utils/set"
+	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
 // This test copies the test coverage from https://github.com/luxfi/node/blob/v1.10.0/vms/platformvm/warp/signature_test.go#L137.
 // These tests are only expected to fail if there is a breaking change in Lux that unexpectedly changes behavior.
-type signatureTest struct {
+type signatureVerificationTest struct {
 	name         string
 	stateF       func(*gomock.Controller) iface.State
 	quorumNum    uint64
@@ -30,16 +25,30 @@ type signatureTest struct {
 	canonicalErr error
 }
 
+// createTestState creates a test state adapter
+func createTestState(
+	getSubnetID func(context.Context, iface.ID) (iface.ID, error),
+	getValidatorSet func(context.Context, uint64, iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error),
+) iface.State {
+	return &stateAdapter{
+		GetSubnetIDF:     getSubnetID,
+		GetValidatorSetF: getValidatorSet,
+	}
+}
+
 // This test copies the test coverage from https://github.com/luxfi/node/blob/0117ab96/vms/platformvm/warp/signature_test.go#L137.
 // These tests are only expected to fail if there is a breaking change in Lux that unexpectedly changes behavior.
 func TestSignatureVerification(t *testing.T) {
-	tests := []signatureTest{
+	tests := []signatureVerificationTest{
 		{
 			name: "can't get subnetID",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, errTest)
-				return state
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, errTest
+					},
+					nil,
+				)
 			},
 			quorumNum: 1,
 			quorumDen: 2,
@@ -63,10 +72,14 @@ func TestSignatureVerification(t *testing.T) {
 		{
 			name: "can't get validator set",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(nil, errTest)
-				return state
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
+					},
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return nil, errTest
+					},
+				)
 			},
 			quorumNum: 1,
 			quorumDen: 2,
@@ -90,21 +103,25 @@ func TestSignatureVerification(t *testing.T) {
 		{
 			name: "weight overflow",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(map[ids.NodeID]*iface.GetValidatorOutput{
-					testVdrs[0].nodeID: {
-						NodeID:    testVdrs[0].nodeID,
-						PublicKey: testVdrs[0].vdr.PublicKey,
-						Weight:    iface.MaxUint64,
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
 					},
-					testVdrs[1].nodeID: {
-						NodeID:    testVdrs[1].nodeID,
-						PublicKey: testVdrs[1].vdr.PublicKey,
-						Weight:    iface.MaxUint64,
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return map[iface.NodeID]*iface.GetValidatorOutput{
+							testVdrs[0].nodeID: {
+								NodeID:    testVdrs[0].nodeID,
+								PublicKey: testVdrs[0].vdr.PublicKeyBytes,
+								Weight:    iface.MaxUint64,
+							},
+							testVdrs[1].nodeID: {
+								NodeID:    testVdrs[1].nodeID,
+								PublicKey: testVdrs[1].vdr.PublicKeyBytes,
+								Weight:    iface.MaxUint64,
+							},
+						}, nil
 					},
-				}, nil)
-				return state
+				)
 			},
 			quorumNum: 1,
 			quorumDen: 2,
@@ -125,16 +142,20 @@ func TestSignatureVerification(t *testing.T) {
 				require.NoError(err)
 				return msg
 			},
-			err: iface.ErrWeightOverflow,
+			verifyErr:    iface.ErrWeightOverflow,
 			canonicalErr: iface.ErrWeightOverflow,
 		},
 		{
 			name: "invalid bit set index",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
-				return state
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
+					},
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return vdrs, nil
+					},
+				)
 			},
 			quorumNum: 1,
 			quorumDen: 2,
@@ -156,16 +177,20 @@ func TestSignatureVerification(t *testing.T) {
 				require.NoError(err)
 				return msg
 			},
-			err: iface.ErrInvalidBitSet,
-			verifyErr: iface.ErrInvalidBitSet,
+			verifyErr:    iface.ErrInvalidBitSet,
+			canonicalErr: iface.ErrInvalidBitSet,
 		},
 		{
 			name: "unknown index",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
-				return state
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
+					},
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return vdrs, nil
+					},
+				)
 			},
 			quorumNum: 1,
 			quorumDen: 2,
@@ -190,16 +215,20 @@ func TestSignatureVerification(t *testing.T) {
 				require.NoError(err)
 				return msg
 			},
-			err: iface.ErrUnknownValidator,
-			verifyErr: iface.ErrUnknownValidator,
+			verifyErr:    iface.ErrUnknownValidator,
+			canonicalErr: iface.ErrUnknownValidator,
 		},
 		{
 			name: "insufficient weight",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
-				return state
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
+					},
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return vdrs, nil
+					},
+				)
 			},
 			quorumNum: 1,
 			quorumDen: 1,
@@ -222,7 +251,7 @@ func TestSignatureVerification(t *testing.T) {
 				require.NoError(err)
 				vdr1Sig, err := testVdrs[1].sk.Sign(unsignedBytes)
 				require.NoError(err)
-				aggSig, err := iface.AggregateSignatures([]*iface.Signature{vdr0Sig, vdr1Sig})
+				aggSig, err := iface.AggregateSignatures([]*iface.BLSSignature{vdr0Sig, vdr1Sig})
 				require.NoError(err)
 				aggSigBytes := [iface.SignatureLen]byte{}
 				copy(aggSigBytes[:], iface.SignatureToBytes(aggSig))
@@ -237,16 +266,20 @@ func TestSignatureVerification(t *testing.T) {
 				require.NoError(err)
 				return msg
 			},
-			err: iface.ErrInsufficientWeight,
-			verifyErr: iface.ErrInsufficientWeight,
+			verifyErr:    iface.ErrInsufficientWeight,
+			canonicalErr: iface.ErrInsufficientWeight,
 		},
 		{
 			name: "can't parse sig",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
-				return state
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
+					},
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return vdrs, nil
+					},
+				)
 			},
 			quorumNum: 1,
 			quorumDen: 2,
@@ -272,16 +305,20 @@ func TestSignatureVerification(t *testing.T) {
 				require.NoError(err)
 				return msg
 			},
-			err: iface.ErrParseSignature,
-			verifyErr: iface.ErrParseSignature,
+			verifyErr:    iface.ErrParseSignature,
+			canonicalErr: iface.ErrParseSignature,
 		},
 		{
 			name: "no validators",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(nil, nil)
-				return state
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
+					},
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return nil, nil
+					},
+				)
 			},
 			quorumNum: 1,
 			quorumDen: 2,
@@ -314,10 +351,14 @@ func TestSignatureVerification(t *testing.T) {
 		{
 			name: "invalid signature (substitute)",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
-				return state
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
+					},
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return vdrs, nil
+					},
+				)
 			},
 			quorumNum: 3,
 			quorumDen: 5,
@@ -340,7 +381,7 @@ func TestSignatureVerification(t *testing.T) {
 				// should be from vdr[1]
 				vdr2Sig, err := testVdrs[2].sk.Sign(unsignedBytes)
 				require.NoError(err)
-				aggSig, err := iface.AggregateSignatures([]*iface.Signature{vdr0Sig, vdr2Sig})
+				aggSig, err := iface.AggregateSignatures([]*iface.BLSSignature{vdr0Sig, vdr2Sig})
 				require.NoError(err)
 				aggSigBytes := [iface.SignatureLen]byte{}
 				copy(aggSigBytes[:], iface.SignatureToBytes(aggSig))
@@ -355,16 +396,20 @@ func TestSignatureVerification(t *testing.T) {
 				require.NoError(err)
 				return msg
 			},
-			err: iface.ErrInvalidSignature,
-			verifyErr: iface.ErrInvalidSignature,
+			verifyErr:    iface.ErrInvalidSignature,
+			canonicalErr: iface.ErrInvalidSignature,
 		},
 		{
 			name: "invalid signature (missing one)",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
-				return state
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
+					},
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return vdrs, nil
+					},
+				)
 			},
 			quorumNum: 3,
 			quorumDen: 5,
@@ -397,16 +442,20 @@ func TestSignatureVerification(t *testing.T) {
 				require.NoError(err)
 				return msg
 			},
-			err: iface.ErrInvalidSignature,
-			verifyErr: iface.ErrInvalidSignature,
+			verifyErr:    iface.ErrInvalidSignature,
+			canonicalErr: iface.ErrInvalidSignature,
 		},
 		{
 			name: "invalid signature (extra one)",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
-				return state
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
+					},
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return vdrs, nil
+					},
+				)
 			},
 			quorumNum: 3,
 			quorumDen: 5,
@@ -431,7 +480,7 @@ func TestSignatureVerification(t *testing.T) {
 				// it
 				vdr2Sig, err := testVdrs[2].sk.Sign(unsignedBytes)
 				require.NoError(err)
-				aggSig, err := iface.AggregateSignatures([]*iface.Signature{vdr0Sig, vdr1Sig, vdr2Sig})
+				aggSig, err := iface.AggregateSignatures([]*iface.BLSSignature{vdr0Sig, vdr1Sig, vdr2Sig})
 				require.NoError(err)
 				aggSigBytes := [iface.SignatureLen]byte{}
 				copy(aggSigBytes[:], iface.SignatureToBytes(aggSig))
@@ -446,16 +495,20 @@ func TestSignatureVerification(t *testing.T) {
 				require.NoError(err)
 				return msg
 			},
-			err: iface.ErrInvalidSignature,
-			verifyErr: iface.ErrInvalidSignature,
+			verifyErr:    iface.ErrInvalidSignature,
+			canonicalErr: iface.ErrInvalidSignature,
 		},
 		{
 			name: "valid signature",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
-				return state
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
+					},
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return vdrs, nil
+					},
+				)
 			},
 			quorumNum: 1,
 			quorumDen: 2,
@@ -478,7 +531,7 @@ func TestSignatureVerification(t *testing.T) {
 				require.NoError(err)
 				vdr2Sig, err := testVdrs[2].sk.Sign(unsignedBytes)
 				require.NoError(err)
-				aggSig, err := iface.AggregateSignatures([]*iface.Signature{vdr1Sig, vdr2Sig})
+				aggSig, err := iface.AggregateSignatures([]*iface.BLSSignature{vdr1Sig, vdr2Sig})
 				require.NoError(err)
 				aggSigBytes := [iface.SignatureLen]byte{}
 				copy(aggSigBytes[:], iface.SignatureToBytes(aggSig))
@@ -498,10 +551,14 @@ func TestSignatureVerification(t *testing.T) {
 		{
 			name: "valid signature (boundary)",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
-				return state
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
+					},
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return vdrs, nil
+					},
+				)
 			},
 			quorumNum: 2,
 			quorumDen: 3,
@@ -524,7 +581,7 @@ func TestSignatureVerification(t *testing.T) {
 				require.NoError(err)
 				vdr2Sig, err := testVdrs[2].sk.Sign(unsignedBytes)
 				require.NoError(err)
-				aggSig, err := iface.AggregateSignatures([]*iface.Signature{vdr1Sig, vdr2Sig})
+				aggSig, err := iface.AggregateSignatures([]*iface.BLSSignature{vdr1Sig, vdr2Sig})
 				require.NoError(err)
 				aggSigBytes := [iface.SignatureLen]byte{}
 				copy(aggSigBytes[:], iface.SignatureToBytes(aggSig))
@@ -544,26 +601,30 @@ func TestSignatureVerification(t *testing.T) {
 		{
 			name: "valid signature (missing key)",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(map[ids.NodeID]*iface.GetValidatorOutput{
-					testVdrs[0].nodeID: {
-						NodeID:    testVdrs[0].nodeID,
-						PublicKey: nil,
-						Weight:    testVdrs[0].vdr.Weight,
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
 					},
-					testVdrs[1].nodeID: {
-						NodeID:    testVdrs[1].nodeID,
-						PublicKey: testVdrs[1].vdr.PublicKey,
-						Weight:    testVdrs[1].vdr.Weight,
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return map[iface.NodeID]*iface.GetValidatorOutput{
+							testVdrs[0].nodeID: {
+								NodeID:    testVdrs[0].nodeID,
+								PublicKey: nil,
+								Weight:    testVdrs[0].vdr.Weight,
+							},
+							testVdrs[1].nodeID: {
+								NodeID:    testVdrs[1].nodeID,
+								PublicKey: testVdrs[1].vdr.PublicKeyBytes,
+								Weight:    testVdrs[1].vdr.Weight,
+							},
+							testVdrs[2].nodeID: {
+								NodeID:    testVdrs[2].nodeID,
+								PublicKey: testVdrs[2].vdr.PublicKeyBytes,
+								Weight:    testVdrs[2].vdr.Weight,
+							},
+						}, nil
 					},
-					testVdrs[2].nodeID: {
-						NodeID:    testVdrs[2].nodeID,
-						PublicKey: testVdrs[2].vdr.PublicKey,
-						Weight:    testVdrs[2].vdr.Weight,
-					},
-				}, nil)
-				return state
+				)
 			},
 			quorumNum: 1,
 			quorumDen: 3,
@@ -587,7 +648,7 @@ func TestSignatureVerification(t *testing.T) {
 				require.NoError(err)
 				vdr2Sig, err := testVdrs[2].sk.Sign(unsignedBytes)
 				require.NoError(err)
-				aggSig, err := iface.AggregateSignatures([]*iface.Signature{vdr1Sig, vdr2Sig})
+				aggSig, err := iface.AggregateSignatures([]*iface.BLSSignature{vdr1Sig, vdr2Sig})
 				require.NoError(err)
 				aggSigBytes := [iface.SignatureLen]byte{}
 				copy(aggSigBytes[:], iface.SignatureToBytes(aggSig))
@@ -607,26 +668,30 @@ func TestSignatureVerification(t *testing.T) {
 		{
 			name: "valid signature (duplicate key)",
 			stateF: func(ctrl *gomock.Controller) iface.State {
-				state := validatorsmock.NewState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(map[ids.NodeID]*iface.GetValidatorOutput{
-					testVdrs[0].nodeID: {
-						NodeID:    testVdrs[0].nodeID,
-						PublicKey: nil,
-						Weight:    testVdrs[0].vdr.Weight,
+				return createTestState(
+					func(ctx context.Context, chainID iface.ID) (iface.ID, error) {
+						return sourceSubnetID, nil
 					},
-					testVdrs[1].nodeID: {
-						NodeID:    testVdrs[1].nodeID,
-						PublicKey: testVdrs[2].vdr.PublicKey,
-						Weight:    testVdrs[1].vdr.Weight,
+					func(ctx context.Context, height uint64, subnetID iface.ID) (map[iface.NodeID]*iface.GetValidatorOutput, error) {
+						return map[iface.NodeID]*iface.GetValidatorOutput{
+							testVdrs[0].nodeID: {
+								NodeID:    testVdrs[0].nodeID,
+								PublicKey: nil,
+								Weight:    testVdrs[0].vdr.Weight,
+							},
+							testVdrs[1].nodeID: {
+								NodeID:    testVdrs[1].nodeID,
+								PublicKey: testVdrs[2].vdr.PublicKeyBytes,
+								Weight:    testVdrs[1].vdr.Weight,
+							},
+							testVdrs[2].nodeID: {
+								NodeID:    testVdrs[2].nodeID,
+								PublicKey: testVdrs[2].vdr.PublicKeyBytes,
+								Weight:    testVdrs[2].vdr.Weight,
+							},
+						}, nil
 					},
-					testVdrs[2].nodeID: {
-						NodeID:    testVdrs[2].nodeID,
-						PublicKey: testVdrs[2].vdr.PublicKey,
-						Weight:    testVdrs[2].vdr.Weight,
-					},
-				}, nil)
-				return state
+				)
 			},
 			quorumNum: 2,
 			quorumDen: 3,
@@ -675,9 +740,28 @@ func TestSignatureVerification(t *testing.T) {
 			msg := tt.msgF(require)
 			pChainState := tt.stateF(ctrl)
 
+			// Convert State to ValidatorState
+			validatorState := &validatorStateAdapter{
+				GetSubnetIDF: func(ctx context.Context, chainID common.Hash) (common.Hash, error) {
+					subnetID, err := pChainState.GetSubnetID(ctx, iface.ID(chainID))
+					return common.Hash(subnetID), err
+				},
+				GetValidatorSetF: func(ctx context.Context, height uint64, subnetID common.Hash) (map[common.Hash]*iface.ValidatorOutput, error) {
+					validators, err := pChainState.GetValidatorSet(ctx, height, iface.ID(subnetID))
+					if err != nil {
+						return nil, err
+					}
+					result := make(map[common.Hash]*iface.ValidatorOutput)
+					for nodeID, v := range validators {
+						result[common.Hash(nodeID)] = ConvertGetValidatorOutputToValidatorOutput(v)
+					}
+					return result, nil
+				},
+			}
+			
 			validatorSet, err := iface.GetCanonicalValidatorSetFromChainID(
 				context.Background(),
-				pChainState,
+				validatorState,
 				pChainHeight,
 				msg.UnsignedMessage.SourceChainID,
 			)
@@ -688,7 +772,7 @@ func TestSignatureVerification(t *testing.T) {
 			err = msg.Signature.Verify(
 				&msg.UnsignedMessage,
 				networkID,
-				validatorSet,
+				&validatorSet,
 				tt.quorumNum,
 				tt.quorumDen,
 			)

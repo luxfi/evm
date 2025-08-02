@@ -4,6 +4,7 @@
 package evm
 
 import (
+	"context"
 	"errors"
 	"io"
 
@@ -25,7 +26,7 @@ func NewDatabaseWrapper(db database.Database) iface.Database {
 // HealthCheck implements the HealthChecker interface
 func (d *DatabaseWrapper) HealthCheck() (interface{}, error) {
 	// Call the underlying health check from node database
-	err := d.Database.HealthCheck()
+	_, err := d.Database.HealthCheck(context.Background())
 	return nil, err
 }
 

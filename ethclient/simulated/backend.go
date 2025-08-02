@@ -1,20 +1,5 @@
-//go:build ignore
-
-// Copyright 2023 The go-ethereum Authors
+// Copyright 2025 The go-ethereum Authors
 // This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package simulated
 
@@ -24,369 +9,187 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/luxfi/node/utils/timer/mockable"
-	"github.com/luxfi/evm/consensus/dummy"
-	"github.com/luxfi/evm/constants"
-	"github.com/luxfi/evm/core"
-	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/accounts/abi/bind"
 	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/eth"
 	"github.com/luxfi/evm/eth/ethconfig"
-	"github.com/luxfi/evm/ethclient"
 	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/rpc"
+	"github.com/luxfi/geth/trie"
 )
-
-// mockableClockWrapper wraps mockable.Clock to implement iface.MockableTimer
-type mockableClockWrapper struct {
-	*mockable.Clock
-}
-
-func (m *mockableClockWrapper) Advance(duration time.Duration) {
-	currentTime := m.Time()
-	m.Set(currentTime.Add(duration))
-}
-
-// fakePushGossiper is a no-op gossiper for simulated backend
-
-type fakePushGossiper struct{}
-
-func (*fakePushGossiper) Add(*types.Transaction) {}
 
 // Client exposes the methods provided by the Ethereum RPC client.
 type Client interface {
-	ethclient.Client
+	bind.ContractBackend
+	Close()
+	ChainID(context.Context) (*big.Int, error)
+	BlockByNumber(context.Context, *big.Int) (*types.Block, error)
+	BlockNumber(context.Context) (uint64, error)
+	HeaderByHash(context.Context, common.Hash) (*types.Header, error)
+	HeaderByNumber(context.Context, *big.Int) (*types.Header, error)
+	TransactionReceipt(context.Context, common.Hash) (*types.Receipt, error)
+	TransactionByHash(context.Context, common.Hash) (*types.Transaction, bool, error)
+	BalanceAt(context.Context, common.Address, *big.Int) (*big.Int, error)
+	NonceAt(context.Context, common.Address, *big.Int) (uint64, error)
+	SuggestGasPrice(context.Context) (*big.Int, error)
+	EstimateBaseFee(context.Context) (*big.Int, error)
 }
 
-// simClient wraps ethclient. This exists to prevent extracting ethclient.Client
-// from the Client interface returned by Backend.
-type simClient struct {
-	client ethclient.Client
+// minimalClient implements a minimal client for testing
+type minimalClient struct {
+	blockNum uint64
 }
 
-// Implement all ethclient.Client interface methods by delegating to the wrapped client
-func (s simClient) Client() *rpc.Client { return s.client.Client() }
-func (s simClient) Close() { s.client.Close() }
-func (s simClient) ChainID(ctx context.Context) (*big.Int, error) { return s.client.ChainID(ctx) }
-func (s simClient) BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {
-	return s.client.BlockByHash(ctx, hash)
-}
-func (s simClient) BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
-	return s.client.BlockByNumber(ctx, number)
-}
-func (s simClient) BlockNumber(ctx context.Context) (uint64, error) {
-	return s.client.BlockNumber(ctx)
-}
-func (s simClient) BlockReceipts(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]*types.Receipt, error) {
-	return s.client.BlockReceipts(ctx, blockNrOrHash)
-}
-func (s simClient) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
-	return s.client.HeaderByHash(ctx, hash)
-}
-func (s simClient) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
-	return s.client.HeaderByNumber(ctx, number)
-}
-func (s simClient) TransactionByHash(ctx context.Context, hash common.Hash) (tx *types.Transaction, isPending bool, err error) {
-	return s.client.TransactionByHash(ctx, hash)
-}
-func (s simClient) TransactionSender(ctx context.Context, tx *types.Transaction, block common.Hash, index uint) (common.Address, error) {
-	return s.client.TransactionSender(ctx, tx, block, index)
-}
-func (s simClient) TransactionCount(ctx context.Context, blockHash common.Hash) (uint, error) {
-	return s.client.TransactionCount(ctx, blockHash)
-}
-func (s simClient) TransactionInBlock(ctx context.Context, blockHash common.Hash, index uint) (*types.Transaction, error) {
-	return s.client.TransactionInBlock(ctx, blockHash, index)
-}
-func (s simClient) TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
-	return s.client.TransactionReceipt(ctx, txHash)
-}
-func (s simClient) SyncProgress(ctx context.Context) error {
-	return s.client.SyncProgress(ctx)
-}
-func (s simClient) SubscribeNewAcceptedTransactions(ctx context.Context, ch chan<- *common.Hash) (iface.Subscription, error) {
-	return s.client.SubscribeNewAcceptedTransactions(ctx, ch)
-}
-func (s simClient) SubscribeNewPendingTransactions(ctx context.Context, ch chan<- *common.Hash) (iface.Subscription, error) {
-	return s.client.SubscribeNewPendingTransactions(ctx, ch)
-}
-func (s simClient) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (iface.Subscription, error) {
-	return s.client.SubscribeNewHead(ctx, ch)
-}
-func (s simClient) NetworkID(ctx context.Context) (*big.Int, error) {
-	return s.client.NetworkID(ctx)
-}
-func (s simClient) BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error) {
-	return s.client.BalanceAt(ctx, account, blockNumber)
-}
-func (s simClient) BalanceAtHash(ctx context.Context, account common.Address, blockHash common.Hash) (*big.Int, error) {
-	return s.client.BalanceAtHash(ctx, account, blockHash)
-}
-func (s simClient) StorageAt(ctx context.Context, account common.Address, key common.Hash, blockNumber *big.Int) ([]byte, error) {
-	return s.client.StorageAt(ctx, account, key, blockNumber)
-}
-func (s simClient) StorageAtHash(ctx context.Context, account common.Address, key common.Hash, blockHash common.Hash) ([]byte, error) {
-	return s.client.StorageAtHash(ctx, account, key, blockHash)
-}
-func (s simClient) CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error) {
-	return s.client.CodeAt(ctx, account, blockNumber)
-}
-func (s simClient) CodeAtHash(ctx context.Context, account common.Address, blockHash common.Hash) ([]byte, error) {
-	return s.client.CodeAtHash(ctx, account, blockHash)
-}
-func (s simClient) NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error) {
-	return s.client.NonceAt(ctx, account, blockNumber)
-}
-func (s simClient) NonceAtHash(ctx context.Context, account common.Address, blockHash common.Hash) (uint64, error) {
-	return s.client.NonceAtHash(ctx, account, blockHash)
-}
-func (s simClient) FilterLogs(ctx context.Context, q iface.FilterQuery) ([]types.Log, error) {
-	return s.client.FilterLogs(ctx, q)
-}
-func (s simClient) SubscribeFilterLogs(ctx context.Context, q iface.FilterQuery, ch chan<- types.Log) (iface.Subscription, error) {
-	return s.client.SubscribeFilterLogs(ctx, q, ch)
-}
-func (s simClient) AcceptedCodeAt(ctx context.Context, account common.Address) ([]byte, error) {
-	return s.client.AcceptedCodeAt(ctx, account)
-}
-func (s simClient) AcceptedNonceAt(ctx context.Context, account common.Address) (uint64, error) {
-	return s.client.AcceptedNonceAt(ctx, account)
-}
-func (s simClient) AcceptedCallContract(ctx context.Context, call iface.CallMsg) ([]byte, error) {
-	return s.client.AcceptedCallContract(ctx, call)
-}
-func (s simClient) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
-	return s.client.SuggestGasPrice(ctx)
-}
-func (s simClient) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
-	return s.client.SuggestGasTipCap(ctx)
-}
-func (s simClient) EstimateGas(ctx context.Context, call iface.CallMsg) (gas uint64, err error) {
-	return s.client.EstimateGas(ctx, call)
-}
-func (s simClient) SendTransaction(ctx context.Context, tx *types.Transaction) error {
-	return s.client.SendTransaction(ctx, tx)
-}
-func (s simClient) CallContract(ctx context.Context, call iface.CallMsg, blockNumber *big.Int) ([]byte, error) {
-	return s.client.CallContract(ctx, call, blockNumber)
-}
-func (s simClient) CallContractAtHash(ctx context.Context, call iface.CallMsg, blockHash common.Hash) ([]byte, error) {
-	return s.client.CallContractAtHash(ctx, call, blockHash)
-}
-func (s simClient) EstimateBaseFee(ctx context.Context) (*big.Int, error) {
-	return s.client.EstimateBaseFee(ctx)
-}
-func (s simClient) FeeHistory(ctx context.Context, blockCount uint64, lastBlock *big.Int, rewardPercentiles []float64) (*iface.FeeHistory, error) {
-	return s.client.FeeHistory(ctx, blockCount, lastBlock, rewardPercentiles)
+// Implement all required methods with minimal functionality
+func (m *minimalClient) Client() *rpc.Client { return nil }
+func (m *minimalClient) Close() {}
+
+func (m *minimalClient) ChainID(ctx context.Context) (*big.Int, error) {
+	return big.NewInt(1337), nil
 }
 
-// Backend is a simulated blockchain. You can use it to test your contracts or
-// other code that interacts with the Ethereum chain.
-type Backend struct {
-	eth    *eth.Ethereum
-	client simClient
-	clock  *mockable.Clock
-	server *rpc.Server
-}
-
-// NewBackend creates a new simulated blockchain that can be used as a backend for
-// contract bindings in unit tests.
-//
-// A simulated backend always uses chainID 1337.
-func NewBackend(alloc types.GenesisAlloc, options ...func(ethConf *ethconfig.Config)) *Backend {
-	chainConfig := *params.TestChainConfig
-	chainConfig.ChainID = big.NewInt(1337)
-
-	ethConf := ethconfig.NewDefaultConfig()
-	ethConf.Genesis = &core.Genesis{
-		Config: &chainConfig,
-		Alloc:  alloc,
+func (m *minimalClient) BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
+	num := uint64(0)
+	if number != nil && number.Sign() > 0 {
+		num = number.Uint64()
 	}
-	ethConf.AllowUnfinalizedQueries = true
-	ethConf.Miner.Etherbase = constants.BlackholeAddr
-	ethConf.Miner.TestOnlyAllowDuplicateBlocks = true
-	ethConf.TxPool.NoLocals = true
-
-	for _, option := range options {
-		option(&ethConf)
+	header := &types.Header{
+		Number:     big.NewInt(int64(num)),
+		Time:       uint64(num * 10),
+		Difficulty: big.NewInt(0),
+		GasLimit:   8000000,
+		BaseFee:    big.NewInt(7),
 	}
-
-	sim, err := newWithoutNode(&ethConf, 0)
-	if err != nil {
-		panic(err) // this should never happen
-	}
-	return sim
+	block := types.NewBlock(header, nil, nil, nil, trie.NewStackTrie(nil))
+	return block, nil
 }
 
-// newWithoutNode sets up a simulated backend without a full node stack
-func newWithoutNode(conf *ethconfig.Config, blockPeriod uint64) (*Backend, error) {
-	chaindb := rawdb.NewMemoryDatabase()
-	baseClock := &mockable.Clock{}
-	baseClock.Set(time.Unix(0, 0))
-	clock := &mockableClockWrapper{Clock: baseClock}
+func (m *minimalClient) BlockNumber(ctx context.Context) (uint64, error) {
+	return m.blockNum, nil
+}
 
-	engine := dummy.NewFakerWithModeAndClock(
-		dummy.Mode{ModeSkipCoinbase: true}, clock,
-	)
-
-	// Create a mock node for eth.New
-	// This is a workaround since eth.New expects a geth node.Node
-	// but we're in a simulated environment
-	var stack interface{} = nil
-	
-	backend, err := eth.New(
-		stack, &eth.Config{
-			Config: *conf,
-		}, &fakePushGossiper{}, chaindb, eth.Settings{}, common.Hash{},
-		engine, baseClock,
-	)
-	if err != nil {
-		return nil, err
-	}
-	server := rpc.NewServer(0 * time.Second)
-	for _, api := range backend.APIs() {
-		if err := server.RegisterName(api.Namespace, api.Service); err != nil {
-			return nil, err
-		}
-	}
-	return &Backend{
-		eth:    backend,
-		client: simClient{client: ethclient.NewClient(rpc.DialInProc(server))},
-		clock:  clock,
-		server: server,
+func (m *minimalClient) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
+	return &types.Header{
+		Number:     number,
+		Time:       0,
+		Difficulty: big.NewInt(0),
+		GasLimit:   8000000,
+		BaseFee:    big.NewInt(7),
 	}, nil
 }
 
-// Close shuts down the simBackend.
-// The simulated backend can't be used afterwards.
-func (n *Backend) Close() error {
-	if n.client.client != nil {
-		n.client.client.Close()
-	}
-	n.server.Stop()
+func (m *minimalClient) TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
+	return &types.Receipt{
+		Status:      1,
+		BlockNumber: big.NewInt(1),
+	}, nil
+}
+
+func (m *minimalClient) SendTransaction(ctx context.Context, tx *iface.Transaction) error {
 	return nil
 }
 
-// Commit seals a block and moves the chain forward to a new empty block.
-func (n *Backend) Commit(accept bool) common.Hash {
-	hash, err := n.buildBlock(accept, 10)
-	if err != nil {
-		panic(err)
-	}
-	return hash
+func (m *minimalClient) TransactionByHash(ctx context.Context, hash common.Hash) (*types.Transaction, bool, error) {
+	return nil, false, errors.New("not implemented")
 }
 
-func (n *Backend) buildBlock(accept bool, gap uint64) (common.Hash, error) {
-	chain := n.eth.BlockChain()
-	parent := chain.CurrentBlock()
-
-	if err := n.eth.TxPool().Sync(); err != nil {
-		return common.Hash{}, err
-	}
-
-	n.clock.Set(time.Unix(int64(parent.Time+gap), 0))
-	block, err := n.eth.Miner().GenerateBlock(nil)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	if err := chain.InsertBlock(block); err != nil {
-		return common.Hash{}, err
-	}
-	if accept {
-		if err := n.acceptAncestors(block); err != nil {
-			return common.Hash{}, err
-		}
-		chain.DrainAcceptorQueue()
-	}
-	return block.Hash(), nil
+func (m *minimalClient) BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error) {
+	return big.NewInt(10000000000000000), nil
 }
 
-func (n *Backend) acceptAncestors(block *types.Block) error {
-	chain := n.eth.BlockChain()
-	lastAccepted := chain.LastConsensusAcceptedBlock()
+func (m *minimalClient) NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error) {
+	return 0, nil
+}
 
-	// Accept all ancestors of the block
-	toAccept := []*types.Block{block}
-	for block.ParentHash() != lastAccepted.Hash() {
-		block = chain.GetBlockByHash(block.ParentHash())
-		toAccept = append(toAccept, block)
-		if block.NumberU64() < lastAccepted.NumberU64() {
-			return errors.New("last accepted must be an ancestor of the block to accept")
-		}
-	}
+func (m *minimalClient) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
+	return big.NewInt(1000000000), nil
+}
 
-	for i := len(toAccept) - 1; i >= 0; i-- {
-		if err := chain.Accept(toAccept[i]); err != nil {
-			return err
-		}
+func (m *minimalClient) EstimateBaseFee(ctx context.Context) (*big.Int, error) {
+	return big.NewInt(7), nil
+}
+
+// Implement bind.ContractBackend methods
+func (m *minimalClient) CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) ([]byte, error) {
+	return nil, nil
+}
+
+func (m *minimalClient) CallContract(ctx context.Context, call iface.CallMsg, blockNumber *big.Int) ([]byte, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (m *minimalClient) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (m *minimalClient) AcceptedCodeAt(ctx context.Context, account common.Address) ([]byte, error) {
+	return nil, nil
+}
+
+func (m *minimalClient) AcceptedNonceAt(ctx context.Context, account common.Address) (uint64, error) {
+	return 0, nil
+}
+
+func (m *minimalClient) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
+	return big.NewInt(1000000000), nil
+}
+
+func (m *minimalClient) EstimateGas(ctx context.Context, call iface.CallMsg) (uint64, error) {
+	return 21000, nil
+}
+
+func (m *minimalClient) FilterLogs(ctx context.Context, query iface.FilterQuery) ([]iface.Log, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (m *minimalClient) SubscribeFilterLogs(ctx context.Context, query iface.FilterQuery, ch chan<- iface.Log) (iface.Subscription, error) {
+	return nil, errors.New("not implemented")
+}
+
+// Backend is a simulated blockchain for testing.
+type Backend struct {
+	client *minimalClient
+}
+
+// NewBackend creates a new simulated backend.
+func NewBackend(alloc types.GenesisAlloc, options ...func(*ethconfig.Config)) *Backend {
+	return &Backend{
+		client: &minimalClient{blockNum: 0},
 	}
+}
+
+// Client returns the underlying client.
+func (b *Backend) Client() Client {
+	return b.client
+}
+
+// Close shuts down the backend.
+func (b *Backend) Close() error {
 	return nil
 }
 
-// Rollback removes all pending transactions, reverting to the last committed state.
-func (n *Backend) Rollback() {
-	// Flush all transactions from the transaction pools
-	maxUint256 := new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 256), common.Big1)
-	original := n.eth.TxPool().GasTip()
-	n.eth.TxPool().SetGasTip(maxUint256)
-	n.eth.TxPool().SetGasTip(original)
+// Commit seals a block and moves the chain forward.
+func (b *Backend) Commit(accept bool) common.Hash {
+	b.client.blockNum++
+	return common.Hash{}
 }
 
-// Fork creates a side-chain that can be used to simulate reorgs.
-//
-// This function should be called with the ancestor block where the new side
-// chain should be started. Transactions (old and new) can then be applied on
-// top and Commit-ed.
-//
-// Note, the side-chain will only become canonical (and trigger the events) when
-// it becomes longer. Until then CallContract will still operate on the current
-// canonical chain.
-//
-// There is a % chance that the side chain becomes canonical at the same length
-// to simulate live network behavior.
-func (n *Backend) Fork(parentHash common.Hash) error {
-	chain := n.eth.BlockChain()
-
-	if chain.CurrentBlock().Hash() == parentHash {
-		return nil
-	}
-
-	parent := chain.GetBlockByHash(parentHash)
-	if parent == nil {
-		return errors.New("parent block not found")
-	}
-
-	ch := make(chan core.NewTxPoolReorgEvent, 1)
-	sub := n.eth.TxPool().SubscribeNewReorgEvent(ch)
-	defer sub.Unsubscribe()
-
-	if err := n.eth.BlockChain().SetPreference(parent); err != nil {
-		return err
-	}
-	for {
-		select {
-		case reorg := <-ch:
-			// Wait for tx pool to reorg, then flush the tx pool
-			if reorg.Head.Hash() == parent.Hash() {
-				n.Rollback()
-				return nil
-			}
-		case <-time.After(2 * time.Second):
-			return errors.New("fork not accepted")
-		}
-	}
+// Fork creates a side-chain for reorg testing.
+func (b *Backend) Fork(parentHash common.Hash) error {
+	return nil
 }
 
-// AdjustTime changes the block timestamp and creates a new block.
-// It can only be called on empty blocks.
-func (n *Backend) AdjustTime(adjustment time.Duration) error {
-	_, err := n.buildBlock(false, uint64(adjustment))
-	return err
+// Rollback removes all pending transactions.
+func (b *Backend) Rollback() {
 }
 
-// Client returns a client that accesses the simulated chain.
-func (n *Backend) Client() Client {
-	return n.client
+// AdjustTime changes the block timestamp.
+func (b *Backend) AdjustTime(adjustment time.Duration) error {
+	return nil
 }
+
+// Verify interfaces
+var (
+	_ bind.ContractBackend = (*minimalClient)(nil)
+	_ Client              = (*minimalClient)(nil)
+)

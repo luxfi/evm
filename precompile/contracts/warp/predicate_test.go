@@ -8,25 +8,18 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	agoUtils "github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/utils"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/localsigner"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/precompile/testutils"
 	"github.com/luxfi/evm/predicate"
 	"github.com/luxfi/evm/utils"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/utils/set"
+	"github.com/luxfi/geth/common"
+	agoUtils "github.com/luxfi/node/utils"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 const pChainHeight uint64 = 1337
@@ -36,8 +29,11 @@ var (
 
 	errTest        = errors.New("non-nil error")
 	networkID      = uint32(54321)
-	sourceChainID  = ids.GenerateTestID()
-	sourceSubnetID = ids.GenerateTestID()
+	sourceChainID  = GenerateTestID()
+	sourceSubnetID = GenerateTestID()
+	
+	// PrimaryNetworkID is the ID of the primary network
+	PrimaryNetworkID = iface.ID{}
 
 	// valid unsigned warp message used throughout testing
 	unsignedMsg *iface.UnsignedMessage
@@ -45,11 +41,11 @@ var (
 	addressedPayload      *iface.AddressedCall
 	addressedPayloadBytes []byte
 	// blsSignatures of [unsignedMsg] from each of [testVdrs]
-	blsSignatures []*iface.Signature
+	blsSignatures []*iface.BLSSignature
 
 	numTestVdrs = 10_000
 	testVdrs    []*testValidator
-	vdrs        map[ids.NodeID]*iface.GetValidatorOutput
+	vdrs        map[iface.NodeID]*iface.GetValidatorOutput
 
 	predicateTests = make(map[string]testutils.PredicateTest)
 )
@@ -61,26 +57,26 @@ func init() {
 	}
 	agoUtils.Sort(testVdrs)
 
-	vdrs = map[ids.NodeID]*iface.GetValidatorOutput{
+	vdrs = map[iface.NodeID]*iface.GetValidatorOutput{
 		testVdrs[0].nodeID: {
 			NodeID:    testVdrs[0].nodeID,
-			PublicKey: testVdrs[0].vdr.PublicKey,
+			PublicKey: testVdrs[0].vdr.PublicKeyBytes,
 			Weight:    testVdrs[0].vdr.Weight,
 		},
 		testVdrs[1].nodeID: {
 			NodeID:    testVdrs[1].nodeID,
-			PublicKey: testVdrs[1].vdr.PublicKey,
+			PublicKey: testVdrs[1].vdr.PublicKeyBytes,
 			Weight:    testVdrs[1].vdr.Weight,
 		},
 		testVdrs[2].nodeID: {
 			NodeID:    testVdrs[2].nodeID,
-			PublicKey: testVdrs[2].vdr.PublicKey,
+			PublicKey: testVdrs[2].vdr.PublicKeyBytes,
 			Weight:    testVdrs[2].vdr.Weight,
 		},
 	}
 
 	var err error
-	addr := ids.GenerateTestShortID()
+	addr := GenerateTestShortID()
 	addressedPayload, err = iface.NewAddressedCall(
 		addr[:],
 		[]byte{1, 2, 3},
@@ -106,11 +102,9 @@ func init() {
 }
 
 type testValidator struct {
-	nodeID ids.NodeID
-	sk     *iface.SecretKey
-	vdr    *iface.Validator
+	nodeID iface.NodeID
 	sk     iface.Signer
-	vdr    *iface.Validator
+	vdr    *ValidatorImpl
 }
 
 func (v *testValidator) Compare(o *testValidator) int {
@@ -123,16 +117,17 @@ func newTestValidator() *testValidator {
 		panic(err)
 	}
 
-	nodeID := ids.GenerateTestNodeID()
-	pk := sk.PublicKey()
+	nodeID := GenerateTestNodeID()
+	signer := &signerAdapter{sk: sk}
+	pk := signer.PublicKey()
 	return &testValidator{
 		nodeID: nodeID,
-		sk:     sk,
-		vdr: &iface.Validator{
+		sk:     signer,
+		vdr: &ValidatorImpl{
 			PublicKey:      pk,
-			PublicKeyBytes: pk.Serialize(),
+			PublicKeyBytes: pk.UncompressedBytes(),
 			Weight:         3,
-			NodeIDs:        []ids.NodeID{nodeID},
+			NodeIDs:        []iface.NodeID{nodeID},
 		},
 	}
 }
@@ -186,8 +181,8 @@ type validatorRange struct {
 }
 
 // createConsensusCtx creates a consensus.Context instance with a validator state specified by the given validatorRanges
-func createConsensusCtx(validatorRanges []validatorRange) *consensus.Context {
-	getValidatorsOutput := make(map[ids.NodeID]*iface.GetValidatorOutput)
+func createConsensusCtx(validatorRanges []validatorRange) *precompileconfig.PredicateContext {
+	getValidatorsOutput := make(map[iface.NodeID]*iface.GetValidatorOutput)
 
 	for _, validatorRange := range validatorRanges {
 		for i := validatorRange.start; i < validatorRange.end; i++ {
@@ -196,39 +191,43 @@ func createConsensusCtx(validatorRanges []validatorRange) *consensus.Context {
 				Weight: validatorRange.weight,
 			}
 			if validatorRange.publicKey {
-				validatorOutput.PublicKey = testVdrs[i].vdr.PublicKey
+				validatorOutput.PublicKey = testVdrs[i].vdr.PublicKeyBytes
 			}
 			getValidatorsOutput[testVdrs[i].nodeID] = validatorOutput
 		}
 	}
 
-	consensusCtx := utils.TestConsensusContext()
-	state := &validatorstest.State{
-		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
-			return sourceSubnetID, nil
+	chainCtx := utils.TestChainContext()
+	chainCtx.NetworkID = networkID
+	chainCtx.ValidatorState = &validatorStateAdapter{
+		GetSubnetIDF: func(ctx context.Context, chainID common.Hash) (common.Hash, error) {
+			return common.Hash(sourceSubnetID), nil
 		},
-		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*iface.GetValidatorOutput, error) {
-			return getValidatorsOutput, nil
+		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID common.Hash) (map[common.Hash]*iface.ValidatorOutput, error) {
+			// Convert map[iface.NodeID]*iface.GetValidatorOutput to map[common.Hash]*iface.ValidatorOutput
+			result := make(map[common.Hash]*iface.ValidatorOutput)
+			for nodeID, v := range getValidatorsOutput {
+				result[common.Hash(nodeID)] = ConvertGetValidatorOutputToValidatorOutput(v)
+			}
+			return result, nil
 		},
 	}
-	consensusCtx.ValidatorState = state
-	consensusCtx.NetworkID = networkID
-	return consensusCtx
+	return &precompileconfig.PredicateContext{
+		ConsensusCtx: chainCtx,
+		ProposerVMBlockCtx: &commontype.BlockContext{
+			PChainHeight: 1,
+		},
+	}
 }
 
-func createValidPredicateTest(consensusCtx *consensus.Context, numKeys uint64, predicateBytes []byte) testutils.PredicateTest {
+func createValidPredicateTest(predicateCtx *precompileconfig.PredicateContext, numKeys uint64, predicateBytes []byte) testutils.PredicateTest {
 	return testutils.PredicateTest{
-		Config: NewDefaultConfig(utils.NewUint64(0)),
-		PredicateContext: &precompileiface.PredicateContext{
-			ConsensusCtx: consensusCtx,
-			ProposerVMBlockCtx: &iface.Context{
-				PChainHeight: 1,
-			},
-		},
-		PredicateBytes: predicateBytes,
-		Gas:            GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + numKeys*GasCostPerWarpSigner,
-		GasErr:         nil,
-		ExpectedErr:    nil,
+		Config:           NewDefaultConfig(utils.NewUint64(0)),
+		PredicateContext: predicateCtx,
+		PredicateBytes:   predicateBytes,
+		Gas:              GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + numKeys*GasCostPerWarpSigner,
+		GasErr:           nil,
+		ExpectedErr:      nil,
 	}
 }
 
@@ -241,14 +240,14 @@ func TestWarpMessageFromPrimaryNetwork(t *testing.T) {
 func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigners bool) {
 	require := require.New(t)
 	numKeys := 10
-	cChainID := ids.GenerateTestID()
+	cChainID := GenerateTestID()
 	addressedCall, err := iface.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
 	require.NoError(err)
 	unsignedMsg, err := iface.NewUnsignedMessage(networkID, cChainID, addressedCall.Bytes())
 	require.NoError(err)
 
-	getValidatorsOutput := make(map[ids.NodeID]*iface.GetValidatorOutput)
-	blsSignatures := make([]*iface.Signature, 0, numKeys)
+	getValidatorsOutput := make(map[iface.NodeID]*iface.GetValidatorOutput)
+	blsSignatures := make([]*iface.BLSSignature, 0, numKeys)
 	for i := 0; i < numKeys; i++ {
 		sig, err := testVdrs[i].sk.Sign(unsignedMsg.Bytes())
 		require.NoError(err)
@@ -256,7 +255,7 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 		validatorOutput := &iface.GetValidatorOutput{
 			NodeID:    testVdrs[i].nodeID,
 			Weight:    20,
-			PublicKey: testVdrs[i].vdr.PublicKey,
+			PublicKey: testVdrs[i].vdr.PublicKeyBytes,
 		}
 		getValidatorsOutput[testVdrs[i].nodeID] = validatorOutput
 		blsSignatures = append(blsSignatures, sig)
@@ -276,31 +275,37 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 
 	predicateBytes := predicate.PackPredicate(warpMsg.Bytes())
 
-	consensusCtx := utils.TestConsensusContext()
-	consensusCtx.SubnetID = ids.GenerateTestID()
-	consensusCtx.ChainID = ids.GenerateTestID()
-	consensusCtx.CChainID = cChainID
-	consensusCtx.NetworkID = networkID
-	consensusCtx.ValidatorState = &validatorstest.State{
-		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
-			require.Equal(chainID, cChainID)
-			return constants.PrimaryNetworkID, nil // Return Primary Network SubnetID
+	chainCtx := utils.TestChainContext()
+	chainCtx.SubnetID = iface.SubnetID(GenerateTestID())
+	chainCtx.ChainID = iface.ChainID(GenerateTestID())
+	chainCtx.NetworkID = networkID
+	
+	subnetID := chainCtx.SubnetID
+	chainCtx.ValidatorState = &validatorStateAdapter{
+		GetSubnetIDF: func(ctx context.Context, chainID common.Hash) (common.Hash, error) {
+			require.Equal(chainID, common.Hash(cChainID))
+			return common.Hash(PrimaryNetworkID), nil // Return Primary Network SubnetID
 		},
-		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*iface.GetValidatorOutput, error) {
-			expectedSubnetID := consensusCtx.SubnetID
+		GetValidatorSetF: func(ctx context.Context, height uint64, testSubnetID common.Hash) (map[common.Hash]*iface.ValidatorOutput, error) {
+			expectedSubnetID := common.Hash(subnetID)
 			if requirePrimaryNetworkSigners {
-				expectedSubnetID = constants.PrimaryNetworkID
+				expectedSubnetID = common.Hash(PrimaryNetworkID)
 			}
-			require.Equal(expectedSubnetID, subnetID)
-			return getValidatorsOutput, nil
+			require.Equal(expectedSubnetID, testSubnetID)
+			// Convert the map to the expected type
+			result := make(map[common.Hash]*iface.ValidatorOutput)
+			for nodeID, v := range getValidatorsOutput {
+				result[common.Hash(nodeID)] = ConvertGetValidatorOutputToValidatorOutput(v)
+			}
+			return result, nil
 		},
 	}
 
 	test := testutils.PredicateTest{
 		Config: NewConfig(utils.NewUint64(0), 0, requirePrimaryNetworkSigners),
-		PredicateContext: &precompileiface.PredicateContext{
-			ConsensusCtx: consensusCtx,
-			ProposerVMBlockCtx: &iface.Context{
+		PredicateContext: &precompileconfig.PredicateContext{
+			ConsensusCtx: chainCtx,
+			ProposerVMBlockCtx: &commontype.BlockContext{
 				PChainHeight: 1,
 			},
 		},
@@ -315,7 +320,7 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 
 func TestInvalidPredicatePacking(t *testing.T) {
 	numKeys := 1
-	consensusCtx := createConsensusCtx([]validatorRange{
+	predicateCtx := createConsensusCtx([]validatorRange{
 		{
 			start:     0,
 			end:       numKeys,
@@ -327,16 +332,11 @@ func TestInvalidPredicatePacking(t *testing.T) {
 	predicateBytes = append(predicateBytes, byte(0x01)) // Invalidate the predicate byte packing
 
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(utils.NewUint64(0)),
-		PredicateContext: &precompileiface.PredicateContext{
-			ConsensusCtx: consensusCtx,
-			ProposerVMBlockCtx: &iface.Context{
-				PChainHeight: 1,
-			},
-		},
-		PredicateBytes: predicateBytes,
-		Gas:            GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
-		GasErr:         errInvalidPredicateBytes,
+		Config:           NewDefaultConfig(utils.NewUint64(0)),
+		PredicateContext: predicateCtx,
+		PredicateBytes:   predicateBytes,
+		Gas:              GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:           errInvalidPredicateBytes,
 	}
 
 	test.Run(t)
@@ -344,7 +344,7 @@ func TestInvalidPredicatePacking(t *testing.T) {
 
 func TestInvalidWarpMessage(t *testing.T) {
 	numKeys := 1
-	consensusCtx := createConsensusCtx([]validatorRange{
+	predicateCtx := createConsensusCtx([]validatorRange{
 		{
 			start:     0,
 			end:       numKeys,
@@ -358,16 +358,11 @@ func TestInvalidWarpMessage(t *testing.T) {
 	predicateBytes := predicate.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(utils.NewUint64(0)),
-		PredicateContext: &precompileiface.PredicateContext{
-			ConsensusCtx: consensusCtx,
-			ProposerVMBlockCtx: &iface.Context{
-				PChainHeight: 1,
-			},
-		},
-		PredicateBytes: predicateBytes,
-		Gas:            GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
-		GasErr:         errInvalidWarpMsg,
+		Config:           NewDefaultConfig(utils.NewUint64(0)),
+		PredicateContext: predicateCtx,
+		PredicateBytes:   predicateBytes,
+		Gas:              GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:           errInvalidWarpMsg,
 	}
 
 	test.Run(t)
@@ -375,7 +370,7 @@ func TestInvalidWarpMessage(t *testing.T) {
 
 func TestInvalidAddressedPayload(t *testing.T) {
 	numKeys := 1
-	consensusCtx := createConsensusCtx([]validatorRange{
+	predicateCtx := createConsensusCtx([]validatorRange{
 		{
 			start:     0,
 			end:       numKeys,
@@ -402,16 +397,11 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	predicateBytes := predicate.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(utils.NewUint64(0)),
-		PredicateContext: &precompileiface.PredicateContext{
-			ConsensusCtx: consensusCtx,
-			ProposerVMBlockCtx: &iface.Context{
-				PChainHeight: 1,
-			},
-		},
-		PredicateBytes: predicateBytes,
-		Gas:            GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
-		GasErr:         errInvalidWarpMsgPayload,
+		Config:           NewDefaultConfig(utils.NewUint64(0)),
+		PredicateContext: predicateCtx,
+		PredicateBytes:   predicateBytes,
+		Gas:              GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:           errInvalidWarpMsgPayload,
 	}
 
 	test.Run(t)
@@ -431,13 +421,13 @@ func TestInvalidBitSet(t *testing.T) {
 		unsignedMsg,
 		&iface.BitSetSignature{
 			Signers:   make([]byte, 1),
-			Signature: [iface.SignatureLen]byte{},
+			Signature: [96]byte{},
 		},
 	)
 	require.NoError(t, err)
 
 	numKeys := 1
-	consensusCtx := createConsensusCtx([]validatorRange{
+	predicateCtx := createConsensusCtx([]validatorRange{
 		{
 			start:     0,
 			end:       numKeys,
@@ -447,23 +437,18 @@ func TestInvalidBitSet(t *testing.T) {
 	})
 	predicateBytes := predicate.PackPredicate(msg.Bytes())
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(utils.NewUint64(0)),
-		PredicateContext: &precompileiface.PredicateContext{
-			ConsensusCtx: consensusCtx,
-			ProposerVMBlockCtx: &iface.Context{
-				PChainHeight: 1,
-			},
-		},
-		PredicateBytes: predicateBytes,
-		Gas:            GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
-		GasErr:         errCannotGetNumSigners,
+		Config:           NewDefaultConfig(utils.NewUint64(0)),
+		PredicateContext: predicateCtx,
+		PredicateBytes:   predicateBytes,
+		Gas:              GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:           errCannotGetNumSigners,
 	}
 
 	test.Run(t)
 }
 
 func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
-	consensusCtx := createConsensusCtx([]validatorRange{
+	predicateCtx := createConsensusCtx([]validatorRange{
 		{
 			start:     0,
 			end:       100,
@@ -492,17 +477,12 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 		}
 
 		tests[fmt.Sprintf("default quorum %d signature(s)", numSigners)] = testutils.PredicateTest{
-			Config: NewDefaultConfig(utils.NewUint64(0)),
-			PredicateContext: &precompileiface.PredicateContext{
-				ConsensusCtx: consensusCtx,
-				ProposerVMBlockCtx: &iface.Context{
-					PChainHeight: 1,
-				},
-			},
-			PredicateBytes: predicateBytes,
-			Gas:            GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numSigners)*GasCostPerWarpSigner,
-			GasErr:         nil,
-			ExpectedErr:    expectedErr,
+			Config:           NewDefaultConfig(utils.NewUint64(0)),
+			PredicateContext: predicateCtx,
+			PredicateBytes:   predicateBytes,
+			Gas:              GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numSigners)*GasCostPerWarpSigner,
+			GasErr:           nil,
+			ExpectedErr:      expectedErr,
 		}
 	}
 	testutils.RunPredicateTests(t, tests)
@@ -510,7 +490,7 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 
 // multiple messages all correct, multiple messages all incorrect, mixed bag
 func TestWarpMultiplePredicates(t *testing.T) {
-	consensusCtx := createConsensusCtx([]validatorRange{
+	predicateCtx := createConsensusCtx([]validatorRange{
 		{
 			start:     0,
 			end:       100,
@@ -550,17 +530,12 @@ func TestWarpMultiplePredicates(t *testing.T) {
 			}
 
 			tests[fmt.Sprintf("multiple predicates %v", validMessageIndices)] = testutils.PredicateTest{
-				Config: NewDefaultConfig(utils.NewUint64(0)),
-				PredicateContext: &precompileiface.PredicateContext{
-					ConsensusCtx: consensusCtx,
-					ProposerVMBlockCtx: &iface.Context{
-						PChainHeight: 1,
-					},
-				},
-				PredicateBytes: predicate,
-				Gas:            expectedGas,
-				GasErr:         nil,
-				ExpectedErr:    expectedErr,
+				Config:           NewDefaultConfig(utils.NewUint64(0)),
+				PredicateContext: predicateCtx,
+				PredicateBytes:   predicate,
+				Gas:              expectedGas,
+				GasErr:           nil,
+				ExpectedErr:      expectedErr,
 			}
 		}
 	}
@@ -568,7 +543,7 @@ func TestWarpMultiplePredicates(t *testing.T) {
 }
 
 func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
-	consensusCtx := createConsensusCtx([]validatorRange{
+	predicateCtx := createConsensusCtx([]validatorRange{
 		{
 			start:     0,
 			end:       100,
@@ -594,17 +569,12 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 
 		name := fmt.Sprintf("non-default quorum %d signature(s)", numSigners)
 		tests[name] = testutils.PredicateTest{
-			Config: NewConfig(utils.NewUint64(0), uint64(nonDefaultQuorumNumerator), false),
-			PredicateContext: &precompileiface.PredicateContext{
-				ConsensusCtx: consensusCtx,
-				ProposerVMBlockCtx: &iface.Context{
-					PChainHeight: 1,
-				},
-			},
-			PredicateBytes: predicateBytes,
-			Gas:            GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numSigners)*GasCostPerWarpSigner,
-			GasErr:         nil,
-			ExpectedErr:    expectedErr,
+			Config:           NewConfig(utils.NewUint64(0), uint64(nonDefaultQuorumNumerator), false),
+			PredicateContext: predicateCtx,
+			PredicateBytes:   predicateBytes,
+			Gas:              GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numSigners)*GasCostPerWarpSigner,
+			GasErr:           nil,
+			ExpectedErr:      expectedErr,
 		}
 	}
 
@@ -616,7 +586,7 @@ func initWarpPredicateTests() {
 		testName := fmt.Sprintf("%d signers/%d validators", totalNodes, totalNodes)
 
 		predicateBytes := createPredicate(totalNodes)
-		consensusCtx := createConsensusCtx([]validatorRange{
+		predicateCtx := createConsensusCtx([]validatorRange{
 			{
 				start:     0,
 				end:       totalNodes,
@@ -624,7 +594,7 @@ func initWarpPredicateTests() {
 				publicKey: true,
 			},
 		})
-		predicateTests[testName] = createValidPredicateTest(consensusCtx, uint64(totalNodes), predicateBytes)
+		predicateTests[testName] = createValidPredicateTest(predicateCtx, uint64(totalNodes), predicateBytes)
 	}
 
 	numSigners := 10
@@ -632,7 +602,7 @@ func initWarpPredicateTests() {
 		testName := fmt.Sprintf("%d signers (heavily weighted)/%d validators", numSigners, totalNodes)
 
 		predicateBytes := createPredicate(numSigners)
-		consensusCtx := createConsensusCtx([]validatorRange{
+		predicateCtx := createConsensusCtx([]validatorRange{
 			{
 				start:     0,
 				end:       numSigners,
@@ -646,14 +616,14 @@ func initWarpPredicateTests() {
 				publicKey: true,
 			},
 		})
-		predicateTests[testName] = createValidPredicateTest(consensusCtx, uint64(numSigners), predicateBytes)
+		predicateTests[testName] = createValidPredicateTest(predicateCtx, uint64(numSigners), predicateBytes)
 	}
 
 	for _, totalNodes := range []int{100, 1_000, 10_000} {
 		testName := fmt.Sprintf("%d signers (heavily weighted)/%d validators (non-signers without registered PublicKey)", numSigners, totalNodes)
 
 		predicateBytes := createPredicate(numSigners)
-		consensusCtx := createConsensusCtx([]validatorRange{
+		predicateCtx := createConsensusCtx([]validatorRange{
 			{
 				start:     0,
 				end:       numSigners,
@@ -667,35 +637,46 @@ func initWarpPredicateTests() {
 				publicKey: false,
 			},
 		})
-		predicateTests[testName] = createValidPredicateTest(consensusCtx, uint64(numSigners), predicateBytes)
+		predicateTests[testName] = createValidPredicateTest(predicateCtx, uint64(numSigners), predicateBytes)
 	}
 
 	for _, totalNodes := range []int{100, 1_000, 10_000} {
 		testName := fmt.Sprintf("%d validators w/ %d signers/repeated PublicKeys", totalNodes, numSigners)
 
 		predicateBytes := createPredicate(numSigners)
-		getValidatorsOutput := make(map[ids.NodeID]*iface.GetValidatorOutput, totalNodes)
+		getValidatorsOutput := make(map[iface.NodeID]*iface.GetValidatorOutput, totalNodes)
 		for i := 0; i < totalNodes; i++ {
 			getValidatorsOutput[testVdrs[i].nodeID] = &iface.GetValidatorOutput{
 				NodeID:    testVdrs[i].nodeID,
 				Weight:    20,
-				PublicKey: testVdrs[i%numSigners].vdr.PublicKey,
+				PublicKey: testVdrs[i%numSigners].vdr.PublicKeyBytes,
 			}
 		}
 
-		consensusCtx := utils.TestConsensusContext()
-		consensusCtx.NetworkID = networkID
-		state := &validatorstest.State{
-			GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
-				return sourceSubnetID, nil
+		chainCtx := utils.TestChainContext()
+		chainCtx.NetworkID = networkID
+		chainCtx.ValidatorState = &validatorStateAdapter{
+			GetSubnetIDF: func(ctx context.Context, chainID common.Hash) (common.Hash, error) {
+				return common.Hash(sourceSubnetID), nil
 			},
-			GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*iface.GetValidatorOutput, error) {
-				return getValidatorsOutput, nil
+			GetValidatorSetF: func(ctx context.Context, height uint64, subnetID common.Hash) (map[common.Hash]*iface.ValidatorOutput, error) {
+				// Convert the map to the expected type
+				result := make(map[common.Hash]*iface.ValidatorOutput)
+				for nodeID, v := range getValidatorsOutput {
+					result[common.Hash(nodeID)] = ConvertGetValidatorOutputToValidatorOutput(v)
+				}
+				return result, nil
 			},
 		}
-		consensusCtx.ValidatorState = state
+		
+		predicateCtx := &precompileconfig.PredicateContext{
+			ConsensusCtx: chainCtx,
+			ProposerVMBlockCtx: &commontype.BlockContext{
+				PChainHeight: 1,
+			},
+		}
 
-		predicateTests[testName] = createValidPredicateTest(consensusCtx, uint64(numSigners), predicateBytes)
+		predicateTests[testName] = createValidPredicateTest(predicateCtx, uint64(numSigners), predicateBytes)
 	}
 }
 

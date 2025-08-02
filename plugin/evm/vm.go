@@ -18,7 +18,6 @@ import (
 
 	// Node consensus imports
 	"github.com/luxfi/evm/commontype"
-	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/consensus/dummy"
 	evmconstants "github.com/luxfi/evm/constants"
 	"github.com/luxfi/evm/core"
@@ -28,6 +27,7 @@ import (
 	"github.com/luxfi/evm/eth"
 	"github.com/luxfi/evm/eth/ethconfig"
 	"github.com/luxfi/evm/iface"
+	evmids "github.com/luxfi/evm/ids"
 	"github.com/luxfi/evm/miner"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/params/extras"
@@ -36,10 +36,10 @@ import (
 	"github.com/luxfi/geth/node"
 	"github.com/luxfi/geth/triedb"
 	triedbhashdb "github.com/luxfi/geth/triedb/hashdb"
-	nodeconsensus "github.com/luxfi/node/consensus"
-	commonEng "github.com/luxfi/node/consensus/engine/core"
-	chainblock "github.com/luxfi/node/consensus/engine/chain/block"
-	consensuschain "github.com/luxfi/node/consensus/chain"
+	nodequasar "github.com/luxfi/node/quasar"
+	commonEng "github.com/luxfi/node/quasar/engine/core"
+	chainblock "github.com/luxfi/node/quasar/engine/chain/block"
+	consensuschain "github.com/luxfi/node/quasar/chain"
 	"github.com/luxfi/database"
 	"github.com/luxfi/ids"
 	statesyncclient "github.com/luxfi/node/state_sync/client"
@@ -76,7 +76,7 @@ import (
 	"github.com/luxfi/evm/peer"
 	nodeMetrics "github.com/luxfi/node/api/metrics"
 	"github.com/luxfi/node/codec"
-	"github.com/luxfi/node/consensus/validators"
+	"github.com/luxfi/node/quasar/validators"
 	"github.com/luxfi/node/network/p2p"
 	"github.com/luxfi/node/network/p2p/gossip"
 	"github.com/luxfi/node/utils"
@@ -155,7 +155,7 @@ var (
 
 // VM implements the block.ChainVM interface
 type VM struct {
-	ctx *nodeconsensus.Context
+	ctx *nodequasar.Context
 	// vmLock is used to coordinate global VM operations.
 	vmLock sync.RWMutex
 	// [cancel] may be nil until [commonEng.NormalOp] starts
@@ -253,7 +253,7 @@ type VM struct {
 // Initialize implements the block.ChainVM interface
 func (vm *VM) Initialize(
 	_ context.Context,
-	chainCtx *nodeconsensus.Context,
+	chainCtx *nodequasar.Context,
 	db database.Database,
 	genesisBytes []byte,
 	upgradeBytes []byte,
@@ -719,16 +719,16 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	return metricsGatherer.Register(chainStateMetricsPrefix, chainStateRegisterer.(prometheus.Gatherer))
 }
 
-func (vm *VM) SetState(_ context.Context, state nodeconsensus.State) error {
+func (vm *VM) SetState(_ context.Context, state nodequasar.State) error {
 	vm.vmLock.Lock()
 	defer vm.vmLock.Unlock()
 	switch state {
-	case nodeconsensus.StateSyncing:
+	case nodequasar.StateSyncing:
 		vm.bootstrapped.Set(false)
 		return nil
-	case nodeconsensus.Bootstrapping:
+	case nodequasar.Bootstrapping:
 		return vm.onBootstrapStarted()
-	case nodeconsensus.NormalOp:
+	case nodequasar.NormalOp:
 		return vm.onNormalOperationsStarted()
 	default:
 		return fmt.Errorf("unknown state: %v", state)
@@ -945,18 +945,25 @@ func (vm *VM) BuildBlockWithContext(ctx context.Context, proposerVMBlockCtx *cha
 	} else {
 		vm.logger.Debug("Building block without context")
 	}
-	// Convert consensus context to iface.ChainContext
-	chainCtx := &iface.ChainContext{
+	// Convert consensus context to commontype.ChainContext
+	chainCtx := &commontype.ChainContext{
 		NetworkID: vm.ctx.NetworkID,
-		SubnetID:  iface.SubnetID(vm.ctx.SubnetID),
-		ChainID:   iface.ChainID(vm.ctx.ChainID),
-		NodeID:    iface.NodeID(vm.ctx.NodeID[:]),
+		SubnetID:  evmids.SubnetID(vm.ctx.SubnetID),
+		ChainID:   evmids.ChainID(vm.ctx.ChainID),
+		NodeID: func() evmids.NodeID {
+			var nodeID evmids.NodeID
+			copy(nodeID[:], vm.ctx.NodeID[:])
+			return nodeID
+		}(),
+		AppVersion: 0, // TODO: Get app version
+		ChainDataDir: "", // TODO: Get chain data dir
+		ValidatorState: nil, // TODO: Implement ValidatorState interface
 	}
 
 	// Convert block context if available
-	var blockCtx *consensus.BlockContext
+	var blockCtx *commontype.BlockContext
 	if proposerVMBlockCtx != nil {
-		blockCtx = &consensus.BlockContext{
+		blockCtx = &commontype.BlockContext{
 			PChainHeight: proposerVMBlockCtx.PChainHeight,
 		}
 	}

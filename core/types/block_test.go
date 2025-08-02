@@ -32,7 +32,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/math"
 	"github.com/luxfi/geth/crypto"

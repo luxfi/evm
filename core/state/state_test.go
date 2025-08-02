@@ -31,9 +31,7 @@ import (
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/ethdb"
-	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/crypto"
 )
 
 type stateEnv struct {
@@ -55,7 +53,7 @@ func TestNull(t *testing.T) {
 	var value common.Hash
 
 	s.state.SetState(address, common.Hash{}, value)
-	s.state.Commit(0, false)
+	s.state.Commit(0, false, false)
 
 	if value := s.state.GetState(address, common.Hash{}); value != (common.Hash{}) {
 		t.Errorf("expected empty current value, got %x", value)

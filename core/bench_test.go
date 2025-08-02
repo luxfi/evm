@@ -31,7 +31,6 @@ import (
 	"math/big"
 	"testing"
 	"github.com/luxfi/evm/consensus/dummy"
-	"github.com/luxfi/evm/constants"
 	"github.com/luxfi/evm/core/rawdb"
 	customrawdb "github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/types"
@@ -306,7 +305,10 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 			if full {
 				hash := header.Hash()
 				rawdb.ReadBody(db, hash, n)
-				rawdb.ReadReceipts(db, hash, n, header.Time, chain.Config())
+				// Convert iface.ChainConfig to *params.ChainConfig
+				if cfg, ok := chain.Config().(*params.ChainConfig); ok {
+					rawdb.ReadReceipts(db, hash, n, header.Time, cfg)
+				}
 			}
 		}
 		chain.Stop()

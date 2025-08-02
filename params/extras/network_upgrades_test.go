@@ -1,4 +1,4 @@
-// (c) 2025, Lux Industries, Inc. All rights reserved.
+// (c) 2022 Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package extras
@@ -6,337 +6,325 @@ package extras
 import (
 	"testing"
 
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/iface"
 	"github.com/luxfi/evm/utils"
+	upgrade "github.com/luxfi/node/upgrade"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNetworkUpgradesEqual(t *testing.T) {
+func TestNetworkUpgradeIsEVM(t *testing.T) {
+	t.Parallel()
+
 	testcases := []struct {
 		name      string
-		upgrades1 *NetworkUpgrades
-		upgrades2 *NetworkUpgrades
+		upgrades  NetworkUpgrades
+		timestamp uint64
 		expected  bool
 	}{
 		{
-			name: "EqualNetworkUpgrades",
-			upgrades1: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
+			name: "genesis activated",
+			upgrades: NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(0),
 			},
-			upgrades2: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
+			timestamp: 0,
+			expected:  true,
+		},
+		{
+			name: "genesis not yet activated",
+			upgrades: NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(10),
+			},
+			timestamp: 9,
+			expected:  true,  // In v2.0.0, IsGenesis always returns true
+		},
+		{
+			name: "genesis activated in past",
+			upgrades: NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(5),
+			},
+			timestamp: 10,
+			expected:  true,
+		},
+		{
+			name: "nil genesis timestamp",
+			upgrades: NetworkUpgrades{
+				GenesisTimestamp: nil,
+			},
+			timestamp: 0,
+			expected:  true,  // In v2.0.0, IsGenesis always returns true
+		},
+	}
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			result := testcase.upgrades.IsGenesis(testcase.timestamp)
+			require.Equal(t, testcase.expected, result)
+		})
+	}
+}
+
+func TestNetworkUpgradesDescription(t *testing.T) {
+	// Test with nil genesis timestamp
+	{
+		upgrades := NetworkUpgrades{
+			GenesisTimestamp: nil,
+		}
+		result := upgrades.Description()
+		require.Contains(t, result, "Genesis Timestamp: @nil")
+	}
+
+	// Test with zero genesis timestamp
+	{
+		upgrades := NetworkUpgrades{
+			GenesisTimestamp: utils.NewUint64(0),
+		}
+		result := upgrades.Description()
+		require.Contains(t, result, "Genesis Timestamp: @0")
+	}
+
+	// Test with non-zero genesis timestamp
+	{
+		upgrades := NetworkUpgrades{
+			GenesisTimestamp: utils.NewUint64(100),
+		}
+		result := upgrades.Description()
+		require.Contains(t, result, "Genesis Timestamp: @100")
+	}
+}
+
+func TestNetworkUpgradesVerify(t *testing.T) {
+	testcases := []struct {
+		name        string
+		upgrades    NetworkUpgrades
+		expectError bool
+		errorString string
+	}{
+		{
+			name: "valid genesis at 0",
+			upgrades: NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(0),
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid genesis not at 0",
+			upgrades: NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(1),
+			},
+			expectError: true,
+			errorString: "genesis upgrade must be active at timestamp 0",
+		},
+		{
+			name: "invalid nil genesis",
+			upgrades: NetworkUpgrades{
+				GenesisTimestamp: nil,
+			},
+			expectError: true,
+			errorString: "genesis upgrade must be active at timestamp 0",
+		},
+	}
+
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			err := testcase.upgrades.verifyNetworkUpgrades(upgrade.Config{})
+			if testcase.expectError {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), testcase.errorString)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestNetworkUpgradesEqual(t *testing.T) {
+	testcases := []struct {
+		name     string
+		upgrade1 *NetworkUpgrades
+		upgrade2 *NetworkUpgrades
+		expected bool
+	}{
+		{
+			name: "both nil timestamps",
+			upgrade1: &NetworkUpgrades{
+				GenesisTimestamp: nil,
+			},
+			upgrade2: &NetworkUpgrades{
+				GenesisTimestamp: nil,
 			},
 			expected: true,
 		},
 		{
-			name: "NotEqualNetworkUpgrades",
-			upgrades1: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
+			name: "equal timestamps",
+			upgrade1: &NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(0),
 			},
-			upgrades2: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(3),
+			upgrade2: &NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(0),
+			},
+			expected: true,
+		},
+		{
+			name: "different timestamps",
+			upgrade1: &NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(0),
+			},
+			upgrade2: &NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(1),
 			},
 			expected: false,
 		},
 		{
-			name: "NilNetworkUpgrades",
-			upgrades1: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
+			name: "one nil one not",
+			upgrade1: &NetworkUpgrades{
+				GenesisTimestamp: nil,
 			},
-			upgrades2: nil,
-			expected:  false,
-		},
-		{
-			name: "NilNetworkUpgrade",
-			upgrades1: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
-			},
-			upgrades2: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   nil,
+			upgrade2: &NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(0),
 			},
 			expected: false,
 		},
 	}
-	for _, test := range testcases {
-		t.Run(test.name, func(t *testing.T) {
-			require.Equal(t, test.expected, test.upgrades1.Equal(test.upgrades2))
+
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			result := testcase.upgrade1.Equal(testcase.upgrade2)
+			require.Equal(t, testcase.expected, result)
 		})
 	}
 }
 
 func TestCheckNetworkUpgradesCompatible(t *testing.T) {
+	// In v2.0.0, checkNetworkUpgradesCompatible always returns nil
+	// since all upgrades are active at genesis - no compatibility checks needed
 	testcases := []struct {
-		name      string
-		upgrades1 *NetworkUpgrades
-		upgrades2 *NetworkUpgrades
-		time      uint64
-		valid     bool
+		name           string
+		networkUpgrade *NetworkUpgrades
+		newcfg         *NetworkUpgrades
+		time           uint64
 	}{
 		{
-			name: "Compatible_same_NetworkUpgrades",
-			upgrades1: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
+			name: "EqualNetworkUpgrades",
+			networkUpgrade: &NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(0),
 			},
-			upgrades2: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
+			newcfg: &NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(0),
 			},
-			time:  1,
-			valid: true,
+			time: 0,
 		},
 		{
-			name: "Compatible_different_NetworkUpgrades",
-			upgrades1: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
+			name: "DifferentTimestamps",
+			networkUpgrade: &NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(0),
 			},
-			upgrades2: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(3),
+			newcfg: &NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(1),
 			},
-			time:  1,
-			valid: true,
+			time: 0,
 		},
 		{
-			name: "Compatible_nil_NetworkUpgrades",
-			upgrades1: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
+			name: "NilTimestamp",
+			networkUpgrade: &NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(0),
 			},
-			upgrades2: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   nil,
+			newcfg: &NetworkUpgrades{
+				GenesisTimestamp: nil,
 			},
-			time:  1,
-			valid: true,
+			time: 0,
 		},
 		{
-			name: "Incompatible_rewinded_NetworkUpgrades",
-			upgrades1: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
+			name: "BothNil",
+			networkUpgrade: &NetworkUpgrades{
+				GenesisTimestamp: nil,
 			},
-			upgrades2: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(1),
+			newcfg: &NetworkUpgrades{
+				GenesisTimestamp: nil,
 			},
-			time:  1,
-			valid: false,
-		},
-		{
-			name: "Incompatible_fastforward_NetworkUpgrades",
-			upgrades1: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
-			},
-			upgrades2: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(3),
-			},
-			time:  4,
-			valid: false,
-		},
-		{
-			name: "Incompatible_nil_NetworkUpgrades",
-			upgrades1: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
-			},
-			upgrades2: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   nil,
-			},
-			time:  2,
-			valid: false,
-		},
-		{
-			name: "Incompatible_fastforward_nil_NetworkUpgrades",
-			upgrades1: func() *NetworkUpgrades {
-				upgrades := getDefaultNetworkUpgrades(interfaces.Testnet)
-				return &upgrades
-			}(),
-			upgrades2: func() *NetworkUpgrades {
-				upgrades := getDefaultNetworkUpgrades(interfaces.Testnet)
-				upgrades.EtnaTimestamp = nil
-				return &upgrades
-			}(),
-			time:  uint64(interfaces.Testnet.EtnaTime.Unix()),
-			valid: false,
-		},
-		{
-			name: "Compatible_Fortuna_fastforward_nil_NetworkUpgrades",
-			upgrades1: func() *NetworkUpgrades {
-				upgrades := getDefaultNetworkUpgrades(interfaces.Testnet)
-				return &upgrades
-			}(),
-			upgrades2: func() *NetworkUpgrades {
-				upgrades := getDefaultNetworkUpgrades(interfaces.Testnet)
-				upgrades.FortunaTimestamp = nil
-				return &upgrades
-			}(),
-			time:  uint64(interfaces.Testnet.FortunaTime.Unix()),
-			valid: true,
+			time: 0,
 		},
 	}
-	for _, test := range testcases {
-		t.Run(test.name, func(t *testing.T) {
-			err := test.upgrades1.checkNetworkUpgradesCompatible(test.upgrades2, test.time)
-			if test.valid {
-				require.Nil(t, err)
-			} else {
-				require.NotNil(t, err)
-			}
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			// In v2.0.0, this always returns nil
+			err := testcase.networkUpgrade.checkNetworkUpgradesCompatible(testcase.newcfg, testcase.time)
+			require.Nil(t, err)
 		})
 	}
 }
 
-func TestVerifyNetworkUpgrades(t *testing.T) {
+// TestCheckNetworkUpgradesCompatibleContext removed - no longer applicable in v2.0.0
+
+func TestActivationTimestamps(t *testing.T) {
+	// Test that genesis timestamp must be 0 for v2.0.0
 	testcases := []struct {
-		name          string
-		upgrades      *NetworkUpgrades
-		avagoUpgrades interfaces.Config
-		valid         bool
+		name                string
+		timestamp           *uint64
+		expectedActivated   bool
+		expectedDescription string
 	}{
 		{
-			name: "ValidNetworkUpgrades_for_latest_network",
-			upgrades: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.NewUint64(1607144400),
-				EtnaTimestamp:      utils.NewUint64(1607144400),
-			},
-			avagoUpgrades: interfaces.GetConfig(interfaces.Latest),
-			valid:         true,
+			name:                "Genesis Activated",
+			timestamp:           utils.NewUint64(0),
+			expectedActivated:   true,
+			expectedDescription: "Genesis Timestamp: @0",
 		},
 		{
-			name: "Invalid_Durango_nil_upgrade",
-			upgrades: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   nil,
-			},
-			avagoUpgrades: interfaces.Mainnet,
-			valid:         false,
+			name:                "Genesis Not Activated",
+			timestamp:           nil,
+			expectedActivated:   true,  // In v2.0.0, IsGenesis always returns true
+			expectedDescription: "Genesis Timestamp: @nil",
 		},
 		{
-			name: "Invalid_EVM_non-zero",
-			upgrades: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(2),
-			},
-			avagoUpgrades: interfaces.Mainnet,
-			valid:         false,
-		},
-		{
-			name: "Invalid_Durango_before_default_upgrade",
-			upgrades: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.NewUint64(1),
-			},
-			avagoUpgrades: interfaces.Mainnet,
-			valid:         false,
-		},
-		{
-			name: "Invalid_Mainnet_Durango_reconfigured_to_Testnet",
-			upgrades: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.TimeToNewUint64(interfaces.GetConfig(constants.TestnetID).DurangoTime),
-			},
-			avagoUpgrades: interfaces.Mainnet,
-			valid:         false,
-		},
-		{
-			name: "Valid_Testnet_Durango_reconfigured_to_Mainnet",
-			upgrades: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.TimeToNewUint64(interfaces.GetConfig(constants.MainnetID).DurangoTime),
-			},
-			avagoUpgrades: interfaces.Testnet,
-			valid:         false,
-		},
-		{
-			name: "Invalid_Etna_nil",
-			upgrades: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.TimeToNewUint64(interfaces.Mainnet.DurangoTime),
-				EtnaTimestamp:      nil,
-			},
-			avagoUpgrades: interfaces.Mainnet,
-			valid:         false,
-		},
-		{
-			name: "Invalid_Etna_before_Durango",
-			upgrades: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.TimeToNewUint64(interfaces.Mainnet.DurangoTime),
-				EtnaTimestamp:      utils.TimeToNewUint64(interfaces.Mainnet.DurangoTime.Add(-1)),
-			},
-			avagoUpgrades: interfaces.Mainnet,
-			valid:         false,
-		},
-		{
-			name: "Valid_Fortuna_nil",
-			upgrades: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.TimeToNewUint64(interfaces.Testnet.DurangoTime),
-				EtnaTimestamp:      utils.TimeToNewUint64(interfaces.Testnet.EtnaTime),
-				FortunaTimestamp:   nil,
-			},
-			avagoUpgrades: interfaces.Testnet,
-			valid:         true,
+			name:                "Genesis Future Activation",
+			timestamp:           utils.NewUint64(10),
+			expectedActivated:   true,  // In v2.0.0, IsGenesis always returns true
+			expectedDescription: "Genesis Timestamp: @10",
 		},
 	}
-	for _, test := range testcases {
-		t.Run(test.name, func(t *testing.T) {
-			err := test.upgrades.verifyNetworkUpgrades(test.avagoUpgrades)
-			if test.valid {
-				require.Nil(t, err)
-			} else {
-				require.NotNil(t, err)
+
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			upgrades := NetworkUpgrades{
+				GenesisTimestamp: testcase.timestamp,
 			}
+			
+			// Test IsGenesis at time 0
+			require.Equal(t, testcase.expectedActivated, upgrades.IsGenesis(0))
+			
+			// Test Description
+			desc := upgrades.Description()
+			require.Contains(t, desc, testcase.expectedDescription)
 		})
 	}
 }
 
-func TestForkOrder(t *testing.T) {
+// TestForkOrder removed - v2.0.0 only has genesis timestamp
+
+func TestSetDefaults(t *testing.T) {
 	testcases := []struct {
-		name        string
-		upgrades    *NetworkUpgrades
-		expectedErr bool
+		name                string
+		initial             NetworkUpgrades
+		expectedGenesis     *uint64
 	}{
 		{
-			name: "ValidNetworkUpgrades",
-			upgrades: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.NewUint64(2),
+			name: "Nil Genesis",
+			initial: NetworkUpgrades{
+				GenesisTimestamp: nil,
 			},
-			expectedErr: false,
+			expectedGenesis: utils.NewUint64(0),
 		},
 		{
-			name: "Invalid order",
-			upgrades: &NetworkUpgrades{
-				EVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(0),
+			name: "Existing Genesis",
+			initial: NetworkUpgrades{
+				GenesisTimestamp: utils.NewUint64(10),
 			},
-			expectedErr: true,
+			expectedGenesis: utils.NewUint64(10),
 		},
 	}
-	for _, test := range testcases {
-		t.Run(test.name, func(t *testing.T) {
-			err := checkForks(test.upgrades.forkOrder(), false)
-			if test.expectedErr {
-				require.NotNil(t, err)
-			} else {
-				require.Nil(t, err)
-			}
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			testcase.initial.SetDefaults(upgrade.Config{})
+			assert.Equal(t, testcase.expectedGenesis, testcase.initial.GenesisTimestamp)
 		})
 	}
 }

@@ -40,11 +40,14 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/precompile/allowlist"
 	"github.com/luxfi/evm/precompile/contracts/deployerallowlist"
 	"github.com/luxfi/geth/trie"
-	"github.com/luxfi/geth/trie/triedb"
+	"github.com/luxfi/geth/triedb"
+	"github.com/luxfi/geth/triedb/pathdb"
 	"github.com/luxfi/evm/utils"
+	ethparams "github.com/luxfi/geth/params"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -68,8 +71,8 @@ func TestSetupGenesis(t *testing.T) {
 }
 
 func testSetupGenesis(t *testing.T, scheme string) {
-	preSubnetConfig := params.Copy(params.TestPreEVMChainConfig)
-	params.GetExtra(&preSubnetConfig).EVMTimestamp = utils.NewUint64(100)
+	preSubnetConfig := params.Copy(params.TestChainConfig)
+	params.GetExtra(&preSubnetConfig).GenesisTimestamp = utils.NewUint64(100)
 	var (
 		customghash = common.HexToHash("0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66")
 		customg     = Genesis{
@@ -83,7 +86,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 	)
 
 	rollbackpreSubnetConfig := params.Copy(&preSubnetConfig)
-	params.GetExtra(&rollbackpreSubnetConfig).EVMTimestamp = utils.NewUint64(90)
+	params.GetExtra(&rollbackpreSubnetConfig).GenesisTimestamp = utils.NewUint64(90)
 	oldcustomg.Config = &rollbackpreSubnetConfig
 
 	tests := []struct {
@@ -349,31 +352,35 @@ func newDbConfig(scheme string) *triedb.Config {
 	if scheme == rawdb.HashScheme {
 		return triedb.HashDefaults
 	}
-	return &triedb.Config{DBOverride: pathdb.Defaults.BackendConstructor}
+	return &triedb.Config{
+		PathDB: pathdb.Defaults,
+	}
 }
 
 func TestVerkleGenesisCommit(t *testing.T) {
 	var verkleTime uint64 = 0
 	verkleConfig := &params.ChainConfig{
-		ChainID:             big.NewInt(1),
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		BerlinBlock:         big.NewInt(0),
-		LondonBlock:         big.NewInt(0),
-		ShanghaiTime:        &verkleTime,
-		CancunTime:          &verkleTime,
-		VerkleTime:          &verkleTime,
+		ChainConfig: &ethparams.ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+			ShanghaiTime:        &verkleTime,
+			CancunTime:          &verkleTime,
+			VerkleTime:          &verkleTime,
+		},
 	}
 
 	genesis := &Genesis{
-		BaseFee:    big.NewInt(legacy.BaseFee),
+		BaseFee:    big.NewInt(params.TestInitialBaseFee),
 		Config:     verkleConfig,
 		Timestamp:  verkleTime,
 		Difficulty: big.NewInt(0),
@@ -389,7 +396,7 @@ func TestVerkleGenesisCommit(t *testing.T) {
 	}
 
 	db := rawdb.NewMemoryDatabase()
-	triedb := triedb.NewDatabase(db, &triedb.Config{IsVerkle: true, DBOverride: pathdb.Defaults.BackendConstructor})
+	triedb := triedb.NewDatabase(db, &triedb.Config{IsVerkle: true, PathDB: pathdb.Defaults})
 	block := genesis.MustCommit(db, triedb)
 	if !bytes.Equal(block.Root().Bytes(), expected) {
 		t.Fatalf("invalid genesis state root, expected %x, got %x", expected, got)

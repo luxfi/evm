@@ -83,7 +83,7 @@ func (s *BlockChainAPI) GetBadBlocks(ctx context.Context) ([]*BadBlockArgs, erro
 		} else {
 			blockRlp = fmt.Sprintf("%#x", rlpBytes)
 		}
-		blockJSON = RPCMarshalBlock(block, true, true, s.b.ChainConfig().ToEthChainConfig())
+		blockJSON = RPCMarshalBlock(block, true, true, s.b.ChainConfig())
 		results = append(results, &BadBlockArgs{
 			Hash:   block.Hash(),
 			RLP:    blockRlp,

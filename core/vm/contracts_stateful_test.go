@@ -9,7 +9,6 @@ import (
 
 	"github.com/luxfi/evm/core/rawdb"
 	"github.com/luxfi/evm/core/state"
-	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"

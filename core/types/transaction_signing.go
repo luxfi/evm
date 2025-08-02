@@ -32,7 +32,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxfi/geth/params"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 )
@@ -48,15 +48,18 @@ type sigCache struct {
 
 // MakeSigner returns a Signer based on the given chain config and block number or time.
 func MakeSigner(config *params.ChainConfig, blockNumber *big.Int, blockTime uint64) Signer {
+	// Get the chain ID from the embedded geth config
+	chainID := config.GetChainID()
+	
 	switch {
-	case config.IsCancun(blockNumber, blockTime):
-		return NewCancunSigner(config.ChainID)
+	case config.IsCancun(blockTime):
+		return NewCancunSigner(chainID)
 	case config.IsLondon(blockNumber):
-		return NewLondonSigner(config.ChainID)
+		return NewLondonSigner(chainID)
 	case config.IsBerlin(blockNumber):
-		return NewEIP2930Signer(config.ChainID)
+		return NewEIP2930Signer(chainID)
 	case config.IsEIP155(blockNumber):
-		return NewEIP155Signer(config.ChainID)
+		return NewEIP155Signer(chainID)
 	case config.IsHomestead(blockNumber):
 		return HomesteadSigner{}
 	default:
@@ -72,18 +75,19 @@ func MakeSigner(config *params.ChainConfig, blockNumber *big.Int, blockTime uint
 // Use this in transaction-handling code where the current block number is unknown. If you
 // have the current block number available, use MakeSigner instead.
 func LatestSigner(config *params.ChainConfig) Signer {
-	if config.ChainID != nil {
+	chainID := config.GetChainID()
+	if chainID != nil {
 		if config.CancunTime != nil {
-			return NewCancunSigner(config.ChainID)
+			return NewCancunSigner(chainID)
 		}
 		if config.LondonBlock != nil {
-			return NewLondonSigner(config.ChainID)
+			return NewLondonSigner(chainID)
 		}
 		if config.BerlinBlock != nil {
-			return NewEIP2930Signer(config.ChainID)
+			return NewEIP2930Signer(chainID)
 		}
 		if config.EIP155Block != nil {
-			return NewEIP155Signer(config.ChainID)
+			return NewEIP155Signer(chainID)
 		}
 	}
 	return HomesteadSigner{}
