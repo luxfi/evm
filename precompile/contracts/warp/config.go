@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 	
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/precompile/precompileconfig"
-	"github.com/luxfi/evm/predicate"
+	"github.com/luxfi/evm/v2/iface"
+	"github.com/luxfi/evm/v2/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/predicate"
 	// warpValidators "github.com/luxfi/warp/validators"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/log"

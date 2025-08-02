@@ -6,7 +6,7 @@
 package modules
 
 import (
-	"github.com/luxfi/evm/precompile/registry"
+	"github.com/luxfi/evm/v2/precompile/registry"
 	"github.com/luxfi/geth/common"
 )
 

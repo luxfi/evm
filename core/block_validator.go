@@ -29,10 +29,10 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/luxfi/evm/consensus"
-	"github.com/luxfi/evm/core/state"
-	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/v2/consensus"
+	"github.com/luxfi/evm/v2/core/state"
+	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/v2/params"
 	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/geth/trie"
 )

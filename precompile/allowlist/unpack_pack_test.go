@@ -6,7 +6,7 @@ package allowlist
 import (
 	"fmt"
 	"testing"
-	"github.com/luxfi/evm/precompile/contract"
+	"github.com/luxfi/evm/v2/precompile/contract"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 	"github.com/stretchr/testify/require"

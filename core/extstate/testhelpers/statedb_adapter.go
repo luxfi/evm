@@ -8,9 +8,9 @@ import (
 	
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/tracing"
-	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/v2/core/types"
 	"github.com/holiman/uint256"
-	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/v2/core/state"
 )
 
 // StateDBAdapter wraps a state.StateDB to implement the simpler AddBalance interface
