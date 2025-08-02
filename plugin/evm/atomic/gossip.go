@@ -5,7 +5,7 @@ package atomic
 
 import (
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/v2/network/p2p/gossip"
+	"github.com/luxfi/node/network/p2p/gossip"
 )
 
 var (

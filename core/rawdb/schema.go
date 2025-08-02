@@ -31,7 +31,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/luxfi/node/v2/utils/wrappers"
+	"github.com/luxfi/node/utils/wrappers"
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"

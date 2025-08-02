@@ -8,7 +8,7 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/luxfi/evm/v2/iface"
+	"github.com/luxfi/evm/iface"
 	gomock "go.uber.org/mock/gomock"
 )
 

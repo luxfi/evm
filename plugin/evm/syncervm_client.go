@@ -8,18 +8,18 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/luxfi/evm/v2/core/rawdb"
-	"github.com/luxfi/evm/v2/core/state/snapshot"
-	"github.com/luxfi/evm/v2/eth"
-	"github.com/luxfi/evm/v2/plugin/evm/message"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/core/state/snapshot"
+	"github.com/luxfi/evm/eth"
+	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/log"
-	commonEng "github.com/luxfi/node/v2/quasar/engine/core"
-	"github.com/luxfi/node/v2/quasar/engine/chain/block"
+	commonEng "github.com/luxfi/node/quasar/engine/core"
+	"github.com/luxfi/node/quasar/engine/chain/block"
 	"github.com/luxfi/database"
-	syncclient "github.com/luxfi/node/v2/state_sync/client"
-	"github.com/luxfi/node/v2/state_sync/statesync"
+	syncclient "github.com/luxfi/node/state_sync/client"
+	"github.com/luxfi/node/state_sync/statesync"
 )
 
 const (

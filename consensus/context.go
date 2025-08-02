@@ -5,7 +5,7 @@
 package consensus
 
 import (
-	"github.com/luxfi/node/v2/api/metrics"
+	"github.com/luxfi/node/api/metrics"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/crypto/bls"
 	luxlog "github.com/luxfi/log"

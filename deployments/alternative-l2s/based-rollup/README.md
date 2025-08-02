@@ -37,7 +37,7 @@ Ethereum L1 (Sequencing) → Based Rollup → Lux C-Chain (Settlement)
 
 ```bash
 cd contracts/ethereum
-export ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/<key>
+export ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/<key>
 
 # Deploy inbox
 forge create --rpc-url $ETH_RPC_URL \
