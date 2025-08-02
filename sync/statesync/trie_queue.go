@@ -4,7 +4,7 @@
 package statesync
 
 import (
-	"github.com/luxfi/evm/v2/plugin/evm/customrawdb"
+	"github.com/luxfi/evm/plugin/evm/customrawdb"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 )

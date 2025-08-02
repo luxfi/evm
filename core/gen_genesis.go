@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
-	"github.com/luxfi/evm/v2/params"
+	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/common/math"
-	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/core/types"
 )
 
 var _ = (*genesisSpecMarshaling)(nil)

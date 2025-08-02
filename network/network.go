@@ -24,8 +24,8 @@ import (
 	"github.com/luxfi/node/utils"
 	"github.com/luxfi/node/version"
 
-	"github.com/luxfi/evm/v2/network/stats"
-	"github.com/luxfi/evm/v2/plugin/evm/message"
+	"github.com/luxfi/evm/network/stats"
+	"github.com/luxfi/evm/plugin/evm/message"
 )
 
 // Minimum amount of time to handle a request

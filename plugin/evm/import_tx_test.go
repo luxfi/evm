@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/evm/v2/plugin/evm/atomic"
+	"github.com/luxfi/evm/plugin/evm/atomic"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/utils/crypto/secp256k1"
 	"github.com/luxfi/node/utils/set"
@@ -20,7 +20,7 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 	
-	"github.com/luxfi/evm/v2/consensus"
+	"github.com/luxfi/evm/consensus"
 	gethparams "github.com/luxfi/geth/params"
 )
 

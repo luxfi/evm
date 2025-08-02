@@ -7,7 +7,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/luxfi/evm/v2/plugin/evm/atomic"
+	"github.com/luxfi/evm/plugin/evm/atomic"
 	"github.com/luxfi/database/memdb"
 	"github.com/luxfi/database/versiondb"
 	"github.com/stretchr/testify/assert"

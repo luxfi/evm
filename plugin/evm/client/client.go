@@ -9,7 +9,7 @@ import (
 
 	"log/slog"
 
-	"github.com/luxfi/evm/v2/plugin/evm/config"
+	"github.com/luxfi/evm/plugin/evm/config"
 	"github.com/luxfi/node/api"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/utils/rpc"
