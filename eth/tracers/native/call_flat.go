@@ -33,9 +33,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/luxfi/evm/core/vm"
-	"github.com/luxfi/evm/eth/tracers"
-	"github.com/luxfi/evm/vmerrs"
+	"github.com/luxfi/evm/v2/core/vm"
+	"github.com/luxfi/evm/v2/eth/tracers"
+	"github.com/luxfi/evm/v2/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 )

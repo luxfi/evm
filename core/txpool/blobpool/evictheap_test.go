@@ -32,7 +32,7 @@ import (
 	"testing"
 
 	"github.com/luxfi/geth/common"
-	ethparams "github.com/luxfi/evm/params"
+	ethparams "github.com/luxfi/evm/v2/params"
 	"github.com/holiman/uint256"
 )
 

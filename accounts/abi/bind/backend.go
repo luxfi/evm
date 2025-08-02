@@ -31,8 +31,8 @@ import (
 	"errors"
 	"math/big"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core/types"
-	ethereum "github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/v2/core/types"
+	ethereum "github.com/luxfi/evm/v2/iface"
 )
 
 var (

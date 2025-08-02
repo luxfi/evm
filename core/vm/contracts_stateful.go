@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"math/big"
 	
-	"github.com/luxfi/evm/precompile/contract"
-	"github.com/luxfi/evm/vmerrs"
+	"github.com/luxfi/evm/v2/precompile/contract"
+	"github.com/luxfi/evm/v2/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/ids"
 )

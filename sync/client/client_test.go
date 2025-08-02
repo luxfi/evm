@@ -15,20 +15,20 @@ import (
 
 	"github.com/luxfi/ids"
 
-	"github.com/luxfi/evm/consensus/dummy"
-	"github.com/luxfi/evm/core"
-	"github.com/luxfi/evm/params"
-	"github.com/luxfi/evm/plugin/evm/message"
-	clientstats "github.com/luxfi/evm/sync/client/stats"
-	"github.com/luxfi/evm/sync/handlers"
-	handlerstats "github.com/luxfi/evm/sync/handlers/stats"
-	"github.com/luxfi/evm/sync/statesync/statesynctest"
+	"github.com/luxfi/evm/v2/consensus/dummy"
+	"github.com/luxfi/evm/v2/core"
+	"github.com/luxfi/evm/v2/params"
+	"github.com/luxfi/evm/v2/plugin/evm/message"
+	clientstats "github.com/luxfi/evm/v2/sync/client/stats"
+	"github.com/luxfi/evm/v2/sync/handlers"
+	handlerstats "github.com/luxfi/evm/v2/sync/handlers/stats"
+	"github.com/luxfi/evm/v2/sync/statesync/statesynctest"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/triedb"
 	
-	etypes "github.com/luxfi/evm/core/types"
+	etypes "github.com/luxfi/evm/v2/core/types"
 )
 
 func TestGetCode(t *testing.T) {

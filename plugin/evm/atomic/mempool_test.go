@@ -6,7 +6,7 @@ package atomic
 import (
 	"testing"
 
-	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/evm/v2/consensus"
 	"github.com/luxfi/ids"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"

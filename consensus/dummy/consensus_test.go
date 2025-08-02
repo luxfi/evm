@@ -7,9 +7,9 @@ import (
    "math"
    "math/big"
    "testing"
-   "github.com/luxfi/evm/commontype"
-   "github.com/luxfi/evm/core/types"
-   header "github.com/luxfi/evm/plugin/evm/header"
+   "github.com/luxfi/evm/v2/commontype"
+   "github.com/luxfi/evm/v2/core/types"
+   header "github.com/luxfi/evm/v2/plugin/evm/header"
    "github.com/luxfi/geth/common"
 )
 

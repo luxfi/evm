@@ -5,7 +5,7 @@
 package headerutil
 
 import (
-	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/v2/params"
 )
 
 // WindowSize is the size of the rolling window

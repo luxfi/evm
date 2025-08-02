@@ -9,10 +9,10 @@ import (
 	"math/big"
 
 	"github.com/holiman/uint256"
-	"github.com/luxfi/evm/upgrade/ap5"
+	"github.com/luxfi/evm/v2/upgrade/ap5"
 	"github.com/luxfi/geth/params"
 
-	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/evm/v2/consensus"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/log"
 	"github.com/luxfi/node/chains/atomic"

@@ -5,13 +5,13 @@ package ethconfig
 import (
 	"time"
 
-	"github.com/luxfi/evm/internal/ethapi"
+	"github.com/luxfi/evm/v2/internal/ethapi"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core"
-	"github.com/luxfi/evm/core/txpool/blobpool"
-	"github.com/luxfi/evm/core/txpool/legacypool"
-	"github.com/luxfi/evm/eth/gasprice"
-	"github.com/luxfi/evm/miner"
+	"github.com/luxfi/evm/v2/core"
+	"github.com/luxfi/evm/v2/core/txpool/blobpool"
+	"github.com/luxfi/evm/v2/core/txpool/legacypool"
+	"github.com/luxfi/evm/v2/eth/gasprice"
+	"github.com/luxfi/evm/v2/miner"
 )
 
 // MarshalTOML marshals as TOML.
