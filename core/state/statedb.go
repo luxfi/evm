@@ -34,7 +34,7 @@ import (
 	"github.com/luxfi/geth/core/state/snapshot"
 	gethtypes "github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/common"
-	evmtypes "github.com/luxfi/evm/v2/core/types"
+	evmtypes "github.com/luxfi/evm/core/types"
 )
 
 // StateDB wraps go-ethereum's StateDB with minimal extensions

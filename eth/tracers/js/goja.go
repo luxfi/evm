@@ -34,9 +34,9 @@ import (
 
 	"github.com/dop251/goja"
 
-	"github.com/luxfi/evm/v2/core/vm"
-	"github.com/luxfi/evm/v2/eth/tracers"
-	jsassets "github.com/luxfi/evm/v2/eth/tracers/js/internal/tracers"
+	"github.com/luxfi/evm/core/vm"
+	"github.com/luxfi/evm/eth/tracers"
+	jsassets "github.com/luxfi/evm/eth/tracers/js/internal/tracers"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/crypto"

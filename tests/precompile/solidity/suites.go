@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/luxfi/evm/v2/tests/utils"
+	"github.com/luxfi/evm/tests/utils"
 	ginkgo "github.com/onsi/ginkgo/v2"
 )
 

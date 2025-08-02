@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxfi/evm/v2/core"
-	"github.com/luxfi/evm/v2/utils"
+	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/node/quasar"
 	"github.com/luxfi/node/quasar/consensus/engine/enginetest"
 	"github.com/luxfi/node/quasar/validators/validatorstest"
