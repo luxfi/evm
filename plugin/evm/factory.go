@@ -6,7 +6,7 @@ package evm
 import (
 	"github.com/luxfi/evm/iface"
 	luxlog "github.com/luxfi/log"
-	"github.com/luxfi/node/vms"
+	"github.com/luxfi/node/v2/vms"
 )
 
 var (

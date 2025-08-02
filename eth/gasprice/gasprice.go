@@ -31,7 +31,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/luxfi/node/utils/timer/mockable"
+	"github.com/luxfi/node/v2/utils/timer/mockable"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/evm/params"

@@ -17,7 +17,7 @@ import (
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/evm/utils/set"
 	"github.com/luxfi/geth/common"
-	agoUtils "github.com/luxfi/node/utils"
+	agoUtils "github.com/luxfi/node/v2/utils"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )

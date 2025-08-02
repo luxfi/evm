@@ -12,9 +12,9 @@ import (
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
 	gethparams "github.com/luxfi/geth/params"
-	upgrade "github.com/luxfi/node/upgrade"
-	"github.com/luxfi/node/quasar"
-	constants "github.com/luxfi/node/utils/constants"
+	upgrade "github.com/luxfi/node/v2/upgrade"
+	"github.com/luxfi/node/v2/quasar"
+	constants "github.com/luxfi/node/v2/utils/constants"
 )
 
 var (

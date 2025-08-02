@@ -34,7 +34,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/node/utils/timer/mockable"
+	"github.com/luxfi/node/v2/utils/timer/mockable"
 	"github.com/luxfi/geth/accounts"
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/commontype"
