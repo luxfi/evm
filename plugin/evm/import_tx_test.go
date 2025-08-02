@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/evm/plugin/evm/atomic"
+	"github.com/luxfi/evm/v2/plugin/evm/atomic"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/v2/utils/crypto/secp256k1"
 	"github.com/luxfi/node/v2/utils/set"
