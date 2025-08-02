@@ -93,7 +93,7 @@ func (utx *UnsignedImportTx) Verify(
 		return ErrWrongChainID
 	}
 	// Allow imports from X-Chain and P-Chain (in same subnet)
-	if utx.SourceChain != ctx.XChainID && utx.SourceChain != constants.PlatformChainID() {
+	if utx.SourceChain != ctx.XChainID && utx.SourceChain != constants.PlatformChainID {
 		return ErrWrongChainID
 	}
 
