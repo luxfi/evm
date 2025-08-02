@@ -7,8 +7,8 @@ import (
 	"context"
 	"crypto/rand"
 	
-	"github.com/luxfi/evm/iface"
-	"github.com/luxfi/evm/localsigner"
+	"github.com/luxfi/evm/v2/iface"
+	"github.com/luxfi/evm/v2/localsigner"
 	"github.com/luxfi/geth/common"
 )
 

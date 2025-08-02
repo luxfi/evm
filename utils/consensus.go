@@ -16,8 +16,8 @@ import (
 	"github.com/luxfi/node/quasar"
 	"github.com/luxfi/node/quasar/validators"
 	"github.com/luxfi/node/upgrade"
-	"github.com/luxfi/evm/localsigner"
-	"github.com/luxfi/evm/commontype"
+	"github.com/luxfi/evm/v2/localsigner"
+	"github.com/luxfi/evm/v2/commontype"
 )
 
 var (

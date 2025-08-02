@@ -14,9 +14,9 @@ import (
 	reflect "reflect"
 
 	uint256 "github.com/holiman/uint256"
-	commontype "github.com/luxfi/evm/commontype"
-	types "github.com/luxfi/evm/core/types"
-	precompileconfig "github.com/luxfi/evm/precompile/precompileconfig"
+	commontype "github.com/luxfi/evm/v2/commontype"
+	types "github.com/luxfi/evm/v2/core/types"
+	precompileconfig "github.com/luxfi/evm/v2/precompile/precompileconfig"
 	common "github.com/luxfi/geth/common"
 	gomock "go.uber.org/mock/gomock"
 )
