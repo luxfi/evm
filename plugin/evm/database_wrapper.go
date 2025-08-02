@@ -8,7 +8,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/v2/v2/iface"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/database"
 )

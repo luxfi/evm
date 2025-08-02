@@ -28,7 +28,7 @@ package bloombits
 
 import (
 	"errors"
-	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/v2/v2/core/types"
 )
 
 var (

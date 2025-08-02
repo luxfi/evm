@@ -32,9 +32,9 @@ import (
 	"testing"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/v2/v2/core/types"
 	"github.com/luxfi/geth/rlp"
-	"github.com/luxfi/evm/iface/trie/testutil"
+	"github.com/luxfi/evm/v2/v2/iface/trie/testutil"
 )
 
 // randomStateSet generates a random state change set.

@@ -9,9 +9,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/luxfi/evm/core"
-	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/v2/v2/core"
+	"github.com/luxfi/evm/v2/v2/core/types"
+	"github.com/luxfi/evm/v2/v2/params"
 	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/require"
 )

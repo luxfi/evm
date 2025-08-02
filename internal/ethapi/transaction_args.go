@@ -36,14 +36,14 @@ import (
 	"math/big"
 
 	"github.com/holiman/uint256"
-	"github.com/luxfi/evm/core"
-	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/v2/v2/core"
+	"github.com/luxfi/evm/v2/v2/core/types"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
-	"github.com/luxfi/evm/consensus/misc/eip4844"
+	"github.com/luxfi/evm/v2/v2/consensus/misc/eip4844"
 	"github.com/luxfi/geth/crypto/kzg4844"
 	"github.com/luxfi/log"
-	evmparams "github.com/luxfi/evm/params"
+	evmparams "github.com/luxfi/evm/v2/v2/params"
 	"github.com/luxfi/geth/rpc"
 )
 

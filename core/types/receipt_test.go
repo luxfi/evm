@@ -34,7 +34,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/v2/v2/params"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/rlp"
 	"github.com/holiman/uint256"

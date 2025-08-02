@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/luxfi/evm/plugin/evm/message"
+	"github.com/luxfi/evm/v2/v2/plugin/evm/message"
 )
 
 var (

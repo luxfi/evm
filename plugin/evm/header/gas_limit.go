@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/luxfi/evm/commontype"
-	"github.com/luxfi/evm/core/types"
-	evmparams "github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/v2/v2/commontype"
+	"github.com/luxfi/evm/v2/v2/core/types"
+	evmparams "github.com/luxfi/evm/v2/v2/params"
 	"github.com/luxfi/geth/params"
 )
 

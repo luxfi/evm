@@ -6,7 +6,7 @@ package ap0
 
 import (
 	"github.com/luxfi/node/utils/units"
-	"github.com/luxfi/evm/utils"
+	"github.com/luxfi/evm/v2/v2/utils"
 )
 
 const (

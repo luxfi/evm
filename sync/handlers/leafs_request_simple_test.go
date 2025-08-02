@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/luxfi/ids"
-	"github.com/luxfi/evm/core/state/snapshot"
-	"github.com/luxfi/evm/plugin/evm/message"
-	"github.com/luxfi/evm/sync/handlers/stats/statstest"
+	"github.com/luxfi/evm/v2/v2/core/state/snapshot"
+	"github.com/luxfi/evm/v2/v2/plugin/evm/message"
+	"github.com/luxfi/evm/v2/v2/sync/handlers/stats/statstest"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/triedb"
 	"github.com/stretchr/testify/assert"

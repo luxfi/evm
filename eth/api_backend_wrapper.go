@@ -4,9 +4,9 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/luxfi/evm/core/state"
-	"github.com/luxfi/evm/core/types"
-	"github.com/luxfi/evm/rpc"
+	"github.com/luxfi/evm/v2/v2/core/state"
+	"github.com/luxfi/evm/v2/v2/core/types"
+	"github.com/luxfi/evm/v2/v2/rpc"
 	"github.com/luxfi/geth/common"
 	gethrpc "github.com/luxfi/geth/rpc"
 )

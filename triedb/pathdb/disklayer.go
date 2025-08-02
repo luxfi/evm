@@ -33,10 +33,10 @@ import (
 
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/v2/v2/core/rawdb"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/log"
-	"github.com/luxfi/evm/trie/trienode"
+	"github.com/luxfi/evm/v2/v2/trie/trienode"
 	"golang.org/x/crypto/sha3"
 )
 

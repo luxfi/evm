@@ -10,12 +10,12 @@ import (
 
 	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/log"
-	"github.com/luxfi/evm/core/extstate"
-	"github.com/luxfi/evm/core/state"
-	"github.com/luxfi/evm/params"
-	"github.com/luxfi/evm/precompile/contract"
-	"github.com/luxfi/evm/precompile/registry"
-	"github.com/luxfi/evm/stateupgrade"
+	"github.com/luxfi/evm/v2/v2/core/extstate"
+	"github.com/luxfi/evm/v2/v2/core/state"
+	"github.com/luxfi/evm/v2/v2/params"
+	"github.com/luxfi/evm/v2/v2/precompile/contract"
+	"github.com/luxfi/evm/v2/v2/precompile/registry"
+	"github.com/luxfi/evm/v2/v2/stateupgrade"
 )
 
 // ApplyPrecompileActivations checks if any of the precompiles specified by the chain config are enabled or disabled by the block

@@ -6,7 +6,7 @@ package statesynctest
 import (
 	"testing"
 
-	"github.com/luxfi/evm/utils/utilstest"
+	"github.com/luxfi/evm/v2/v2/utils/utilstest"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/triedb"
