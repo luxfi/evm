@@ -91,7 +91,7 @@ func (utx *UnsignedExportTx) Verify(
 		return ErrWrongChainID
 	}
 	// Allow exports to X-Chain and P-Chain (in same subnet)
-	if utx.DestinationChain != ctx.XChainID && utx.DestinationChain != constants.PlatformChainID() {
+	if utx.DestinationChain != ctx.XChainID && utx.DestinationChain != constants.PlatformChainID {
 		return ErrWrongChainID
 	}
 
@@ -109,7 +109,7 @@ func (utx *UnsignedExportTx) Verify(
 			return err
 		}
 		assetID := out.AssetID()
-		if assetID != ctx.LUXAssetID && utx.DestinationChain == constants.PlatformChainID() {
+		if assetID != ctx.LUXAssetID && utx.DestinationChain == constants.PlatformChainID {
 			return ErrWrongChainID
 		}
 		if assetID != ctx.LUXAssetID {
