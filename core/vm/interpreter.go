@@ -27,7 +27,7 @@
 package vm
 
 import (
-	"github.com/luxfi/evm/v2/vmerrs"
+	"github.com/luxfi/evm/vmerrs"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/math"
 	"github.com/luxfi/geth/crypto"

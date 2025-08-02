@@ -10,7 +10,7 @@ import (
 
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/quasar/engine/chain/block"
-	"github.com/luxfi/evm/v2/plugin/evm/message"
+	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/require"
 )

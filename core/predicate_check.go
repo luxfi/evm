@@ -6,11 +6,11 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/luxfi/evm/v2/utils/bitset"
-	"github.com/luxfi/evm/v2/core/types"
-	"github.com/luxfi/evm/v2/params"
-	"github.com/luxfi/evm/v2/precompile/precompileconfig"
-	"github.com/luxfi/evm/v2/predicate"
+	"github.com/luxfi/evm/utils/bitset"
+	"github.com/luxfi/evm/core/types"
+	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/precompile/precompileconfig"
+	"github.com/luxfi/evm/predicate"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/log"
 )

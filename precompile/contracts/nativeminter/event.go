@@ -6,7 +6,7 @@ package nativeminter
 
 import (
 	"math/big"
-	"github.com/luxfi/evm/v2/precompile/contract"
+	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"
 )
 

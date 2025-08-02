@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/evm/v2/sync/handlers/stats"
+	"github.com/luxfi/evm/sync/handlers/stats"
 )
 
 var _ stats.HandlerStats = (*TestHandlerStats)(nil)

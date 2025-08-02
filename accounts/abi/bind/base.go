@@ -35,13 +35,13 @@ import (
 	"sync"
 	"reflect"
 	"unsafe"
-	"github.com/luxfi/evm/v2/accounts/abi"
+	"github.com/luxfi/evm/accounts/abi"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/event"
-	ethereum "github.com/luxfi/evm/v2/iface"
-	"github.com/luxfi/evm/v2/rpc"
+	ethereum "github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/rpc"
 )
 
 const basefeeWiggleMultiplier = 2

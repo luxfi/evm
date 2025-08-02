@@ -10,11 +10,11 @@ import (
 
 	"github.com/luxfi/node/utils"
 
-	"github.com/luxfi/evm/v2/plugin/evm/customrawdb"
-	"github.com/luxfi/evm/v2/plugin/evm/message"
-	statesyncclient "github.com/luxfi/evm/v2/sync/client"
-	"github.com/luxfi/evm/v2/sync/handlers"
-	handlerstats "github.com/luxfi/evm/v2/sync/handlers/stats"
+	"github.com/luxfi/evm/plugin/evm/customrawdb"
+	"github.com/luxfi/evm/plugin/evm/message"
+	statesyncclient "github.com/luxfi/evm/sync/client"
+	"github.com/luxfi/evm/sync/handlers"
+	handlerstats "github.com/luxfi/evm/sync/handlers/stats"
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"

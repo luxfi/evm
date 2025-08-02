@@ -5,9 +5,9 @@ package deployerallowlist_test
 
 import (
 	"testing"
-	"github.com/luxfi/evm/v2/core/extstate/testhelpers"
-	"github.com/luxfi/evm/v2/precompile/allowlist"
-	"github.com/luxfi/evm/v2/precompile/contracts/deployerallowlist"
+	"github.com/luxfi/evm/core/extstate/testhelpers"
+	"github.com/luxfi/evm/precompile/allowlist"
+	"github.com/luxfi/evm/precompile/contracts/deployerallowlist"
 )
 
 func TestContractDeployerAllowListRun(t *testing.T) {

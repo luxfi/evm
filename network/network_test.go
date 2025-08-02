@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/luxfi/evm/v2/network/peertest"
-	"github.com/luxfi/evm/v2/plugin/evm/message"
+	"github.com/luxfi/evm/network/peertest"
+	"github.com/luxfi/evm/plugin/evm/message"
 
 	"github.com/luxfi/node/codec"
 	"github.com/luxfi/node/codec/linearcodec"

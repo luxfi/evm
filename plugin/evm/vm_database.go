@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/luxfi/evm/v2/core/rawdb"
-	"github.com/luxfi/evm/v2/iface"
-	"github.com/luxfi/evm/v2/plugin/evm/database"
+	"github.com/luxfi/evm/core/rawdb"
+	"github.com/luxfi/evm/iface"
+	"github.com/luxfi/evm/plugin/evm/database"
 	"github.com/luxfi/geth/common"
 	nodedb "github.com/luxfi/database"
 	"github.com/luxfi/database/factory"

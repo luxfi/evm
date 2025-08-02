@@ -33,7 +33,7 @@ import (
 	"math/big"
 	"slices"
 
-	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/core/types"
 	"github.com/luxfi/geth/rpc"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/log"
