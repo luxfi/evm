@@ -42,7 +42,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 	ethparams "github.com/luxfi/geth/params"
-	"github.com/luxfi/node/upgrade"
+	"github.com/luxfi/node/v2/upgrade"
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )

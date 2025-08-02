@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"github.com/luxfi/evm/v2/iface"
-	"github.com/luxfi/node/codec"
-	"github.com/luxfi/node/codec/linearcodec"
+	"github.com/luxfi/node/v2/codec"
+	"github.com/luxfi/node/v2/codec/linearcodec"
 	"github.com/luxfi/geth/common"
 )
 

@@ -7,9 +7,9 @@ import (
 	"context"
 
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/quasar/engine/core"
-	"github.com/luxfi/node/quasar/engine/core/appsender"
-	"github.com/luxfi/node/utils/set"
+	"github.com/luxfi/node/v2/quasar/engine/core"
+	"github.com/luxfi/node/v2/quasar/engine/core/appsender"
+	"github.com/luxfi/node/v2/utils/set"
 )
 
 // appSenderAdapter adapts core.AppSender to appsender.AppSender

@@ -8,8 +8,8 @@ import (
 
 	"github.com/luxfi/evm/v2/consensus"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/utils/crypto/secp256k1"
-	"github.com/luxfi/node/vms/components/verify"
+	"github.com/luxfi/node/v2/utils/crypto/secp256k1"
+	"github.com/luxfi/node/v2/vms/components/verify"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )

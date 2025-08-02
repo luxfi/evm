@@ -7,16 +7,16 @@ import (
 	"math/big"
 	"math/rand"
 
-	"github.com/luxfi/node/codec"
-	"github.com/luxfi/node/codec/linearcodec"
-	"github.com/luxfi/node/utils"
+	"github.com/luxfi/node/v2/codec"
+	"github.com/luxfi/node/v2/codec/linearcodec"
+	"github.com/luxfi/node/v2/utils"
 
 	"github.com/luxfi/evm/v2/consensus"
 	"github.com/luxfi/geth/params"
-	luxatomic "github.com/luxfi/node/chains/atomic"
+	luxatomic "github.com/luxfi/node/v2/chains/atomic"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/utils/set"
-	"github.com/luxfi/node/utils/wrappers"
+	"github.com/luxfi/node/v2/utils/set"
+	"github.com/luxfi/node/v2/utils/wrappers"
 )
 
 var TestTxCodec codec.Manager

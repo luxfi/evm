@@ -17,17 +17,17 @@ import (
 	"github.com/luxfi/geth/params"
 
 	"github.com/luxfi/evm/v2/consensus"
-	"github.com/luxfi/node/chains/atomic"
-	"github.com/luxfi/node/codec"
-	"github.com/luxfi/node/quasar/engine/chain/block"
+	"github.com/luxfi/node/v2/chains/atomic"
+	"github.com/luxfi/node/v2/codec"
+	"github.com/luxfi/node/v2/quasar/engine/chain/block"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/node/utils/crypto/secp256k1"
-	"github.com/luxfi/node/utils/hashing"
-	"github.com/luxfi/node/utils/set"
-	"github.com/luxfi/node/utils/wrappers"
-	"github.com/luxfi/node/vms/components/verify"
-	"github.com/luxfi/node/vms/platformvm/fx"
-	"github.com/luxfi/node/vms/secp256k1fx"
+	"github.com/luxfi/node/v2/utils/crypto/secp256k1"
+	"github.com/luxfi/node/v2/utils/hashing"
+	"github.com/luxfi/node/v2/utils/set"
+	"github.com/luxfi/node/v2/utils/wrappers"
+	"github.com/luxfi/node/v2/vms/components/verify"
+	"github.com/luxfi/node/v2/vms/platformvm/fx"
+	"github.com/luxfi/node/v2/vms/secp256k1fx"
 )
 
 const (

@@ -20,8 +20,8 @@ import (
 	"github.com/luxfi/evm/v2/predicate"
 	"github.com/luxfi/log"
 	"github.com/luxfi/geth/rlp"
-	"github.com/luxfi/node/quasar/engine/chain/block"
-	"github.com/luxfi/node/quasar/choices"
+	"github.com/luxfi/node/v2/quasar/engine/chain/block"
+	"github.com/luxfi/node/v2/quasar/choices"
 	"github.com/luxfi/ids"
 )
 
