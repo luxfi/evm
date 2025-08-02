@@ -11,13 +11,13 @@ import (
 	"errors"
 	"fmt"
 	
-	"github.com/luxfi/evm/v2/v2/accounts/abi"
-	"github.com/luxfi/evm/v2/v2/constants"
-	"github.com/luxfi/evm/v2/v2/precompile/allowlist"
-	"github.com/luxfi/evm/v2/v2/precompile/contract"
+	"github.com/luxfi/evm/v2/accounts/abi"
+	"github.com/luxfi/evm/v2/constants"
+	"github.com/luxfi/evm/v2/precompile/allowlist"
+	"github.com/luxfi/evm/v2/precompile/contract"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/v2/v2/core/types"
-	"github.com/luxfi/evm/v2/v2/vmerrs"
+	"github.com/luxfi/evm/v2/core/types"
+	"github.com/luxfi/evm/v2/vmerrs"
 )
 
 const (

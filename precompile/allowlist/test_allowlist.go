@@ -5,12 +5,12 @@ package allowlist
 
 import (
 	"testing"
-	"github.com/luxfi/evm/v2/v2/precompile/contract"
-	"github.com/luxfi/evm/v2/v2/precompile/modules"
-	"github.com/luxfi/evm/v2/v2/precompile/precompileconfig"
-	"github.com/luxfi/evm/v2/v2/precompile/testutils"
+	"github.com/luxfi/evm/v2/precompile/contract"
+	"github.com/luxfi/evm/v2/precompile/modules"
+	"github.com/luxfi/evm/v2/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/precompile/testutils"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/v2/v2/vmerrs"
+	"github.com/luxfi/evm/v2/vmerrs"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )

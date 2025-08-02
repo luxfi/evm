@@ -9,7 +9,7 @@ import (
 	"math"
 
 	safemath "github.com/luxfi/node/utils/math"
-	"github.com/luxfi/evm/v2/v2/utils"
+	"github.com/luxfi/evm/v2/utils"
 )
 
 const (

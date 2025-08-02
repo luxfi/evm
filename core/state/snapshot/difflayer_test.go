@@ -31,8 +31,8 @@ import (
 	crand "crypto/rand"
 	"math/rand"
 	"testing"
-	"github.com/luxfi/evm/v2/v2/core/rawdb"
-	"github.com/luxfi/evm/v2/v2/utils"
+	"github.com/luxfi/evm/v2/core/rawdb"
+	"github.com/luxfi/evm/v2/utils"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/crypto"
 )

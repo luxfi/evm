@@ -5,7 +5,7 @@
 package rewardmanager
 
 import (
-	"github.com/luxfi/evm/v2/v2/precompile/contract"
+	"github.com/luxfi/evm/v2/precompile/contract"
 	"github.com/luxfi/geth/common"
 )
 

@@ -6,7 +6,7 @@ package evm
 import (
 	"net/http"
 
-	"github.com/luxfi/evm/v2/v2/plugin/evm/client"
+	"github.com/luxfi/evm/v2/plugin/evm/client"
 )
 
 type ValidatorsAPI struct {

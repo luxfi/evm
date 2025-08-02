@@ -13,11 +13,11 @@ package {{.Package}}
 import (
 	"testing"
 
-	"github.com/luxfi/evm/v2/v2/precompile/precompileconfig"
-	"github.com/luxfi/evm/v2/v2/precompile/testutils"
-	"github.com/luxfi/evm/v2/v2/utils"
+	"github.com/luxfi/evm/v2/precompile/precompileconfig"
+	"github.com/luxfi/evm/v2/precompile/testutils"
+	"github.com/luxfi/evm/v2/utils"
 	{{- if .Contract.AllowList}}
-	"github.com/luxfi/evm/v2/v2/precompile/allowlist"
+	"github.com/luxfi/evm/v2/precompile/allowlist"
 
 	"github.com/luxfi/geth/common"
 	{{- end}}

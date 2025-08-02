@@ -35,9 +35,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/luxfi/evm/v2/v2/accounts/abi"
-	"github.com/luxfi/evm/v2/v2/accounts/abi/bind"
-	"github.com/luxfi/evm/v2/v2/precompile/allowlist"
+	"github.com/luxfi/evm/v2/accounts/abi"
+	"github.com/luxfi/evm/v2/accounts/abi/bind"
+	"github.com/luxfi/evm/v2/precompile/allowlist"
 )
 
 var errNoAnonymousEvent = errors.New("event type must not be anonymous")

@@ -34,10 +34,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luxfi/evm/v2/v2/core/state"
-	"github.com/luxfi/evm/v2/v2/core/vm"
-	"github.com/luxfi/evm/v2/v2/eth/tracers"
-	"github.com/luxfi/evm/v2/v2/params"
+	"github.com/luxfi/evm/v2/core/state"
+	"github.com/luxfi/evm/v2/core/vm"
+	"github.com/luxfi/evm/v2/eth/tracers"
+	"github.com/luxfi/evm/v2/params"
 	"github.com/luxfi/geth/common"
 	"github.com/holiman/uint256"
 )

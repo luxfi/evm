@@ -16,7 +16,7 @@ import (
 
 	"github.com/luxfi/geth/params"
 
-	"github.com/luxfi/evm/v2/v2/consensus"
+	"github.com/luxfi/evm/v2/consensus"
 	"github.com/luxfi/node/chains/atomic"
 	"github.com/luxfi/node/codec"
 	"github.com/luxfi/node/quasar/engine/chain/block"

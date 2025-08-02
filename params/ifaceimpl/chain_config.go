@@ -6,8 +6,8 @@ package ifaceimpl
 import (
 	"math/big"
 
-	"github.com/luxfi/evm/v2/v2/iface"
-	"github.com/luxfi/evm/v2/v2/params"
+	"github.com/luxfi/evm/v2/iface"
+	"github.com/luxfi/evm/v2/params"
 )
 
 // ChainConfigAdapter wraps params.ChainConfig to implement iface.ChainConfig

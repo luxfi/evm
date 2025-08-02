@@ -32,11 +32,11 @@ import (
 
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/evm/v2/v2/core/rawdb"
+	"github.com/luxfi/evm/v2/core/rawdb"
 	"github.com/luxfi/geth/crypto"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/log"
-	"github.com/luxfi/evm/v2/v2/trie/trienode"
+	"github.com/luxfi/evm/v2/trie/trienode"
 )
 
 // nodebuffer is a collection of modified trie nodes to aggregate the disk
