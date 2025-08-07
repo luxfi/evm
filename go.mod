@@ -16,14 +16,14 @@ require (
 	github.com/holiman/billy v0.0.0-20250707135307-f2f9b9aae7db
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
-	github.com/luxfi/crypto v1.2.2
-	github.com/luxfi/database v1.1.8
-	github.com/luxfi/geth v1.16.1-lux
+	github.com/luxfi/crypto v1.2.7
+	github.com/luxfi/database v1.1.9
+	github.com/luxfi/geth v1.16.27
 	github.com/luxfi/go-bip39 v1.1.1
 	github.com/luxfi/ids v1.0.2
-	github.com/luxfi/log v0.1.2
+	github.com/luxfi/log v1.0.1
 	github.com/luxfi/metrics v1.1.1
-	github.com/luxfi/node v1.13.4-lux
+	github.com/luxfi/node v1.16.15
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
 	github.com/onsi/ginkgo/v2 v2.23.4
@@ -31,7 +31,7 @@ require (
 	github.com/prometheus/client_model v0.6.2
 	github.com/prometheus/common v0.65.0
 	github.com/spf13/cast v1.9.2
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.7
