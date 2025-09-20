@@ -32,9 +32,9 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
 	github.com/prometheus/common v0.66.1
-	github.com/spf13/cast v1.9.2
-	github.com/spf13/pflag v1.0.7
-	github.com/spf13/viper v1.20.1
+	github.com/spf13/cast v1.10.0
+	github.com/spf13/pflag v1.0.10
+	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.7
 	go.uber.org/goleak v1.3.0
@@ -146,10 +146,10 @@ require (
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/rs/cors v1.11.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/sagikazarmark/locafero v0.10.0 // indirect
+	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
-	github.com/spf13/afero v1.14.0 // indirect
+	github.com/spf13/afero v1.15.0 // indirect
 	github.com/status-im/keycard-go v0.2.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
