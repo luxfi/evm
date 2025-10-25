@@ -1536,6 +1536,15 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		enabledAPIs = append(enabledAPIs, "warp")
 	}
 
+	if vm.config.MigrateAPIEnabled {
+		migrateAPI := NewMigrateAPI(vm)
+		if err := handler.RegisterName("migrate", migrateAPI); err != nil {
+			return nil, fmt.Errorf("failed to register migrate API: %w", err)
+		}
+		enabledAPIs = append(enabledAPIs, "migrate")
+		log.Info("Migrate API enabled for block export")
+	}
+
 	log.Info("enabling apis",
 		"apis", enabledAPIs,
 	)
