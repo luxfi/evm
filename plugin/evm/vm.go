@@ -850,7 +850,9 @@ func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte,
 					log.Info("DEBUG: durangoTimestamp is not float64")
 				}
 			} else {
-				log.Info("DEBUG: durangoTimestamp NOT found in genesis config")
+				// Default DurangoTimestamp to 0 (activated at genesis) when not specified
+				log.Info("DEBUG: durangoTimestamp NOT found in genesis config, defaulting to 0")
+				configExtra.DurangoTimestamp = utils.NewUint64(0)
 			}
 			if val, ok := configData["etnaTimestamp"]; ok {
 				if ts, ok := val.(float64); ok {
