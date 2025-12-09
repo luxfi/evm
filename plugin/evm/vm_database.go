@@ -69,9 +69,9 @@ func (vm *VM) initializeDBs(avaDB luxdatabase.Database) error {
 	if useStandAloneDB {
 		// If we are using a standalone database, we need to create a new database
 		// for the chain state.
-		// TODO: Fix GetChainDataDir with new consensus interface
-		// Use the root path for chaindata
-		chainDataDir := filepath.Join("/tmp", "chaindata")
+		// Use unique path per chain to prevent database conflicts
+		chainID := vm.chainCtx.ChainID.String()
+		chainDataDir := filepath.Join("/tmp", "chaindata", chainID)
 		dbConfig, err := getDatabaseConfig(vm.config, chainDataDir)
 		if err != nil {
 			return err
