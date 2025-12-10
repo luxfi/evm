@@ -116,12 +116,12 @@ func (m *manager) sync(ctx context.Context) error {
 	log.Debug("performing validator sync")
 	// get current validator set
 	validatorState := consensuscontext.GetValidatorState(m.chainCtx)
-	subnetID := consensuscontext.GetSubnetID(m.chainCtx)
+	netID := consensuscontext.GetNetID(m.chainCtx)
 	currentHeight, err := validatorState.GetCurrentHeight(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get current height: %w", err)
 	}
-	currentValidatorSet, err := validatorState.GetValidatorSet(currentHeight, subnetID)
+	currentValidatorSet, err := validatorState.GetValidatorSet(currentHeight, netID)
 	if err != nil {
 		return fmt.Errorf("failed to get current validator set: %w", err)
 	}
