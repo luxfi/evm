@@ -532,15 +532,20 @@ func (vm *VM) initializeInternal(
 		}
 	}
 
-	g, err := parseGenesis(vm.ctx, genesisBytes, upgradeBytes, vm.config.AirdropFile)
+	fmt.Fprintf(os.Stderr, "[EVM-DEBUG] Calling parseGenesis with genesisAllocFile=%q\n", vm.config.GenesisAllocFile)
+	g, err := parseGenesis(vm.ctx, genesisBytes, upgradeBytes, vm.config.AirdropFile, vm.config.GenesisAllocFile)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[EVM-DEBUG] parseGenesis failed: %v\n", err)
 		return err
 	}
+	fmt.Fprintf(os.Stderr, "[EVM-DEBUG] parseGenesis succeeded: chainID=%v alloc=%d accounts\n", g.Config.ChainID, len(g.Alloc))
 
 	vm.syntacticBlockValidator = NewBlockValidator()
+	fmt.Fprintf(os.Stderr, "[EVM-DEBUG] Creating ethConfig\n")
 
 	vm.ethConfig = ethconfig.NewDefaultConfig()
 	vm.ethConfig.Genesis = g
+	fmt.Fprintf(os.Stderr, "[EVM-DEBUG] ethConfig.Genesis set\n")
 	// NetworkID here is different than Lux's NetworkID.
 	// Lux's NetworkID represents the Lux network is running on
 	// like Testnet, Mainnet, Local, etc.
@@ -764,7 +769,7 @@ func (vm *VM) initializeInternal(
 	return vm.initializeStateSyncClient(lastAcceptedHeight)
 }
 
-func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte, airdropFile string) (*core.Genesis, error) {
+func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte, airdropFile string, genesisAllocFile string) (*core.Genesis, error) {
 	// First check if this is a database replay genesis
 	var genesisMap map[string]interface{}
 	if err := json.Unmarshal(genesisBytes, &genesisMap); err == nil {
@@ -823,6 +828,43 @@ func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte,
 		if err != nil {
 			return nil, fmt.Errorf("could not read airdrop file '%s': %w", airdropFile, err)
 		}
+	}
+
+	// Load genesis allocations from external file if provided
+	// This allows bypassing P-chain transaction size limits for large genesis states
+	if genesisAllocFile != "" {
+		fmt.Fprintf(os.Stderr, "[EVM-DEBUG] Loading genesis allocations from file: %s\n", genesisAllocFile)
+		log.Info("Loading genesis allocations from file", "file", genesisAllocFile)
+		allocData, err := os.ReadFile(genesisAllocFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[EVM-DEBUG] ERROR reading genesis-alloc-file: %v\n", err)
+			return nil, fmt.Errorf("could not read genesis-alloc-file '%s': %w", genesisAllocFile, err)
+		}
+		fmt.Fprintf(os.Stderr, "[EVM-DEBUG] Read %d bytes from genesis-alloc-file\n", len(allocData))
+
+		// Parse the allocations file - it should contain an "alloc" object
+		var allocGenesis struct {
+			Alloc core.GenesisAlloc `json:"alloc"`
+		}
+		fmt.Fprintf(os.Stderr, "[EVM-DEBUG] Starting JSON unmarshal of genesis-alloc-file\n")
+		if err := json.Unmarshal(allocData, &allocGenesis); err != nil {
+			fmt.Fprintf(os.Stderr, "[EVM-DEBUG] ERROR parsing genesis-alloc-file: %v\n", err)
+			return nil, fmt.Errorf("could not parse genesis-alloc-file '%s': %w", genesisAllocFile, err)
+		}
+		fmt.Fprintf(os.Stderr, "[EVM-DEBUG] Successfully parsed %d accounts from genesis-alloc-file\n", len(allocGenesis.Alloc))
+
+		// Merge allocations into genesis
+		if g.Alloc == nil {
+			g.Alloc = make(core.GenesisAlloc)
+		}
+		fmt.Fprintf(os.Stderr, "[EVM-DEBUG] Starting merge into genesis (current: %d accounts)\n", len(g.Alloc))
+		for addr, account := range allocGenesis.Alloc {
+			if _, exists := g.Alloc[addr]; !exists {
+				g.Alloc[addr] = account
+			}
+		}
+		fmt.Fprintf(os.Stderr, "[EVM-DEBUG] Merge complete: %d total accounts\n", len(g.Alloc))
+		log.Info("Loaded genesis allocations from file", "accounts", len(allocGenesis.Alloc), "total", len(g.Alloc))
 	}
 
 	// Set network upgrade defaults
