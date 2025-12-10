@@ -16,7 +16,7 @@ import (
 	"github.com/luxfi/warp/payload"
 )
 
-var errNoValidators = errors.New("cannot aggregate signatures from subnet with no validators")
+var errNoValidators = errors.New("cannot aggregate signatures from network with no validators")
 
 // API introduces chain specific functionality to the evm
 type API struct {
@@ -90,14 +90,14 @@ func (a *API) GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, qu
 	return a.aggregateSignatures(ctx, unsignedMessage, quorumNum, subnetIDStr)
 }
 
-func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *luxWarp.UnsignedMessage, quorumNum uint64, subnetIDStr string) (hexutil.Bytes, error) {
-	subnetID := consensuscontext.GetSubnetID(a.chainContext)
-	if len(subnetIDStr) > 0 {
-		sid, err := ids.FromString(subnetIDStr)
+func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *luxWarp.UnsignedMessage, quorumNum uint64, netIDStr string) (hexutil.Bytes, error) {
+	netID := consensuscontext.GetNetID(a.chainContext)
+	if len(netIDStr) > 0 {
+		sid, err := ids.FromString(netIDStr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse subnetID: %q", subnetIDStr)
+			return nil, fmt.Errorf("failed to parse netID: %q", netIDStr)
 		}
-		subnetID = sid
+		netID = sid
 	}
 	validatorState := consensuscontext.GetValidatorState(a.chainContext)
 	pChainHeight, err := validatorState.GetCurrentHeight(ctx)
@@ -115,11 +115,11 @@ func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *luxWarp.
 		return nil, fmt.Errorf("failed to get validator set: %w", err)
 	}
 	if len(validators) == 0 {
-		return nil, fmt.Errorf("%w (SubnetID: %s, Height: %d)", errNoValidators, subnetID, pChainHeight)
+		return nil, fmt.Errorf("%w (NetID: %s, Height: %d)", errNoValidators, netID, pChainHeight)
 	}
 
 	log.Debug("Fetching signature",
-		"sourceSubnetID", subnetID,
+		"sourceNetID", netID,
 		"height", pChainHeight,
 		"numValidators", len(validators),
 		"totalWeight", totalWeight,

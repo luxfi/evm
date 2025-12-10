@@ -8,8 +8,8 @@ import "fmt"
 var (
 	// GitCommit is set by the build script
 	GitCommit string
-	// Version is the version of Subnet EVM
-	Version string = "v0.7.8"
+	// Version is the version of Lux EVM
+	Version string = "v0.8.2"
 )
 
 func init() {
