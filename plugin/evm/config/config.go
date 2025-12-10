@@ -96,6 +96,11 @@ type Config struct {
 	// Airdrop
 	AirdropFile string `json:"airdrop"`
 
+	// GenesisAllocFile is a path to a JSON file containing additional genesis allocations.
+	// This allows bypassing P-chain transaction size limits for large genesis states.
+	// The file should contain a JSON object with address-to-account mappings.
+	GenesisAllocFile string `json:"genesis-alloc-file"`
+
 	// Subnet EVM APIs
 	ValidatorsAPIEnabled bool   `json:"validators-api-enabled"`
 	AdminAPIEnabled      bool   `json:"admin-api-enabled"`
