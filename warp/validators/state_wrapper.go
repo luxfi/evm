@@ -52,10 +52,15 @@ func (w *ConsensusStateWrapper) GetMinimumHeight(ctx context.Context) (uint64, e
 	return 0, nil
 }
 
-// GetSubnetID implements validators.State
-func (w *ConsensusStateWrapper) GetSubnetID(ctx context.Context, chainID ids.ID) (ids.ID, error) {
-	// consensus.ValidatorState doesn't have GetSubnetID, return empty
+// GetNetID implements validators.State
+func (w *ConsensusStateWrapper) GetNetID(ctx context.Context, chainID ids.ID) (ids.ID, error) {
+	// consensus.ValidatorState doesn't have GetNetID, return empty
 	return ids.Empty, nil
+}
+
+// GetSubnetID implements validators.State (deprecated: use GetNetID)
+func (w *ConsensusStateWrapper) GetSubnetID(ctx context.Context, chainID ids.ID) (ids.ID, error) {
+	return w.GetNetID(ctx, chainID)
 }
 
 // GetCurrentValidatorSet implements validators.State
