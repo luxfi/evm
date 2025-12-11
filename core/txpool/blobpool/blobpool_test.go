@@ -56,7 +56,7 @@ import (
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/crypto/kzg4844"
+	"github.com/luxfi/crypto/kzg4844"
 	"github.com/luxfi/geth/ethdb/memorydb"
 	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/geth/rlp"
