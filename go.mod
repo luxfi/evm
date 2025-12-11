@@ -23,7 +23,7 @@ require (
 	github.com/luxfi/database v1.2.7
 	github.com/luxfi/geth v1.16.43
 	github.com/luxfi/go-bip39 v1.1.1
-	github.com/luxfi/ids v1.2.1
+	github.com/luxfi/ids v1.2.2
 	github.com/luxfi/log v1.1.24
 	github.com/luxfi/math v1.0.0
 	github.com/luxfi/metric v1.4.5
