@@ -45,4 +45,3 @@
 "github.com/luxfi/geth/triedb/hashdb"
 "github.com/luxfi/geth/triedb/pathdb"
 "github.com/luxfi/log"
-"github.com/luxfi/geth/crypto"
