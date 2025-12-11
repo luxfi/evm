@@ -17,9 +17,9 @@ require (
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.0.0
 	github.com/luxfi/codec v1.0.4
-	github.com/luxfi/consensus v1.22.2
+	github.com/luxfi/consensus v1.22.4
 	github.com/luxfi/constants v1.0.0
-	github.com/luxfi/crypto v1.17.7
+	github.com/luxfi/crypto v1.17.9
 	github.com/luxfi/database v1.2.7
 	github.com/luxfi/geth v1.16.40
 	github.com/luxfi/go-bip39 v1.1.1
@@ -27,7 +27,7 @@ require (
 	github.com/luxfi/log v1.1.24
 	github.com/luxfi/math v1.0.0
 	github.com/luxfi/metric v1.4.5
-	github.com/luxfi/node v1.21.5
+	github.com/luxfi/node v1.21.15
 	github.com/luxfi/p2p v1.0.2
 	github.com/luxfi/timer v1.0.1
 	github.com/luxfi/trace v0.1.2
