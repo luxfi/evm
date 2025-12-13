@@ -17,7 +17,7 @@ import (
 
 	// Network interfaces
 	"github.com/luxfi/consensus/core/appsender"
-	"github.com/luxfi/consensus/utils/set"
+	"github.com/luxfi/math/set"
 )
 
 // BlockAdapter adapts consensus Block to node Block interface
