@@ -61,6 +61,31 @@ func (l *loggerWrapper) SetLevel(lvl interface{}) {
 	// No-op as geth logger handles this differently
 }
 
+// senderAdapter wraps nodeCore.AppSender to implement p2p.Sender interface
+type senderAdapter struct {
+	appSender nodeCore.AppSender
+}
+
+// SendRequest implements p2p.Sender
+func (s *senderAdapter) SendRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, request []byte) error {
+	return s.appSender.SendAppRequest(ctx, nodeIDs, requestID, request)
+}
+
+// SendResponse implements p2p.Sender
+func (s *senderAdapter) SendResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, response []byte) error {
+	return s.appSender.SendAppResponse(ctx, nodeID, requestID, response)
+}
+
+// SendError implements p2p.Sender
+func (s *senderAdapter) SendError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
+	return s.appSender.SendAppError(ctx, nodeID, requestID, errorCode, errorMessage)
+}
+
+// SendGossip implements p2p.Sender
+func (s *senderAdapter) SendGossip(ctx context.Context, config p2p.SendConfig, msg []byte) error {
+	return s.appSender.SendAppGossip(ctx, config.NodeIDs, msg)
+}
+
 // SyncedNetworkClient defines ability to send request / response through the Network
 type SyncedNetworkClient interface {
 	// SendSyncedAppRequestAny synchronously sends request to an arbitrary peer with a
@@ -152,8 +177,10 @@ func NewNetwork(
 	var p2pNetwork *p2p.Network
 	if appSender != nil {
 		// Use luxfi/log.NewNoOpLogger() which implements the required Logger interface
+		// Wrap appSender to implement p2p.Sender interface
+		sender := &senderAdapter{appSender: appSender}
 		var err error
-		p2pNetwork, err = p2p.NewNetwork(luxlog.NewNoOpLogger(), appSender, registerer, "evm")
+		p2pNetwork, err = p2p.NewNetwork(luxlog.NewNoOpLogger(), sender, registerer, "evm")
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize p2p network: %w", err)
 		}

@@ -256,10 +256,14 @@ func (w *appSenderWrapper) SendAppError(ctx context.Context, nodeID ids.NodeID, 
 	return w.appSender.SendAppError(ctx, nodeID, requestID, errorCode, errorMessage)
 }
 
-// SendAppGossip implements nodeCommonEng.AppSender using p2p.SendConfig
-func (w *appSenderWrapper) SendAppGossip(ctx context.Context, config p2p.SendConfig, appGossipBytes []byte) error {
-	// Convert SendConfig to set.Set - use specified NodeIDs if any
-	return w.appSender.SendAppGossip(ctx, config.NodeIDs, appGossipBytes)
+// SendAppGossip implements nodeCommonEng.AppSender
+func (w *appSenderWrapper) SendAppGossip(ctx context.Context, nodeIDs set.Set[ids.NodeID], appGossipBytes []byte) error {
+	return w.appSender.SendAppGossip(ctx, nodeIDs, appGossipBytes)
+}
+
+// SendAppGossipSpecific implements nodeCommonEng.AppSender
+func (w *appSenderWrapper) SendAppGossipSpecific(ctx context.Context, nodeIDs set.Set[ids.NodeID], appGossipBytes []byte) error {
+	return w.appSender.SendAppGossipSpecific(ctx, nodeIDs, appGossipBytes)
 }
 
 // SendRequest implements nodeCommonEng.AppSender (p2p.Sender compatible)
@@ -277,7 +281,7 @@ func (w *appSenderWrapper) SendError(ctx context.Context, nodeID ids.NodeID, req
 	return w.appSender.SendAppError(ctx, nodeID, requestID, errorCode, errorMessage)
 }
 
-// SendGossip implements nodeCommonEng.AppSender (p2p.Sender compatible)
+// SendGossip implements p2p.Sender
 func (w *appSenderWrapper) SendGossip(ctx context.Context, config p2p.SendConfig, msg []byte) error {
 	return w.appSender.SendAppGossip(ctx, config.NodeIDs, msg)
 }
