@@ -19,7 +19,7 @@ require (
 	github.com/luxfi/codec v1.0.4
 	github.com/luxfi/consensus v1.22.5
 	github.com/luxfi/constants v1.0.0
-	github.com/luxfi/crypto v1.17.15
+	github.com/luxfi/crypto v1.17.18
 	github.com/luxfi/database v1.2.10
 	github.com/luxfi/geth v1.16.50
 	github.com/luxfi/go-bip39 v1.1.2
@@ -27,15 +27,16 @@ require (
 	github.com/luxfi/log v1.1.25
 	github.com/luxfi/math v1.0.0
 	github.com/luxfi/metric v1.4.5
+	github.com/luxfi/migrate v1.2.6
 	github.com/luxfi/node v1.21.34
-	github.com/luxfi/p2p v1.0.2
+	github.com/luxfi/p2p v1.4.6
 	github.com/luxfi/timer v1.0.1
 	github.com/luxfi/trace v0.1.2
 	github.com/luxfi/units v1.0.0
 	github.com/luxfi/upgrade v1.0.0
 	github.com/luxfi/utils v1.0.0
 	github.com/luxfi/vms v0.1.0
-	github.com/luxfi/warp v1.16.26
+	github.com/luxfi/warp v1.16.36
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
 	github.com/prometheus/client_golang v1.23.2
@@ -67,7 +68,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.24.3 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cloudflare/circl v1.6.2-0.20251027185721-da1faa40b98c // indirect
+	github.com/cloudflare/circl v1.6.2-0.20251204010831-23491bd573cf // indirect
 	github.com/cockroachdb/errors v1.12.0 // indirect
 	github.com/cockroachdb/fifo v0.0.0-20240816210425-c5d0cb0b6fc0 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506 // indirect
@@ -112,7 +113,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/luxfi/migrate v1.2.6 // indirect
 	github.com/luxfi/mock v0.1.0 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
