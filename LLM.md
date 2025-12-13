@@ -5,17 +5,40 @@ Lux EVM (formerly Subnet-EVM) is the Ethereum Virtual Machine implementation for
 
 ## CRITICAL VERSION REQUIREMENTS
 **ALWAYS use these Lux-specific versions:**
-- `github.com/luxfi/node v1.16.15` - Latest Lux node version
-- `github.com/luxfi/geth v1.16.2-lux.4` - Our fork of go-ethereum
-- Local packages from parent directory: consensus, crypto, warp (tagged v1.16.15-lux)
+- `github.com/luxfi/node v1.21.34` - Latest Lux node version
+- `github.com/luxfi/geth v1.16.50` - Our fork of go-ethereum
+- `github.com/luxfi/p2p v1.4.6` - P2P networking package
+- `github.com/luxfi/warp v1.16.36` - Warp messaging package
+- `github.com/luxfi/consensus v1.22.5` - Consensus package
 
 ### IMPORTANT: Package Usage
 - Use `lp118` package for p2p handlers
-- Import: `github.com/luxfi/node/network/p2p/lp118`
+- Import: `github.com/luxfi/p2p/lp118`
 - All handler IDs: `lp118.HandlerID`
 - All functions: `lp118.NewCachedHandler`, `lp118.NewSignatureAggregator`
 - NEVER import from ava-labs packages
 - NEVER use go-ethereum directly, always use luxfi/geth
+
+### p2p.Handler Interface
+The `p2p.Handler` interface uses these methods:
+- `Gossip(ctx, nodeID, gossipBytes)` - NOT AppGossip
+- `Request(ctx, nodeID, deadline, requestBytes) ([]byte, *p2p.Error)` - NOT AppRequest
+
+### p2p.Sender Interface
+The `p2p.Sender` interface requires:
+- `SendRequest(ctx, nodeIDs, requestID, request) error`
+- `SendResponse(ctx, nodeID, requestID, response) error`
+- `SendError(ctx, nodeID, requestID, errorCode, errorMessage) error`
+- `SendGossip(ctx, config p2p.SendConfig, msg) error`
+
+### p2p.Network Methods
+- `Request(ctx, nodeID, requestID, deadline, request)` - NOT AppRequest
+- `Response(ctx, nodeID, requestID, response)` - NOT AppResponse
+- `Gossip(ctx, nodeID, gossipBytes)` - NOT AppGossip
+
+### warp Package Types
+- `NewUnsignedMessage(networkID uint32, sourceChainID ids.ID, payload []byte)` - takes ids.ID directly
+- `Validator.NodeID` is `ids.NodeID` - NOT []byte
 
 ## Module Structure
 ```
