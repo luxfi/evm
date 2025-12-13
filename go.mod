@@ -21,7 +21,7 @@ require (
 	github.com/luxfi/constants v1.0.0
 	github.com/luxfi/crypto v1.17.15
 	github.com/luxfi/database v1.2.10
-	github.com/luxfi/geth v1.16.44
+	github.com/luxfi/geth v1.16.50
 	github.com/luxfi/go-bip39 v1.1.2
 	github.com/luxfi/ids v1.2.2
 	github.com/luxfi/log v1.1.25
@@ -112,6 +112,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/luxfi/migrate v1.2.6 // indirect
 	github.com/luxfi/mock v0.1.0 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
