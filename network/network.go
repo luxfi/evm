@@ -310,7 +310,11 @@ func (n *network) AppRequest(ctx context.Context, nodeID ids.NodeID, requestID u
 	if !IsNetworkRequest(requestID) {
 		log.Info("AppRequest: forwarding to SDK network", "nodeID", nodeID, "requestID", requestID, "requestLen", len(request))
 		if n.sdkNetwork != nil {
-			return n.sdkNetwork.AppRequest(ctx, nodeID, requestID, deadline, request)
+			_, err := n.sdkNetwork.Request(ctx, nodeID, requestID, deadline, request)
+			if err != nil {
+				return fmt.Errorf("SDK network request failed: %s", err.Message)
+			}
+			return nil
 		}
 		return nil
 	}
@@ -355,7 +359,7 @@ func (n *network) AppResponse(ctx context.Context, nodeID ids.NodeID, requestID 
 	if !exists {
 		log.Debug("forwarding AppResponse to SDK network", "nodeID", nodeID, "requestID", requestID, "responseLen", len(response))
 		if n.sdkNetwork != nil {
-			return n.sdkNetwork.AppResponse(ctx, nodeID, requestID, response)
+			return n.sdkNetwork.Response(ctx, nodeID, requestID, response)
 		}
 		// When there's no SDK network and request not found, return ErrUnrequestedResponse
 		return p2p.ErrUnrequestedResponse
@@ -439,7 +443,7 @@ func (n *network) markRequestFulfilled(requestID uint32) (message.ResponseHandle
 func (n *network) AppGossip(ctx context.Context, nodeID ids.NodeID, gossipBytes []byte) error {
 	if n.sdkNetwork != nil {
 		// Forward to SDK network which will route to the appropriate handler
-		return n.sdkNetwork.AppGossip(ctx, nodeID, gossipBytes)
+		return n.sdkNetwork.Gossip(ctx, nodeID, gossipBytes)
 	}
 	return nil
 }
