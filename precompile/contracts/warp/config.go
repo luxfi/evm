@@ -227,9 +227,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	sourceChainID := warpMsg.UnsignedMessage.SourceChainID
 
 	// Get subnet ID from validator state for the source chain
-	var chainIDFixed ids.ID
-	copy(chainIDFixed[:], sourceChainID)
-	sourceSubnetID, err := validatorState.GetSubnetID(chainIDFixed)
+	sourceSubnetID, err := validatorState.GetSubnetID(sourceChainID)
 	if err != nil {
 		return fmt.Errorf("failed to get subnet ID for source chain: %w", err)
 	}
@@ -249,7 +247,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	if sourceSubnetID != ids.Empty && sourceSubnetID != constants.PrimaryNetworkID {
 		// Source is from a subnet - use that subnet's validators
 		requestedSubnetID = sourceSubnetID
-	} else if chainIDFixed == constants.PlatformChainID {
+	} else if sourceChainID == constants.PlatformChainID {
 		// P-Chain source - always use receiving subnet's validators
 		requestedSubnetID = receivingSubnetID
 	} else if c.RequirePrimaryNetworkSigners {
@@ -281,7 +279,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 			totalWeight += output.Weight
 
 			vdr := &luxwarp.Validator{
-				NodeID: nodeID[:],
+				NodeID: nodeID,
 				Weight: output.Weight,
 			}
 
@@ -309,7 +307,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 		for nodeID, weight := range vdrWeights {
 			totalWeight += weight
 			vdr := &luxwarp.Validator{
-				NodeID: nodeID[:],
+				NodeID: nodeID,
 				Weight: weight,
 			}
 			allValidators = append(allValidators, vdr)
