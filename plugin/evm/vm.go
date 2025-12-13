@@ -236,50 +236,50 @@ func (a *lp118SignerAdapter) Sign(msg *luxWarp.UnsignedMessage) ([]byte, error) 
 	return bls.SignatureToBytes(sig), nil
 }
 
-// appSenderWrapper wraps a consensus AppSender to implement node's AppSender interface
+// appSenderWrapper wraps a consensus appsender.AppSender to implement nodeCommonEng.AppSender
 type appSenderWrapper struct {
 	appSender appsender.AppSender
 }
 
+// SendAppRequest implements nodeCommonEng.AppSender
 func (w *appSenderWrapper) SendAppRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, appRequestBytes []byte) error {
 	return w.appSender.SendAppRequest(ctx, nodeIDs, requestID, appRequestBytes)
 }
 
+// SendAppResponse implements nodeCommonEng.AppSender
 func (w *appSenderWrapper) SendAppResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, appResponseBytes []byte) error {
 	return w.appSender.SendAppResponse(ctx, nodeID, requestID, appResponseBytes)
 }
 
+// SendAppError implements nodeCommonEng.AppSender
 func (w *appSenderWrapper) SendAppError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
 	return w.appSender.SendAppError(ctx, nodeID, requestID, errorCode, errorMessage)
 }
 
-func (w *appSenderWrapper) SendAppGossip(ctx context.Context, nodeIDs set.Set[ids.NodeID], appGossipBytes []byte) error {
-	return w.appSender.SendAppGossip(ctx, nodeIDs, appGossipBytes)
+// SendAppGossip implements nodeCommonEng.AppSender using p2p.SendConfig
+func (w *appSenderWrapper) SendAppGossip(ctx context.Context, config p2p.SendConfig, appGossipBytes []byte) error {
+	// Convert SendConfig to set.Set - use specified NodeIDs if any
+	return w.appSender.SendAppGossip(ctx, config.NodeIDs, appGossipBytes)
 }
 
-func (w *appSenderWrapper) SendAppGossipSpecific(ctx context.Context, nodeIDs set.Set[ids.NodeID], appGossipBytes []byte) error {
-	return w.appSender.SendAppGossipSpecific(ctx, nodeIDs, appGossipBytes)
+// SendRequest implements nodeCommonEng.AppSender (p2p.Sender compatible)
+func (w *appSenderWrapper) SendRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, request []byte) error {
+	return w.appSender.SendAppRequest(ctx, nodeIDs, requestID, request)
 }
 
-// SendCrossChainAppError implements node's AppSender interface
-func (w *appSenderWrapper) SendCrossChainAppError(ctx context.Context, chainID ids.ID, requestID uint32, errorCode int32, errorMessage string) error {
-	// consensus AppSender doesn't have this method, so just return nil
-	// Cross-chain app messages are not supported in this VM
-	return nil
+// SendResponse implements nodeCommonEng.AppSender (p2p.Sender compatible)
+func (w *appSenderWrapper) SendResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, response []byte) error {
+	return w.appSender.SendAppResponse(ctx, nodeID, requestID, response)
 }
 
-// SendCrossChainAppRequest implements node's AppSender interface
-func (w *appSenderWrapper) SendCrossChainAppRequest(ctx context.Context, chainID ids.ID, requestID uint32, appRequestBytes []byte) error {
-	// consensus AppSender doesn't have this method, so just return nil
-	// Cross-chain app messages are not supported in this VM
-	return nil
+// SendError implements nodeCommonEng.AppSender (p2p.Sender compatible)
+func (w *appSenderWrapper) SendError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
+	return w.appSender.SendAppError(ctx, nodeID, requestID, errorCode, errorMessage)
 }
 
-// SendCrossChainAppResponse implements node's AppSender interface
-func (w *appSenderWrapper) SendCrossChainAppResponse(ctx context.Context, chainID ids.ID, requestID uint32, appResponseBytes []byte) error {
-	// consensus AppSender doesn't have this method, so just return nil
-	// Cross-chain app messages are not supported in this VM
-	return nil
+// SendGossip implements nodeCommonEng.AppSender (p2p.Sender compatible)
+func (w *appSenderWrapper) SendGossip(ctx context.Context, config p2p.SendConfig, msg []byte) error {
+	return w.appSender.SendAppGossip(ctx, config.NodeIDs, msg)
 }
 
 type VM struct {
@@ -455,7 +455,7 @@ func (vm *VM) initializeInternal(
 	upgradeBytes []byte,
 	configBytes []byte,
 	fxs []*commonEng.Fx,
-	appSender commonEng.AppSender,
+	appSender nodeCommonEng.AppSender,
 ) error {
 	vm.stateSyncDone = make(chan struct{})
 	vm.config.SetDefaults(defaultTxPoolConfig)

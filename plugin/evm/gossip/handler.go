@@ -7,7 +7,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/luxfi/consensus/engine/core"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/log"
 	"github.com/luxfi/p2p"
@@ -60,25 +59,22 @@ func NewTxGossipHandler[T gossip.Gossipable](
 	)
 
 	return &txGossipHandler{
-		appGossipHandler:  handler,
-		appRequestHandler: validatorHandler,
+		gossipHandler:  handler,
+		requestHandler: validatorHandler,
 	}, nil
 }
 
 type txGossipHandler struct {
-	appGossipHandler  p2p.Handler
-	appRequestHandler p2p.Handler
+	gossipHandler  p2p.Handler
+	requestHandler p2p.Handler
 }
 
-func (t *txGossipHandler) AppGossip(ctx context.Context, nodeID ids.NodeID, gossipBytes []byte) {
-	t.appGossipHandler.AppGossip(ctx, nodeID, gossipBytes)
+// Gossip implements p2p.Handler
+func (t *txGossipHandler) Gossip(ctx context.Context, nodeID ids.NodeID, gossipBytes []byte) {
+	t.gossipHandler.Gossip(ctx, nodeID, gossipBytes)
 }
 
-func (t *txGossipHandler) AppRequest(ctx context.Context, nodeID ids.NodeID, deadline time.Time, requestBytes []byte) ([]byte, *core.AppError) {
-	return t.appRequestHandler.AppRequest(ctx, nodeID, deadline, requestBytes)
-}
-
-func (t *txGossipHandler) CrossChainAppRequest(ctx context.Context, chainID ids.ID, deadline time.Time, requestBytes []byte) ([]byte, error) {
-	// Cross-chain requests are not supported for transaction gossip
-	return nil, nil
+// Request implements p2p.Handler
+func (t *txGossipHandler) Request(ctx context.Context, nodeID ids.NodeID, deadline time.Time, requestBytes []byte) ([]byte, *p2p.Error) {
+	return t.requestHandler.Request(ctx, nodeID, deadline, requestBytes)
 }
