@@ -7,8 +7,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/luxfi/consensus/utils/set"
 	"github.com/luxfi/ids"
+	"github.com/luxfi/math/set"
+	"github.com/luxfi/p2p"
 )
 
 // TestSender is a test implementation of the Sender interface
@@ -113,4 +114,26 @@ func (s *TestSender) SendCrossChainAppError(ctx context.Context, chainID ids.ID,
 		return s.SendCrossChainAppErrorF(ctx, chainID, requestID, errorCode, errorMessage)
 	}
 	return nil
+}
+
+// p2p.Sender interface methods
+
+// SendRequest implements p2p.Sender
+func (s *TestSender) SendRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, request []byte) error {
+	return s.SendAppRequest(ctx, nodeIDs, requestID, request)
+}
+
+// SendResponse implements p2p.Sender
+func (s *TestSender) SendResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, response []byte) error {
+	return s.SendAppResponse(ctx, nodeID, requestID, response)
+}
+
+// SendError implements p2p.Sender
+func (s *TestSender) SendError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
+	return s.SendAppError(ctx, nodeID, requestID, errorCode, errorMessage)
+}
+
+// SendGossip implements p2p.Sender
+func (s *TestSender) SendGossip(ctx context.Context, config p2p.SendConfig, msg []byte) error {
+	return s.SendAppGossip(ctx, config.NodeIDs, msg)
 }

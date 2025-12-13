@@ -82,7 +82,7 @@ func (a *API) GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, qu
 		return nil, err
 	}
 	chainID := consensuscontext.GetChainID(a.chainContext)
-	unsignedMessage, err := luxWarp.NewUnsignedMessage(consensuscontext.GetNetworkID(a.chainContext), chainID[:], blockHashPayload.Bytes())
+	unsignedMessage, err := luxWarp.NewUnsignedMessage(consensuscontext.GetNetworkID(a.chainContext), chainID, blockHashPayload.Bytes())
 	if err != nil {
 		return nil, err
 	}
