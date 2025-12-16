@@ -98,7 +98,6 @@ func NewDefaultConfig() Config {
 		BatchResponseMaxSize: 25 * 1000 * 1000, // 25MB
 		// Subnet EVM API settings
 		ValidatorsAPIEnabled: true,
-		MigrateAPIEnabled:    true,
 		// Database settings
 		DatabaseType: badgerdbName,
 		// Additional settings with sensible defaults
