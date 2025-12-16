@@ -163,8 +163,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/luxfi/consensus => ../consensus
-
-replace github.com/luxfi/vms => ../vms
-
-replace github.com/luxfi/node => ../node
+// Remote packages - no local replace directives
+// github.com/luxfi/consensus v1.22.27
+// github.com/luxfi/node v1.22.17
