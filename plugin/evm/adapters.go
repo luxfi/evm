@@ -167,6 +167,17 @@ func (a *AppSenderAdapter) SendAppGossip(ctx context.Context, nodeIDs []ids.Node
 	return a.consensus.SendAppGossip(ctx, nodeIDSet, appGossipBytes)
 }
 
+// SendAppGossipSpecific sends app gossip to specific nodes
+func (a *AppSenderAdapter) SendAppGossipSpecific(ctx context.Context, nodeIDs []ids.NodeID, appGossipBytes []byte) error {
+	// Convert slice to set for consensus interface
+	nodeIDSet := set.NewSet[ids.NodeID](len(nodeIDs))
+	for _, nodeID := range nodeIDs {
+		nodeIDSet.Add(nodeID)
+	}
+
+	return a.consensus.SendAppGossipSpecific(ctx, nodeIDSet, appGossipBytes)
+}
+
 // ReverseAppSenderAdapter adapts node AppSender to consensus AppSender interface
 type ReverseAppSenderAdapter struct {
 	node nodeblock.AppSender
