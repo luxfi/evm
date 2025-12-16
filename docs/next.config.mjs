@@ -3,6 +3,7 @@ import { createMDX } from "fumadocs-mdx/next"
 /** @type {import('next').NextConfig} */
 const config = {
   output: 'export',
+  basePath: '/evm',
   reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: true,
