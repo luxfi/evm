@@ -1,0 +1,409 @@
+---
+title: Transactions
+description: Transaction types, EIP support, and transaction lifecycle in Lux EVM
+---
+
+# Transactions
+
+The Lux EVM supports standard Ethereum transaction types with optimizations for instant finality and cross-chain messaging.
+
+## Transaction Types
+
+### Legacy Transactions (Type 0)
+
+Pre-EIP-2718 transactions with a single gas price.
+
+```solidity
+// Transaction structure
+struct LegacyTransaction {
+    uint256 nonce;
+    uint256 gasPrice;
+    uint256 gasLimit;
+    address to;
+    uint256 value;
+    bytes data;
+    uint8 v;
+    bytes32 r;
+    bytes32 s;
+}
+```
+
+```javascript
+// ethers.js example
+const tx = await wallet.sendTransaction({
+  to: recipient,
+  value: ethers.parseEther("1.0"),
+  gasPrice: ethers.parseUnits("25", "gwei"),
+  gasLimit: 21000,
+});
+```
+
+### EIP-2930 Access List Transactions (Type 1)
+
+Transactions with optional access list for gas savings on state access.
+
+```javascript
+const tx = await wallet.sendTransaction({
+  type: 1,
+  to: contractAddress,
+  data: calldata,
+  accessList: [
+    {
+      address: "0x...",
+      storageKeys: [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000000000000000000000000001",
+      ],
+    },
+  ],
+});
+```
+
+### EIP-1559 Dynamic Fee Transactions (Type 2)
+
+Recommended transaction type with separate base fee and priority fee.
+
+```javascript
+const tx = await wallet.sendTransaction({
+  type: 2,
+  to: recipient,
+  value: ethers.parseEther("1.0"),
+  maxFeePerGas: ethers.parseUnits("50", "gwei"),
+  maxPriorityFeePerGas: ethers.parseUnits("2", "gwei"),
+  gasLimit: 21000,
+});
+```
+
+**Fee Calculation**:
+```
+effectiveGasPrice = min(maxFeePerGas, baseFee + maxPriorityFeePerGas)
+totalFee = gasUsed * effectiveGasPrice
+```
+
+### EIP-4844 Blob Transactions (Type 3)
+
+Blob-carrying transactions for data availability (Cancun upgrade).
+
+```javascript
+const tx = await wallet.sendTransaction({
+  type: 3,
+  to: recipient,
+  maxFeePerGas: ethers.parseUnits("50", "gwei"),
+  maxPriorityFeePerGas: ethers.parseUnits("2", "gwei"),
+  maxFeePerBlobGas: ethers.parseUnits("1", "gwei"),
+  blobVersionedHashes: [blobHash],
+});
+```
+
+## EIP Support
+
+### Fully Supported EIPs
+
+| EIP | Name | Description |
+|-----|------|-------------|
+| EIP-155 | Replay Protection | Chain ID in signature |
+| EIP-1559 | Fee Market | Dynamic base fee |
+| EIP-2718 | Typed Transactions | Transaction envelope |
+| EIP-2930 | Access Lists | Optional access lists |
+| EIP-4844 | Blob Transactions | Proto-danksharding |
+| EIP-4895 | Withdrawals | Beacon chain withdrawals |
+
+### Network-Specific Behavior
+
+| Feature | Ethereum | Lux EVM |
+|---------|----------|---------|
+| Finality | ~15 minutes | Instant |
+| Block Time | ~12 seconds | ~2 seconds |
+| Reorgs | Possible | Never |
+| Uncle Blocks | Yes | No |
+
+## Transaction Lifecycle
+
+### 1. Creation
+
+```javascript
+// Build transaction
+const tx = {
+  to: recipient,
+  value: ethers.parseEther("1.0"),
+  nonce: await provider.getTransactionCount(sender),
+  gasLimit: 21000,
+  maxFeePerGas: ethers.parseUnits("50", "gwei"),
+  maxPriorityFeePerGas: ethers.parseUnits("2", "gwei"),
+  chainId: 43112,
+};
+```
+
+### 2. Signing
+
+```javascript
+// Sign with private key
+const signedTx = await wallet.signTransaction(tx);
+```
+
+### 3. Submission
+
+```javascript
+// Submit to network
+const txResponse = await provider.broadcastTransaction(signedTx);
+console.log("Transaction hash:", txResponse.hash);
+```
+
+### 4. Pending State
+
+```javascript
+// Monitor pending transaction
+const pending = await provider.getTransaction(txResponse.hash);
+console.log("Pending:", pending.blockNumber === null);
+```
+
+### 5. Inclusion
+
+```javascript
+// Wait for inclusion in block
+const receipt = await txResponse.wait();
+console.log("Block number:", receipt.blockNumber);
+console.log("Gas used:", receipt.gasUsed);
+```
+
+### 6. Finalization
+
+In Lux EVM, transactions are **instantly final** once included in an accepted block.
+
+```javascript
+// No additional confirmation needed
+// Transaction is final immediately after inclusion
+console.log("Transaction final:", receipt.status === 1);
+```
+
+## Transaction Pool
+
+### Configuration
+
+```toml
+[tx-pool]
+# Maximum pending transactions per account
+account-slots = 16
+
+# Global pending transaction limit
+global-slots = 5120
+
+# Queue limit per account
+account-queue = 64
+
+# Global queue limit
+global-queue = 1024
+
+# Transaction lifetime
+lifetime = "3h"
+
+# Minimum gas price to accept
+price-limit = 1
+
+# Price bump percentage for replacement
+price-bump = 10
+```
+
+### Replacement Transactions
+
+Replace a pending transaction by sending a new one with the same nonce and higher gas price.
+
+```javascript
+// Original transaction stuck
+const originalTx = await wallet.sendTransaction({
+  to: recipient,
+  value: ethers.parseEther("1.0"),
+  nonce: 42,
+  maxFeePerGas: ethers.parseUnits("25", "gwei"),
+});
+
+// Replace with higher fee (10% minimum bump)
+const replacementTx = await wallet.sendTransaction({
+  to: recipient,
+  value: ethers.parseEther("1.0"),
+  nonce: 42,
+  maxFeePerGas: ethers.parseUnits("30", "gwei"), // 20% higher
+});
+```
+
+### Cancellation
+
+Cancel a pending transaction by sending a zero-value transaction to yourself with the same nonce.
+
+```javascript
+const cancelTx = await wallet.sendTransaction({
+  to: wallet.address,
+  value: 0,
+  nonce: pendingNonce,
+  maxFeePerGas: ethers.parseUnits("30", "gwei"),
+});
+```
+
+## Gas Estimation
+
+### Basic Estimation
+
+```javascript
+// Estimate gas for a transaction
+const gasEstimate = await provider.estimateGas({
+  from: sender,
+  to: recipient,
+  value: ethers.parseEther("1.0"),
+});
+
+console.log("Estimated gas:", gasEstimate);
+```
+
+### Contract Interaction
+
+```javascript
+// Estimate gas for contract call
+const contract = new ethers.Contract(address, abi, provider);
+const gasEstimate = await contract.someFunction.estimateGas(arg1, arg2);
+```
+
+### Fee Estimation
+
+```javascript
+// Get current fee data
+const feeData = await provider.getFeeData();
+console.log("Base fee:", feeData.gasPrice);
+console.log("Max fee:", feeData.maxFeePerGas);
+console.log("Priority fee:", feeData.maxPriorityFeePerGas);
+```
+
+## Error Handling
+
+### Common Transaction Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `nonce too low` | Nonce already used | Increment nonce |
+| `insufficient funds` | Not enough balance | Add funds |
+| `gas limit exceeded` | Gas limit too low | Increase gas limit |
+| `max fee per gas less than block base fee` | Fee too low | Increase max fee |
+| `replacement transaction underpriced` | Bump too small | Increase by 10%+ |
+
+### Error Recovery
+
+```javascript
+try {
+  const tx = await wallet.sendTransaction(txData);
+  const receipt = await tx.wait();
+} catch (error) {
+  if (error.code === "NONCE_EXPIRED") {
+    // Retry with fresh nonce
+    txData.nonce = await provider.getTransactionCount(wallet.address);
+    return wallet.sendTransaction(txData);
+  }
+  if (error.code === "INSUFFICIENT_FUNDS") {
+    throw new Error("Not enough balance for transaction");
+  }
+  throw error;
+}
+```
+
+## Batch Transactions
+
+### Sequential Batch
+
+```javascript
+async function batchTransfer(recipients) {
+  let nonce = await provider.getTransactionCount(wallet.address);
+  const txPromises = [];
+
+  for (const { address, amount } of recipients) {
+    const tx = wallet.sendTransaction({
+      to: address,
+      value: ethers.parseEther(amount),
+      nonce: nonce++,
+    });
+    txPromises.push(tx);
+  }
+
+  // Submit all transactions
+  const txResponses = await Promise.all(txPromises);
+
+  // Wait for all confirmations
+  return Promise.all(txResponses.map((tx) => tx.wait()));
+}
+```
+
+### Multicall Contract
+
+```solidity
+// Batch multiple calls in one transaction
+contract Multicall {
+    struct Call {
+        address target;
+        bytes callData;
+    }
+
+    function aggregate(Call[] memory calls)
+        public
+        returns (uint256 blockNumber, bytes[] memory returnData)
+    {
+        blockNumber = block.number;
+        returnData = new bytes[](calls.length);
+        for (uint256 i = 0; i < calls.length; i++) {
+            (bool success, bytes memory ret) = calls[i].target.call(calls[i].callData);
+            require(success, "Multicall: call failed");
+            returnData[i] = ret;
+        }
+    }
+}
+```
+
+## Cross-Chain Transactions
+
+### Warp Message Transaction
+
+```solidity
+// Send cross-chain message
+interface IWarpMessenger {
+    function sendWarpMessage(bytes calldata payload)
+        external returns (bytes32 messageID);
+}
+
+contract CrossChainSender {
+    IWarpMessenger constant WARP =
+        IWarpMessenger(0x0200000000000000000000000000000000000005);
+
+    function sendMessage(bytes memory data) external returns (bytes32) {
+        return WARP.sendWarpMessage(data);
+    }
+}
+```
+
+### Verifying Cross-Chain Messages
+
+```solidity
+contract CrossChainReceiver {
+    IWarpMessenger constant WARP =
+        IWarpMessenger(0x0200000000000000000000000000000000000005);
+
+    function processMessage(uint32 index) external {
+        (IWarpMessenger.WarpMessage memory message, bool valid) =
+            WARP.getVerifiedWarpMessage(index);
+        require(valid, "Invalid message");
+
+        // Process the message
+        processPayload(message.sourceChainID, message.payload);
+    }
+}
+```
+
+## Best Practices
+
+1. **Always use EIP-1559**: Provides better fee estimation and gas savings
+2. **Set reasonable gas limits**: Avoid setting limit too high or too low
+3. **Handle nonces carefully**: Track nonces when sending multiple transactions
+4. **Use access lists**: Pre-declare storage access for gas savings
+5. **Monitor base fee**: Adjust fees based on network conditions
+6. **Implement retry logic**: Handle transient failures gracefully
+
+## See Also
+
+- [Gas Metering](/docs/gas-metering) - Detailed gas cost information
+- [Smart Contracts](/docs/contracts) - Contract deployment and interaction
+- [State Management](/docs/state-management) - State trie and storage

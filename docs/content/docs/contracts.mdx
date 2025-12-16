@@ -1,0 +1,555 @@
+---
+title: Smart Contracts
+description: Smart contract deployment, verification, and best practices for Lux EVM
+---
+
+# Smart Contracts
+
+Deploy and interact with Solidity smart contracts on the Lux EVM with full Ethereum compatibility.
+
+## Contract Deployment
+
+### Basic Deployment
+
+```javascript
+const { ethers } = require("ethers");
+
+// Connect to Lux EVM
+const provider = new ethers.JsonRpcProvider("http://localhost:9650/ext/bc/C/rpc");
+const wallet = new ethers.Wallet(privateKey, provider);
+
+// Deploy contract
+const factory = new ethers.ContractFactory(abi, bytecode, wallet);
+const contract = await factory.deploy(constructorArg1, constructorArg2);
+await contract.waitForDeployment();
+
+console.log("Deployed to:", await contract.getAddress());
+```
+
+### Hardhat Deployment
+
+```javascript
+// scripts/deploy.js
+const hre = require("hardhat");
+
+async function main() {
+  const Contract = await hre.ethers.getContractFactory("MyContract");
+  const contract = await Contract.deploy("Constructor Arg");
+  await contract.waitForDeployment();
+
+  console.log("Contract deployed to:", await contract.getAddress());
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+```bash
+npx hardhat run scripts/deploy.js --network luxevm
+```
+
+### Foundry Deployment
+
+```bash
+# Deploy with forge
+forge create src/MyContract.sol:MyContract \
+  --rpc-url http://localhost:9650/ext/bc/C/rpc \
+  --private-key $PRIVATE_KEY \
+  --constructor-args "Constructor Arg"
+```
+
+```bash
+# Deploy with script
+forge script script/Deploy.s.sol:DeployScript \
+  --rpc-url http://localhost:9650/ext/bc/C/rpc \
+  --broadcast \
+  --private-key $PRIVATE_KEY
+```
+
+## Contract Size Limits
+
+| Limit | Value | EIP |
+|-------|-------|-----|
+| Max Code Size | 24,576 bytes | EIP-170 |
+| Max Init Code Size | 49,152 bytes | EIP-3860 |
+
+### Checking Contract Size
+
+```bash
+# Hardhat
+npx hardhat compile --show-stack-traces
+npx hardhat size-contracts
+
+# Foundry
+forge build --sizes
+```
+
+### Reducing Contract Size
+
+```solidity
+// Use libraries for shared code
+library MathLib {
+    function add(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a + b;
+    }
+}
+
+contract MyContract {
+    using MathLib for uint256;
+
+    function calculate(uint256 x, uint256 y) public pure returns (uint256) {
+        return x.add(y);
+    }
+}
+```
+
+```solidity
+// Use custom errors instead of revert strings
+error InsufficientBalance(uint256 available, uint256 required);
+
+contract Token {
+    mapping(address => uint256) public balances;
+
+    function transfer(address to, uint256 amount) public {
+        if (balances[msg.sender] < amount) {
+            revert InsufficientBalance(balances[msg.sender], amount);
+        }
+        balances[msg.sender] -= amount;
+        balances[to] += amount;
+    }
+}
+```
+
+## Proxy Patterns
+
+### Transparent Proxy
+
+```solidity
+// TransparentUpgradeableProxy pattern
+contract TransparentProxy {
+    address public implementation;
+    address public admin;
+
+    constructor(address _implementation, address _admin) {
+        implementation = _implementation;
+        admin = _admin;
+    }
+
+    function upgradeTo(address newImplementation) external {
+        require(msg.sender == admin, "Not admin");
+        implementation = newImplementation;
+    }
+
+    fallback() external payable {
+        address impl = implementation;
+        assembly {
+            calldatacopy(0, 0, calldatasize())
+            let result := delegatecall(gas(), impl, 0, calldatasize(), 0, 0)
+            returndatacopy(0, 0, returndatasize())
+            switch result
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
+        }
+    }
+}
+```
+
+### UUPS Proxy
+
+```solidity
+// Universal Upgradeable Proxy Standard
+abstract contract UUPSUpgradeable {
+    address private _implementation;
+
+    function upgradeTo(address newImplementation) public virtual {
+        _authorizeUpgrade(newImplementation);
+        _implementation = newImplementation;
+    }
+
+    function _authorizeUpgrade(address newImplementation) internal virtual;
+}
+```
+
+## Contract Verification
+
+### Hardhat Verification
+
+```javascript
+// hardhat.config.js
+module.exports = {
+  networks: {
+    luxevm: {
+      url: "http://localhost:9650/ext/bc/C/rpc",
+      chainId: 43112,
+    },
+  },
+  etherscan: {
+    apiKey: {
+      luxevm: "your-api-key",
+    },
+    customChains: [
+      {
+        network: "luxevm",
+        chainId: 43112,
+        urls: {
+          apiURL: "https://explorer.lux.network/api",
+          browserURL: "https://explorer.lux.network",
+        },
+      },
+    ],
+  },
+};
+```
+
+```bash
+npx hardhat verify --network luxevm CONTRACT_ADDRESS "Constructor Arg"
+```
+
+### Foundry Verification
+
+```bash
+forge verify-contract CONTRACT_ADDRESS src/MyContract.sol:MyContract \
+  --chain-id 43112 \
+  --verifier-url https://explorer.lux.network/api \
+  --etherscan-api-key $API_KEY \
+  --constructor-args $(cast abi-encode "constructor(string)" "Constructor Arg")
+```
+
+## Security Patterns
+
+### Reentrancy Guard
+
+```solidity
+abstract contract ReentrancyGuard {
+    uint256 private constant NOT_ENTERED = 1;
+    uint256 private constant ENTERED = 2;
+    uint256 private _status = NOT_ENTERED;
+
+    modifier nonReentrant() {
+        require(_status != ENTERED, "ReentrancyGuard: reentrant call");
+        _status = ENTERED;
+        _;
+        _status = NOT_ENTERED;
+    }
+}
+
+contract Vault is ReentrancyGuard {
+    mapping(address => uint256) public balances;
+
+    function withdraw(uint256 amount) external nonReentrant {
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+        balances[msg.sender] -= amount;
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
+    }
+}
+```
+
+### Access Control
+
+```solidity
+abstract contract Ownable {
+    address public owner;
+
+    error NotOwner();
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert NotOwner();
+        _;
+    }
+
+    function transferOwnership(address newOwner) public onlyOwner {
+        owner = newOwner;
+    }
+}
+
+// Role-based access
+contract RoleBasedAccess {
+    mapping(bytes32 => mapping(address => bool)) public roles;
+
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER");
+
+    modifier hasRole(bytes32 role) {
+        require(roles[role][msg.sender], "Missing role");
+        _;
+    }
+
+    function grantRole(bytes32 role, address account) public hasRole(ADMIN_ROLE) {
+        roles[role][account] = true;
+    }
+}
+```
+
+### Pausable
+
+```solidity
+abstract contract Pausable {
+    bool public paused;
+
+    error ContractPaused();
+    error ContractNotPaused();
+
+    modifier whenNotPaused() {
+        if (paused) revert ContractPaused();
+        _;
+    }
+
+    modifier whenPaused() {
+        if (!paused) revert ContractNotPaused();
+        _;
+    }
+
+    function _pause() internal whenNotPaused {
+        paused = true;
+    }
+
+    function _unpause() internal whenPaused {
+        paused = false;
+    }
+}
+```
+
+## Precompile Integration
+
+### Using Lux Precompiles
+
+```solidity
+// Interface for NativeMinter precompile
+interface INativeMinter {
+    function mintNativeCoin(address to, uint256 amount) external;
+    function readAllowList(address account) external view returns (uint256);
+}
+
+contract TokenBridge {
+    INativeMinter constant MINTER =
+        INativeMinter(0x0200000000000000000000000000000000000001);
+
+    function bridgeTokens(address recipient, uint256 amount) external {
+        require(MINTER.readAllowList(address(this)) >= 1, "Not minter");
+        MINTER.mintNativeCoin(recipient, amount);
+    }
+}
+```
+
+### Post-Quantum Signatures
+
+```solidity
+interface IMLDSAVerify {
+    function verify(
+        bytes calldata publicKey,
+        bytes calldata message,
+        bytes calldata signature
+    ) external view returns (bool);
+}
+
+contract QuantumSecureVault {
+    IMLDSAVerify constant MLDSA =
+        IMLDSAVerify(0x0200000000000000000000000000000000000006);
+
+    mapping(bytes32 => bool) public authorizedKeys;
+
+    function executeWithPQSignature(
+        bytes calldata publicKey,
+        bytes calldata message,
+        bytes calldata signature
+    ) external {
+        bytes32 keyHash = keccak256(publicKey);
+        require(authorizedKeys[keyHash], "Key not authorized");
+        require(MLDSA.verify(publicKey, message, signature), "Invalid signature");
+
+        // Execute protected operation
+        _executeOperation(message);
+    }
+}
+```
+
+## Testing
+
+### Hardhat Tests
+
+```javascript
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+
+describe("MyContract", function () {
+  let contract;
+  let owner;
+
+  beforeEach(async function () {
+    [owner] = await ethers.getSigners();
+    const Factory = await ethers.getContractFactory("MyContract");
+    contract = await Factory.deploy("Initial Value");
+    await contract.waitForDeployment();
+  });
+
+  it("Should deploy with correct initial value", async function () {
+    expect(await contract.getValue()).to.equal("Initial Value");
+  });
+
+  it("Should update value", async function () {
+    await contract.setValue("New Value");
+    expect(await contract.getValue()).to.equal("New Value");
+  });
+
+  it("Should revert for unauthorized access", async function () {
+    const [, unauthorized] = await ethers.getSigners();
+    await expect(
+      contract.connect(unauthorized).adminFunction()
+    ).to.be.revertedWithCustomError(contract, "NotOwner");
+  });
+});
+```
+
+### Foundry Tests
+
+```solidity
+// test/MyContract.t.sol
+pragma solidity ^0.8.20;
+
+import "forge-std/Test.sol";
+import "../src/MyContract.sol";
+
+contract MyContractTest is Test {
+    MyContract public myContract;
+    address public owner = address(1);
+    address public user = address(2);
+
+    function setUp() public {
+        vm.prank(owner);
+        myContract = new MyContract("Initial Value");
+    }
+
+    function testInitialValue() public view {
+        assertEq(myContract.getValue(), "Initial Value");
+    }
+
+    function testSetValue() public {
+        vm.prank(owner);
+        myContract.setValue("New Value");
+        assertEq(myContract.getValue(), "New Value");
+    }
+
+    function testRevertUnauthorized() public {
+        vm.prank(user);
+        vm.expectRevert(MyContract.NotOwner.selector);
+        myContract.adminFunction();
+    }
+
+    function testFuzz_SetValue(string memory value) public {
+        vm.prank(owner);
+        myContract.setValue(value);
+        assertEq(myContract.getValue(), value);
+    }
+}
+```
+
+## Gas Optimization
+
+### Storage Packing
+
+```solidity
+// Inefficient - uses 3 storage slots
+contract Inefficient {
+    uint128 public a;    // slot 0
+    uint256 public b;    // slot 1
+    uint128 public c;    // slot 2
+}
+
+// Efficient - uses 2 storage slots
+contract Efficient {
+    uint128 public a;    // slot 0 (left)
+    uint128 public c;    // slot 0 (right)
+    uint256 public b;    // slot 1
+}
+```
+
+### Calldata vs Memory
+
+```solidity
+// Inefficient - copies to memory
+function processData(uint256[] memory data) public pure returns (uint256) {
+    uint256 sum = 0;
+    for (uint256 i = 0; i < data.length; i++) {
+        sum += data[i];
+    }
+    return sum;
+}
+
+// Efficient - reads directly from calldata
+function processData(uint256[] calldata data) external pure returns (uint256) {
+    uint256 sum = 0;
+    for (uint256 i = 0; i < data.length; i++) {
+        sum += data[i];
+    }
+    return sum;
+}
+```
+
+### Unchecked Arithmetic
+
+```solidity
+// Safe unchecked increment
+function sum(uint256[] calldata data) external pure returns (uint256 total) {
+    for (uint256 i = 0; i < data.length; ) {
+        total += data[i];
+        unchecked { ++i; }
+    }
+}
+```
+
+## Events and Indexing
+
+```solidity
+contract EventExample {
+    // Indexed parameters enable efficient filtering
+    event Transfer(
+        address indexed from,
+        address indexed to,
+        uint256 amount
+    );
+
+    event Deposit(
+        address indexed account,
+        uint256 indexed tokenId,
+        uint256 amount,
+        bytes data
+    );
+
+    function transfer(address to, uint256 amount) external {
+        emit Transfer(msg.sender, to, amount);
+    }
+}
+```
+
+### Listening to Events
+
+```javascript
+// Filter events
+const filter = contract.filters.Transfer(senderAddress, null);
+const events = await contract.queryFilter(filter, fromBlock, toBlock);
+
+// Subscribe to events
+contract.on("Transfer", (from, to, amount, event) => {
+  console.log(`Transfer: ${from} -> ${to}: ${amount}`);
+});
+```
+
+## Deployment Checklist
+
+1. **Compile with optimization**: Enable optimizer with appropriate runs
+2. **Run all tests**: Ensure 100% test coverage
+3. **Check contract size**: Must be under 24KB
+4. **Verify constructor args**: Double-check initialization parameters
+5. **Test on testnet first**: Deploy to testnet before mainnet
+6. **Verify source code**: Submit for verification on explorer
+7. **Document addresses**: Record deployed addresses
+8. **Set up monitoring**: Configure alerts for contract events
+
+## See Also
+
+- [Precompiles](/docs/precompiles) - Native precompiled contracts
+- [Gas Metering](/docs/gas-metering) - Detailed gas costs
+- [Tools](/docs/tools) - Development tools and frameworks
