@@ -1,0 +1,482 @@
+---
+title: Migration Guide
+description: Migrating smart contracts and dApps from Ethereum to Lux EVM
+---
+
+# Migration Guide
+
+Migrate existing Ethereum smart contracts and decentralized applications to Lux EVM with minimal changes.
+
+## Compatibility Overview
+
+Lux EVM is fully compatible with the Ethereum Virtual Machine. Most contracts deploy without modification.
+
+### Fully Compatible
+
+- Solidity contracts (all versions)
+- Vyper contracts
+- Standard ERC tokens (ERC-20, ERC-721, ERC-1155)
+- OpenZeppelin contracts
+- DeFi protocols (Uniswap, Aave patterns)
+- Standard tooling (Hardhat, Foundry, ethers.js)
+
+### Key Differences
+
+| Feature | Ethereum | Lux EVM |
+|---------|----------|---------|
+| Finality | ~15 minutes | Instant |
+| Block Time | ~12 seconds | ~2 seconds |
+| Reorgs | Possible | Never |
+| Uncle Blocks | Yes | No |
+| Consensus | Proof of Stake | Snow Consensus |
+| Chain ID | 1 (mainnet) | 96369 (Lux mainnet) |
+
+## Migration Steps
+
+### 1. Update Network Configuration
+
+**Hardhat**:
+
+```javascript
+// hardhat.config.js
+module.exports = {
+  networks: {
+    luxMainnet: {
+      url: "https://api.lux.network/ext/bc/C/rpc",
+      chainId: 96369,
+      accounts: [process.env.PRIVATE_KEY],
+    },
+    luxTestnet: {
+      url: "https://api.testnet.lux.network/ext/bc/C/rpc",
+      chainId: 96370,
+      accounts: [process.env.PRIVATE_KEY],
+    },
+  },
+};
+```
+
+**Foundry**:
+
+```toml
+# foundry.toml
+[rpc_endpoints]
+luxMainnet = "https://api.lux.network/ext/bc/C/rpc"
+luxTestnet = "https://api.testnet.lux.network/ext/bc/C/rpc"
+```
+
+### 2. Update Chain ID References
+
+If your contracts reference chain IDs:
+
+```solidity
+// Before
+require(block.chainid == 1, "Wrong network");
+
+// After
+require(block.chainid == 96369, "Wrong network");
+
+// Or use a configurable approach
+contract ChainConfig {
+    uint256 public immutable chainId;
+
+    constructor(uint256 _chainId) {
+        chainId = _chainId;
+    }
+
+    modifier onlyThisChain() {
+        require(block.chainid == chainId, "Wrong network");
+        _;
+    }
+}
+```
+
+### 3. Remove Reorg Handling
+
+Lux EVM has instant finality. Remove unnecessary confirmation waiting:
+
+```javascript
+// Before (Ethereum - waiting for confirmations)
+const tx = await contract.transfer(to, amount);
+const receipt = await tx.wait(12); // Wait 12 confirmations
+
+// After (Lux EVM - instant finality)
+const tx = await contract.transfer(to, amount);
+const receipt = await tx.wait(); // Immediately final
+```
+
+### 4. Adjust Gas Settings
+
+```javascript
+// Lux EVM has lower base fees
+const tx = await contract.transfer(to, amount, {
+  maxFeePerGas: ethers.parseUnits("50", "gwei"),
+  maxPriorityFeePerGas: ethers.parseUnits("2", "gwei"),
+});
+```
+
+### 5. Update Frontend RPC Endpoints
+
+```javascript
+// Before
+const provider = new ethers.JsonRpcProvider("https://mainnet.infura.io/v3/...");
+
+// After
+const provider = new ethers.JsonRpcProvider(
+  "https://api.lux.network/ext/bc/C/rpc"
+);
+```
+
+## Contract Compatibility
+
+### ERC-20 Tokens
+
+Standard ERC-20 tokens work without changes:
+
+```solidity
+// Deploy as-is
+contract MyToken is ERC20 {
+    constructor() ERC20("My Token", "MTK") {
+        _mint(msg.sender, 1000000 * 10 ** decimals());
+    }
+}
+```
+
+### ERC-721 NFTs
+
+NFT contracts are fully compatible:
+
+```solidity
+// Deploy as-is
+contract MyNFT is ERC721, ERC721URIStorage {
+    uint256 private _tokenIds;
+
+    constructor() ERC721("My NFT", "MNFT") {}
+
+    function mint(address to, string memory uri) public returns (uint256) {
+        _tokenIds++;
+        _safeMint(to, _tokenIds);
+        _setTokenURI(_tokenIds, uri);
+        return _tokenIds;
+    }
+}
+```
+
+### DeFi Protocols
+
+Most DeFi patterns work unchanged:
+
+```solidity
+// AMM swap - works as-is
+contract SimpleDEX {
+    function swap(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut
+    ) external returns (uint256 amountOut) {
+        // Standard AMM logic
+        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        amountOut = getAmountOut(amountIn, tokenIn, tokenOut);
+        require(amountOut >= minAmountOut, "Slippage");
+        IERC20(tokenOut).transfer(msg.sender, amountOut);
+    }
+}
+```
+
+## Feature Adaptations
+
+### Remove Uncle Block Logic
+
+```solidity
+// Before - checking uncle blocks
+function getBlockHash(uint256 blockNumber) public view returns (bytes32) {
+    require(block.number - blockNumber <= 256, "Too old");
+    return blockhash(blockNumber);
+}
+
+// After - same function works, just no uncle considerations
+// No changes needed, uncle blocks simply don't exist
+```
+
+### Simplify Confirmation Logic
+
+```javascript
+// Before - complex confirmation handling
+async function waitForConfirmations(txHash, confirmations = 12) {
+  let confirmed = 0;
+  while (confirmed < confirmations) {
+    const receipt = await provider.getTransactionReceipt(txHash);
+    if (receipt) {
+      const current = await provider.getBlockNumber();
+      confirmed = current - receipt.blockNumber + 1;
+    }
+    await sleep(1000);
+  }
+  return receipt;
+}
+
+// After - instant finality
+async function waitForConfirmation(txHash) {
+  return provider.waitForTransaction(txHash);
+  // Transaction is final immediately after inclusion
+}
+```
+
+### Update Event Listeners
+
+```javascript
+// Before - handling potential reorgs
+contract.on("Transfer", async (from, to, amount, event) => {
+  // Wait for confirmations before processing
+  await waitForConfirmations(event.transactionHash, 12);
+  processTransfer(from, to, amount);
+});
+
+// After - process immediately
+contract.on("Transfer", (from, to, amount, event) => {
+  // Safe to process immediately - no reorgs
+  processTransfer(from, to, amount);
+});
+```
+
+## Leveraging Lux Features
+
+### Native Precompiles
+
+Enhance contracts with Lux-specific precompiles:
+
+```solidity
+// Access control with DeployerAllowList
+interface IDeployerAllowList {
+    function readAllowList(address account) external view returns (uint256);
+}
+
+contract GatedFactory {
+    IDeployerAllowList constant DEPLOYER =
+        IDeployerAllowList(0x0200000000000000000000000000000000000000);
+
+    modifier onlyAuthorized() {
+        require(DEPLOYER.readAllowList(msg.sender) >= 1, "Not authorized");
+        _;
+    }
+
+    function createContract() external onlyAuthorized returns (address) {
+        // Deploy new contract
+    }
+}
+```
+
+### Post-Quantum Signatures
+
+Add quantum-resistant signatures:
+
+```solidity
+interface IMLDSAVerify {
+    function verify(
+        bytes calldata publicKey,
+        bytes calldata message,
+        bytes calldata signature
+    ) external view returns (bool);
+}
+
+contract QuantumSecure {
+    IMLDSAVerify constant MLDSA =
+        IMLDSAVerify(0x0200000000000000000000000000000000000006);
+
+    function executeWithPQSignature(
+        bytes calldata publicKey,
+        bytes calldata message,
+        bytes calldata signature,
+        bytes calldata data
+    ) external {
+        require(MLDSA.verify(publicKey, message, signature), "Invalid PQ sig");
+        // Execute operation
+    }
+}
+```
+
+### Cross-Chain Messaging
+
+Enable cross-chain functionality:
+
+```solidity
+interface IWarpMessenger {
+    function sendWarpMessage(bytes calldata payload) external returns (bytes32);
+    function getVerifiedWarpMessage(uint32 index)
+        external view returns (WarpMessage memory, bool);
+}
+
+contract CrossChainBridge {
+    IWarpMessenger constant WARP =
+        IWarpMessenger(0x0200000000000000000000000000000000000005);
+
+    function bridgeTokens(
+        bytes32 destinationChain,
+        address recipient,
+        uint256 amount
+    ) external {
+        // Lock tokens
+        token.transferFrom(msg.sender, address(this), amount);
+
+        // Send cross-chain message
+        bytes memory payload = abi.encode(recipient, amount);
+        WARP.sendWarpMessage(payload);
+    }
+}
+```
+
+## Testing Migration
+
+### Local Testing
+
+```bash
+# Start local Lux EVM
+cd /path/to/luxd
+./build/luxd --network-id=local
+
+# Run existing tests against local node
+npx hardhat test --network localhost
+```
+
+### Testnet Deployment
+
+```bash
+# Deploy to Lux testnet
+npx hardhat run scripts/deploy.js --network luxTestnet
+
+# Verify contracts
+npx hardhat verify --network luxTestnet CONTRACT_ADDRESS
+```
+
+### Integration Tests
+
+```javascript
+describe("Lux EVM Migration Tests", function () {
+  it("Should have instant finality", async function () {
+    const tx = await contract.transfer(recipient, amount);
+    const receipt = await tx.wait();
+
+    // Transaction is final immediately
+    const currentBlock = await provider.getBlockNumber();
+    expect(receipt.blockNumber).to.equal(currentBlock);
+  });
+
+  it("Should support same opcodes", async function () {
+    // Test all opcodes used in contract
+    const result = await contract.testOpcodes();
+    expect(result).to.be.true;
+  });
+
+  it("Should interact with precompiles", async function () {
+    // Test ecrecover works the same
+    const recovered = await contract.recoverSigner(hash, v, r, s);
+    expect(recovered).to.equal(expectedSigner);
+  });
+});
+```
+
+## Common Migration Issues
+
+### Issue: Chain ID Mismatch
+
+**Symptom**: Transactions rejected or signatures invalid
+
+**Solution**:
+```javascript
+// Ensure correct chain ID
+const network = await provider.getNetwork();
+console.log("Chain ID:", network.chainId); // Should be 96369n
+
+// Update signing to use correct chain ID
+const signedTx = await wallet.signTransaction({
+  ...tx,
+  chainId: 96369,
+});
+```
+
+### Issue: Gas Estimation Differences
+
+**Symptom**: Transactions running out of gas
+
+**Solution**:
+```javascript
+// Add buffer to gas estimates
+const estimate = await contract.method.estimateGas(args);
+const gasLimit = estimate * 120n / 100n; // 20% buffer
+
+await contract.method(args, { gasLimit });
+```
+
+### Issue: Block Time Assumptions
+
+**Symptom**: Time-based logic fails
+
+**Solution**:
+```solidity
+// Before - assuming 12 second blocks
+uint256 constant BLOCKS_PER_DAY = 7200; // 86400 / 12
+
+// After - use timestamps instead
+uint256 constant SECONDS_PER_DAY = 86400;
+
+function checkCooldown(address user) public view returns (bool) {
+    return block.timestamp >= lastAction[user] + SECONDS_PER_DAY;
+}
+```
+
+### Issue: RPC Method Differences
+
+**Symptom**: Some RPC calls fail
+
+**Solution**:
+```javascript
+// Check supported methods
+const methods = await provider.send("rpc_modules", []);
+console.log("Supported:", methods);
+
+// Use eth namespace for standard calls
+const balance = await provider.send("eth_getBalance", [address, "latest"]);
+```
+
+## Deployment Checklist
+
+- [ ] Update network configuration
+- [ ] Change chain ID references
+- [ ] Remove reorg/confirmation waiting logic
+- [ ] Adjust gas settings
+- [ ] Update frontend RPC endpoints
+- [ ] Test all contract functions on testnet
+- [ ] Verify contracts on block explorer
+- [ ] Update documentation with new addresses
+- [ ] Configure monitoring for new network
+- [ ] Test cross-chain features if applicable
+
+## Performance Optimization
+
+### Leverage Faster Finality
+
+```javascript
+// Process events immediately
+contract.on("OrderCreated", (orderId, event) => {
+  // No need to wait - process immediately
+  fulfillOrder(orderId);
+});
+```
+
+### Optimize for Block Time
+
+```solidity
+// Lux EVM has ~2 second blocks
+// Can update state more frequently
+function updatePrice() external {
+    require(block.timestamp >= lastUpdate + 2, "Too soon");
+    lastUpdate = block.timestamp;
+    price = oracle.getPrice();
+}
+```
+
+## See Also
+
+- [Transactions](/docs/transactions) - Transaction types and handling
+- [Precompiles](/docs/precompiles) - Lux-specific precompiled contracts
+- [Tools](/docs/tools) - Development tools and frameworks

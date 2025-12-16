@@ -1701,13 +1701,6 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		enabledAPIs = append(enabledAPIs, "warp")
 	}
 
-	if vm.config.MigrateAPIEnabled {
-		if err := handler.RegisterName("migrate", NewMigrateAPI(vm)); err != nil {
-			return nil, err
-		}
-		enabledAPIs = append(enabledAPIs, "migrate")
-	}
-
 	log.Info("enabling apis",
 		"apis", enabledAPIs,
 	)

@@ -1,0 +1,622 @@
+---
+title: Development Tools
+description: Development tools, frameworks, and integrations for building on Lux EVM
+---
+
+# Development Tools
+
+Build, test, and deploy smart contracts on Lux EVM using standard Ethereum development tools.
+
+## Frameworks
+
+### Hardhat
+
+Industry-standard Ethereum development environment.
+
+```bash
+# Install Hardhat
+npm install --save-dev hardhat
+
+# Initialize project
+npx hardhat init
+```
+
+**Configuration**:
+
+```javascript
+// hardhat.config.js
+require("@nomicfoundation/hardhat-toolbox");
+
+module.exports = {
+  solidity: {
+    version: "0.8.24",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+      evmVersion: "cancun",
+    },
+  },
+  networks: {
+    luxevm: {
+      url: "http://localhost:9650/ext/bc/C/rpc",
+      chainId: 43112,
+      accounts: [process.env.PRIVATE_KEY],
+      gasPrice: 25000000000,
+    },
+    luxMainnet: {
+      url: "https://api.lux.network/ext/bc/C/rpc",
+      chainId: 96369,
+      accounts: [process.env.PRIVATE_KEY],
+    },
+    luxTestnet: {
+      url: "https://api.testnet.lux.network/ext/bc/C/rpc",
+      chainId: 96370,
+      accounts: [process.env.PRIVATE_KEY],
+    },
+  },
+  etherscan: {
+    apiKey: {
+      luxevm: process.env.EXPLORER_API_KEY,
+    },
+    customChains: [
+      {
+        network: "luxevm",
+        chainId: 43112,
+        urls: {
+          apiURL: "https://explorer.lux.network/api",
+          browserURL: "https://explorer.lux.network",
+        },
+      },
+    ],
+  },
+};
+```
+
+**Common Commands**:
+
+```bash
+# Compile contracts
+npx hardhat compile
+
+# Run tests
+npx hardhat test
+
+# Deploy to network
+npx hardhat run scripts/deploy.js --network luxevm
+
+# Verify contract
+npx hardhat verify --network luxevm CONTRACT_ADDRESS "Constructor Arg"
+
+# Start local node (fork)
+npx hardhat node --fork http://localhost:9650/ext/bc/C/rpc
+```
+
+### Foundry
+
+Fast, portable testing toolkit written in Rust.
+
+```bash
+# Install Foundry
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+**Configuration**:
+
+```toml
+# foundry.toml
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+optimizer = true
+optimizer_runs = 200
+evm_version = "cancun"
+
+[rpc_endpoints]
+luxevm = "http://localhost:9650/ext/bc/C/rpc"
+luxMainnet = "https://api.lux.network/ext/bc/C/rpc"
+luxTestnet = "https://api.testnet.lux.network/ext/bc/C/rpc"
+
+[etherscan]
+luxevm = { key = "${EXPLORER_API_KEY}", url = "https://explorer.lux.network/api" }
+```
+
+**Common Commands**:
+
+```bash
+# Build contracts
+forge build
+
+# Run tests
+forge test -vvv
+
+# Run specific test
+forge test --match-test testTransfer -vvvv
+
+# Gas report
+forge test --gas-report
+
+# Deploy contract
+forge create src/MyContract.sol:MyContract \
+  --rpc-url luxevm \
+  --private-key $PRIVATE_KEY \
+  --constructor-args "Arg1"
+
+# Deploy with script
+forge script script/Deploy.s.sol:DeployScript \
+  --rpc-url luxevm \
+  --broadcast \
+  --private-key $PRIVATE_KEY
+
+# Verify contract
+forge verify-contract CONTRACT_ADDRESS src/MyContract.sol:MyContract \
+  --chain 43112 \
+  --verifier-url https://explorer.lux.network/api
+
+# Generate documentation
+forge doc
+```
+
+**Deployment Script**:
+
+```solidity
+// script/Deploy.s.sol
+pragma solidity ^0.8.24;
+
+import "forge-std/Script.sol";
+import "../src/MyContract.sol";
+
+contract DeployScript is Script {
+    function run() external {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+
+        vm.startBroadcast(deployerPrivateKey);
+
+        MyContract myContract = new MyContract("Initial Value");
+        console.log("Deployed to:", address(myContract));
+
+        vm.stopBroadcast();
+    }
+}
+```
+
+## Wallets
+
+### MetaMask
+
+Configure MetaMask for Lux EVM:
+
+| Network | Mainnet | Testnet | Local |
+|---------|---------|---------|-------|
+| Name | Lux Mainnet | Lux Testnet | Lux Local |
+| RPC URL | https://api.lux.network/ext/bc/C/rpc | https://api.testnet.lux.network/ext/bc/C/rpc | http://localhost:9650/ext/bc/C/rpc |
+| Chain ID | 96369 | 96370 | 43112 |
+| Symbol | LUX | LUX | LUX |
+| Explorer | https://explorer.lux.network | https://explorer.testnet.lux.network | - |
+
+**Programmatic Addition**:
+
+```javascript
+async function addLuxNetwork() {
+  await window.ethereum.request({
+    method: "wallet_addEthereumChain",
+    params: [
+      {
+        chainId: "0x17851", // 96369
+        chainName: "Lux Mainnet",
+        nativeCurrency: {
+          name: "LUX",
+          symbol: "LUX",
+          decimals: 18,
+        },
+        rpcUrls: ["https://api.lux.network/ext/bc/C/rpc"],
+        blockExplorerUrls: ["https://explorer.lux.network"],
+      },
+    ],
+  });
+}
+```
+
+### WalletConnect
+
+```javascript
+import { createWeb3Modal, defaultWagmiConfig } from "@web3modal/wagmi";
+import { mainnet } from "wagmi/chains";
+
+// Define Lux chain
+const luxMainnet = {
+  id: 96369,
+  name: "Lux Mainnet",
+  network: "lux",
+  nativeCurrency: {
+    decimals: 18,
+    name: "LUX",
+    symbol: "LUX",
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://api.lux.network/ext/bc/C/rpc"],
+    },
+  },
+  blockExplorers: {
+    default: { name: "Explorer", url: "https://explorer.lux.network" },
+  },
+};
+
+const chains = [luxMainnet];
+const projectId = "YOUR_PROJECT_ID";
+
+const wagmiConfig = defaultWagmiConfig({ chains, projectId });
+
+createWeb3Modal({ wagmiConfig, projectId, chains });
+```
+
+## Libraries
+
+### ethers.js (v6)
+
+```javascript
+import { ethers } from "ethers";
+
+// Connect to Lux EVM
+const provider = new ethers.JsonRpcProvider(
+  "http://localhost:9650/ext/bc/C/rpc"
+);
+
+// Create wallet
+const wallet = new ethers.Wallet(privateKey, provider);
+
+// Read contract
+const contract = new ethers.Contract(address, abi, provider);
+const value = await contract.getValue();
+
+// Write to contract
+const signer = wallet.connect(provider);
+const contractWithSigner = contract.connect(signer);
+const tx = await contractWithSigner.setValue("New Value");
+await tx.wait();
+```
+
+### viem
+
+```typescript
+import { createPublicClient, createWalletClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+
+// Define Lux chain
+const luxMainnet = {
+  id: 96369,
+  name: "Lux Mainnet",
+  nativeCurrency: {
+    decimals: 18,
+    name: "LUX",
+    symbol: "LUX",
+  },
+  rpcUrls: {
+    default: { http: ["https://api.lux.network/ext/bc/C/rpc"] },
+  },
+  blockExplorers: {
+    default: { name: "Explorer", url: "https://explorer.lux.network" },
+  },
+};
+
+// Create clients
+const publicClient = createPublicClient({
+  chain: luxMainnet,
+  transport: http(),
+});
+
+const account = privateKeyToAccount(privateKey);
+const walletClient = createWalletClient({
+  account,
+  chain: luxMainnet,
+  transport: http(),
+});
+
+// Read contract
+const data = await publicClient.readContract({
+  address: contractAddress,
+  abi: contractAbi,
+  functionName: "getValue",
+});
+
+// Write to contract
+const hash = await walletClient.writeContract({
+  address: contractAddress,
+  abi: contractAbi,
+  functionName: "setValue",
+  args: ["New Value"],
+});
+```
+
+### web3.js
+
+```javascript
+const Web3 = require("web3");
+
+// Connect to Lux EVM
+const web3 = new Web3("http://localhost:9650/ext/bc/C/rpc");
+
+// Add account
+const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+web3.eth.accounts.wallet.add(account);
+
+// Interact with contract
+const contract = new web3.eth.Contract(abi, address);
+
+// Read
+const value = await contract.methods.getValue().call();
+
+// Write
+const tx = await contract.methods.setValue("New Value").send({
+  from: account.address,
+  gas: 100000,
+});
+```
+
+## Testing Tools
+
+### Anvil (Local Node)
+
+```bash
+# Start local Lux EVM fork
+anvil --fork-url http://localhost:9650/ext/bc/C/rpc --chain-id 43112
+
+# With specific block
+anvil --fork-url http://localhost:9650/ext/bc/C/rpc --fork-block-number 1000000
+```
+
+### Cast (CLI Tool)
+
+```bash
+# Send transaction
+cast send CONTRACT_ADDRESS "setValue(string)" "New Value" \
+  --rpc-url luxevm \
+  --private-key $PRIVATE_KEY
+
+# Call function
+cast call CONTRACT_ADDRESS "getValue()" --rpc-url luxevm
+
+# Get balance
+cast balance ADDRESS --rpc-url luxevm
+
+# Get block number
+cast block-number --rpc-url luxevm
+
+# Decode calldata
+cast 4byte-decode 0xa9059cbb000000...
+
+# Encode function call
+cast calldata "transfer(address,uint256)" 0x... 1000000000000000000
+
+# Get storage slot
+cast storage CONTRACT_ADDRESS 0 --rpc-url luxevm
+```
+
+### Chisel (Solidity REPL)
+
+```bash
+# Start Solidity REPL
+chisel
+
+# In REPL
+>>> uint256 x = 42;
+>>> x * 2
+84
+>>> type(uint256).max
+115792089237316195423570985008687907853269984665640564039457584007913129639935
+```
+
+## Security Tools
+
+### Slither (Static Analysis)
+
+```bash
+# Install
+pip install slither-analyzer
+
+# Analyze contracts
+slither .
+
+# Generate report
+slither . --print human-summary
+```
+
+### Mythril (Symbolic Execution)
+
+```bash
+# Install
+pip install mythril
+
+# Analyze contract
+myth analyze src/MyContract.sol
+
+# With custom configuration
+myth analyze src/MyContract.sol --solc-json mythril.config.json
+```
+
+### Echidna (Fuzzing)
+
+```bash
+# Install
+brew install echidna
+
+# Run fuzzer
+echidna . --contract MyContractTest --config echidna.yaml
+```
+
+**Echidna Test Contract**:
+
+```solidity
+contract MyContractTest is MyContract {
+    function echidna_balance_never_zero() public view returns (bool) {
+        return address(this).balance >= 0;
+    }
+
+    function echidna_total_supply_constant() public view returns (bool) {
+        return totalSupply == INITIAL_SUPPLY;
+    }
+}
+```
+
+## Gas Profiling
+
+### Hardhat Gas Reporter
+
+```javascript
+// hardhat.config.js
+require("hardhat-gas-reporter");
+
+module.exports = {
+  gasReporter: {
+    enabled: true,
+    currency: "USD",
+    gasPrice: 25,
+    coinmarketcap: process.env.CMC_API_KEY,
+  },
+};
+```
+
+### Foundry Gas Snapshot
+
+```bash
+# Create gas snapshot
+forge snapshot
+
+# Compare with previous
+forge snapshot --diff
+
+# Check specific test
+forge test --match-test testTransfer --gas-report
+```
+
+## Debugging
+
+### Hardhat Console
+
+```javascript
+// In contracts
+import "hardhat/console.sol";
+
+contract Debug {
+    function transfer(address to, uint256 amount) public {
+        console.log("Transfer to:", to);
+        console.log("Amount:", amount);
+        // ...
+    }
+}
+```
+
+### Foundry Traces
+
+```bash
+# Run with full trace
+forge test -vvvv
+
+# Trace specific transaction
+cast run TX_HASH --rpc-url luxevm
+```
+
+### Debug RPC Methods
+
+```bash
+# Trace transaction
+curl -X POST --data '{
+  "jsonrpc":"2.0",
+  "method":"debug_traceTransaction",
+  "params":["0x...", {"tracer": "callTracer"}],
+  "id":1
+}' http://localhost:9650/ext/bc/C/rpc
+
+# Get storage at slot
+curl -X POST --data '{
+  "jsonrpc":"2.0",
+  "method":"eth_getStorageAt",
+  "params":["0xcontract", "0x0", "latest"],
+  "id":1
+}' http://localhost:9650/ext/bc/C/rpc
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+# .github/workflows/test.yml
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Build
+        run: forge build
+
+      - name: Test
+        run: forge test -vvv
+
+      - name: Gas Snapshot
+        run: forge snapshot --check
+```
+
+### Pre-commit Hooks
+
+```bash
+# Install
+npm install --save-dev husky lint-staged
+
+# Configure
+npx husky init
+```
+
+```json
+// package.json
+{
+  "lint-staged": {
+    "*.sol": ["forge fmt", "solhint"],
+    "*.{js,ts}": ["prettier --write", "eslint --fix"]
+  }
+}
+```
+
+## IDE Support
+
+### VS Code Extensions
+
+- **Solidity** (Juan Blanco): Syntax highlighting, compilation
+- **Hardhat for VS Code**: Hardhat integration
+- **Foundry**: Foundry support
+- **Slither**: Security analysis integration
+
+### Settings
+
+```json
+// .vscode/settings.json
+{
+  "solidity.compileUsingRemoteVersion": "v0.8.24",
+  "solidity.defaultCompiler": "remote",
+  "solidity.formatter": "forge",
+  "editor.formatOnSave": true,
+  "[solidity]": {
+    "editor.defaultFormatter": "JuanBlanco.solidity"
+  }
+}
+```
+
+## See Also
+
+- [Smart Contracts](/docs/contracts) - Contract development guide
+- [Transactions](/docs/transactions) - Transaction handling
+- [Migration](/docs/migration) - Migrating from Ethereum
