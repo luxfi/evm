@@ -40,9 +40,9 @@ func (s *LocalSigner) GetPublicKey() *bls.PublicKey {
 	return s.pk
 }
 
-// PublicKey returns the public key as bytes
+// PublicKey returns the public key as compressed bytes (48 bytes)
 func (s *LocalSigner) PublicKey() []byte {
-	return bls.PublicKeyToUncompressedBytes(s.pk)
+	return bls.PublicKeyToCompressedBytes(s.pk)
 }
 
 // NodeID returns the node ID derived from the public key
