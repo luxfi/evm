@@ -537,3 +537,418 @@ The MigrateAPI has been successfully registered with the EVM node and is now ava
 3. Test `migrate_getBlocks` with various block ranges
 4. Test full export → import workflow via lux-cli
 5. Verify imported data on destination chain
+
+---
+
+## Lux Blockchain Deployment Analysis (2025-12-18)
+
+### Executive Summary
+
+This analysis examines the deployment process for Zoo and SPC subnets, identifying why C-Chain import succeeded while subnet imports fail with `ErrPrunedAncestor`.
+
+### Current State
+
+| Chain | RLP File | Size | Import Method | Status |
+|-------|----------|------|---------------|--------|
+| C-Chain (96369) | lux-mainnet-96369.rlp | 1.28GB | admin.importChain | WORKED |
+| Zoo (200200) | zoo-mainnet-200200.rlp | 1.3MB | admin.importChain | ErrPrunedAncestor |
+| SPC (36911) | spc-mainnet-36911.rlp | 7.8KB | admin.importChain | Not tested yet |
+
+---
+
+### 1. Root Cause: Zoo RPC 404
+
+**Diagnosis:** The subnet RPC endpoint returns 404 because the SubnetEVM plugin is not properly initialized or the blockchain is not registered with the node.
+
+**Key Findings:**
+
+1. **Plugin Registration**: SubnetEVM must be registered as a plugin with the node. The C-Chain uses `cchainvm` which is built into the node, but Zoo/SPC require the external `evm` plugin.
+
+2. **Blockchain ID Mismatch**: The RPC path uses the blockchain ID (e.g., `ext/bc/<blockchain-id>/rpc`). If the subnet is not tracking the correct blockchain ID, RPC returns 404.
+
+3. **Subnet Validation**: The node must be a validator for the subnet OR have explicit tracking enabled via `--track-subnets`.
+
+**Solution:**
+```bash
+# Ensure subnet tracking
+lux-node --track-subnets=<subnet-id>
+
+# Verify blockchain registration
+curl -X POST http://localhost:9650/ext/info -d '{
+  "jsonrpc":"2.0",
+  "id":1,
+  "method":"info.getBlockchainID",
+  "params":{"alias":"zoo"}
+}'
+```
+
+---
+
+### 2. Root Cause: ErrPrunedAncestor
+
+**Location:** `/Users/z/work/lux/evm/core/block_validator.go:111-116`
+
+```go
+// Ancestor block must be known.
+if !v.bc.HasBlockAndState(block.ParentHash(), block.NumberU64()-1) {
+    if !v.bc.HasBlock(block.ParentHash(), block.NumberU64()-1) {
+        return consensus.ErrUnknownAncestor
+    }
+    return consensus.ErrPrunedAncestor
+}
+```
+
+**The Check Flow:**
+
+1. `HasBlockAndState` calls:
+   - `GetBlock(hash, number)` - checks if block exists
+   - `HasState(block.Root())` - checks if state trie exists
+
+2. `HasState` implementation (`blockchain_reader.go:241-244`):
+```go
+func (bc *BlockChain) HasState(hash common.Hash) bool {
+    _, err := bc.stateCache.OpenTrie(hash)
+    return err == nil
+}
+```
+
+**Critical Issue:** `OpenTrie` requires the FULL state trie to exist in the database. When a subnet starts fresh:
+
+- Genesis block is written via `genesis.Commit()`
+- Genesis state is committed to the trie database
+- BUT the trie might not be accessible via `OpenTrie` if:
+  - The trie is stored in snapshot form only
+  - The trie root wasn't properly committed to disk
+  - The state scheme (HashDB vs PathDB) differs
+
+**Root Cause:** Genesis state is committed, but `stateCache.OpenTrie(genesisRoot)` fails because the trie nodes are not where `OpenTrie` expects them.
+
+---
+
+### 3. Why C-Chain Worked But Zoo Doesn't
+
+**C-Chain (cchainvm):**
+
+1. **Built into node**: The C-Chain VM is compiled directly into the node binary
+2. **Shared genesis**: Uses the network's genesis file which includes C-Chain state
+3. **Continuous state**: C-Chain has been running since network genesis - full state trie exists
+4. **State scheme consistency**: Uses the same state scheme as the node's defaults
+
+**Zoo/SPC (SubnetEVM plugin):**
+
+1. **External plugin**: Loaded dynamically, separate initialization path
+2. **Fresh genesis**: Genesis is created from the subnet's genesis.json at deployment time
+3. **State initialization gap**: Genesis state may be written but not properly accessible
+4. **Import before consensus**: Import happens before the VM is fully bootstrapped
+
+**Key Difference - State Cache Initialization:**
+
+```go
+// In blockchain.go - NewBlockChain
+bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
+
+// The stateCache is created with:
+// - bc.db: the ethdb.Database
+// - bc.triedb: the trie database
+
+// For C-Chain: triedb already has the state from continuous operation
+// For SubnetEVM: triedb only has genesis state from fresh Commit()
+```
+
+---
+
+### 4. What Needs to be Fixed
+
+#### Option A: Ensure Genesis State is Properly Accessible (RECOMMENDED)
+
+**Location:** `core/genesis.go:417-451` (Genesis.Commit)
+
+The issue is that `Genesis.Commit` writes the state, but the trie database might not be fully synced to disk or accessible via `OpenTrie`.
+
+**Fix:**
+```go
+// In genesis.go Commit function, after writing genesis:
+func (g *Genesis) Commit(db ethdb.Database, triedb *triedb.Database) (*types.Block, error) {
+    block := g.toBlock(db, triedb)
+    // ... existing code ...
+
+    // CRITICAL: Ensure trie is committed and accessible
+    if err := triedb.Commit(block.Root(), false); err != nil {
+        return nil, fmt.Errorf("failed to commit genesis trie: %w", err)
+    }
+
+    // Verify the state is accessible
+    if _, err := triedb.NodeReader(block.Root()); err != nil {
+        return nil, fmt.Errorf("genesis state not accessible after commit: %w", err)
+    }
+
+    return block, nil
+}
+```
+
+#### Option B: Initialize State Cache Before Import
+
+**Location:** `plugin/evm/admin.go:108-154` (ImportChain)
+
+Before importing blocks, ensure the genesis state is properly loaded:
+
+```go
+func (p *Admin) ImportChain(_ *http.Request, args *ImportChainArgs, reply *ImportChainReply) error {
+    // ... existing checks ...
+
+    chain := p.vm.eth.BlockChain()
+    genesis := chain.Genesis()
+
+    // Verify genesis state is accessible
+    if !chain.HasState(genesis.Root()) {
+        log.Warn("Genesis state not accessible, attempting to recover")
+        // Recommit genesis if needed
+        if err := p.vm.ensureGenesisState(); err != nil {
+            return fmt.Errorf("failed to ensure genesis state: %w", err)
+        }
+    }
+
+    // Now proceed with import
+    // ...
+}
+```
+
+#### Option C: Use StateAt Instead of OpenTrie in HasState
+
+**Location:** `core/blockchain_reader.go:241-244`
+
+The current `HasState` uses `OpenTrie` which requires full trie. Consider using `StateAt` which can fall back to snapshots:
+
+```go
+// Current (strict):
+func (bc *BlockChain) HasState(hash common.Hash) bool {
+    _, err := bc.stateCache.OpenTrie(hash)
+    return err == nil
+}
+
+// Alternative (more lenient, but maintains integrity):
+func (bc *BlockChain) HasState(hash common.Hash) bool {
+    // First try OpenTrie (preferred - full state)
+    if _, err := bc.stateCache.OpenTrie(hash); err == nil {
+        return true
+    }
+    // Fall back to StateAt which can use snapshots
+    // Only for genesis block (number == 0)
+    if bc.Genesis() != nil && bc.Genesis().Root() == hash {
+        _, err := bc.StateAt(hash)
+        return err == nil
+    }
+    return false
+}
+```
+
+**WARNING:** This option requires careful consideration - it's a workaround, not a fix.
+
+---
+
+### 5. Step-by-Step Plan to Get All Chains Operational
+
+#### Phase 1: Verify Genesis State Accessibility
+
+```bash
+# 1. Check genesis state in database
+cd /Users/z/work/lux/evm
+
+# 2. Create a diagnostic tool to verify genesis state
+# Add to plugin/evm/admin.go:
+
+# RPC: admin_verifyGenesisState
+# Returns: {genesisHash, genesisRoot, stateAccessible, snapshotAvailable}
+```
+
+#### Phase 2: Fix Genesis Commit
+
+1. Update `core/genesis.go:Commit()` to ensure state is fully committed
+2. Add verification step after commit
+3. Test with fresh database
+
+```bash
+# Test genesis commit
+go test ./core -run TestGenesisCommit -v
+```
+
+#### Phase 3: Deploy Zoo Subnet
+
+```bash
+# 1. Create fresh database directory
+mkdir -p /tmp/zoo-test/db
+
+# 2. Generate genesis with allocations
+cat > /tmp/zoo-genesis.json << 'EOF'
+{
+  "config": {
+    "chainId": 200200,
+    "subnetEVMTimestamp": 0,
+    "durangoTimestamp": 0,
+    "feeConfig": {
+      "gasLimit": 12000000,
+      "targetBlockRate": 2,
+      "minBaseFee": 25000000000,
+      "targetGas": 15000000,
+      "baseFeeChangeDenominator": 36,
+      "minBlockGasCost": 0,
+      "maxBlockGasCost": 1000000,
+      "blockGasCostStep": 200000
+    }
+  },
+  "alloc": {
+    "9011E888251AB053B7bD1cdB598Db4f9DEd94714": {
+      "balance": "0x193e5939a08ce9dbd480000000"
+    }
+  },
+  "timestamp": "0x6727e9c3",
+  "gasLimit": "0xb71b00",
+  "difficulty": "0x0",
+  "baseFeePerGas": "0x5d21dba00"
+}
+EOF
+
+# 3. Deploy with lux CLI
+lux l2 deploy zoo \
+  --genesis /tmp/zoo-genesis.json \
+  --vm-binary /Users/z/work/lux/evm/build/evm \
+  --local
+
+# 4. Verify RPC is responding
+curl -X POST http://localhost:9650/ext/bc/zoo/rpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}'
+```
+
+#### Phase 4: Import Historical Blocks
+
+```bash
+# 1. Connect to running node's admin API
+curl -X POST http://localhost:9650/ext/bc/zoo/admin \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":1,
+    "method":"admin_importChain",
+    "params":{
+      "file":"/Users/z/work/lux/state/rlp/zoo-mainnet/zoo-mainnet-200200.rlp"
+    }
+  }'
+```
+
+#### Phase 5: Verify Import Success
+
+```bash
+# Check block height
+curl -X POST http://localhost:9650/ext/bc/zoo/rpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}'
+
+# Check specific block
+curl -X POST http://localhost:9650/ext/bc/zoo/rpc \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":1,
+    "method":"eth_getBlockByNumber",
+    "params":["0x64",true]
+  }'
+```
+
+#### Phase 6: Test AMM Commands
+
+```bash
+# Add liquidity
+lux amm add-liquidity \
+  --chain zoo \
+  --token0 0x... \
+  --token1 0x... \
+  --amount0 1000 \
+  --amount1 1000
+
+# Swap
+lux amm swap \
+  --chain zoo \
+  --tokenIn 0x... \
+  --tokenOut 0x... \
+  --amountIn 100
+```
+
+---
+
+### Technical Deep Dive: State Trie Architecture
+
+```
+                    Genesis.Commit()
+                         |
+                         v
+        +----------------+----------------+
+        |                                 |
+        v                                 v
+   statedb.Commit()              triedb.Commit()
+        |                                 |
+        v                                 v
+   State Root Hash              Trie Nodes to Disk
+        |                                 |
+        +---------> rawdb.Write <---------+
+                         |
+                         v
+                    ethdb.Database
+                         |
+            +------------+------------+
+            |            |            |
+            v            v            v
+         HashDB      PathDB      Snapshots
+```
+
+**The Gap:** After `Genesis.Commit()`, the state root is stored and trie nodes are written, BUT:
+
+1. `stateCache.OpenTrie(root)` requires trie nodes to be in a specific location
+2. If using HashDB scheme, nodes must be in `triedb.HashDB`
+3. If using PathDB scheme (not supported per code), nodes must be in `triedb.PathDB`
+4. Snapshots provide account/storage data but NOT trie structure
+
+**Solution:** Ensure `triedb.Commit(root, true)` is called with `report=true` to force disk sync, and verify accessibility via `NodeReader`.
+
+---
+
+### Files to Modify
+
+| File | Change | Priority |
+|------|--------|----------|
+| `core/genesis.go` | Add state verification after Commit | HIGH |
+| `plugin/evm/admin.go` | Add genesis state check before import | HIGH |
+| `core/blockchain.go` | Log state accessibility during NewBlockChain | MEDIUM |
+| `plugin/evm/vm.go` | Add ensureGenesisState helper | MEDIUM |
+
+---
+
+### Verification Checklist
+
+- [ ] Genesis state accessible via `OpenTrie`
+- [ ] Block 0 (genesis) exists in rawdb
+- [ ] Canonical hash for block 0 set correctly
+- [ ] Chain config stored with genesis hash
+- [ ] Snapshot for genesis state available
+- [ ] Import chain skips genesis block (number == 0)
+- [ ] Parent hash of block 1 matches genesis hash
+- [ ] State root of genesis matches expected value
+
+---
+
+### Known Issues and Workarounds
+
+**Issue 1:** `admin.importChain` skips Accept calls
+**Location:** `plugin/evm/admin.go:231-233`
+**Impact:** Imported blocks may not be finalized
+**Workaround:** Manually trigger consensus acceptance after import
+
+**Issue 2:** StateScheme PathDB not supported
+**Location:** `plugin/evm/vm.go:623-626`
+**Impact:** Must use HashDB scheme
+**Workaround:** Ensure `state-scheme: "hash"` in config
+
+**Issue 3:** Snapshot delayed init when state sync enabled
+**Location:** `plugin/evm/vm.go:590`
+**Impact:** Snapshots not available during import
+**Workaround:** Disable state sync for import node

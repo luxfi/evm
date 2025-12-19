@@ -5,22 +5,24 @@ package evm
 
 import (
 	"io"
+	"os"
 )
 
 // loggerWriter wraps a consensus.Logger to implement io.Writer
 type loggerWriter struct {
 	logger interface{}
+	writer io.Writer
 }
 
-// Write implements io.Writer
+// Write implements io.Writer - writes to stderr for plugin subprocess logging
 func (w *loggerWriter) Write(p []byte) (n int, err error) {
-	// Since the logger is an interface{} from GetLogger, we can't call methods on it
-	// This is a placeholder that just returns success
-	// In practice, the logger will be set differently during initialization
-	return len(p), nil
+	return w.writer.Write(p)
 }
 
-// newLoggerWriter creates a new loggerWriter
+// newLoggerWriter creates a new loggerWriter that writes to stderr
 func newLoggerWriter(logger interface{}) io.Writer {
-	return &loggerWriter{logger: logger}
+	return &loggerWriter{
+		logger: logger,
+		writer: os.Stderr,
+	}
 }
