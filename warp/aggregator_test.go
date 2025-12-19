@@ -88,7 +88,7 @@ func TestSignatureAggregator_AggregateSignatures(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	payload := []byte("test payload")
 
-	unsignedMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID[:], payload)
+	unsignedMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID, payload)
 	require.NoError(err)
 
 	// Test successful aggregation with 67% quorum
@@ -149,7 +149,7 @@ func TestSignatureAggregator_InsufficientQuorum(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	payload := []byte("test payload")
 
-	unsignedMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID[:], payload)
+	unsignedMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID, payload)
 	require.NoError(err)
 
 	// Try to aggregate with 67% quorum - should fail (only 1/3 validators available)
@@ -174,7 +174,7 @@ func TestSignatureAggregator_NoValidators(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	payload := []byte("test payload")
 
-	unsignedMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID[:], payload)
+	unsignedMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID, payload)
 	require.NoError(err)
 
 	// Empty validator set
@@ -218,7 +218,7 @@ func TestSignatureAggregator_AllValidatorsFail(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	payload := []byte("test payload")
 
-	unsignedMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID[:], payload)
+	unsignedMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID, payload)
 	require.NoError(err)
 
 	_, err = aggregator.AggregateSignatures(
@@ -240,7 +240,7 @@ func toWarpValidators(infos []*ValidatorInfo) []*luxWarp.Validator {
 			PublicKey:      info.PublicKey,
 			PublicKeyBytes: bls.PublicKeyToCompressedBytes(info.PublicKey),
 			Weight:         info.Weight,
-			NodeID:         info.NodeID[:],
+			NodeID:         info.NodeID,
 		}
 	}
 	return result
