@@ -20,6 +20,7 @@ const (
 
 func NewDefaultConfig() Config {
 	return Config{
+		AdminAPIEnabled: true, // Enable admin API by default for importChain
 		AllowUnprotectedTxHashes: []common.Hash{
 			common.HexToHash("0xfefb2da535e927b85fe68eb81cb2e4a5827c905f78381a01ef2322aa9b0aee8e"), // EIP-1820: https://eips.ethereum.org/EIPS/eip-1820
 		},

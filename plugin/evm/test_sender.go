@@ -12,128 +12,112 @@ import (
 	"github.com/luxfi/p2p"
 )
 
-// TestSender is a test implementation of the Sender interface
+// TestSender is a test implementation of the p2p.Sender interface
 type TestSender struct {
 	T *testing.T
 
-	CantSendAppGossip         bool
-	CantSendAppGossipSpecific bool
-	CantSendAppRequest        bool
-	CantSendAppResponse       bool
-	CantSendAppError          bool
+	CantSendGossip         bool
+	CantSendGossipSpecific bool
+	CantSendRequest        bool
+	CantSendResponse       bool
+	CantSendError          bool
 
-	SendAppGossipF             func(context.Context, set.Set[ids.NodeID], []byte) error
-	SendAppGossipSpecificF     func(context.Context, set.Set[ids.NodeID], []byte) error
-	SendAppRequestF            func(context.Context, set.Set[ids.NodeID], uint32, []byte) error
-	SendAppResponseF           func(context.Context, ids.NodeID, uint32, []byte) error
-	SendAppErrorF              func(context.Context, ids.NodeID, uint32, int32, string) error
-	SendCrossChainAppRequestF  func(context.Context, ids.ID, uint32, []byte) error
-	SendCrossChainAppResponseF func(context.Context, ids.ID, uint32, []byte) error
-	SendCrossChainAppErrorF    func(context.Context, ids.ID, uint32, int32, string) error
+	SendGossipF             func(context.Context, p2p.SendConfig, []byte) error
+	SendGossipSpecificF     func(context.Context, set.Set[ids.NodeID], []byte) error
+	SendRequestF            func(context.Context, set.Set[ids.NodeID], uint32, []byte) error
+	SendResponseF           func(context.Context, ids.NodeID, uint32, []byte) error
+	SendErrorF              func(context.Context, ids.NodeID, uint32, int32, string) error
+	SendCrossChainRequestF  func(context.Context, ids.ID, uint32, []byte) error
+	SendCrossChainResponseF func(context.Context, ids.ID, uint32, []byte) error
+	SendCrossChainErrorF    func(context.Context, ids.ID, uint32, int32, string) error
 
 	// Channel for capturing sent gossip messages
-	SentAppGossip chan []byte
-}
-
-// SendAppGossip implements the consensus AppSender interface
-func (s *TestSender) SendAppGossip(ctx context.Context, nodeIDs set.Set[ids.NodeID], msg []byte) error {
-	if s.SendAppGossipF != nil {
-		return s.SendAppGossipF(ctx, nodeIDs, msg)
-	}
-	if s.SentAppGossip != nil {
-		// Send to channel if available
-		s.SentAppGossip <- msg
-	}
-	if s.CantSendAppGossip && s.T != nil {
-		s.T.Helper()
-		s.T.Fatal("unexpectedly called SendAppGossip")
-	}
-	return nil
-}
-
-func (s *TestSender) SendAppGossipSpecific(ctx context.Context, nodeIDs set.Set[ids.NodeID], msg []byte) error {
-	if s.SendAppGossipSpecificF != nil {
-		return s.SendAppGossipSpecificF(ctx, nodeIDs, msg)
-	}
-	if s.CantSendAppGossipSpecific && s.T != nil {
-		s.T.Helper()
-		s.T.Fatal("unexpectedly called SendAppGossipSpecific")
-	}
-	return nil
-}
-
-func (s *TestSender) SendAppRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, request []byte) error {
-	if s.SendAppRequestF != nil {
-		return s.SendAppRequestF(ctx, nodeIDs, requestID, request)
-	}
-	if s.CantSendAppRequest && s.T != nil {
-		s.T.Helper()
-		s.T.Fatal("unexpectedly called SendAppRequest")
-	}
-	return nil
-}
-
-func (s *TestSender) SendAppResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, response []byte) error {
-	if s.SendAppResponseF != nil {
-		return s.SendAppResponseF(ctx, nodeID, requestID, response)
-	}
-	if s.CantSendAppResponse && s.T != nil {
-		s.T.Helper()
-		s.T.Fatal("unexpectedly called SendAppResponse")
-	}
-	return nil
-}
-
-func (s *TestSender) SendAppError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
-	if s.SendAppErrorF != nil {
-		return s.SendAppErrorF(ctx, nodeID, requestID, errorCode, errorMessage)
-	}
-	if s.CantSendAppError && s.T != nil {
-		s.T.Helper()
-		s.T.Fatal("unexpectedly called SendAppError")
-	}
-	return nil
-}
-
-func (s *TestSender) SendCrossChainAppRequest(ctx context.Context, chainID ids.ID, requestID uint32, appRequestBytes []byte) error {
-	if s.SendCrossChainAppRequestF != nil {
-		return s.SendCrossChainAppRequestF(ctx, chainID, requestID, appRequestBytes)
-	}
-	return nil
-}
-
-func (s *TestSender) SendCrossChainAppResponse(ctx context.Context, chainID ids.ID, requestID uint32, appResponseBytes []byte) error {
-	if s.SendCrossChainAppResponseF != nil {
-		return s.SendCrossChainAppResponseF(ctx, chainID, requestID, appResponseBytes)
-	}
-	return nil
-}
-
-func (s *TestSender) SendCrossChainAppError(ctx context.Context, chainID ids.ID, requestID uint32, errorCode int32, errorMessage string) error {
-	if s.SendCrossChainAppErrorF != nil {
-		return s.SendCrossChainAppErrorF(ctx, chainID, requestID, errorCode, errorMessage)
-	}
-	return nil
-}
-
-// p2p.Sender interface methods
-
-// SendRequest implements p2p.Sender
-func (s *TestSender) SendRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, request []byte) error {
-	return s.SendAppRequest(ctx, nodeIDs, requestID, request)
-}
-
-// SendResponse implements p2p.Sender
-func (s *TestSender) SendResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, response []byte) error {
-	return s.SendAppResponse(ctx, nodeID, requestID, response)
-}
-
-// SendError implements p2p.Sender
-func (s *TestSender) SendError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
-	return s.SendAppError(ctx, nodeID, requestID, errorCode, errorMessage)
+	SentGossip chan []byte
 }
 
 // SendGossip implements p2p.Sender
 func (s *TestSender) SendGossip(ctx context.Context, config p2p.SendConfig, msg []byte) error {
-	return s.SendAppGossip(ctx, config.NodeIDs, msg)
+	if s.SendGossipF != nil {
+		return s.SendGossipF(ctx, config, msg)
+	}
+	if s.SentGossip != nil {
+		s.SentGossip <- msg
+	}
+	if s.CantSendGossip && s.T != nil {
+		s.T.Helper()
+		s.T.Fatal("unexpectedly called SendGossip")
+	}
+	return nil
+}
+
+// SendGossipSpecific sends gossip to specific nodes
+func (s *TestSender) SendGossipSpecific(ctx context.Context, nodeIDs set.Set[ids.NodeID], msg []byte) error {
+	if s.SendGossipSpecificF != nil {
+		return s.SendGossipSpecificF(ctx, nodeIDs, msg)
+	}
+	if s.CantSendGossipSpecific && s.T != nil {
+		s.T.Helper()
+		s.T.Fatal("unexpectedly called SendGossipSpecific")
+	}
+	return nil
+}
+
+// SendRequest implements p2p.Sender
+func (s *TestSender) SendRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, request []byte) error {
+	if s.SendRequestF != nil {
+		return s.SendRequestF(ctx, nodeIDs, requestID, request)
+	}
+	if s.CantSendRequest && s.T != nil {
+		s.T.Helper()
+		s.T.Fatal("unexpectedly called SendRequest")
+	}
+	return nil
+}
+
+// SendResponse implements p2p.Sender
+func (s *TestSender) SendResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, response []byte) error {
+	if s.SendResponseF != nil {
+		return s.SendResponseF(ctx, nodeID, requestID, response)
+	}
+	if s.CantSendResponse && s.T != nil {
+		s.T.Helper()
+		s.T.Fatal("unexpectedly called SendResponse")
+	}
+	return nil
+}
+
+// SendError implements p2p.Sender
+func (s *TestSender) SendError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
+	if s.SendErrorF != nil {
+		return s.SendErrorF(ctx, nodeID, requestID, errorCode, errorMessage)
+	}
+	if s.CantSendError && s.T != nil {
+		s.T.Helper()
+		s.T.Fatal("unexpectedly called SendError")
+	}
+	return nil
+}
+
+// SendCrossChainRequest sends a cross-chain request
+func (s *TestSender) SendCrossChainRequest(ctx context.Context, chainID ids.ID, requestID uint32, requestBytes []byte) error {
+	if s.SendCrossChainRequestF != nil {
+		return s.SendCrossChainRequestF(ctx, chainID, requestID, requestBytes)
+	}
+	return nil
+}
+
+// SendCrossChainResponse sends a cross-chain response
+func (s *TestSender) SendCrossChainResponse(ctx context.Context, chainID ids.ID, requestID uint32, responseBytes []byte) error {
+	if s.SendCrossChainResponseF != nil {
+		return s.SendCrossChainResponseF(ctx, chainID, requestID, responseBytes)
+	}
+	return nil
+}
+
+// SendCrossChainError sends a cross-chain error
+func (s *TestSender) SendCrossChainError(ctx context.Context, chainID ids.ID, requestID uint32, errorCode int32, errorMessage string) error {
+	if s.SendCrossChainErrorF != nil {
+		return s.SendCrossChainErrorF(ctx, chainID, requestID, errorCode, errorMessage)
+	}
+	return nil
 }

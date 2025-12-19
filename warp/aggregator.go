@@ -194,17 +194,17 @@ func (g *LocalSignatureGetter) GetSignature(ctx context.Context, nodeID ids.Node
 
 // NetworkSignatureGetter implements SignatureGetter by fetching from network peers
 type NetworkSignatureGetter struct {
-	client AppRequestClient
+	client RequestClient
 }
 
-// AppRequestClient sends app requests to peers
-type AppRequestClient interface {
-	// SendAppRequest sends a request to a peer and waits for response
-	SendAppRequest(ctx context.Context, nodeID ids.NodeID, request []byte) ([]byte, error)
+// RequestClient sends requests to peers
+type RequestClient interface {
+	// SendRequest sends a request to a peer and waits for response
+	SendRequest(ctx context.Context, nodeID ids.NodeID, request []byte) ([]byte, error)
 }
 
 // NewNetworkSignatureGetter creates a signature getter that fetches from network
-func NewNetworkSignatureGetter(client AppRequestClient) *NetworkSignatureGetter {
+func NewNetworkSignatureGetter(client RequestClient) *NetworkSignatureGetter {
 	return &NetworkSignatureGetter{client: client}
 }
 
@@ -214,7 +214,7 @@ func (g *NetworkSignatureGetter) GetSignature(ctx context.Context, nodeID ids.No
 	request := unsignedMessage.Bytes()
 
 	// Send request to peer
-	response, err := g.client.SendAppRequest(ctx, nodeID, request)
+	response, err := g.client.SendRequest(ctx, nodeID, request)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get signature from %s: %w", nodeID, err)
 	}

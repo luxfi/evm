@@ -1118,6 +1118,28 @@ func (bc *BlockChain) LastAcceptedBlock() *types.Block {
 	return bc.acceptorTip
 }
 
+// SetLastAcceptedBlockDirect sets the last accepted block directly without
+// going through the acceptor queue. This is used for importing historical blocks
+// where full consensus acceptance is not required.
+// WARNING: This bypasses the normal acceptance flow and should only be used
+// for historical block imports where the blocks have already been validated.
+func (bc *BlockChain) SetLastAcceptedBlockDirect(block *types.Block) error {
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+
+	bc.acceptorTipLock.Lock()
+	bc.lastAccepted = block
+	bc.acceptorTip = block
+	bc.acceptorTipLock.Unlock()
+
+	// Update the accepted block indices
+	if err := bc.writeBlockAcceptedIndices(block); err != nil {
+		return fmt.Errorf("failed to write accepted indices: %w", err)
+	}
+
+	return nil
+}
+
 // Accept sets a minimum height at which no reorg can pass. Additionally,
 // this function may trigger a reorg if the block being accepted is not in the
 // canonical chain.
