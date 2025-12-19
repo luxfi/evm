@@ -58,7 +58,6 @@ import (
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/evm/warp"
 	luxWarp "github.com/luxfi/warp"
-	"github.com/luxfi/warp/signer"
 
 	// Force-load tracer engine to trigger registration
 	//
@@ -87,7 +86,6 @@ import (
 	nodechain "github.com/luxfi/consensus/protocol/chain"
 	consensusmockable "github.com/luxfi/consensus/utils/timer/mockable"
 	consensusversion "github.com/luxfi/consensus/version"
-	"github.com/luxfi/crypto/bls"
 	"github.com/luxfi/database/versiondb"
 	"github.com/luxfi/ids"
 	nodemockable "github.com/luxfi/timer/mockable"
@@ -98,9 +96,7 @@ import (
 	nodeChain "github.com/luxfi/vms/components/chain"
 
 	commonEng "github.com/luxfi/consensus/core"
-	"github.com/luxfi/consensus/core/appsender"
-	nodeCommonEng "github.com/luxfi/consensus/engine/core"
-	"github.com/luxfi/math/set"
+	luxVM "github.com/luxfi/vm"
 
 	"github.com/luxfi/database"
 	luxUtils "github.com/luxfi/utils"
@@ -185,106 +181,9 @@ var legacyApiNames = map[string]string{
 	"private-debug":     "debug",
 }
 
-// VM implements the chain.ChainVM interface
-// warpSignerAdapter adapts a signer.Signer to warp.WarpSigner
-type warpSignerAdapter struct {
-	signer signer.Signer
-	nodeID ids.NodeID
-}
-
-func (w *warpSignerAdapter) Sign(msg []byte) ([]byte, error) {
-	// Parse the message as an unsigned warp message
-	unsignedMsg, err := luxWarp.ParseUnsignedMessage(msg)
-	if err != nil {
-		return nil, err
-	}
-
-	// Sign using the signer
-	sig, err := w.signer.Sign(unsignedMsg)
-	if err != nil {
-		return nil, err
-	}
-
-	// Return the signature bytes
-	return bls.SignatureToBytes(sig), nil
-}
-
-func (w *warpSignerAdapter) PublicKey() []byte {
-	pk := w.signer.GetPublicKey()
-	if pk == nil {
-		return nil
-	}
-	return bls.PublicKeyToCompressedBytes(pk)
-}
-
-func (w *warpSignerAdapter) NodeID() ids.NodeID {
-	return w.nodeID
-}
-
-// lp118SignerAdapter adapts a signer.Signer for lp118 handlers
-// Uses luxWarp.UnsignedMessage - the ONE canonical warp package
-type lp118SignerAdapter struct {
-	signer signer.Signer
-}
-
-// Sign implements the Signer interface for lp118
-func (a *lp118SignerAdapter) Sign(msg *luxWarp.UnsignedMessage) ([]byte, error) {
-	sig, err := a.signer.Sign(msg)
-	if err != nil {
-		return nil, err
-	}
-	return bls.SignatureToBytes(sig), nil
-}
-
-// appSenderWrapper wraps a consensus appsender.AppSender to implement nodeCommonEng.AppSender
-type appSenderWrapper struct {
-	appSender appsender.AppSender
-}
-
-// SendAppRequest implements nodeCommonEng.AppSender
-func (w *appSenderWrapper) SendAppRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, appRequestBytes []byte) error {
-	return w.appSender.SendAppRequest(ctx, nodeIDs, requestID, appRequestBytes)
-}
-
-// SendAppResponse implements nodeCommonEng.AppSender
-func (w *appSenderWrapper) SendAppResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, appResponseBytes []byte) error {
-	return w.appSender.SendAppResponse(ctx, nodeID, requestID, appResponseBytes)
-}
-
-// SendAppError implements nodeCommonEng.AppSender
-func (w *appSenderWrapper) SendAppError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
-	return w.appSender.SendAppError(ctx, nodeID, requestID, errorCode, errorMessage)
-}
-
-// SendAppGossip implements nodeCommonEng.AppSender
-func (w *appSenderWrapper) SendAppGossip(ctx context.Context, nodeIDs set.Set[ids.NodeID], appGossipBytes []byte) error {
-	return w.appSender.SendAppGossip(ctx, nodeIDs, appGossipBytes)
-}
-
-// SendAppGossipSpecific implements nodeCommonEng.AppSender
-func (w *appSenderWrapper) SendAppGossipSpecific(ctx context.Context, nodeIDs set.Set[ids.NodeID], appGossipBytes []byte) error {
-	return w.appSender.SendAppGossipSpecific(ctx, nodeIDs, appGossipBytes)
-}
-
-// SendRequest implements nodeCommonEng.AppSender (p2p.Sender compatible)
-func (w *appSenderWrapper) SendRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, request []byte) error {
-	return w.appSender.SendAppRequest(ctx, nodeIDs, requestID, request)
-}
-
-// SendResponse implements nodeCommonEng.AppSender (p2p.Sender compatible)
-func (w *appSenderWrapper) SendResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, response []byte) error {
-	return w.appSender.SendAppResponse(ctx, nodeID, requestID, response)
-}
-
-// SendError implements nodeCommonEng.AppSender (p2p.Sender compatible)
-func (w *appSenderWrapper) SendError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
-	return w.appSender.SendAppError(ctx, nodeID, requestID, errorCode, errorMessage)
-}
-
-// SendGossip implements p2p.Sender
-func (w *appSenderWrapper) SendGossip(ctx context.Context, config p2p.SendConfig, msg []byte) error {
-	return w.appSender.SendAppGossip(ctx, config.NodeIDs, msg)
-}
+// Note: AppSender is now an alias for p2p.Sender, so no wrapper is needed.
+// The node passes a p2p.Sender directly via RPC.
+// warp.Signer is used directly from luxfi/warp - no adapters needed.
 
 type VM struct {
 	ctx      context.Context
@@ -349,7 +248,7 @@ type VM struct {
 	// Continuous Profiler
 	profiler profiler.ContinuousProfiler
 
-	network.Network
+	Network *network.Network
 	networkCodec codec.Manager
 
 	// Metrics
@@ -402,7 +301,7 @@ func (vm *VM) Initialize(
 	configBytes []byte,
 	msgChan interface{},
 	fxs []interface{},
-	appSender interface{},
+	sender interface{},
 ) error {
 	// Write debug info to stderr for troubleshooting
 	fmt.Fprintf(os.Stderr, "[EVM] Initialize called with chainCtx type: %T\n", chainCtx)
@@ -425,20 +324,20 @@ func (vm *VM) Initialize(
 	if !ok {
 		return fmt.Errorf("dbManager is not database.Database")
 	}
-	// Handle nil appSender (used in some tests)
-	var typedAppSender nodeCommonEng.AppSender
-	if appSender != nil {
+	// Handle nil sender (used in some tests)
+	var typedSender p2p.Sender
+	if sender != nil {
 		var ok bool
-		typedAppSender, ok = appSender.(nodeCommonEng.AppSender)
+		typedSender, ok = sender.(p2p.Sender)
 		if !ok {
-			return fmt.Errorf("appSender is not nodeCommonEng.AppSender")
+			return fmt.Errorf("sender is not p2p.Sender")
 		}
 	}
 
-	// Convert fxs from []interface{} to []*nodeCommonEng.Fx
+	// Convert fxs from []interface{} to []*luxVM.Fx
 	typedFxs := make([]*commonEng.Fx, len(fxs))
 	for i, fx := range fxs {
-		if typedFx, ok := fx.(*nodeCommonEng.Fx); ok {
+		if typedFx, ok := fx.(*luxVM.Fx); ok {
 			typedFxs[i] = &commonEng.Fx{
 				ID: typedFx.ID,
 				Fx: typedFx.Fx,
@@ -446,8 +345,7 @@ func (vm *VM) Initialize(
 		}
 	}
 
-	// No adapter needed - nodeCommonEng.AppSender is an alias for commonEng.AppSender
-	return vm.initializeInternal(ctx, typedChainCtx, typedDBManager, genesisBytes, upgradeBytes, configBytes, typedFxs, typedAppSender)
+	return vm.initializeInternal(ctx, typedChainCtx, typedDBManager, genesisBytes, upgradeBytes, configBytes, typedFxs, typedSender)
 }
 
 // initializeInternal contains the actual initialization logic with strongly typed parameters
@@ -459,7 +357,7 @@ func (vm *VM) initializeInternal(
 	upgradeBytes []byte,
 	configBytes []byte,
 	fxs []*commonEng.Fx,
-	appSender nodeCommonEng.AppSender,
+	sender p2p.Sender,
 ) error {
 	vm.stateSyncDone = make(chan struct{})
 	vm.config.SetDefaults(defaultTxPoolConfig)
@@ -658,27 +556,15 @@ func (vm *VM) initializeInternal(
 	)
 
 	vm.networkCodec = message.Codec
-	// Convert block.AppSender to appsender.AppSender - they should be compatible
-	// Handle nil appSender (used in some tests)
-	if appSender != nil {
-		coreAppSender, ok := appSender.(appsender.AppSender)
-		if !ok {
-			return fmt.Errorf("appSender does not implement appsender.AppSender")
-		}
-		// Wrap the consensus AppSender to match node's AppSender interface
-		wrappedAppSender := &appSenderWrapper{appSender: coreAppSender}
-		vm.Network, err = network.NewNetwork(context.Background(), wrappedAppSender, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
-	} else {
-		// Use nil network for tests without appSender
-		vm.Network, err = network.NewNetwork(context.Background(), nil, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
-	}
+	// p2p.Sender is passed directly to network
+	vm.Network, err = network.NewNetwork(context.Background(), sender, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
 	if err != nil {
 		return fmt.Errorf("failed to create network: %w", err)
 	}
 	// P2PValidators might be nil in test environments
-	p2pValidatorsInterface := vm.P2PValidators()
+	p2pValidatorsInterface := vm.Network.P2PValidators()
 	if p2pValidatorsInterface != nil {
-		vm.p2pValidators = p2pValidatorsInterface.(*p2p.Validators)
+		vm.p2pValidators = p2pValidatorsInterface
 	}
 
 	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, &vm.clock)
@@ -706,26 +592,22 @@ func (vm *VM) initializeInternal(
 
 	// VM implements warp.BlockClient directly
 
-	// Get warp signer from context
-	var warpAdapter *warpSignerAdapter
+	// Get warp signer from context - use luxWarp.Signer directly, no adapters
+	var warpSigner luxWarp.Signer
 	if chainCtx.WarpSigner != nil {
-		warpSigner, ok := chainCtx.WarpSigner.(signer.Signer)
+		var ok bool
+		warpSigner, ok = chainCtx.WarpSigner.(luxWarp.Signer)
 		if !ok {
 			return fmt.Errorf("invalid warp signer type: %T", chainCtx.WarpSigner)
-		}
-		// Create a wrapper that implements WarpSigner
-		warpAdapter = &warpSignerAdapter{
-			signer: warpSigner,
-			nodeID: chainCtx.NodeID,
 		}
 	}
 
 	// Only create warp backend if we have a signer
-	if warpAdapter != nil {
+	if warpSigner != nil {
 		vm.warpBackend, err = warp.NewBackend(
 			chainCtx.NetworkID, // Use NetworkID from consensus Context
 			chainCtx.ChainID,
-			warpAdapter,
+			warpSigner,
 			&warpBlockClient{vm: vm}, // Wrapper that implements warp.BlockClient
 			validators.NewLockedValidatorReader(vm.validatorsManager, &vm.vmLock),
 			vm.warpDB,
@@ -754,15 +636,11 @@ func (vm *VM) initializeInternal(
 	// Add p2p warp message warpHandler
 	// Create adapter to convert our warp backend to lp118.Verifier
 	warpVerifier := &warpVerifierAdapter{backend: vm.warpBackend}
-	// Create lp118 signer adapter if we have a warp signer
-	var lp118Signer *lp118SignerAdapter
-	if warpAdapter != nil {
-		lp118Signer = &lp118SignerAdapter{signer: warpAdapter.signer}
-	}
-	warpHandler := lp118.NewCachedHandler(meteredCache, warpVerifier, lp118Signer)
+	// Use warp signer directly - luxWarp.Signer is compatible with lp118.Signer
+	warpHandler := lp118.NewCachedHandler(meteredCache, warpVerifier, warpSigner)
 	// Use built-in adapter to convert lp118.Handler to p2p.Handler
 	p2pHandler := lp118.NewHandlerAdapter(warpHandler)
-	vm.AddHandler(lp118.HandlerID, p2pHandler)
+	vm.Network.AddHandler(lp118.HandlerID, p2pHandler)
 
 	vm.setAppRequestHandlers()
 
@@ -1226,19 +1104,13 @@ func (vm *VM) onNormalOperationsStarted() error {
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
 
 	// P2PValidators might be nil in test environments
-	var p2pValidators *p2p.Validators
-	p2pValidatorsInterface := vm.P2PValidators()
+	p2pValidators := vm.Network.P2PValidators()
 	var ethTxGossipClient *p2p.Client
-	if p2pValidatorsInterface != nil {
-		var ok bool
-		p2pValidators, ok = p2pValidatorsInterface.(*p2p.Validators)
-		if !ok {
-			return fmt.Errorf("failed to get P2P validators")
-		}
-		ethTxGossipClient = vm.NewClient(TxGossipHandlerID, p2p.WithValidatorSampling(p2pValidators))
+	if p2pValidators != nil {
+		ethTxGossipClient = vm.Network.NewClient(TxGossipHandlerID, p2p.WithValidatorSampling(p2pValidators))
 	} else {
 		// In test mode, use a client without validator sampling
-		ethTxGossipClient = vm.NewClient(TxGossipHandlerID)
+		ethTxGossipClient = vm.Network.NewClient(TxGossipHandlerID)
 	}
 	ethTxGossipMetrics, err := gossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
 	if err != nil {
@@ -1265,9 +1137,8 @@ func (vm *VM) onNormalOperationsStarted() error {
 	}
 
 	ethTxPushGossiper := vm.ethTxPushGossiper.Get()
-	if ethTxPushGossiper == nil && p2pValidatorsInterface != nil {
+	if ethTxPushGossiper == nil && p2pValidators != nil {
 		// Only create push gossiper if we have P2P validators
-		p2pValidators, _ := p2pValidatorsInterface.(*p2p.Validators)
 		ethTxPushGossiper, err = gossip.NewPushGossiper[*GossipEthTx](
 			ethTxGossipMarshaller,
 			ethTxPool,
@@ -1313,7 +1184,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 		vm.ethTxGossipHandler = handler
 	}
 
-	if err := vm.AddHandler(TxGossipHandlerID, vm.ethTxGossipHandler); err != nil {
+	if err := vm.Network.AddHandler(TxGossipHandlerID, vm.ethTxGossipHandler); err != nil {
 		return fmt.Errorf("failed to add eth tx gossip handler: %w", err)
 	}
 
@@ -1378,7 +1249,7 @@ func (vm *VM) setAppRequestHandlers() {
 	)
 
 	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.warpBackend, vm.networkCodec)
-	vm.SetRequestHandler(networkHandler)
+	vm.Network.SetRequestHandler(networkHandler)
 }
 
 func (vm *VM) WaitForEvent(ctx context.Context) (interface{}, error) {
@@ -1690,7 +1561,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	}
 
 	if vm.config.WarpAPIEnabled {
-		warpSDKClient := vm.NewClient(lp118.HandlerID)
+		warpSDKClient := vm.Network.NewClient(lp118.HandlerID)
 		// lp118.NewSignatureAggregator expects a node/utils/logging.Logger
 		// For now, pass nil as the logger is optional
 		signatureAggregator := lp118.NewSignatureAggregator(nil, warpSDKClient)
@@ -1903,7 +1774,7 @@ func (vm *VM) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
 }
 
 // AppRequestFailed implements the VM interface
-func (vm *VM) AppRequestFailed(ctx context.Context, nodeID ids.NodeID, requestID uint32, appErr *nodeCommonEng.AppError) error {
+func (vm *VM) AppRequestFailed(ctx context.Context, nodeID ids.NodeID, requestID uint32, appErr *commonEng.AppError) error {
 	// The Network interface doesn't expose AppRequestFailed directly
 	// We need to handle this at the VM level by logging the error
 	log.Debug("AppRequestFailed", "nodeID", nodeID, "requestID", requestID, "error", appErr)
@@ -1912,7 +1783,7 @@ func (vm *VM) AppRequestFailed(ctx context.Context, nodeID ids.NodeID, requestID
 }
 
 // CrossChainAppRequestFailed implements the VM interface
-func (vm *VM) CrossChainAppRequestFailed(ctx context.Context, chainID ids.ID, requestID uint32, appErr *nodeCommonEng.AppError) error {
+func (vm *VM) CrossChainAppRequestFailed(ctx context.Context, chainID ids.ID, requestID uint32, appErr *commonEng.AppError) error {
 	// Cross-chain app requests are not currently supported
 	// Just log and return nil to satisfy the interface
 	log.Debug("CrossChainAppRequestFailed called", "chainID", chainID, "requestID", requestID, "error", appErr.Message)

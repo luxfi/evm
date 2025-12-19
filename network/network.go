@@ -5,637 +5,237 @@ package network
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"sync"
 	"time"
 
-	"golang.org/x/sync/semaphore"
-
-	"github.com/luxfi/geth/log"
-	luxlog "github.com/luxfi/log"
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/luxfi/codec"
-	nodeCore "github.com/luxfi/consensus/engine/core"
-	validators "github.com/luxfi/consensus/validator"
-	"github.com/luxfi/consensus/version"
-	"github.com/luxfi/p2p"
-	"github.com/luxfi/utils"
-
 	"github.com/luxfi/ids"
+	"github.com/luxfi/log"
 	"github.com/luxfi/math/set"
+	"github.com/luxfi/metric"
+	"github.com/luxfi/p2p"
 
-	"github.com/luxfi/evm/network/stats"
-	"github.com/luxfi/evm/plugin/evm/message"
+	"github.com/luxfi/consensus/version"
 )
 
-// Minimum amount of time to handle a request
-const (
-	minRequestHandlingDuration = 100 * time.Millisecond
-	maxValidatorSetStaleness   = time.Minute
-)
-
-// No ID conversion needed - v1.16.15 uses external ids package
-
-var (
-	errAcquiringSemaphore                      = errors.New("error acquiring semaphore")
-	errExpiredRequest                          = errors.New("expired request")
-	_                     Network              = (*network)(nil)
-	_                     validators.Connector = (*network)(nil)
-	_                     nodeCore.AppHandler  = (*network)(nil)
-)
-
-// loggerWrapper wraps geth/log.Logger to implement luxfi/log.Logger interface
-type loggerWrapper struct {
-	log.Logger
-}
-
-// EnabledLevel implements luxfi/log.Logger interface
-func (l *loggerWrapper) EnabledLevel() interface{} {
-	return nil
-}
-
-// SetLevel implements luxfi/log.Logger interface
-func (l *loggerWrapper) SetLevel(lvl interface{}) {
-	// No-op as geth logger handles this differently
-}
-
-// senderAdapter wraps nodeCore.AppSender to implement p2p.Sender interface
-type senderAdapter struct {
-	appSender nodeCore.AppSender
-}
-
-// SendRequest implements p2p.Sender
-func (s *senderAdapter) SendRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, request []byte) error {
-	return s.appSender.SendAppRequest(ctx, nodeIDs, requestID, request)
-}
-
-// SendResponse implements p2p.Sender
-func (s *senderAdapter) SendResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, response []byte) error {
-	return s.appSender.SendAppResponse(ctx, nodeID, requestID, response)
-}
-
-// SendError implements p2p.Sender
-func (s *senderAdapter) SendError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
-	return s.appSender.SendAppError(ctx, nodeID, requestID, errorCode, errorMessage)
-}
-
-// SendGossip implements p2p.Sender
-func (s *senderAdapter) SendGossip(ctx context.Context, config p2p.SendConfig, msg []byte) error {
-	return s.appSender.SendAppGossip(ctx, config.NodeIDs, msg)
-}
-
-// SyncedNetworkClient defines ability to send request / response through the Network
+// SyncedNetworkClient is the interface required by the state sync client
 type SyncedNetworkClient interface {
-	// SendSyncedAppRequestAny synchronously sends request to an arbitrary peer with a
-	// node version greater than or equal to minVersion.
-	// Returns response bytes, the ID of the chosen peer, and ErrRequestFailed if
-	// the request should be retried.
 	SendSyncedAppRequestAny(ctx context.Context, minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error)
-
-	// SendSyncedAppRequest synchronously sends request to the selected nodeID
-	// Returns response bytes, and ErrRequestFailed if the request should be retried.
 	SendSyncedAppRequest(ctx context.Context, nodeID ids.NodeID, request []byte) ([]byte, error)
-
-	// TrackBandwidth should be called for each valid request with the bandwidth
-	// (length of response divided by request time), and with 0 if the response is invalid.
+	Gossip(msg []byte) error
 	TrackBandwidth(nodeID ids.NodeID, bandwidth float64)
 }
 
-type Network interface {
-	validators.Connector
-	nodeCore.AppHandler
-
-	SyncedNetworkClient
-
-	// SendAppRequestAny sends request to an arbitrary peer with a
-	// node version greater than or equal to minVersion.
-	// Returns the ID of the chosen peer, and an error if the request could not
-	// be sent to a peer with the desired [minVersion].
-	SendAppRequestAny(ctx context.Context, minVersion *version.Application, message []byte, handler message.ResponseHandler) (ids.NodeID, error)
-
-	// SendAppRequest sends message to given nodeID, notifying handler when there's a response or timeout
-	SendAppRequest(ctx context.Context, nodeID ids.NodeID, message []byte, handler message.ResponseHandler) error
-
-	// Shutdown stops all peer channel listeners and marks the node to have stopped
-	// n.Start() can be called again but the peers will have to be reconnected
-	// by calling OnPeerConnected for each peer
-	Shutdown()
-
-	// SetRequestHandler sets the provided request handler as the request handler
-	SetRequestHandler(handler message.RequestHandler)
-
-	// Size returns the size of the network in number of connected peers
-	Size() uint32
-
-	// NewClient returns a client to send messages with for the given protocol
-	NewClient(protocol uint64, options ...p2p.ClientOption) *p2p.Client
-	// AddHandler registers a server handler for an application protocol
-	AddHandler(protocol uint64, handler p2p.Handler) error
-
-	P2PValidators() interface{}
+// AppSender is the interface for sending application messages
+type AppSender interface {
+	p2p.Sender
 }
 
-// network is an implementation of Network that processes message requests for
-// each peer in linear fashion
-type network struct {
-	lock                       sync.RWMutex                       // lock for mutating state of this Network struct
-	self                       ids.NodeID                         // NodeID of this node
-	requestIDGen               uint32                             // requestID counter used to track outbound requests
-	outstandingRequestHandlers map[uint32]message.ResponseHandler // maps luxd requestID => message.ResponseHandler
-	activeAppRequests          *semaphore.Weighted                // controls maximum number of active outbound requests
-	sdkNetwork                 *p2p.Network                       // SDK network (luxd p2p) for sending messages to peers
-	appSender                  nodeCore.AppSender                 // luxd AppSender for sending messages
-	codec                      codec.Manager                      // Codec used for parsing messages
-	appRequestHandler          message.RequestHandler             // maps request type => handler
-	peers                      *peerTracker                       // tracking of peers & bandwidth
-	appStats                   stats.RequestHandlerStats          // Provide request handler metrics
+// Network handles peer-to-peer networking for the EVM
+// It embeds p2p.Network to provide the base functionality
+type Network struct {
+	*p2p.Network
 
-	// Set to true when Shutdown is called, after which all operations on this
-	// struct are no-ops.
-	//
-	// Invariant: Even though `closed` is an atomic, `lock` is required to be
-	// held when sending requests to guarantee that the network isn't closed
-	// during these calls. This is because closing the network cancels all
-	// outstanding requests, which means we must guarantee never to register a
-	// request that will never be fulfilled or cancelled.
-	closed utils.Atomic[bool]
+	sender      AppSender
+	codec       codec.Manager
+	maxRequests int64
+	metrics     metric.Registerer
+	log         log.Logger
 
-	p2pValidators interface{}
+	// Request tracking for sync
+	requestsLock    sync.Mutex
+	pendingRequests map[uint32]chan []byte
+	nextRequestID   uint32
+
+	// Request handler - stores the message.RequestHandler for sync operations
+	// We use interface{} here to avoid import cycles with plugin/evm/message
+	requestHandler interface{}
+
+	// Shutdown
+	closed    bool
+	closeLock sync.Mutex
 }
 
+// NewNetwork creates a new Network instance
 func NewNetwork(
 	ctx context.Context,
-	appSender nodeCore.AppSender,
+	sender AppSender,
 	codec codec.Manager,
-	maxActiveAppRequests int64,
-	registerer prometheus.Registerer,
-) (Network, error) {
-	// Initialize P2P network with a no-op logger for compatibility
-	// The SDK network is used for routing SDK handlers (odd requestIDs)
-	var p2pNetwork *p2p.Network
-	if appSender != nil {
-		// Use luxfi/log.NewNoOpLogger() which implements the required Logger interface
-		// Wrap appSender to implement p2p.Sender interface
-		sender := &senderAdapter{appSender: appSender}
-		var err error
-		p2pNetwork, err = p2p.NewNetwork(luxlog.NewNoOpLogger(), sender, registerer, "evm")
+	maxOutboundActiveRequests int64,
+	metrics metric.Registerer,
+) (*Network, error) {
+	logger := log.New()
+
+	var p2pNet *p2p.Network
+	var err error
+
+	if sender != nil {
+		p2pNet, err = p2p.NewNetwork(logger, sender, metrics, "evm")
 		if err != nil {
-			return nil, fmt.Errorf("failed to initialize p2p network: %w", err)
+			return nil, err
 		}
 	}
 
-	// For now, use empty node ID since GetNodeID doesn't exist in node's consensus package
-	// This would normally come from the VM's context
-	nodeID := ids.EmptyNodeID
-
-	return &network{
-		appSender:                  appSender,
-		codec:                      codec,
-		self:                       nodeID,
-		outstandingRequestHandlers: make(map[uint32]message.ResponseHandler),
-		activeAppRequests:          semaphore.NewWeighted(maxActiveAppRequests),
-		sdkNetwork:                 p2pNetwork,
-		appRequestHandler:          message.NoopRequestHandler{},
-		peers:                      NewPeerTracker(),
-		appStats:                   stats.NewRequestHandlerStats(),
-		p2pValidators:              nil, // p2p validators initialization removed due to interface incompatibility
+	return &Network{
+		Network:         p2pNet,
+		sender:          sender,
+		codec:           codec,
+		maxRequests:     maxOutboundActiveRequests,
+		metrics:         metrics,
+		log:             logger,
+		pendingRequests: make(map[uint32]chan []byte),
 	}, nil
 }
 
-// SendAppRequestAny synchronously sends request to an arbitrary peer with a
-// node version greater than or equal to minVersion. If minVersion is nil,
-// the request will be sent to any peer regardless of their version.
-// Returns the ID of the chosen peer, and an error if the request could not
-// be sent to a peer with the desired [minVersion].
-func (n *network) SendAppRequestAny(ctx context.Context, minVersion *version.Application, request []byte, handler message.ResponseHandler) (ids.NodeID, error) {
-	// If the context was cancelled, we can skip sending this request.
-	if err := ctx.Err(); err != nil {
-		return ids.EmptyNodeID, err
-	}
+// Shutdown stops the network
+func (n *Network) Shutdown() {
+	n.closeLock.Lock()
+	defer n.closeLock.Unlock()
+	n.closed = true
 
-	// Take a slot from total [activeAppRequests] and block until a slot becomes available.
-	if err := n.activeAppRequests.Acquire(ctx, 1); err != nil {
-		return ids.EmptyNodeID, errAcquiringSemaphore
+	// Cancel all pending requests
+	n.requestsLock.Lock()
+	for _, ch := range n.pendingRequests {
+		close(ch)
 	}
-
-	n.lock.Lock()
-	defer n.lock.Unlock()
-	// Convert consensus version to node version for peer tracker
-	var nodeMinVersion *version.Application
-	if minVersion != nil {
-		nodeMinVersion = &version.Application{
-			Name:  minVersion.Name,
-			Major: minVersion.Major,
-			Minor: minVersion.Minor,
-			Patch: minVersion.Patch,
-		}
-	}
-	if nodeID, ok := n.peers.GetAnyPeer(nodeMinVersion); ok {
-		log.Info("SendAppRequestAny: found peer", "nodeID", nodeID, "minVersion", nodeMinVersion)
-		return nodeID, n.sendAppRequest(ctx, nodeID, request, handler)
-	}
-
-	log.Info("SendAppRequestAny: no peers found", "minVersion", nodeMinVersion, "peerCount", n.peers.Size())
-	n.activeAppRequests.Release(1)
-	return ids.EmptyNodeID, fmt.Errorf("no peers found matching version %s out of %d peers", minVersion, n.peers.Size())
+	n.pendingRequests = make(map[uint32]chan []byte)
+	n.requestsLock.Unlock()
 }
 
-// SendAppRequest sends request message bytes to specified nodeID, notifying the responseHandler on response or failure
-func (n *network) SendAppRequest(ctx context.Context, nodeID ids.NodeID, request []byte, responseHandler message.ResponseHandler) error {
-	if nodeID == ids.EmptyNodeID {
-		return fmt.Errorf("cannot send request to empty nodeID, nodeID=%s, requestLen=%d", nodeID, len(request))
-	}
-
-	// If the context was cancelled, we can skip sending this request.
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	// Take a slot from total [activeAppRequests] and block until a slot becomes available.
-	if err := n.activeAppRequests.Acquire(ctx, 1); err != nil {
-		return errAcquiringSemaphore
-	}
-
-	n.lock.Lock()
-	defer n.lock.Unlock()
-
-	return n.sendAppRequest(ctx, nodeID, request, responseHandler)
-}
-
-// sendAppRequest sends request message bytes to specified nodeID and adds [responseHandler] to [outstandingRequestHandlers]
-// so that it can be invoked when the network receives either a response or failure message.
-// Assumes [nodeID] is never [self] since we guarantee [self] will not be added to the [peers] map.
-// Releases active requests semaphore if there was an error in sending the request
-// Returns an error if [appSender] is unable to make the request.
-// Assumes write lock is held
-func (n *network) sendAppRequest(ctx context.Context, nodeID ids.NodeID, request []byte, responseHandler message.ResponseHandler) error {
-	if n.closed.Get() {
-		n.activeAppRequests.Release(1)
-		return nil
-	}
-
-	// If the context was cancelled, we can skip sending this request.
-	if err := ctx.Err(); err != nil {
-		n.activeAppRequests.Release(1)
-		return err
-	}
-
-	log.Debug("sending request to peer", "nodeID", nodeID, "requestLen", len(request))
-	n.peers.TrackPeer(nodeID)
-
-	requestID := n.nextRequestID()
-	n.outstandingRequestHandlers[requestID] = responseHandler
-
-	// Send directly to single nodeID
-
-	// Send app request to [nodeID].
-	// On failure, release the slot from [activeAppRequests] and delete request
-	// from [outstandingRequestHandlers]
-	//
-	// Cancellation is removed from this context to avoid erroring unexpectedly.
-	// SendAppRequest should be non-blocking and any error other than context
-	// cancellation is unexpected.
-	//
-	// This guarantees that the network should never receive an unexpected
-	// AppResponse.
-	ctxWithoutCancel := context.WithoutCancel(ctx)
-	// Create set of node IDs for appSender
-	nodeIDs := set.Of(nodeID)
-	if err := n.appSender.SendAppRequest(ctxWithoutCancel, nodeIDs, requestID, request); err != nil {
-		log.Error(
-			"request to peer failed",
-			"nodeID", nodeID,
-			"requestID", requestID,
-			"requestLen", len(request),
-			"error", err,
-		)
-
-		n.activeAppRequests.Release(1)
-		delete(n.outstandingRequestHandlers, requestID)
-		return err
-	}
-
-	log.Debug("sent request message to peer", "nodeID", nodeID, "requestID", requestID)
+// P2PValidators returns the p2p validators if available
+func (n *Network) P2PValidators() *p2p.Validators {
+	// Return nil - validators are set up separately
 	return nil
 }
 
-// AppRequest is called by luxd -> VM when there is an incoming AppRequest from a peer
-// error returned by this function is expected to be treated as fatal by the engine
-// returns error if the requestHandler returns an error
-// sends a response back to the sender if length of response returned by the handler is >0
-// expects the deadline to not have been passed
-func (n *network) AppRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, deadline time.Time, request []byte) error {
-	if n.closed.Get() {
-		log.Info("AppRequest: network is closed, ignoring", "nodeID", nodeID, "requestID", requestID)
-		return nil
-	}
-
-	log.Info("AppRequest: received from node", "nodeID", nodeID, "requestID", requestID, "requestLen", len(request), "isNetworkRequest", IsNetworkRequest(requestID))
-
-	if !IsNetworkRequest(requestID) {
-		log.Info("AppRequest: forwarding to SDK network", "nodeID", nodeID, "requestID", requestID, "requestLen", len(request))
-		if n.sdkNetwork != nil {
-			_, err := n.sdkNetwork.Request(ctx, nodeID, requestID, deadline, request)
-			if err != nil {
-				return fmt.Errorf("SDK network request failed: %s", err.Message)
-			}
-			return nil
-		}
-		return nil
-	}
-
-	bufferedDeadline, err := calculateTimeUntilDeadline(deadline, n.appStats)
-	if err != nil {
-		log.Debug("deadline to process AppRequest has expired, skipping", "nodeID", nodeID, "requestID", requestID, "err", err)
-		return nil
-	}
-
-	var req message.Request
-	if _, err := n.codec.Unmarshal(request, &req); err != nil {
-		log.Debug("failed to unmarshal AppRequest", "nodeID", nodeID, "requestID", requestID, "err", err)
-		return nil
-	}
-
-	log.Debug("processing incoming request", "nodeID", nodeID, "requestID", requestID, "req", req)
-	// We make a new context here because we don't want to cancel the context
-	// passed into n.AppSender.SendAppResponse below
-	handleCtx, cancel := context.WithDeadline(context.Background(), bufferedDeadline)
-	defer cancel()
-
-	responseBytes, err := req.Handle(handleCtx, nodeID, requestID, n.appRequestHandler)
-	switch {
-	case err != nil && err != context.DeadlineExceeded:
-		return err // Return a fatal error
-	case responseBytes != nil:
-		return n.appSender.SendAppResponse(ctx, nodeID, requestID, responseBytes) // Propagate fatal error
-	default:
-		return nil
-	}
+// SetRequestHandler sets the handler for incoming requests
+// Accepts any type to avoid import cycles with plugin/evm/message
+func (n *Network) SetRequestHandler(handler interface{}) {
+	n.requestHandler = handler
 }
 
-// AppResponse is invoked when there is a response received from a peer regarding a request
-// Error returned by this function is expected to be treated as fatal by the engine
-// If [requestID] is not known, this function will emit a log and return a nil error.
-// If the response handler returns an error it is propagated as a fatal error.
-func (n *network) AppResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, response []byte) error {
-	log.Debug("received AppResponse from peer", "nodeID", nodeID, "requestID", requestID)
-
-	handler, exists := n.markRequestFulfilled(requestID)
-	if !exists {
-		log.Debug("forwarding AppResponse to SDK network", "nodeID", nodeID, "requestID", requestID, "responseLen", len(response))
-		if n.sdkNetwork != nil {
-			return n.sdkNetwork.Response(ctx, nodeID, requestID, response)
-		}
-		// When there's no SDK network and request not found, return ErrUnrequestedResponse
-		return p2p.ErrUnrequestedResponse
+// Size returns the number of connected peers
+func (n *Network) Size() int {
+	if n.Network == nil || n.Network.Peers == nil {
+		return 0
 	}
-
-	// We must release the slot
-	n.activeAppRequests.Release(1)
-
-	return handler.OnResponse(response)
+	return len(n.Network.Peers.Sample(1000)) // Approximate count
 }
 
-// AppRequestFailed can be called by the luxd -> VM in following cases:
-// - node is benched
-// - failed to send message to [nodeID] due to a network issue
-// - request times out before a response is provided
-// error returned by this function is expected to be treated as fatal by the engine
-// returns error only when the response handler returns an error
-func (n *network) AppRequestFailed(ctx context.Context, nodeID ids.NodeID, requestID uint32, appErr *nodeCore.AppError) error {
-	log.Debug("received AppRequestFailed from peer", "nodeID", nodeID, "requestID", requestID)
-
-	handler, exists := n.markRequestFulfilled(requestID)
-	if !exists {
-		log.Debug("forwarding AppRequestFailed to SDK network", "nodeID", nodeID, "requestID", requestID)
-		// AppError conversion handled for sdkNetwork compatibility
-		// For now, sdkNetwork is nil so this won't be called
-		if n.sdkNetwork != nil {
-			// Would need to convert appErr to node's AppError type here
-			return nil
-		}
-		return nil
+// SendSyncedAppRequestAny sends a request to any available peer
+func (n *Network) SendSyncedAppRequestAny(ctx context.Context, minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error) {
+	if n.Network == nil || n.Network.Peers == nil {
+		return nil, ids.EmptyNodeID, ErrNoPeers
 	}
 
-	// We must release the slot
-	n.activeAppRequests.Release(1)
-
-	return handler.OnFailure()
-}
-
-// calculateTimeUntilDeadline calculates the time until deadline and drops it if we missed he deadline to response.
-// This function updates metrics for app requests.
-// This is called by [AppRequest].
-func calculateTimeUntilDeadline(deadline time.Time, stats stats.RequestHandlerStats) (time.Time, error) {
-	// calculate how much time is left until the deadline
-	timeTillDeadline := time.Until(deadline)
-	stats.UpdateTimeUntilDeadline(timeTillDeadline)
-
-	// bufferedDeadline is half the time till actual deadline so that the message has a reasonable chance
-	// of completing its processing and sending the response to the peer.
-	bufferedDeadline := time.Now().Add(timeTillDeadline / 2)
-
-	// check if we have enough time to handle this request
-	if time.Until(bufferedDeadline) < minRequestHandlingDuration {
-		// Drop the request if we already missed the deadline to respond.
-		stats.IncDeadlineDroppedRequest()
-		return time.Time{}, errExpiredRequest
+	peers := n.Network.Peers.Sample(1)
+	if len(peers) == 0 {
+		return nil, ids.EmptyNodeID, ErrNoPeers
 	}
 
-	return bufferedDeadline, nil
-}
-
-// markRequestFulfilled fetches the handler for [requestID] and marks the request with [requestID] as having been fulfilled.
-// This is called by either [AppResponse] or [AppRequestFailed].
-// Assumes that the write lock is not held.
-func (n *network) markRequestFulfilled(requestID uint32) (message.ResponseHandler, bool) {
-	n.lock.Lock()
-	defer n.lock.Unlock()
-
-	handler, exists := n.outstandingRequestHandlers[requestID]
-	if !exists {
-		return nil, false
-	}
-	// mark message as processed
-	delete(n.outstandingRequestHandlers, requestID)
-
-	return handler, true
-}
-
-// AppGossip is called by luxd -> VM when there is an incoming AppGossip
-// from a peer. An error returned by this function is treated as fatal by the
-// engine.
-func (n *network) AppGossip(ctx context.Context, nodeID ids.NodeID, gossipBytes []byte) error {
-	if n.sdkNetwork != nil {
-		// Forward to SDK network which will route to the appropriate handler
-		return n.sdkNetwork.Gossip(ctx, nodeID, gossipBytes)
-	}
-	return nil
-}
-
-// Connected adds the given nodeID to the peer list so that it can receive messages
-func (n *network) Connected(ctx context.Context, nodeID ids.NodeID, nodeVersion *version.Application) error {
-	log.Info("network.Connected: adding new peer", "nodeID", nodeID, "nodeVersion", nodeVersion, "self", n.self)
-
-	n.lock.Lock()
-	defer n.lock.Unlock()
-
-	if n.closed.Get() {
-		log.Info("network.Connected: network is closed, ignoring", "nodeID", nodeID)
-		return nil
-	}
-
-	if nodeID != n.self {
-		// The legacy peer tracker doesn't expect to be connected to itself.
-		// Convert consensus version to node version
-		if nodeVersion != nil {
-			// Create a node version from the consensus version
-			nv := &version.Application{
-				Name:  nodeVersion.Name,
-				Major: nodeVersion.Major,
-				Minor: nodeVersion.Minor,
-				Patch: nodeVersion.Patch,
-			}
-			log.Info("network.Connected: calling peers.Connected", "nodeID", nodeID, "nv", nv)
-			n.peers.Connected(nodeID, nv)
-			log.Info("network.Connected: peer added, peerCount", "count", n.peers.Size())
-		} else {
-			log.Info("network.Connected: nodeVersion is nil, NOT adding peer", "nodeID", nodeID)
-		}
-	} else {
-		log.Info("network.Connected: nodeID == self, NOT adding peer", "nodeID", nodeID)
-	}
-
-	// Version conversion handled for sdkNetwork compatibility
-	// For now, sdkNetwork is nil so this won't be called
-	if n.sdkNetwork != nil {
-		// Would need to convert nodeVersion to node's version.Application type here
-		return nil
-	}
-	return nil
-}
-
-// Disconnected removes given [nodeID] from the peer list
-func (n *network) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
-	log.Debug("disconnecting peer", "nodeID", nodeID)
-	n.lock.Lock()
-	defer n.lock.Unlock()
-
-	if n.closed.Get() {
-		return nil
-	}
-
-	if nodeID != n.self {
-		// The legacy peer tracker doesn't expect to be connected to itself.
-		n.peers.Disconnected(nodeID)
-	}
-
-	if n.sdkNetwork != nil {
-		// TODO: Convert nodeID types when sdkNetwork is implemented
-		return nil
-	}
-	return nil
-}
-
-// Shutdown disconnects all peers
-func (n *network) Shutdown() {
-	n.lock.Lock()
-	defer n.lock.Unlock()
-
-	// clean up any pending requests
-	for requestID, handler := range n.outstandingRequestHandlers {
-		_ = handler.OnFailure() // make sure all waiting threads are unblocked
-		delete(n.outstandingRequestHandlers, requestID)
-	}
-
-	n.peers = NewPeerTracker() // reset peers
-	n.closed.Set(true)         // mark network as closed
-}
-
-func (n *network) SetRequestHandler(handler message.RequestHandler) {
-	n.lock.Lock()
-	defer n.lock.Unlock()
-
-	n.appRequestHandler = handler
-}
-
-func (n *network) Size() uint32 {
-	n.lock.RLock()
-	defer n.lock.RUnlock()
-
-	return uint32(n.peers.Size())
-}
-
-func (n *network) TrackBandwidth(nodeID ids.NodeID, bandwidth float64) {
-	n.lock.Lock()
-	defer n.lock.Unlock()
-
-	n.peers.TrackBandwidth(nodeID, bandwidth)
-}
-
-// SendSyncedAppRequestAny synchronously sends request to an arbitrary peer with a
-// node version greater than or equal to minVersion.
-// Returns response bytes, the ID of the chosen peer, and ErrRequestFailed if
-// the request should be retried.
-func (n *network) SendSyncedAppRequestAny(ctx context.Context, minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error) {
-	waitingHandler := newWaitingResponseHandler()
-	nodeID, err := n.SendAppRequestAny(ctx, minVersion, request, waitingHandler)
-	if err != nil {
-		return nil, nodeID, err
-	}
-	response, err := waitingHandler.WaitForResult(ctx)
+	// Try the first available peer
+	nodeID := peers[0]
+	response, err := n.SendSyncedAppRequest(ctx, nodeID, request)
 	return response, nodeID, err
 }
 
-// SendSyncedAppRequest synchronously sends request to the specified nodeID
-// Returns response bytes and ErrRequestFailed if the request should be retried.
-func (n *network) SendSyncedAppRequest(ctx context.Context, nodeID ids.NodeID, request []byte) ([]byte, error) {
-	waitingHandler := newWaitingResponseHandler()
-	if err := n.SendAppRequest(ctx, nodeID, request, waitingHandler); err != nil {
+// SendSyncedAppRequest sends a request to a specific peer
+func (n *Network) SendSyncedAppRequest(ctx context.Context, nodeID ids.NodeID, request []byte) ([]byte, error) {
+	if n.sender == nil {
+		return nil, ErrNoSender
+	}
+
+	n.closeLock.Lock()
+	if n.closed {
+		n.closeLock.Unlock()
+		return nil, ErrNetworkClosed
+	}
+	n.closeLock.Unlock()
+
+	// Create a channel to receive the response
+	responseChan := make(chan []byte, 1)
+	requestID := n.allocateRequestID(responseChan)
+	defer n.freeRequestID(requestID)
+
+	// Send the request
+	nodeIDs := set.NewSet[ids.NodeID](1)
+	nodeIDs.Add(nodeID)
+	if err := n.sender.SendRequest(ctx, nodeIDs, requestID, request); err != nil {
 		return nil, err
 	}
-	return waitingHandler.WaitForResult(ctx)
+
+	// Wait for response with timeout
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case response, ok := <-responseChan:
+		if !ok {
+			return nil, ErrRequestCancelled
+		}
+		return response, nil
+	}
 }
 
-func (n *network) NewClient(protocol uint64, options ...p2p.ClientOption) *p2p.Client {
-	if n.sdkNetwork != nil {
-		return n.sdkNetwork.NewClient(protocol, options...)
+// Gossip broadcasts a message to all peers
+func (n *Network) Gossip(msg []byte) error {
+	if n.sender == nil {
+		return ErrNoSender
 	}
-	// Return nil when sdkNetwork is not initialized
+
+	if n.Network == nil || n.Network.Peers == nil {
+		return nil // No peers to gossip to
+	}
+
+	peers := n.Network.Peers.Sample(100) // Sample up to 100 peers
+	if len(peers) == 0 {
+		return nil // No peers to gossip to
+	}
+
+	nodeIDs := set.NewSet[ids.NodeID](len(peers))
+	for _, peer := range peers {
+		nodeIDs.Add(peer)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	return n.sender.SendGossip(ctx, p2p.SendConfig{NodeIDs: nodeIDs}, msg)
+}
+
+// TrackBandwidth records bandwidth usage for a peer
+func (n *Network) TrackBandwidth(nodeID ids.NodeID, bandwidth float64) {
+	// TODO: Implement bandwidth tracking metrics
+}
+
+// AppResponse handles an incoming response
+func (n *Network) AppResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, response []byte) error {
+	n.requestsLock.Lock()
+	ch, ok := n.pendingRequests[requestID]
+	n.requestsLock.Unlock()
+
+	if ok {
+		select {
+		case ch <- response:
+		default:
+		}
+	}
 	return nil
 }
 
-func (n *network) AddHandler(protocol uint64, handler p2p.Handler) error {
-	if n.sdkNetwork != nil {
-		return n.sdkNetwork.AddHandler(protocol, handler)
-	}
-	// Return nil when sdkNetwork is not initialized
-	// The handler won't be used since sdkNetwork is nil
-	return nil
+// allocateRequestID allocates a new request ID and registers the response channel
+func (n *Network) allocateRequestID(responseChan chan []byte) uint32 {
+	n.requestsLock.Lock()
+	defer n.requestsLock.Unlock()
+
+	requestID := n.nextRequestID
+	n.nextRequestID++
+	n.pendingRequests[requestID] = responseChan
+	return requestID
 }
 
-// P2PValidators returns the p2p validators
-func (n *network) P2PValidators() interface{} {
-	return n.p2pValidators
-}
-
-// invariant: peer/network must use explicitly even request ids.
-// for this reason, [n.requestID] is initialized as zero and incremented by 2.
-// This is for backwards-compatibility while the SDK router exists with the
-// legacy coreth handlers to avoid a (very) narrow edge case where request ids
-// can overlap, resulting in a dropped timeout.
-func (n *network) nextRequestID() uint32 {
-	next := n.requestIDGen
-	n.requestIDGen += 2
-
-	return next
-}
-
-// IsNetworkRequest checks if the given requestID is a request for this network handler (even-numbered requestIDs)
-// SDK requests are odd-numbered requestIDs
-// (see invariant: https://github.com/luxfi/node/blob/v1.13.0/network/p2p/router.go#L83)
-func IsNetworkRequest(requestID uint32) bool {
-	return requestID%2 == 0
+// freeRequestID frees a request ID
+func (n *Network) freeRequestID(requestID uint32) {
+	n.requestsLock.Lock()
+	defer n.requestsLock.Unlock()
+	delete(n.pendingRequests, requestID)
 }
