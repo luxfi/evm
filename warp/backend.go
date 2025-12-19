@@ -58,7 +58,7 @@ type backend struct {
 	networkID                 uint32
 	sourceChainID             ids.ID
 	db                        database.Database
-	warpSigner                WarpSigner
+	warpSigner                luxWarp.Signer
 	blockClient               BlockClient
 	validatorReader           interfaces.ValidatorReader
 	signatureCache            cache.Cacher[ids.ID, []byte]
@@ -71,7 +71,7 @@ type backend struct {
 func NewBackend(
 	networkID uint32,
 	sourceChainID ids.ID,
-	warpSigner WarpSigner,
+	warpSigner luxWarp.Signer,
 	blockClient BlockClient,
 	validatorReader interfaces.ValidatorReader,
 	db database.Database,
@@ -212,7 +212,7 @@ func (b *backend) signMessage(unsignedMessage *luxWarp.UnsignedMessage) ([]byte,
 		return nil, errors.New("warp signer not configured")
 	}
 
-	sig, err := b.warpSigner.Sign(unsignedMessage.Bytes())
+	sig, err := b.warpSigner.Sign(unsignedMessage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign message: %w", err)
 	}
