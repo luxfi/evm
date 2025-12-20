@@ -2,6 +2,8 @@ module github.com/luxfi/evm
 
 go 1.25.5
 
+exclude github.com/luxfi/geth v1.16.1
+
 require (
 	github.com/VictoriaMetrics/fastcache v1.13.0
 	github.com/btcsuite/btcd/btcutil v1.1.6
