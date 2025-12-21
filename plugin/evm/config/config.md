@@ -1,10 +1,10 @@
-# Subnet-EVM Configuration
+# EVM Configuration
 
-> **Note**: These are the configuration options available in the Subnet-EVM codebase. To set these values, you need to create a configuration file at `~/.luxd/configs/chains/<blockchainID>/config.json`.
+> **Note**: These are the configuration options available in the EVM codebase. To set these values, you need to create a configuration file at `~/.luxd/configs/chains/<blockchainID>/config.json`.
 >
 > For the Luxd node configuration options, see the Luxd Configuration page.
 
-This document describes all configuration options available for Subnet-EVM.
+This document describes all configuration options available for EVM.
 
 ## Example Configuration
 
@@ -37,7 +37,7 @@ Configuration is provided as a JSON object. All fields are optional unless other
 |--------|------|-------------|---------|
 | `eth-apis` | array of strings | List of Ethereum services that should be enabled | `["eth", "eth-filter", "net", "web3", "internal-eth", "internal-blockchain", "internal-transaction"]` |
 
-### Subnet-EVM Specific APIs
+### EVM Specific APIs
 
 | Option | Type | Description | Default |
 |--------|------|-------------|---------|
@@ -267,7 +267,7 @@ Configuration is provided as a JSON object. All fields are optional unless other
 
 ## Gossip Constants
 
-The following constants are defined for transaction gossip behavior and cannot be configured without a custom build of Subnet-EVM:
+The following constants are defined for transaction gossip behavior and cannot be configured without a custom build of EVM:
 
 | Constant | Type | Description | Value |
 |----------|------|-------------|-------|

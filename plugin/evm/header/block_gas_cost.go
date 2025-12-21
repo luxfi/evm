@@ -23,14 +23,14 @@ var (
 
 // BlockGasCost calculates the required block gas cost based on the parent
 // header and the timestamp of the new block.
-// Prior to Subnet-EVM, the returned block gas cost will be nil.
+// Prior to EVM, the returned block gas cost will be nil.
 func BlockGasCost(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
 	parent *types.Header,
 	timestamp uint64,
 ) *big.Int {
-	if !config.IsSubnetEVM(timestamp) {
+	if !config.IsEVM(timestamp) {
 		return nil
 	}
 	step := feeConfig.BlockGasCostStep.Uint64()
@@ -83,14 +83,14 @@ func BlockGasCostWithStep(
 // transactions. The only correctness check performed is that the sum of all
 // tips is >= the required block fee.
 //
-// This function will return nil for all return values prior to SubnetEVM.
+// This function will return nil for all return values prior to EVM.
 func EstimateRequiredTip(
 	config *extras.ChainConfig,
 	header *types.Header,
 ) (*big.Int, error) {
 	extra := customtypes.GetHeaderExtra(header)
 	switch {
-	case !config.IsSubnetEVM(header.Time):
+	case !config.IsEVM(header.Time):
 		return nil, nil
 	case header.BaseFee == nil:
 		return nil, errBaseFeeNil

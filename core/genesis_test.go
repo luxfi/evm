@@ -85,8 +85,8 @@ func TestSetupGenesis(t *testing.T) {
 }
 
 func testSetupGenesis(t *testing.T, scheme string) {
-	preSubnetConfig := params.Copy(params.TestPreSubnetEVMChainConfig)
-	params.GetExtra(preSubnetConfig).SubnetEVMTimestamp = utils.NewUint64(100)
+	preSubnetConfig := params.Copy(params.TestPreEVMChainConfig)
+	params.GetExtra(preSubnetConfig).EVMTimestamp = utils.NewUint64(100)
 	var (
 		customg = Genesis{
 			Config: preSubnetConfig,
@@ -101,7 +101,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 	customghash := customg.ToBlock().Hash()
 
 	rollbackpreSubnetConfig := params.Copy(preSubnetConfig)
-	params.GetExtra(rollbackpreSubnetConfig).SubnetEVMTimestamp = utils.NewUint64(90)
+	params.GetExtra(rollbackpreSubnetConfig).EVMTimestamp = utils.NewUint64(90)
 	oldcustomg.Config = rollbackpreSubnetConfig
 	oldcustomghash := oldcustomg.ToBlock().Hash()
 
@@ -160,8 +160,8 @@ func testSetupGenesis(t *testing.T, scheme string) {
 		{
 			name: "config upgrade preserves stored genesis",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-				// Commit the 'old' genesis block with SubnetEVM transition at 90.
-				// Advance to block #4, past the SubnetEVM transition block of customg.
+				// Commit the 'old' genesis block with EVM transition at 90.
+				// Advance to block #4, past the EVM transition block of customg.
 				tdb := triedb.NewDatabase(db, newDbConfig(t, rawdb.HashScheme))
 				genesis, err := oldcustomg.Commit(db, tdb)
 				if err != nil {

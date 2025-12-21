@@ -3,7 +3,7 @@
 
 //go:build tools
 
-package subnetevm
+package evm
 
 import (
 	_ "github.com/fjl/gencodec"

@@ -10,7 +10,7 @@ import (
 
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/params/extras"
-	"github.com/luxfi/evm/plugin/evm/upgrade/subnetevm"
+	"github.com/luxfi/evm/plugin/evm/upgrade/feewindow"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/types"
 )
@@ -30,11 +30,11 @@ func bigMax(x, y *big.Int) *big.Int {
 	return y
 }
 
-// baseFeeFromWindow should only be called if `timestamp` >= `config.SubnetEVMTimestamp`
+// baseFeeFromWindow should only be called if `timestamp` >= `config.EVMTimestamp`
 func baseFeeFromWindow(config *extras.ChainConfig, feeConfig commontype.FeeConfig, parent *types.Header, timestamp uint64) (*big.Int, error) {
 	// If the current block is the first EIP-1559 block, or it is the genesis block
 	// return the initial slice and initial base fee.
-	if !config.IsSubnetEVM(parent.Time) || parent.Number.Cmp(common.Big0) == 0 {
+	if !config.IsEVM(parent.Time) || parent.Number.Cmp(common.Big0) == 0 {
 		return big.NewInt(feeConfig.MinBaseFee.Int64()), nil
 	}
 
@@ -90,16 +90,16 @@ func baseFeeFromWindow(config *extras.ChainConfig, feeConfig commontype.FeeConfi
 			)
 		}
 
-		// If timeElapsed is greater than [subnetevm.WindowLen], apply the state
+		// If timeElapsed is greater than [feewindow.WindowLen], apply the state
 		// transition to the base fee to account for the interval during which
 		// no blocks were produced.
 		//
-		// We use timeElapsed/[subnetevm.WindowLen], so that the transition is applied
-		// for every [subnetevm.WindowLen] seconds that has elapsed between the parent
+		// We use timeElapsed/[feewindow.WindowLen], so that the transition is applied
+		// for every [feewindow.WindowLen] seconds that has elapsed between the parent
 		// and this block.
 		var (
 			timeElapsed    = timestamp - parent.Time
-			windowsElapsed = timeElapsed / subnetevm.WindowLen
+			windowsElapsed = timeElapsed / feewindow.WindowLen
 		)
 		if windowsElapsed > 1 {
 			bigWindowsElapsed := new(big.Int).SetUint64(windowsElapsed)
@@ -120,25 +120,25 @@ func baseFeeFromWindow(config *extras.ChainConfig, feeConfig commontype.FeeConfi
 // feeWindow takes the previous header and the timestamp of its child block and
 // calculates the expected fee window.
 //
-// feeWindow should only be called if timestamp >= config.SubnetEVMTimestamp
+// feeWindow should only be called if timestamp >= config.EVMTimestamp
 func feeWindow(
 	config *extras.ChainConfig,
 	parent *types.Header,
 	timestamp uint64,
-) (subnetevm.Window, error) {
+) (feewindow.Window, error) {
 	// If the current block is the first EIP-1559 block, or it is the genesis block
 	// return the initial window.
-	if !config.IsSubnetEVM(parent.Time) || parent.Number.Cmp(common.Big0) == 0 {
-		return subnetevm.Window{}, nil
+	if !config.IsEVM(parent.Time) || parent.Number.Cmp(common.Big0) == 0 {
+		return feewindow.Window{}, nil
 	}
 
-	dynamicFeeWindow, err := subnetevm.ParseWindow(parent.Extra)
+	dynamicFeeWindow, err := feewindow.ParseWindow(parent.Extra)
 	if err != nil {
-		return subnetevm.Window{}, err
+		return feewindow.Window{}, err
 	}
 
 	if timestamp < parent.Time {
-		return subnetevm.Window{}, fmt.Errorf("%w: timestamp %d prior to parent timestamp %d",
+		return feewindow.Window{}, fmt.Errorf("%w: timestamp %d prior to parent timestamp %d",
 			errInvalidTimestamp,
 			timestamp,
 			parent.Time,
