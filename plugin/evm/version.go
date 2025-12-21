@@ -9,7 +9,7 @@ var (
 	// GitCommit is set by the build script
 	GitCommit string
 	// Version is the version of Lux EVM (set by build script via ldflags)
-	Version string = "v0.16.9"
+	Version string = "v0.8.12"
 )
 
 func init() {
