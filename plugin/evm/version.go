@@ -8,8 +8,8 @@ import "fmt"
 var (
 	// GitCommit is set by the build script
 	GitCommit string
-	// Version is the version of Lux EVM
-	Version string = "v0.8.2"
+	// Version is the version of Lux EVM (set by build script via ldflags)
+	Version string = "v0.16.9"
 )
 
 func init() {
