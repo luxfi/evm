@@ -1,15 +1,14 @@
-# Subnet EVM Makefile
+# Lux EVM Makefile
 
 # Root directory
 EVM_PATH := $(shell pwd)
 
-# Load constants - these will be set via shell commands
+# Load constants
 GOPATH := $(shell go env GOPATH)
-DEFAULT_PLUGIN_DIR := $(HOME)/.luxd/plugins
-DEFAULT_VM_NAME := evm
+DEFAULT_PLUGIN_DIR := $(HOME)/.lux/plugins
 DEFAULT_VM_ID := srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
 
-# Git commit
+# Git info
 EVM_COMMIT := $(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
 CURRENT_BRANCH := $(shell git describe --tags --exact-match 2>/dev/null || git symbolic-ref -q --short HEAD || git rev-parse --short HEAD || echo "unknown")
 
@@ -25,81 +24,71 @@ STATIC_LD_FLAGS :=
 CGO_ENABLED := 1
 CGO_CFLAGS := -O2 -D__BLST_PORTABLE__
 
-# Binary path
-BINARY_PATH := $(DEFAULT_PLUGIN_DIR)/$(DEFAULT_VM_ID)
-
 # Export necessary variables
 export CGO_ENABLED
 export CGO_CFLAGS
 
-.PHONY: all build clean test lint install setup generate help
+.PHONY: all build build-node clean test lint install setup generate help
 
 # Default target
 all: build
 
 # Help target
 help:
-	@echo "Subnet EVM Makefile"
+	@echo "Lux EVM Makefile"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make [target]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all             Build Subnet EVM (default)"
-	@echo "  build           Build Subnet EVM binary"
-	@echo "  install         Build and install to default plugin directory"
+	@echo "  all             Build EVM plugin (default)"
+	@echo "  build           Build EVM plugin to build/evm"
+	@echo "  build-node      Build standalone evm-node binary"
+	@echo "  install         Install EVM plugin to ~/.luxd/plugins"
 	@echo "  clean           Clean build artifacts"
 	@echo "  test            Run all tests"
 	@echo "  test-unit       Run unit tests"
 	@echo "  test-e2e        Run end-to-end tests"
 	@echo "  lint            Run linters"
-	@echo "  lint-all        Run all lint checks"
 	@echo "  generate        Generate code (mocks, codecs)"
 	@echo "  setup           Setup development environment"
 	@echo "  docker          Build Docker image"
-	@echo "  check-version   Check luxd version"
 	@echo ""
-	@echo "Build options:"
-	@echo "  BINARY_PATH     Set custom binary output path (default: $(BINARY_PATH))"
-	@echo "  STATIC_COMPILATION=1  Enable static compilation"
 
-# Build the Subnet EVM binary
+# Build the EVM plugin
 build: ensure-deps
-	@echo "Building Subnet EVM @ GitCommit: $(EVM_COMMIT)"
-	go build -ldflags "$(LDFLAGS) $(STATIC_LD_FLAGS)" -o bin/$(DEFAULT_VM_ID) ./plugin/*.go
+	@echo "Building Lux EVM @ $(EVM_VERSION) ($(EVM_COMMIT))"
+	@mkdir -p build
+	go build -ldflags "$(LDFLAGS) $(STATIC_LD_FLAGS)" -o build/evm ./plugin/*.go
+	@echo "Built: build/evm"
+
 
 # Ensure dependencies are in place
 ensure-deps:
-	@echo "Checking dependencies..."
 	@if [ ! -f go.sum ]; then \
 		echo "go.sum missing, running go mod download..."; \
 		go mod download; \
 	fi
 
-# Fix dependencies - download missing modules and generate go.sum
+# Fix dependencies
 fix-deps:
 	@echo "Fixing dependencies..."
-	@echo "Downloading modules..."
 	go mod download
 	@echo "Dependencies fixed."
 
-# Build with custom output path
-build-custom:
-	@echo "Building Subnet EVM @ GitCommit: $(EVM_COMMIT) at $(BINARY_PATH)"
-	go build -ldflags "$(LDFLAGS) $(STATIC_LD_FLAGS)" -o "$(BINARY_PATH)" ./plugin/*.go
-
-# Install to default plugin directory
+# Install to default plugin directory (with VM ID)
 install: build
-	@echo "Installing Subnet EVM to $(DEFAULT_PLUGIN_DIR)"
+	@echo "Installing EVM plugin to $(DEFAULT_PLUGIN_DIR)"
 	@mkdir -p $(DEFAULT_PLUGIN_DIR)
-	@cp bin/$(DEFAULT_VM_ID) $(DEFAULT_PLUGIN_DIR)/
+	@cp build/evm $(DEFAULT_PLUGIN_DIR)/$(DEFAULT_VM_ID)
+	@echo "Installed: $(DEFAULT_PLUGIN_DIR)/$(DEFAULT_VM_ID)"
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
+	@rm -rf build/
 	@rm -rf bin/
 	@rm -f $(DEFAULT_PLUGIN_DIR)/$(DEFAULT_VM_ID)
-	@go clean -cache
 
 # Run all tests
 test:
@@ -245,7 +234,7 @@ dev: build
 # Full CI pipeline
 ci: check-go-mod lint-all test coverage
 
-.PHONY: build-custom test-unit test-race test-e2e test-e2e-precompile test-e2e-load test-e2e-warp
+.PHONY: build-all test-unit test-race test-e2e test-e2e-precompile test-e2e-load test-e2e-warp
 .PHONY: bench coverage generate-mocks generate-codec check-generate setup docker docker-test
 .PHONY: check-version install-luxd dev-shell run-local fmt check-go-mod simulator
 .PHONY: antithesis-images test-antithesis dev ci
