@@ -128,22 +128,22 @@ func TestCheckCompatible(t *testing.T) {
 				RewindToBlock: 30,
 			},
 		},
-		// Note: SubnetEVM fork compatibility is checked in extras.CheckCompatible,
+		// Note: EVM fork compatibility is checked in extras.CheckCompatible,
 		// not in the base ChainConfig.CheckCompatible. These tests now expect nil
 		// since the base Ethereum forks are compatible.
 		{
 			stored:        TestChainConfig,
-			new:           TestPreSubnetEVMChainConfig,
+			new:           TestPreEVMChainConfig,
 			headBlock:     0,
 			headTimestamp: 0,
-			wantErr:       nil, // Base ChainConfig doesn't check SubnetEVM forks
+			wantErr:       nil, // Base ChainConfig doesn't check EVM forks
 		},
 		{
 			stored:        TestChainConfig,
-			new:           TestPreSubnetEVMChainConfig,
+			new:           TestPreEVMChainConfig,
 			headBlock:     10,
 			headTimestamp: 100,
-			wantErr:       nil, // Base ChainConfig doesn't check SubnetEVM forks
+			wantErr:       nil, // Base ChainConfig doesn't check EVM forks
 		},
 	}
 
@@ -161,7 +161,7 @@ func TestConfigRules(t *testing.T) {
 		&ChainConfig{},
 		&extras.ChainConfig{
 			NetworkUpgrades: extras.NetworkUpgrades{
-				SubnetEVMTimestamp: utils.NewUint64(500),
+				EVMTimestamp: utils.NewUint64(500),
 			},
 		},
 	)
@@ -170,21 +170,21 @@ func TestConfigRules(t *testing.T) {
 	extra := GetExtra(c)
 
 	var stamp uint64
-	// Test that SubnetEVM is not active at timestamp 0
-	if extra.IsSubnetEVM(stamp) {
-		t.Errorf("expected timestamp %v to not be SubnetEVM", stamp)
+	// Test that EVM is not active at timestamp 0
+	if extra.IsEVM(stamp) {
+		t.Errorf("expected timestamp %v to not be EVM", stamp)
 	}
 
 	stamp = 500
-	// Test that SubnetEVM is active at timestamp 500
-	if !extra.IsSubnetEVM(stamp) {
-		t.Errorf("expected timestamp %v to be SubnetEVM", stamp)
+	// Test that EVM is active at timestamp 500
+	if !extra.IsEVM(stamp) {
+		t.Errorf("expected timestamp %v to be EVM", stamp)
 	}
 
 	stamp = math.MaxInt64
-	// Test that SubnetEVM is active at max timestamp
-	if !extra.IsSubnetEVM(stamp) {
-		t.Errorf("expected timestamp %v to be SubnetEVM", stamp)
+	// Test that EVM is active at max timestamp
+	if !extra.IsEVM(stamp) {
+		t.Errorf("expected timestamp %v to be EVM", stamp)
 	}
 }
 
@@ -300,7 +300,7 @@ func TestExtrasMarshaling(t *testing.T) {
 		FeeConfig:          DefaultFeeConfig,
 		AllowFeeRecipients: false,
 		NetworkUpgrades: extras.NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
+			EVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.NewUint64(0),
 		},
 		GenesisPrecompiles: extras.Precompiles{},
@@ -316,7 +316,7 @@ func TestExtrasMarshaling(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Contains(t, decoded, "feeConfig")
-	require.Contains(t, decoded, "subnetEVMTimestamp")
+	require.Contains(t, decoded, "evmTimestamp")
 	require.Contains(t, decoded, "durangoTimestamp")
 
 	feeConfig := decoded["feeConfig"].(map[string]interface{})
@@ -326,7 +326,7 @@ func TestExtrasMarshaling(t *testing.T) {
 func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 	// Test re-enabled for mainnet deployment
 	// Create ChainConfig with extras
-	// Note: SubnetEVMTimestamp and DurangoTimestamp must be set on ChainConfig
+	// Note: EVMTimestamp and DurangoTimestamp must be set on ChainConfig
 	// to match extras, since they will be populated during unmarshal
 	chainConfig := &ChainConfig{
 		ChainID:             big.NewInt(1),
@@ -339,7 +339,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		SubnetEVMTimestamp:  utils.NewUint64(0),
+		EVMTimestamp:  utils.NewUint64(0),
 		DurangoTimestamp:    utils.NewUint64(0),
 	}
 
@@ -347,7 +347,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 		FeeConfig:          DefaultFeeConfig,
 		AllowFeeRecipients: false,
 		NetworkUpgrades: extras.NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
+			EVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.NewUint64(0),
 		},
 		GenesisPrecompiles: extras.Precompiles{},
@@ -394,7 +394,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 		"istanbulBlock": 0,
 		"muirGlacierBlock": 0,
 		"depositContractAddress": "0x0000000000000000000000000000000000000000",
-		"subnetEVMTimestamp": 0,
+		"evmTimestamp": 0,
 		"durangoTimestamp": 0,
 		"upgrades": {
 			"precompileUpgrades": [

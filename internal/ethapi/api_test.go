@@ -847,8 +847,8 @@ func TestEstimateGas(t *testing.T) {
 func TestCall(t *testing.T) {
 	// Test re-enabled for mainnet deployment
 	// Enable BLOBHASH opcode in Cancun
-	// Use TestPreSubnetEVMChainConfig which doesn't have SubnetEVM at time 0
-	cfg := *params.TestPreSubnetEVMChainConfig
+	// Use TestPreEVMChainConfig which doesn't have EVM at time 0
+	cfg := *params.TestPreEVMChainConfig
 	cfg.ShanghaiTime = utils.NewUint64(0)
 	cfg.CancunTime = utils.NewUint64(0)
 	// Add blob schedule config for Cancun
@@ -1638,7 +1638,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 	}
 
 	for i, tc := range testSuite {
-		resp := RPCMarshalBlock(block, tc.inclTx, tc.fullTx, params.TestSubnetEVMChainConfig)
+		resp := RPCMarshalBlock(block, tc.inclTx, tc.fullTx, params.TestEVMChainConfig)
 		out, err := json.Marshal(resp)
 		if err != nil {
 			t.Errorf("test %d: json marshal error: %v", i, err)
@@ -1911,7 +1911,7 @@ func TestRPCGetBlockOrHeader(t *testing.T) {
 
 func setupReceiptBackend(t *testing.T, genBlocks int) (*testBackend, []common.Hash) {
 	// Use params.TestChainConfig directly - it already has Shanghai/Cancun enabled at epoch 0
-	// Copying the config loses the Extra interface connection needed for SubnetEVM
+	// Copying the config loses the Extra interface connection needed for EVM
 	var (
 		acc1Key, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		acc2Key, _ = crypto.HexToECDSA("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")

@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/luxfi/evm/params/extras"
-	"github.com/luxfi/evm/plugin/evm/upgrade/subnetevm"
+	"github.com/luxfi/evm/plugin/evm/upgrade/feewindow"
 	"github.com/luxfi/geth/core/types"
 )
 
@@ -30,14 +30,14 @@ func ExtraPrefix(
 	header *types.Header,
 ) ([]byte, error) {
 	switch {
-	case config.IsSubnetEVM(header.Time):
+	case config.IsEVM(header.Time):
 		window, err := feeWindow(config, parent, header.Time)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate fee window: %w", err)
 		}
 		return window.Bytes(), nil
 	default:
-		// Prior to SubnetEVM there was no expected extra prefix.
+		// Prior to EVM there was no expected extra prefix.
 		return nil, nil
 	}
 }
@@ -50,7 +50,7 @@ func VerifyExtraPrefix(
 	header *types.Header,
 ) error {
 	switch {
-	case config.IsSubnetEVM(header.Time):
+	case config.IsEVM(header.Time):
 		feeWindow, err := feeWindow(config, parent, header.Time)
 		if err != nil {
 			return fmt.Errorf("calculating expected fee window: %w", err)
@@ -75,20 +75,20 @@ func VerifyExtra(rules extras.LuxRules, extra []byte) error {
 	extraLen := len(extra)
 	switch {
 	case rules.IsDurango:
-		if extraLen < subnetevm.WindowSize {
+		if extraLen < feewindow.WindowSize {
 			return fmt.Errorf(
 				"%w: expected >= %d but got %d",
 				errInvalidExtraLength,
-				subnetevm.WindowSize,
+				feewindow.WindowSize,
 				extraLen,
 			)
 		}
-	case rules.IsSubnetEVM:
-		if extraLen != subnetevm.WindowSize {
+	case rules.IsEVM:
+		if extraLen != feewindow.WindowSize {
 			return fmt.Errorf(
 				"%w: expected %d but got %d",
 				errInvalidExtraLength,
-				subnetevm.WindowSize,
+				feewindow.WindowSize,
 				extraLen,
 			)
 		}
@@ -108,7 +108,7 @@ func VerifyExtra(rules extras.LuxRules, extra []byte) error {
 // PredicateBytesFromExtra returns the predicate result bytes from the header's
 // extra data. If the extra data is not long enough, an empty slice is returned.
 func PredicateBytesFromExtra(extra []byte) []byte {
-	offset := subnetevm.WindowSize
+	offset := feewindow.WindowSize
 	// Prior to Durango, the VM enforces the extra data is smaller than or equal
 	// to `offset`.
 	// After Durango, the VM pre-verifies the extra data past `offset` is valid.
@@ -122,7 +122,7 @@ func PredicateBytesFromExtra(extra []byte) []byte {
 // data. If the extra data is not long enough (i.e., an incomplete header.Extra
 // as built in the miner), it is padded with zeros.
 func SetPredicateBytesInExtra(extra []byte, predicateBytes []byte) []byte {
-	offset := subnetevm.WindowSize
+	offset := feewindow.WindowSize
 	if len(extra) < offset {
 		// pad extra with zeros
 		extra = append(extra, make([]byte, offset-len(extra))...)

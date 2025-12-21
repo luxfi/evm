@@ -9,7 +9,7 @@ import (
 
 	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/plugin/evm/customtypes"
-	"github.com/luxfi/evm/plugin/evm/upgrade/subnetevm"
+	"github.com/luxfi/evm/plugin/evm/upgrade/feewindow"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/core/types"
 	"github.com/stretchr/testify/require"
@@ -31,7 +31,7 @@ func TestExtraPrefix(t *testing.T) {
 	}{
 		{
 			name:     "pre_subnet_evm",
-			upgrades: extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
 			header:   &types.Header{},
 			want:     nil,
 			wantErr:  nil,
@@ -39,7 +39,7 @@ func TestExtraPrefix(t *testing.T) {
 		{
 			name: "subnet_evm_first_block",
 			upgrades: extras.NetworkUpgrades{
-				SubnetEVMTimestamp: utils.NewUint64(1),
+				EVMTimestamp: utils.NewUint64(1),
 			},
 			parent: &types.Header{
 				Number: big.NewInt(1),
@@ -47,33 +47,33 @@ func TestExtraPrefix(t *testing.T) {
 			header: &types.Header{
 				Time: 1,
 			},
-			want: (&subnetevm.Window{}).Bytes(),
+			want: (&feewindow.Window{}).Bytes(),
 		},
 		{
 			name:     "subnet_evm_genesis_block",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
 			header: &types.Header{},
-			want:   (&subnetevm.Window{}).Bytes(),
+			want:   (&feewindow.Window{}).Bytes(),
 		},
 		{
 			name:     "subnet_evm_invalid_fee_window",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
 			},
 			header:  &types.Header{},
-			wantErr: subnetevm.ErrWindowInsufficientLength,
+			wantErr: feewindow.ErrWindowInsufficientLength,
 		},
 		{
 			name:     "subnet_evm_invalid_timestamp",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
 				Time:   1,
-				Extra:  (&subnetevm.Window{}).Bytes(),
+				Extra:  (&feewindow.Window{}).Bytes(),
 			},
 			header: &types.Header{
 				Time: 0,
@@ -82,12 +82,12 @@ func TestExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_normal",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: customtypes.WithHeaderExtra(
 				&types.Header{
 					Number:  big.NewInt(1),
 					GasUsed: targetGas,
-					Extra: (&subnetevm.Window{
+					Extra: (&feewindow.Window{
 						1, 2, 3, 4,
 					}).Bytes(),
 				},
@@ -99,7 +99,7 @@ func TestExtraPrefix(t *testing.T) {
 				Time: 1,
 			},
 			want: func() []byte {
-				window := subnetevm.Window{
+				window := feewindow.Window{
 					1, 2, 3, 4,
 				}
 				window.Add(targetGas)
@@ -132,22 +132,22 @@ func TestVerifyExtraPrefix(t *testing.T) {
 	}{
 		{
 			name:     "pre_subnet_evm",
-			upgrades: extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
 			header:   &types.Header{},
 			wantErr:  nil,
 		},
 		{
 			name:     "subnet_evm_invalid_parent_header",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
 			},
 			header:  &types.Header{},
-			wantErr: subnetevm.ErrWindowInsufficientLength,
+			wantErr: feewindow.ErrWindowInsufficientLength,
 		},
 		{
 			name:     "subnet_evm_invalid_header",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
@@ -156,12 +156,12 @@ func TestVerifyExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_valid",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
 			header: &types.Header{
-				Extra: (&subnetevm.Window{}).Bytes(),
+				Extra: (&feewindow.Window{}).Bytes(),
 			},
 			wantErr: nil,
 		},
@@ -199,25 +199,25 @@ func TestVerifyExtra(t *testing.T) {
 		{
 			name: "subnet_evm_valid",
 			rules: extras.LuxRules{
-				IsSubnetEVM: true,
+				IsEVM: true,
 			},
-			extra:    make([]byte, subnetevm.WindowSize),
+			extra:    make([]byte, feewindow.WindowSize),
 			expected: nil,
 		},
 		{
 			name: "subnet_evm_invalid_less",
 			rules: extras.LuxRules{
-				IsSubnetEVM: true,
+				IsEVM: true,
 			},
-			extra:    make([]byte, subnetevm.WindowSize-1),
+			extra:    make([]byte, feewindow.WindowSize-1),
 			expected: errInvalidExtraLength,
 		},
 		{
 			name: "subnet_evm_invalid_more",
 			rules: extras.LuxRules{
-				IsSubnetEVM: true,
+				IsEVM: true,
 			},
-			extra:    make([]byte, subnetevm.WindowSize+1),
+			extra:    make([]byte, feewindow.WindowSize+1),
 			expected: errInvalidExtraLength,
 		},
 		{
@@ -225,7 +225,7 @@ func TestVerifyExtra(t *testing.T) {
 			rules: extras.LuxRules{
 				IsDurango: true,
 			},
-			extra:    make([]byte, subnetevm.WindowSize),
+			extra:    make([]byte, feewindow.WindowSize),
 			expected: nil,
 		},
 		{
@@ -233,7 +233,7 @@ func TestVerifyExtra(t *testing.T) {
 			rules: extras.LuxRules{
 				IsDurango: true,
 			},
-			extra:    make([]byte, subnetevm.WindowSize+1),
+			extra:    make([]byte, feewindow.WindowSize+1),
 			expected: nil,
 		},
 		{
@@ -241,7 +241,7 @@ func TestVerifyExtra(t *testing.T) {
 			rules: extras.LuxRules{
 				IsDurango: true,
 			},
-			extra:    make([]byte, subnetevm.WindowSize-1),
+			extra:    make([]byte, feewindow.WindowSize-1),
 			expected: errInvalidExtraLength,
 		},
 	}
@@ -266,18 +266,18 @@ func TestPredicateBytesFromExtra(t *testing.T) {
 		},
 		{
 			name:     "too_short",
-			extra:    make([]byte, subnetevm.WindowSize-1),
+			extra:    make([]byte, feewindow.WindowSize-1),
 			expected: nil,
 		},
 		{
 			name:     "empty_predicate",
-			extra:    make([]byte, subnetevm.WindowSize),
+			extra:    make([]byte, feewindow.WindowSize),
 			expected: nil,
 		},
 		{
 			name: "non_empty_predicate",
 			extra: []byte{
-				subnetevm.WindowSize: 5,
+				feewindow.WindowSize: 5,
 			},
 			expected: []byte{5},
 		},
@@ -299,7 +299,7 @@ func TestSetPredicateBytesInExtra(t *testing.T) {
 	}{
 		{
 			name: "empty_extra_predicate",
-			want: make([]byte, subnetevm.WindowSize),
+			want: make([]byte, feewindow.WindowSize),
 		},
 		{
 			name:      "extra_too_short",
@@ -307,17 +307,17 @@ func TestSetPredicateBytesInExtra(t *testing.T) {
 			predicate: []byte{2},
 			want: []byte{
 				0:                    1,
-				subnetevm.WindowSize: 2,
+				feewindow.WindowSize: 2,
 			},
 		},
 		{
 			name: "extra_too_long",
 			extra: []byte{
-				subnetevm.WindowSize: 1,
+				feewindow.WindowSize: 1,
 			},
 			predicate: []byte{2},
 			want: []byte{
-				subnetevm.WindowSize: 2,
+				feewindow.WindowSize: 2,
 			},
 		},
 	}
@@ -341,19 +341,19 @@ func TestPredicateBytesExtra(t *testing.T) {
 			name:                   "empty_extra_predicate",
 			extra:                  nil,
 			predicate:              nil,
-			wantExtraWithPredicate: make([]byte, subnetevm.WindowSize),
+			wantExtraWithPredicate: make([]byte, feewindow.WindowSize),
 			wantPredicateBytes:     nil,
 		},
 		{
 			name: "extra_too_short",
 			extra: []byte{
 				0:                        1,
-				subnetevm.WindowSize - 1: 0,
+				feewindow.WindowSize - 1: 0,
 			},
 			predicate: []byte{2},
 			wantExtraWithPredicate: []byte{
 				0:                    1,
-				subnetevm.WindowSize: 2,
+				feewindow.WindowSize: 2,
 			},
 			wantPredicateBytes: []byte{2},
 		},
