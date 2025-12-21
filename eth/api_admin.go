@@ -35,7 +35,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/luxfi/evm/core"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/rlp"
 )
@@ -90,16 +89,6 @@ func (api *AdminAPI) ExportChain(file string, first *uint64, last *uint64) (bool
 	return true, nil
 }
 
-func hasAllBlocks(chain *core.BlockChain, bs []*types.Block) bool {
-	for _, b := range bs {
-		if !chain.HasBlock(b.Hash(), b.NumberU64()) {
-			return false
-		}
-	}
-
-	return true
-}
-
 // ImportChain imports a blockchain from a local file.
 func (api *AdminAPI) ImportChain(file string) (bool, error) {
 	// Make sure the can access the file to import
@@ -140,11 +129,9 @@ func (api *AdminAPI) ImportChain(file string) (bool, error) {
 			break
 		}
 
-		if hasAllBlocks(api.eth.BlockChain(), blocks) {
-			blocks = blocks[:0]
-			continue
-		}
-		// Import the batch and reset the buffer
+		// Always call InsertChain to ensure full transaction re-execution.
+		// InsertChain -> insertBlock handles ErrKnownBlock and still re-executes
+		// transactions to regenerate state and snapshots properly.
 		if _, err := api.eth.BlockChain().InsertChain(blocks); err != nil {
 			return false, fmt.Errorf("batch %d: failed to insert: %v", batch, err)
 		}
