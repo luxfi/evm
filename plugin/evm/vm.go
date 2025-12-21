@@ -32,7 +32,7 @@ import (
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/eth"
 	"github.com/luxfi/evm/eth/ethconfig"
-	subnetevmprometheus "github.com/luxfi/evm/metrics/prometheus"
+	evmprometheus "github.com/luxfi/evm/metrics/prometheus"
 	"github.com/luxfi/evm/miner"
 	"github.com/luxfi/evm/network"
 	"github.com/luxfi/evm/node"
@@ -40,7 +40,7 @@ import (
 	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/plugin/evm/config"
 	gossipHandler "github.com/luxfi/evm/plugin/evm/gossip"
-	subnetevmlog "github.com/luxfi/evm/plugin/evm/log"
+	evmlog "github.com/luxfi/evm/plugin/evm/log"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/plugin/evm/validators"
 	"github.com/luxfi/evm/plugin/evm/validators/interfaces"
@@ -155,8 +155,8 @@ var (
 	errInvalidBlock                  = errors.New("invalid block")
 	errInvalidNonce                  = errors.New("invalid nonce")
 	errUnclesUnsupported             = errors.New("uncles unsupported")
-	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
-	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
+	errNilBaseFeeEVM           = errors.New("nil base fee is invalid after EVM activation")
+	errNilBlockGasCostEVM      = errors.New("nil blockGasCost is invalid after EVM activation")
 	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
 	errInitializingLogger            = errors.New("failed to initialize logger")
 	errShuttingDownVM                = errors.New("shutting down VM")
@@ -258,7 +258,7 @@ type VM struct {
 
 	stateSyncDone chan struct{}
 
-	logger subnetevmlog.Logger
+	logger evmlog.Logger
 	// State sync server and client
 	StateSyncServer
 	StateSyncClient
@@ -397,11 +397,11 @@ func (vm *VM) initializeInternal(
 	// TODO: Integrate with proper logging from consensus package
 	contextLogger := log.New()
 	logWriter := newLoggerWriter(contextLogger)
-	subnetEVMLogger, err := subnetevmlog.InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, logWriter)
+	evmLogger, err := evmlog.InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, logWriter)
 	if err != nil {
 		return fmt.Errorf("%w: %w ", errInitializingLogger, err)
 	}
-	vm.logger = subnetEVMLogger
+	vm.logger = evmLogger
 
 	log.Info("Initializing Subnet EVM VM", "Version", Version, "geth version", params.VersionWithMeta, "Config", vm.config)
 
@@ -689,7 +689,7 @@ func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte,
 
 	// Set the default chain config if not provided
 	if g.Config == nil {
-		g.Config = params.SubnetEVMDefaultChainConfig
+		g.Config = params.EVMDefaultChainConfig
 	}
 
 	// Populate the Lux config extras.
@@ -760,9 +760,9 @@ func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte,
 	if err := json.Unmarshal(genesisBytes, &genesisMap); err == nil {
 		if configData, ok := genesisMap["config"].(map[string]interface{}); ok {
 			// Extract network upgrade timestamps
-			if val, ok := configData["subnetEVMTimestamp"]; ok {
+			if val, ok := configData["evmTimestamp"]; ok {
 				if ts, ok := val.(float64); ok {
-					configExtra.SubnetEVMTimestamp = utils.NewUint64(uint64(ts))
+					configExtra.EVMTimestamp = utils.NewUint64(uint64(ts))
 				}
 			}
 			if val, ok := configData["durangoTimestamp"]; ok {
@@ -877,7 +877,7 @@ func (vm *VM) initializeMetrics() error {
 	// Enable metrics collection using our geth's Enable function
 	metrics.Enable()
 	vm.sdkMetrics = prometheus.NewRegistry()
-	gatherer := subnetevmprometheus.NewGatherer(metrics.DefaultRegistry)
+	gatherer := evmprometheus.NewGatherer(metrics.DefaultRegistry)
 	// Metrics are handled through sdkMetrics parameter
 	_ = gatherer
 
@@ -893,7 +893,7 @@ func (vm *VM) initializeMetrics() error {
 
 func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
 	nodecfg := &node.Config{
-		SubnetEVMVersion:      Version,
+		EVMVersion:      Version,
 		KeyStoreDir:           vm.config.KeystoreDirectory,
 		ExternalSigner:        vm.config.KeystoreExternalSigner,
 		InsecureUnlockAllowed: vm.config.KeystoreInsecureUnlockAllowed,
@@ -1313,7 +1313,7 @@ func (vm *VM) Shutdown(context.Context) error {
 		}
 	}
 	vm.shutdownWg.Wait()
-	log.Info("Subnet-EVM Shutdown completed")
+	log.Info("EVM Shutdown completed")
 	return nil
 }
 

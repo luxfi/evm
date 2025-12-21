@@ -34,7 +34,7 @@ The plugin version is **updated** to 41 and is compatible with Luxd version v1.1
 
 ### Breaking changes
 
-- Removed static API handler and functions: `subnetevm.decodeGenesis`, `subnetevm.buildGenesis`
+- Removed static API handler and functions: `evm.decodeGenesis`, `evm.buildGenesis`
 
 ### Updates
 
@@ -140,7 +140,7 @@ The plugin version is unchanged at 37 and is compatible with Luxd versions v1.11
 
 ### Updates
 
-* Added Standalone DB creation in chain data directory (`~/.luxd/chainData/{chain-ID}/db/`). Subnet-EVM will create seperate databases for chains by default if there is no accepted blocks previously
+* Added Standalone DB creation in chain data directory (`~/.luxd/chainData/{chain-ID}/db/`). EVM will create seperate databases for chains by default if there is no accepted blocks previously
 * Refactored Warp Backend to support new payload types
 * Refactored TrieDB reference root configuration
 * Bumped Luxd dependency to v1.11.12

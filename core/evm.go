@@ -51,8 +51,8 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 	baseFee := header.BaseFee
 	if baseFee == nil && chain != nil && chain.Config() != nil {
 		// If BaseFee is nil, check if EIP-1559 is enabled and set a default
-		if params.GetExtra(chain.Config()).IsSubnetEVM(header.Time) {
-			// SubnetEVM requires base fee
+		if params.GetExtra(chain.Config()).IsEVM(header.Time) {
+			// EVM requires base fee
 			baseFee = new(big.Int).Set(params.GetExtra(chain.Config()).FeeConfig.MinBaseFee)
 		}
 	}

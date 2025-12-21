@@ -94,10 +94,10 @@ type Backend struct {
 //
 // A simulated backend always uses chainID 1337.
 func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config, ethConf *ethconfig.Config)) *Backend {
-	// Use TestSubnetEVMChainConfig which doesn't have Shanghai/Cancun enabled.
+	// Use TestEVMChainConfig which doesn't have Shanghai/Cancun enabled.
 	// This is needed for backward compatibility with legacy contract bytecode
 	// that uses pre-Shanghai opcodes (e.g., SELFDESTRUCT, certain JUMP patterns).
-	chainConfig := params.Copy(params.TestSubnetEVMChainConfig)
+	chainConfig := params.Copy(params.TestEVMChainConfig)
 	chainConfig.ChainID = big.NewInt(1337)
 
 	// Create the default configurations for the outer node shell and the Ethereum
@@ -106,10 +106,10 @@ func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config,
 
 	ethConf := ethconfig.DefaultConfig
 
-	// Initialize the extras with proper defaults for SubnetEVM without Shanghai/Cancun
+	// Initialize the extras with proper defaults for EVM without Shanghai/Cancun
 	extra := &extras.ChainConfig{
 		FeeConfig:       extras.TestFeeConfig, // Use TestFeeConfig with minimal fees for test compatibility
-		NetworkUpgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+		NetworkUpgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 	}
 	params.SetExtra(chainConfig, extra)
 

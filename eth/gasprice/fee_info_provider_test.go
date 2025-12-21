@@ -27,7 +27,7 @@ func makeTestHeader(number int64, parentHash common.Hash, gasUsed uint64) *types
 	if parentHash != (common.Hash{}) {
 		header.ParentHash = parentHash
 	}
-	// Set header extras with BlockGasCost for SubnetEVM compatibility
+	// Set header extras with BlockGasCost for EVM compatibility
 	customtypes.SetHeaderExtra(header, &customtypes.HeaderExtra{
 		BlockGasCost: big.NewInt(0), // Use 0 for test blocks
 	})

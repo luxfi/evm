@@ -48,7 +48,7 @@ For more information about precompiles see [evm precompiles](https://github.com/
 
 Hardhat uses `hardhat.config.js` as the configuration file. You can define tasks, networks, compilers and more in that file. For more information see [here](https://hardhat.org/config/).
 
-In Subnet-EVM, we provide a pre-configured file [hardhat.config.ts](https://github.com/luxfi/evm/blob/master/contracts/hardhat.config.ts).
+In EVM, we provide a pre-configured file [hardhat.config.ts](https://github.com/luxfi/evm/blob/master/contracts/hardhat.config.ts).
 
 The HardHat config file includes a single network configuration: `local`. `local` defaults to using the following values for the RPC URL and the Chain ID:
 
@@ -57,7 +57,7 @@ var local_rpc_uri = process.env.RPC_URI || "http://127.0.0.1:9650/ext/bc/C/rpc";
 var local_chain_id = process.env.CHAIN_ID || 99999;
 ```
 
-You can use this network configuration by providing the environment variables and specifying the `--network` flag, as Subnet-EVM does in its testing suite:
+You can use this network configuration by providing the environment variables and specifying the `--network` flag, as EVM does in its testing suite:
 
 ```bash
 RPC_URI=http://127.0.0.1:9650/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc CHAIN_ID=77777 npx hardhat test --network local
@@ -101,8 +101,8 @@ You can define custom hardhat tasks in [tasks.ts](https://github.com/luxfi/lux-s
 
 ## Tests
 
-Tests are written for a local network which runs a Subnet-EVM Blockchain.
+Tests are written for a local network which runs a EVM Blockchain.
 
 E.g `RPC_URI=http://127.0.0.1:9650/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc CHAIN_ID=77777 npx hardhat test --network local`.
 
-Subnet-EVM must activate any precompiles used in the test in the genesis.
+EVM must activate any precompiles used in the test in the genesis.

@@ -38,7 +38,7 @@ import (
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/params"
 	customheader "github.com/luxfi/evm/plugin/evm/header"
-	"github.com/luxfi/evm/plugin/evm/upgrade/subnetevm"
+	"github.com/luxfi/evm/plugin/evm/upgrade/feewindow"
 	"github.com/luxfi/evm/tests"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
@@ -231,7 +231,7 @@ func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 		BaseFee:  env.ParentBaseFee,
 		GasUsed:  env.ParentGasUsed,
 		GasLimit: env.ParentGasLimit,
-		Extra:    make([]byte, subnetevm.WindowSize), // TODO: consider passing extra through env
+		Extra:    make([]byte, feewindow.WindowSize), // TODO: consider passing extra through env
 	}
 	feeConfig := params.DefaultFeeConfig
 	if env.MinBaseFee != nil {

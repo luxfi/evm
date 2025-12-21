@@ -48,9 +48,9 @@ var (
 )
 
 var (
-	// SubnetEVMDefaultConfig is the default configuration
+	// EVMDefaultConfig is the default configuration
 	// without any network upgrades.
-	SubnetEVMDefaultChainConfig = WithExtra(
+	EVMDefaultChainConfig = WithExtra(
 		&ChainConfig{
 			ChainID: DefaultChainID,
 
@@ -66,7 +66,7 @@ var (
 			BerlinBlock:         big.NewInt(0),
 			LondonBlock:         big.NewInt(0),
 		},
-		extras.SubnetEVMDefaultChainConfig,
+		extras.EVMDefaultChainConfig,
 	)
 
 	TestChainConfig = WithExtra(
@@ -98,7 +98,7 @@ var (
 		extras.TestChainConfig,
 	)
 
-	TestPreSubnetEVMChainConfig = WithExtra(
+	TestPreEVMChainConfig = WithExtra(
 		&ChainConfig{
 			ChainID:             big.NewInt(1337),
 			HomesteadBlock:      big.NewInt(0),
@@ -112,7 +112,7 @@ var (
 			MuirGlacierBlock:    big.NewInt(0),
 			BerlinBlock:         big.NewInt(0),
 			LondonBlock:         big.NewInt(0),
-			// Add Shanghai/Cancun so CheckCompatible test checks SubnetEVM fork, not Shanghai
+			// Add Shanghai/Cancun so CheckCompatible test checks EVM fork, not Shanghai
 			ShanghaiTime: utils.TimeToNewUint64(InitiallyActiveTime),
 			CancunTime:   utils.TimeToNewUint64(InitiallyActiveTime),
 			BlobScheduleConfig: &ethparams.BlobScheduleConfig{
@@ -123,10 +123,10 @@ var (
 				},
 			},
 		},
-		extras.TestPreSubnetEVMChainConfig,
+		extras.TestPreEVMChainConfig,
 	)
 
-	TestSubnetEVMChainConfig = WithExtra(
+	TestEVMChainConfig = WithExtra(
 		&ChainConfig{
 			ChainID:             big.NewInt(1337),
 			HomesteadBlock:      big.NewInt(0),
@@ -141,7 +141,7 @@ var (
 			BerlinBlock:         big.NewInt(0),
 			LondonBlock:         big.NewInt(0),
 		},
-		extras.TestSubnetEVMChainConfig,
+		extras.TestEVMChainConfig,
 	)
 
 	TestDurangoChainConfig = WithExtra(
