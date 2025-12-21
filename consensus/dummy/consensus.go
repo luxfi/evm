@@ -287,10 +287,10 @@ func (eng *DummyEngine) verifyBlockFee(
 		return nil
 	}
 	if baseFee == nil || baseFee.Sign() <= 0 {
-		return fmt.Errorf("invalid base fee (%d) in SubnetEVM", baseFee)
+		return fmt.Errorf("invalid base fee (%d) in EVM", baseFee)
 	}
 	if requiredBlockGasCost == nil || !requiredBlockGasCost.IsUint64() {
-		return fmt.Errorf("invalid block gas cost (%d) in SubnetEVM", requiredBlockGasCost)
+		return fmt.Errorf("invalid block gas cost (%d) in EVM", requiredBlockGasCost)
 	}
 
 	var (
