@@ -7,7 +7,7 @@ set -euo pipefail
 
 # Set the PATHS
 GOPATH="$(go env GOPATH)"
-DEFAULT_PLUGIN_DIR="${HOME}/.luxd/plugins"
+DEFAULT_PLUGIN_DIR="${HOME}/.lux/plugins"
 DEFAULT_VM_NAME="evm"
 DEFAULT_VM_ID="srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
 
