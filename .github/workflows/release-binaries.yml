@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.25.1'
+          go-version: '1.25.5'
       - name: Build
         run: |
           CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" GOOS=linux GOARCH=amd64 go build -v -ldflags "-X github.com/luxfi/evm/plugin/evm.Version=${{ github.ref_name }}" -o evm ./plugin
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.25.1'
+          go-version: '1.25.5'
       - name: Set up arm64 cross compiler
         run: |
           sudo apt-get -y update
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.25.1'
+          go-version: '1.25.5'
       - name: Build
         run: |
           CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" GOOS=darwin GOARCH=amd64 go build -v -ldflags "-X github.com/luxfi/evm/plugin/evm.Version=${{ github.ref_name }}" -o evm ./plugin
@@ -100,7 +100,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.25.1'
+          go-version: '1.25.5'
       - name: Build
         run: |
           CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" GOOS=darwin GOARCH=arm64 go build -v -ldflags "-X github.com/luxfi/evm/plugin/evm.Version=${{ github.ref_name }}" -o evm ./plugin
