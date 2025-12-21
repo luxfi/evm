@@ -247,13 +247,3 @@ func importBlocksFromFileWithCount(chain *core.BlockChain, file string) (int, er
 
 	return totalImported, nil
 }
-
-// hasAllBlocks checks if all blocks in the list are already in the chain
-func hasAllBlocks(chain *core.BlockChain, blocks []*types.Block) bool {
-	for _, block := range blocks {
-		if !chain.HasBlock(block.Hash(), block.NumberU64()) {
-			return false
-		}
-	}
-	return true
-}
