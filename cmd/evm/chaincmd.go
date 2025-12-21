@@ -28,14 +28,14 @@ var (
 	}
 	NamespaceFlag = &cli.StringFlag{
 		Name:     "namespace",
-		Usage:    "SubnetEVM database namespace (hex)",
+		Usage:    "EVM database namespace (hex)",
 		Value:    "337fb73f9bcdac8c31a2d5f7b877ab1e8a2b7f2a1e9bf02a0a0e6c6fd164f1d1", // Zoo mainnet
 		Category: flags.VMCategory,
 	}
 
 	exportCommand = &cli.Command{
 		Name:      "export",
-		Usage:     "Export blockchain from SubnetEVM pebbledb to RLP file",
+		Usage:     "Export blockchain from EVM pebbledb to RLP file",
 		ArgsUsage: "<filename> [<blockNumFirst> <blockNumLast>]",
 		Action:    exportChain,
 		Flags: []cli.Flag{
@@ -169,7 +169,7 @@ func importChain(ctx *cli.Context) error {
 	return nil
 }
 
-// SubnetEVM pebbledb helpers
+// EVM pebbledb helpers
 
 func findTip(db *pebble.DB, ns []byte) (uint64, []byte, error) {
 	val, closer, err := db.Get(append(ns, []byte("AcceptorTipKey")...))

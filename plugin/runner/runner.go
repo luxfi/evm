@@ -16,18 +16,33 @@ import (
 )
 
 func Run(versionStr string) {
+	// Debug logging to file
+	debugLog := func(msg string) {
+		if f, err := os.OpenFile("/tmp/evm_runner.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); err == nil {
+			fmt.Fprintf(f, "[%d] %s\n", os.Getpid(), msg)
+			f.Close()
+		}
+	}
+	debugLog("Run() called with version: " + versionStr)
+
 	printVersion, err := PrintVersion()
 	if err != nil {
+		debugLog("PrintVersion error: " + err.Error())
 		fmt.Printf("couldn't get config: %s", err)
 		os.Exit(1)
 	}
+	debugLog(fmt.Sprintf("printVersion=%v", printVersion))
 	if printVersion && versionStr != "" {
 		fmt.Println(versionStr)
 		os.Exit(0)
 	}
+	debugLog("Setting ulimit")
 	if err := ulimit.Set(ulimit.DefaultFDLimit, log.Root()); err != nil {
+		debugLog("ulimit error: " + err.Error())
 		fmt.Printf("failed to set fd limit correctly due to: %s", err)
 		os.Exit(1)
 	}
+	debugLog("Calling rpcchainvm.Serve")
 	rpcchainvm.Serve(context.Background(), &evm.VM{})
+	debugLog("rpcchainvm.Serve returned")
 }
