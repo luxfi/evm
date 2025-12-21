@@ -1,7 +1,7 @@
 // Copyright (C) 2019-2025, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// export reads blocks from a SubnetEVM pebbledb and exports to RLP
+// export reads blocks from an EVM pebbledb and exports to RLP
 package main
 
 import (
@@ -16,7 +16,7 @@ import (
 	"github.com/luxfi/geth/rlp"
 )
 
-// SubnetEVM namespace for Zoo mainnet
+// EVM namespace for Zoo mainnet
 var zooNamespace, _ = hex.DecodeString("337fb73f9bcdac8c31a2d5f7b877ab1e8a2b7f2a1e9bf02a0a0e6c6fd164f1d1")
 
 func main() {
