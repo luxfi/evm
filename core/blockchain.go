@@ -1119,23 +1119,29 @@ func (bc *BlockChain) LastAcceptedBlock() *types.Block {
 }
 
 // SetLastAcceptedBlockDirect sets the last accepted block directly without
-// going through the acceptor queue. This is used for importing historical blocks
-// where full consensus acceptance is not required.
-// WARNING: This bypasses the normal acceptance flow and should only be used
-// for historical block imports where the blocks have already been validated.
+// validation. This is used during block import to update the canonical chain
+// head after InsertChain has verified and inserted the blocks.
+// IMPORTANT: Only use this for imported blocks that have already been validated.
 func (bc *BlockChain) SetLastAcceptedBlockDirect(block *types.Block) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
 
-	bc.acceptorTipLock.Lock()
+	// Update database pointers
+	batch := bc.db.NewBatch()
+	if err := bc.batchBlockAcceptedIndices(batch, block); err != nil {
+		return err
+	}
+	rawdb.WriteHeadBlockHash(batch, block.Hash())
+	rawdb.WriteHeadHeaderHash(batch, block.Hash())
+	if err := batch.Write(); err != nil {
+		return err
+	}
+
+	// Update in-memory chain markers
 	bc.lastAccepted = block
 	bc.acceptorTip = block
-	bc.acceptorTipLock.Unlock()
-
-	// Update the accepted block indices
-	if err := bc.writeBlockAcceptedIndices(block); err != nil {
-		return fmt.Errorf("failed to write accepted indices: %w", err)
-	}
+	bc.currentBlock.Store(block.Header())
+	bc.hc.SetCurrentHeader(block.Header())
 
 	return nil
 }
