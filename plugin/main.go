@@ -19,6 +19,6 @@ func main() {
 		fmt.Fprintf(f, "[%s] EVM plugin main() started, PID=%d\n", time.Now().Format(time.RFC3339), os.Getpid())
 		f.Close()
 	}
-	versionString := fmt.Sprintf("Subnet-EVM/%s [Luxd=%s, rpcchainvm=%d]", evm.Version, version.Current, version.RPCChainVMProtocol)
+	versionString := fmt.Sprintf("Lux-EVM/%s [node=%s, rpcchainvm=%d]", evm.Version, version.Current, version.RPCChainVMProtocol)
 	runner.Run(versionString)
 }
