@@ -11,8 +11,8 @@ import (
 
 var (
 	// ID this VM should be referenced by
-	IDStr = "subnetevm"
-	ID    = ids.ID{'s', 'u', 'b', 'n', 'e', 't', 'e', 'v', 'm'}
+	IDStr = "evm"
+	ID    = ids.ID{'e', 'v', 'm'}
 
 	_ vms.Factory = (*Factory)(nil)
 )

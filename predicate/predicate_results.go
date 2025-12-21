@@ -9,7 +9,7 @@ import (
 
 	"github.com/luxfi/codec"
 	"github.com/luxfi/codec/linearcodec"
-	"github.com/luxfi/evm/plugin/evm/upgrade/subnetevm"
+	"github.com/luxfi/evm/plugin/evm/upgrade/feewindow"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/units"
 	"github.com/luxfi/utils/wrappers"
@@ -126,10 +126,10 @@ func (r *Results) String() string {
 // Returns nil if there are no predicate results (extra data <= WindowSize).
 func ParseResultsFromHeaderExtra(extra []byte) (*Results, error) {
 	// Check if extra data has predicate results beyond the window
-	if len(extra) <= subnetevm.WindowSize {
+	if len(extra) <= feewindow.WindowSize {
 		return nil, nil
 	}
 
-	predicateBytes := extra[subnetevm.WindowSize:]
+	predicateBytes := extra[feewindow.WindowSize:]
 	return ParseResults(predicateBytes)
 }
