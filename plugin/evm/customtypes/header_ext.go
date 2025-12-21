@@ -60,7 +60,7 @@ func WithHeaderExtra(h *ethtypes.Header, extra *HeaderExtra) *ethtypes.Header {
 	return h
 }
 
-// HeaderExtra is a struct that contains extra fields used by Subnet-EVM
+// HeaderExtra is a struct that contains extra fields used by EVM
 // in the block header.
 // This type uses [HeaderSerializable] to encode and decode the extra fields
 // along with the upstream type for compatibility with existing network blocks.
@@ -222,7 +222,7 @@ type HeaderSerializable struct {
 	// BaseFee was added by EIP-1559 and is ignored in legacy headers.
 	BaseFee *big.Int `json:"baseFeePerGas" rlp:"optional"`
 
-	// BlockGasCost was added by SubnetEVM and is ignored in legacy
+	// BlockGasCost was added by EVM and is ignored in legacy
 	// headers.
 	BlockGasCost *big.Int `json:"blockGasCost" rlp:"optional"`
 
@@ -239,11 +239,11 @@ type HeaderSerializable struct {
 	RequestsHash *common.Hash `json:"requestsHash" rlp:"optional"`
 
 	// ExtDataHash was added by Lux for cross-chain data and is ignored in legacy headers.
-	// Placed at end for RLP backward compatibility with existing subnet-evm blocks.
+	// Placed at end for RLP backward compatibility with existing evm blocks.
 	ExtDataHash *common.Hash `json:"extDataHash" rlp:"optional"`
 
 	// ExtDataGasUsed was added by Lux for cross-chain gas accounting and is ignored in legacy headers.
-	// Placed at end for RLP backward compatibility with existing subnet-evm blocks.
+	// Placed at end for RLP backward compatibility with existing evm blocks.
 	ExtDataGasUsed *big.Int `json:"extDataGasUsed" rlp:"optional"`
 }
 

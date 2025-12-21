@@ -164,11 +164,11 @@ func GetChainConfig(forkString string) (baseConfig *params.ChainConfig, eips []i
 	// NOTE: this is added to support mapping geth fork names to
 	// evm fork names.
 	forkAliases := map[string]string{
-		"Berlin":       "Pre-SubnetEVM",
-		"London":       "SubnetEVM",
-		"ArrowGlacier": "SubnetEVM",
-		"GrayGlacier":  "SubnetEVM",
-		"Merge":        "SubnetEVM",
+		"Berlin":       "Pre-EVM",
+		"London":       "EVM",
+		"ArrowGlacier": "EVM",
+		"GrayGlacier":  "EVM",
+		"Merge":        "EVM",
 	}
 	if alias, ok := forkAliases[baseName]; ok {
 		baseName = alias
@@ -268,7 +268,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	state = MakePreState(rawdb.NewMemoryDatabase(), t.json.Pre, snapshotter, scheme)
 
 	var baseFee *big.Int
-	if params.GetExtra(config).IsSubnetEVM(0) {
+	if params.GetExtra(config).IsEVM(0) {
 		baseFee = t.json.Env.BaseFee
 		if baseFee == nil {
 			// Retesteth uses `0x10` for genesis baseFee. Therefore, it defaults to

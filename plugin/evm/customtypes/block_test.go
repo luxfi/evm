@@ -293,13 +293,13 @@ func makeBenchBlock() *types.Block {
 	return types.NewBlock(header, body, receipts, blocktest.NewHasher())
 }
 
-// TestSubnetEVMBlockEncoding tests block creation with SubnetEVM extras (BlockGasCost).
-// Note: We use dynamic block creation instead of hardcoded RLP because the SubnetEVM
+// TestEVMBlockEncoding tests block creation with EVM extras (BlockGasCost).
+// Note: We use dynamic block creation instead of hardcoded RLP because the EVM
 // header format (with BlockGasCost) is not compatible with geth's header format.
-func TestSubnetEVMBlockEncoding(t *testing.T) {
+func TestEVMBlockEncoding(t *testing.T) {
 	t.Parallel()
 
-	// Create a header with SubnetEVM extras
+	// Create a header with EVM extras
 	header := &types.Header{
 		ParentHash:  common.HexToHash("0x83cafc574e1f51ba9dc0568fc617a08ea2429fb384059c972f13b19fa1c8dd55"),
 		UncleHash:   common.HexToHash("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347"),

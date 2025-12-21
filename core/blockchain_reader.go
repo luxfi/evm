@@ -362,13 +362,13 @@ func (bc *BlockChain) SubscribeAcceptedTransactionEvent(ch chan<- NewTxsEvent) e
 }
 
 // GetFeeConfigAt returns the fee configuration and the last changed block number at [parent].
-// If Subnet-EVM is not activated, returns default fee config and nil block number.
+// If EVM is not activated, returns default fee config and nil block number.
 // If FeeManager is activated at [parent], returns the fee config in the precompile contract state.
 // Otherwise returns the fee config in the chain config.
 // Assumes that a valid configuration is stored when the precompile is activated.
 func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	config := params.GetExtra(bc.Config())
-	if !config.IsSubnetEVM(parent.Time) {
+	if !config.IsEVM(parent.Time) {
 		return params.DefaultFeeConfig, nil, nil
 	}
 	if !config.IsPrecompileEnabled(feemanager.ContractAddress, parent.Time) {
@@ -405,7 +405,7 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 // If fee recipients are allowed, returns true in the second return value.
 func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
 	configExtra := params.GetExtra(bc.Config())
-	if !configExtra.IsSubnetEVM(parent.Time) {
+	if !configExtra.IsEVM(parent.Time) {
 		return constants.BlackholeAddr, false, nil
 	}
 
