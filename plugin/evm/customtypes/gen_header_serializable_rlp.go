@@ -46,7 +46,9 @@ func (obj *HeaderSerializable) EncodeRLP(_w io.Writer) error {
 	_tmp4 := obj.ExcessBlobGas != nil
 	_tmp5 := obj.ParentBeaconRoot != nil
 	_tmp6 := obj.RequestsHash != nil
-	if _tmp1 || _tmp2 || _tmp3 || _tmp4 || _tmp5 || _tmp6 {
+	_tmp7 := obj.ExtDataHash != nil
+	_tmp8 := obj.ExtDataGasUsed != nil
+	if _tmp1 || _tmp2 || _tmp3 || _tmp4 || _tmp5 || _tmp6 || _tmp7 || _tmp8 {
 		if obj.BaseFee == nil {
 			_, _ = w.Write(rlp.EmptyString)
 		} else {
@@ -56,7 +58,7 @@ func (obj *HeaderSerializable) EncodeRLP(_w io.Writer) error {
 			w.WriteBigInt(obj.BaseFee)
 		}
 	}
-	if _tmp2 || _tmp3 || _tmp4 || _tmp5 || _tmp6 {
+	if _tmp2 || _tmp3 || _tmp4 || _tmp5 || _tmp6 || _tmp7 || _tmp8 {
 		if obj.BlockGasCost == nil {
 			_, _ = w.Write(rlp.EmptyString)
 		} else {
@@ -66,32 +68,49 @@ func (obj *HeaderSerializable) EncodeRLP(_w io.Writer) error {
 			w.WriteBigInt(obj.BlockGasCost)
 		}
 	}
-	if _tmp3 || _tmp4 || _tmp5 || _tmp6 {
+	if _tmp3 || _tmp4 || _tmp5 || _tmp6 || _tmp7 || _tmp8 {
 		if obj.BlobGasUsed == nil {
 			_, _ = w.Write([]byte{0x80})
 		} else {
 			w.WriteUint64((*obj.BlobGasUsed))
 		}
 	}
-	if _tmp4 || _tmp5 || _tmp6 {
+	if _tmp4 || _tmp5 || _tmp6 || _tmp7 || _tmp8 {
 		if obj.ExcessBlobGas == nil {
 			_, _ = w.Write([]byte{0x80})
 		} else {
 			w.WriteUint64((*obj.ExcessBlobGas))
 		}
 	}
-	if _tmp5 || _tmp6 {
+	if _tmp5 || _tmp6 || _tmp7 || _tmp8 {
 		if obj.ParentBeaconRoot == nil {
 			_, _ = w.Write([]byte{0x80})
 		} else {
 			w.WriteBytes(obj.ParentBeaconRoot[:])
 		}
 	}
-	if _tmp6 {
+	if _tmp6 || _tmp7 || _tmp8 {
 		if obj.RequestsHash == nil {
 			_, _ = w.Write([]byte{0x80})
 		} else {
 			w.WriteBytes(obj.RequestsHash[:])
+		}
+	}
+	if _tmp7 || _tmp8 {
+		if obj.ExtDataHash == nil {
+			_, _ = w.Write([]byte{0x80})
+		} else {
+			w.WriteBytes(obj.ExtDataHash[:])
+		}
+	}
+	if _tmp8 {
+		if obj.ExtDataGasUsed == nil {
+			_, _ = w.Write(rlp.EmptyString)
+		} else {
+			if obj.ExtDataGasUsed.Sign() == -1 {
+				return rlp.ErrNegativeBigInt
+			}
+			w.WriteBigInt(obj.ExtDataGasUsed)
 		}
 	}
 	w.ListEnd(_tmp0)

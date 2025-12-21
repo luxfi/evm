@@ -326,6 +326,8 @@ func TestExtrasMarshaling(t *testing.T) {
 func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 	// Test re-enabled for mainnet deployment
 	// Create ChainConfig with extras
+	// Note: SubnetEVMTimestamp and DurangoTimestamp must be set on ChainConfig
+	// to match extras, since they will be populated during unmarshal
 	chainConfig := &ChainConfig{
 		ChainID:             big.NewInt(1),
 		HomesteadBlock:      big.NewInt(0),
@@ -337,6 +339,8 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
+		SubnetEVMTimestamp:  utils.NewUint64(0),
+		DurangoTimestamp:    utils.NewUint64(0),
 	}
 
 	extraConfig := &extras.ChainConfig{

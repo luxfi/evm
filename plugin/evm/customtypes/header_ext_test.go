@@ -111,7 +111,11 @@ func TestHeaderWithNonZeroFields(t *testing.T) {
 	t.Parallel()
 
 	header, extra := headerWithNonZeroFields()
-	t.Run("Header", func(t *testing.T) { allFieldsSet(t, header, "extra") })
+	// Ignore internal fields that are not meant to be set on newly created headers:
+	// - extra: stored separately via HeaderExtra
+	// - rawRLP: only set when decoding historic blocks with preserved RLP
+	// - rlpFormat: internal tracking field for encoding format
+	t.Run("Header", func(t *testing.T) { allFieldsSet(t, header, "extra", "rawRLP", "rlpFormat") })
 	t.Run("HeaderExtra", func(t *testing.T) { allFieldsSet(t, extra) })
 }
 
@@ -145,9 +149,13 @@ func headerWithNonZeroFields() (*Header, *HeaderExtra) {
 		ExcessBlobGas:    ptrTo(uint64(19)),
 		ParentBeaconRoot: &common.Hash{20},
 		RequestsHash:     &common.Hash{21},
+		// Lux-specific fields
+		ExtDataHash:    &common.Hash{22},
+		ExtDataGasUsed: big.NewInt(23),
+		BlockGasCost:   big.NewInt(24),
 	}
 	extra := &HeaderExtra{
-		BlockGasCost: big.NewInt(21),
+		BlockGasCost: big.NewInt(24),
 	}
 	return WithHeaderExtra(header, extra), extra
 }
