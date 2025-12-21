@@ -60,6 +60,7 @@ const (
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
 	defaultDBType               = "pebbledb"
 	defaultValidatorAPIEnabled  = true
+	defaultAdminAPIEnabled      = true
 
 	// RPC batch limits
 	defaultBatchRequestLimit    = 1000
@@ -328,6 +329,7 @@ func (c *Config) SetDefaults(txPoolConfig TxPoolConfig) {
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
 	c.DatabaseType = defaultDBType
 	c.ValidatorsAPIEnabled = defaultValidatorAPIEnabled
+	c.AdminAPIEnabled = defaultAdminAPIEnabled
 	c.HistoricalProofQueryWindow = defaultHistoricalProofQueryWindow
 	c.StateHistory = defaultStateHistory
 
