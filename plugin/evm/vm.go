@@ -1528,6 +1528,8 @@ func newHandler(name string, service interface{}) (http.Handler, error) {
 
 // CreateHandlers makes new http handlers that can handle API calls
 func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
+	log.Info("CreateHandlers called", "chainID", vm.chainConfig.ChainID, "adminAPIEnabled", vm.config.AdminAPIEnabled)
+
 	handler := rpc.NewServer(vm.config.APIMaxDuration.Duration)
 	if vm.config.BatchRequestLimit > 0 && vm.config.BatchResponseMaxSize > 0 {
 		handler.SetBatchLimits(int(vm.config.BatchRequestLimit), int(vm.config.BatchResponseMaxSize))
@@ -1537,27 +1539,38 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	}
 
 	enabledAPIs := vm.config.EthAPIs()
+	log.Info("CreateHandlers attaching eth service", "enabledAPIs", enabledAPIs)
 	if err := attachEthService(handler, vm.eth.APIs(), enabledAPIs); err != nil {
+		log.Error("CreateHandlers failed to attach eth service", "error", err)
 		return nil, err
 	}
+	log.Info("CreateHandlers eth service attached successfully")
 
 	apis := make(map[string]http.Handler)
+	log.Info("CreateHandlers checking admin API", "adminAPIEnabled", vm.config.AdminAPIEnabled)
 	if vm.config.AdminAPIEnabled {
+		log.Info("CreateHandlers creating admin API handler")
 		adminAPI, err := newHandler("admin", NewAdminService(vm, os.ExpandEnv(fmt.Sprintf("%s_subnet_evm_performance_%s", vm.config.AdminAPIDir, vm.chainAlias))))
 		if err != nil {
+			log.Error("CreateHandlers failed to create admin API handler", "error", err)
 			return nil, fmt.Errorf("failed to register service for admin API due to %w", err)
 		}
 		apis[adminEndpoint] = adminAPI
 		enabledAPIs = append(enabledAPIs, "evm-admin")
+		log.Info("CreateHandlers admin API handler created successfully")
 	}
 
+	log.Info("CreateHandlers checking validators API", "validatorsAPIEnabled", vm.config.ValidatorsAPIEnabled)
 	if vm.config.ValidatorsAPIEnabled {
+		log.Info("CreateHandlers creating validators API handler")
 		validatorsAPI, err := newHandler("validators", &ValidatorsAPI{vm})
 		if err != nil {
+			log.Error("CreateHandlers failed to create validators API handler", "error", err)
 			return nil, fmt.Errorf("failed to register service for validators API due to %w", err)
 		}
 		apis[validatorsEndpoint] = validatorsAPI
 		enabledAPIs = append(enabledAPIs, "validators")
+		log.Info("CreateHandlers validators API handler created successfully")
 	}
 
 	if vm.config.WarpAPIEnabled {
@@ -1572,9 +1585,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		enabledAPIs = append(enabledAPIs, "warp")
 	}
 
-	log.Info("enabling apis",
-		"apis", enabledAPIs,
-	)
+	log.Info("CreateHandlers adding RPC/WS endpoints", "apis", enabledAPIs)
 	apis[ethRPCEndpoint] = handler
 	apis[ethWSEndpoint] = handler.WebsocketHandlerWithDuration(
 		[]string{"*"},
@@ -1584,6 +1595,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	)
 
 	vm.rpcHandlers = append(vm.rpcHandlers, handler)
+	log.Info("CreateHandlers completed successfully", "numHandlers", len(apis))
 	return apis, nil
 }
 

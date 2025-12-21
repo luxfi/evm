@@ -153,6 +153,9 @@ func (h *HeaderSerializable) updateFromEth(eth *ethtypes.Header) {
 	h.MixDigest = eth.MixDigest
 	h.Nonce = eth.Nonce
 	h.BaseFee = eth.BaseFee
+	h.ExtDataHash = eth.ExtDataHash
+	h.ExtDataGasUsed = eth.ExtDataGasUsed
+	h.BlockGasCost = eth.BlockGasCost
 	h.BlobGasUsed = eth.BlobGasUsed
 	h.ExcessBlobGas = eth.ExcessBlobGas
 	h.ParentBeaconRoot = eth.ParentBeaconRoot
@@ -176,6 +179,9 @@ func (h *HeaderSerializable) updateToEth(eth *ethtypes.Header) {
 	eth.MixDigest = h.MixDigest
 	eth.Nonce = h.Nonce
 	eth.BaseFee = h.BaseFee
+	eth.ExtDataHash = h.ExtDataHash
+	eth.ExtDataGasUsed = h.ExtDataGasUsed
+	eth.BlockGasCost = h.BlockGasCost
 	eth.BlobGasUsed = h.BlobGasUsed
 	eth.ExcessBlobGas = h.ExcessBlobGas
 	eth.ParentBeaconRoot = h.ParentBeaconRoot
@@ -231,21 +237,30 @@ type HeaderSerializable struct {
 
 	// RequestsHash was added by EIP-7685 and is ignored in legacy headers.
 	RequestsHash *common.Hash `json:"requestsHash" rlp:"optional"`
+
+	// ExtDataHash was added by Lux for cross-chain data and is ignored in legacy headers.
+	// Placed at end for RLP backward compatibility with existing subnet-evm blocks.
+	ExtDataHash *common.Hash `json:"extDataHash" rlp:"optional"`
+
+	// ExtDataGasUsed was added by Lux for cross-chain gas accounting and is ignored in legacy headers.
+	// Placed at end for RLP backward compatibility with existing subnet-evm blocks.
+	ExtDataGasUsed *big.Int `json:"extDataGasUsed" rlp:"optional"`
 }
 
 // field type overrides for gencodec
 type headerMarshaling struct {
-	Difficulty    *hexutil.Big
-	Number        *hexutil.Big
-	GasLimit      hexutil.Uint64
-	GasUsed       hexutil.Uint64
-	Time          hexutil.Uint64
-	Extra         hexutil.Bytes
-	BaseFee       *hexutil.Big
-	BlockGasCost  *hexutil.Big
-	Hash          common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
-	BlobGasUsed   *hexutil.Uint64
-	ExcessBlobGas *hexutil.Uint64
+	Difficulty     *hexutil.Big
+	Number         *hexutil.Big
+	GasLimit       hexutil.Uint64
+	GasUsed        hexutil.Uint64
+	Time           hexutil.Uint64
+	Extra          hexutil.Bytes
+	BaseFee        *hexutil.Big
+	ExtDataGasUsed *hexutil.Big
+	BlockGasCost   *hexutil.Big
+	Hash           common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
+	BlobGasUsed    *hexutil.Uint64
+	ExcessBlobGas  *hexutil.Uint64
 }
 
 // Hash returns the block hash of the header, which is simply the keccak256 hash of its
