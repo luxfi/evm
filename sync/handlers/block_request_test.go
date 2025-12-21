@@ -17,7 +17,6 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/units"
@@ -90,9 +89,9 @@ func executeBlockRequestTest(t testing.TB, test blockRequestTest, blocks []*type
 	assert.Len(t, response.Blocks, test.expectedBlocks)
 
 	for _, blockBytes := range response.Blocks {
-		block := new(types.Block)
-		if err := rlp.DecodeBytes(blockBytes, block); err != nil {
-			t.Fatal("could not parse block", err)
+		block, err := types.DecodeBlock(blockBytes)
+		if err != nil {
+			t.Fatal("could not parse block header", err)
 		}
 		assert.GreaterOrEqual(t, test.startBlockIndex, 0)
 		assert.Equal(t, blocks[test.startBlockIndex].Hash(), block.Hash())
@@ -102,15 +101,15 @@ func executeBlockRequestTest(t testing.TB, test blockRequestTest, blocks []*type
 }
 
 func TestBlockRequestHandler(t *testing.T) {
-	// Use TestDurangoChainConfig which doesn't activate Shanghai/Cancun to avoid withdrawals requirement
+	// Use TestSubnetEVMChainConfig which doesn't activate Shanghai/Cancun to avoid RLP format mismatch
 	var gspec = &core.Genesis{
-		Config: params.TestDurangoChainConfig,
+		Config: params.TestSubnetEVMChainConfig,
 	}
 	memdb := rawdb.NewMemoryDatabase()
 	tdb := triedb.NewDatabase(memdb, nil)
 	genesis := gspec.MustCommit(memdb, tdb)
 	engine := dummy.NewETHFaker()
-	blocks, _, err := core.GenerateChain(params.TestDurangoChainConfig, genesis, engine, memdb, 96, 0, func(i int, b *core.BlockGen) {})
+	blocks, _, err := core.GenerateChain(params.TestSubnetEVMChainConfig, genesis, engine, memdb, 96, 0, func(i int, b *core.BlockGen) {})
 	if err != nil {
 		t.Fatal("unexpected error when generating test blockchain", err)
 	}
@@ -215,14 +214,15 @@ func TestBlockRequestHandlerLargeBlocks(t *testing.T) {
 }
 
 func TestBlockRequestHandlerCtxExpires(t *testing.T) {
+	// Use TestSubnetEVMChainConfig which doesn't activate Shanghai/Cancun to avoid RLP format mismatch
 	var gspec = &core.Genesis{
-		Config: params.TestDurangoChainConfig,
+		Config: params.TestSubnetEVMChainConfig,
 	}
 	memdb := rawdb.NewMemoryDatabase()
 	tdb := triedb.NewDatabase(memdb, nil)
 	genesis := gspec.MustCommit(memdb, tdb)
 	engine := dummy.NewETHFaker()
-	blocks, _, err := core.GenerateChain(params.TestDurangoChainConfig, genesis, engine, memdb, 11, 0, func(i int, b *core.BlockGen) {})
+	blocks, _, err := core.GenerateChain(params.TestSubnetEVMChainConfig, genesis, engine, memdb, 11, 0, func(i int, b *core.BlockGen) {})
 	if err != nil {
 		t.Fatal("unexpected error when generating test blockchain", err)
 	}
@@ -273,9 +273,9 @@ func TestBlockRequestHandlerCtxExpires(t *testing.T) {
 	assert.Len(t, response.Blocks, cancelAfterNumRequests)
 
 	for i, blockBytes := range response.Blocks {
-		block := new(types.Block)
-		if err := rlp.DecodeBytes(blockBytes, block); err != nil {
-			t.Fatal("could not parse block", err)
+		block, err := types.DecodeBlock(blockBytes)
+		if err != nil {
+			t.Fatal("could not parse block header", err)
 		}
 		assert.Equal(t, blocks[len(blocks)-i-1].Hash(), block.Hash())
 	}
