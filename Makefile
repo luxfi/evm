@@ -14,10 +14,13 @@ EVM_COMMIT := $(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
 CURRENT_BRANCH := $(shell git describe --tags --exact-match 2>/dev/null || git symbolic-ref -q --short HEAD || git rev-parse --short HEAD || echo "unknown")
 
 # Lux version from go.mod
-LUX_VERSION := $(shell go list -m github.com/luxfi/luxd 2>/dev/null | awk '{print $$2}')
+LUX_VERSION := $(shell go list -m github.com/luxfi/node 2>/dev/null | awk '{print $$2}')
+
+# EVM version from git
+EVM_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
 # Build flags
-LDFLAGS := -X github.com/luxfi/evm/plugin/evm.GitCommit=$(EVM_COMMIT)
+LDFLAGS := -X github.com/luxfi/evm/plugin/evm.GitCommit=$(EVM_COMMIT) -X github.com/luxfi/evm/plugin/evm.Version=$(EVM_VERSION)
 STATIC_LD_FLAGS :=
 CGO_ENABLED := 1
 CGO_CFLAGS := -O2 -D__BLST_PORTABLE__
