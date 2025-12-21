@@ -133,7 +133,7 @@ func (b *BlockGen) addTx(bc ChainContext, vmConfig vm.Config, tx *types.Transact
 	blockContext := NewEVMBlockContext(b.header, bc, &b.header.Coinbase)
 	// If BaseFee is still nil, set it from the chain config
 	if blockContext.BaseFee == nil && b.cm.config != nil {
-		if params.GetExtra(b.cm.config).IsSubnetEVM(b.header.Time) {
+		if params.GetExtra(b.cm.config).IsEVM(b.header.Time) {
 			blockContext.BaseFee = new(big.Int).Set(params.GetExtra(b.cm.config).FeeConfig.MinBaseFee)
 		}
 	}
@@ -404,7 +404,7 @@ func (cm *chainMaker) makeHeader(parent *types.Block, gap uint64, state *state.S
 	if err != nil {
 		panic(err)
 	}
-	// BaseFee is nil when neither London nor SubnetEVM forks are active.
+	// BaseFee is nil when neither London nor EVM forks are active.
 	// This is the correct behavior - pre-EIP1559 blocks should have no base fee.
 
 	header := &types.Header{

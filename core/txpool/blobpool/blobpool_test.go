@@ -50,7 +50,7 @@ import (
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/plugin/evm/header"
 	"github.com/luxfi/evm/plugin/evm/upgrade/legacy"
-	"github.com/luxfi/evm/plugin/evm/upgrade/subnetevm"
+	"github.com/luxfi/evm/plugin/evm/upgrade/feewindow"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/consensus/misc/eip4844"
 	"github.com/luxfi/geth/core/rawdb"
@@ -79,9 +79,9 @@ func init() {
 	params.GetExtra(testChainConfig).FeeConfig = commontype.ValidTestFeeConfig
 	params.GetExtra(testChainConfig).FeeConfig.MinBaseFee = new(big.Int).SetUint64(1)
 
-	// Set SubnetEVMTimestamp to enable base fee calculation
-	params.GetExtra(testChainConfig).SubnetEVMTimestamp = new(uint64)
-	*params.GetExtra(testChainConfig).SubnetEVMTimestamp = 0
+	// Set EVMTimestamp to enable base fee calculation
+	params.GetExtra(testChainConfig).EVMTimestamp = new(uint64)
+	*params.GetExtra(testChainConfig).EVMTimestamp = 0
 
 	testChainConfig.CancunTime = new(uint64)
 	*testChainConfig.CancunTime = uint64(time.Now().Unix())
@@ -136,7 +136,7 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 			GasLimit: gasLimit,
 			GasUsed:  0,
 			BaseFee:  mid,
-			Extra:    make([]byte, subnetevm.WindowSize),
+			Extra:    make([]byte, feewindow.WindowSize),
 		}
 		config := params.GetExtra(bc.config)
 		baseFee, err := header.BaseFee(
@@ -184,7 +184,7 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 		GasLimit:      gasLimit,
 		BaseFee:       baseFee,
 		ExcessBlobGas: &excessBlobGas,
-		Extra:         make([]byte, subnetevm.WindowSize),
+		Extra:         make([]byte, feewindow.WindowSize),
 	}
 }
 

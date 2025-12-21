@@ -1,7 +1,7 @@
 # LLM.md - Lux EVM Module
 
 ## Project Overview
-Lux EVM (formerly Subnet-EVM) is the Ethereum Virtual Machine implementation for Lux subnets. This module provides EVM compatibility for the Lux network.
+Lux EVM (formerly EVM) is the Ethereum Virtual Machine implementation for Lux subnets. This module provides EVM compatibility for the Lux network.
 
 ## CRITICAL VERSION REQUIREMENTS
 **ALWAYS use these Lux-specific versions:**
@@ -151,7 +151,7 @@ go test ./...   # Will work after build issues are resolved
 - Tests will pass after build issues are resolved
 
 ## Important Notes
-- This module is actively being migrated from subnet-evm
+- This module is actively being migrated from evm
 - Maintains backwards compatibility with existing Lux subnets
 - Uses single validator POA for development (k=1 consensus)
 - Major refactoring needed to reconcile ID type differences between packages
@@ -246,7 +246,7 @@ Successfully implemented and verified readonly database access for legacy Pebble
 - **Size**: 7.1GB (751 files)
 - **Blockchain ID**: `dnmzhuf6poM6PUNQCe7MWWfBdTJEnddhHRNXz2x7H6qSmyBEJ`
 - **Chain ID**: 96369
-- **Purpose**: Legacy subnet-evm data for regenesis export
+- **Purpose**: Legacy evm data for regenesis export
 
 ### Correct Migration Approach
 
@@ -558,11 +558,11 @@ This analysis examines the deployment process for Zoo and SPC subnets, identifyi
 
 ### 1. Root Cause: Zoo RPC 404
 
-**Diagnosis:** The subnet RPC endpoint returns 404 because the SubnetEVM plugin is not properly initialized or the blockchain is not registered with the node.
+**Diagnosis:** The subnet RPC endpoint returns 404 because the EVM plugin is not properly initialized or the blockchain is not registered with the node.
 
 **Key Findings:**
 
-1. **Plugin Registration**: SubnetEVM must be registered as a plugin with the node. The C-Chain uses `cchainvm` which is built into the node, but Zoo/SPC require the external `evm` plugin.
+1. **Plugin Registration**: EVM must be registered as a plugin with the node. The C-Chain uses `cchainvm` which is built into the node, but Zoo/SPC require the external `evm` plugin.
 
 2. **Blockchain ID Mismatch**: The RPC path uses the blockchain ID (e.g., `ext/bc/<blockchain-id>/rpc`). If the subnet is not tracking the correct blockchain ID, RPC returns 404.
 
@@ -634,7 +634,7 @@ func (bc *BlockChain) HasState(hash common.Hash) bool {
 3. **Continuous state**: C-Chain has been running since network genesis - full state trie exists
 4. **State scheme consistency**: Uses the same state scheme as the node's defaults
 
-**Zoo/SPC (SubnetEVM plugin):**
+**Zoo/SPC (EVM plugin):**
 
 1. **External plugin**: Loaded dynamically, separate initialization path
 2. **Fresh genesis**: Genesis is created from the subnet's genesis.json at deployment time
@@ -652,7 +652,7 @@ bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
 // - bc.triedb: the trie database
 
 // For C-Chain: triedb already has the state from continuous operation
-// For SubnetEVM: triedb only has genesis state from fresh Commit()
+// For EVM: triedb only has genesis state from fresh Commit()
 ```
 
 ---
@@ -783,7 +783,7 @@ cat > /tmp/zoo-genesis.json << 'EOF'
 {
   "config": {
     "chainId": 200200,
-    "subnetEVMTimestamp": 0,
+    "evmTimestamp": 0,
     "durangoTimestamp": 0,
     "feeConfig": {
       "gasLimit": 12000000,

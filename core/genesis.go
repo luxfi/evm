@@ -359,7 +359,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 	if conf := g.Config; conf != nil {
 		num := new(big.Int).SetUint64(g.Number)
 		confExtra := params.GetExtra(conf)
-		if confExtra.IsSubnetEVM(g.Timestamp) {
+		if confExtra.IsEVM(g.Timestamp) {
 			if g.BaseFee != nil {
 				head.BaseFee = g.BaseFee
 			} else {

@@ -1,17 +1,17 @@
 ---
-title: Subnet-EVM API
+title: EVM API
 ---
 
-[Subnet-EVM](https://github.com/luxfi/evm) APIs are identical to
+[EVM](https://github.com/luxfi/evm) APIs are identical to
 [Coreth](https://build.lux.network/docs/api-reference/c-chain/api) C-Chain APIs, except Lux Specific APIs
-starting with `lux`. Subnet-EVM also supports standard Ethereum APIs as well. For more
+starting with `lux`. EVM also supports standard Ethereum APIs as well. For more
 information about Coreth APIs see [GitHub](https://github.com/luxfi/coreth).
 
-Subnet-EVM has some additional APIs that are not available in Coreth.
+EVM has some additional APIs that are not available in Coreth.
 
 ## `eth_feeConfig`
 
-Subnet-EVM comes with an API request for getting fee config at a specific block. You can use this
+EVM comes with an API request for getting fee config at a specific block. You can use this
 API to check your activated fee config.
 
 **Signature:**
@@ -110,7 +110,7 @@ curl -X POST --data '{
     "petersburgBlock": 0,
     "istanbulBlock": 0,
     "muirGlacierBlock": 0,
-    "subnetEVMTimestamp": 0,
+    "evmTimestamp": 0,
     "contractDeployerAllowListConfig": {
       "adminAddresses": ["0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc"],
       "blockTimestamp": 0
@@ -238,7 +238,7 @@ curl -X POST --data '{
       "IsCancun": true
     },
     "luxRules": {
-      "IsSubnetEVM": true,
+      "IsEVM": true,
       "IsDurango": true,
       "IsEUpgrade": true
     },
