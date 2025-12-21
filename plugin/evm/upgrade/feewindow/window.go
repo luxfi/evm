@@ -1,8 +1,8 @@
 // Copyright (C) 2019-2025, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// subnetevm defines the dynamic fee window used after subnetevm upgrade.
-package subnetevm
+// feewindow defines the dynamic fee window used by EVM.
+package feewindow
 
 import (
 	"encoding/binary"

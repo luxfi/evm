@@ -60,7 +60,7 @@ func getPrecompileAddress(config precompileconfig.Config) common.Address {
 
 // RulesExtra represents extra EVM rules - part of libevm integration
 type RulesExtra struct {
-	IsSubnetEVM bool
+	IsEVM bool
 	IsDurango   bool
 	IsEtna      bool
 	IsFortuna   bool
@@ -314,7 +314,7 @@ func GetRulesExtra(rules Rules) RulesExtra {
 	if chainConfig == nil {
 		// No context found, return default RulesExtra
 		rulesExtra := RulesExtra{
-			IsSubnetEVM:      true,
+			IsEVM:      true,
 			IsDurango:        true,
 			IsEtna:           true,
 			IsFortuna:        true,
@@ -323,7 +323,7 @@ func GetRulesExtra(rules Rules) RulesExtra {
 			Predicaters:      make(map[common.Address]precompileconfig.Predicater),
 		}
 		rulesExtra.LuxRules = extras.LuxRules{
-			IsSubnetEVM: true,
+			IsEVM: true,
 			IsDurango:   true,
 			IsEtna:      true,
 			IsFortuna:   true,
@@ -338,7 +338,7 @@ func GetRulesExtra(rules Rules) RulesExtra {
 
 	// Build RulesExtra from extras.Rules
 	rulesExtra := RulesExtra{
-		IsSubnetEVM:       extrasRules.IsSubnetEVM,
+		IsEVM:       extrasRules.IsEVM,
 		IsDurango:         extrasRules.IsDurango,
 		IsEtna:            extrasRules.IsEtna,
 		IsFortuna:         extrasRules.IsFortuna,
