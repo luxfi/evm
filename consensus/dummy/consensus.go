@@ -366,7 +366,7 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 	if !utils.BigEqual(blockGasCost, expectedBlockGasCost) {
 		return fmt.Errorf("invalid blockGasCost: have %d, want %d", blockGasCost, expectedBlockGasCost)
 	}
-	if config.IsSubnetEVM(timestamp) {
+	if config.IsEVM(timestamp) {
 		// Verify the block fee was paid.
 		if err := eng.verifyBlockFee(
 			block.BaseFee(),
@@ -403,7 +403,7 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 			header.Time,
 		),
 	}
-	if config.IsSubnetEVM(header.Time) {
+	if config.IsEVM(header.Time) {
 		// Verify that this block covers the block fee.
 		if err := eng.verifyBlockFee(
 			header.BaseFee,

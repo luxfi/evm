@@ -678,7 +678,7 @@ func TestCreateThenDeletePreByzantium(t *testing.T) {
 	t.Skip("Pre-byzantium chain config not supported in Lux EVM (all forks enabled from genesis)")
 	// We want to use pre-byzantium rules where we have intermediate state roots
 	// between transactions.
-	config := *params.TestPreSubnetEVMChainConfig
+	config := *params.TestPreEVMChainConfig
 	config.ByzantiumBlock = nil
 	config.ConstantinopleBlock = nil
 	config.PetersburgBlock = nil

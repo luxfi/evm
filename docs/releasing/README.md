@@ -3,7 +3,7 @@
 ## When to release
 
 - When [Luxd](https://github.com/luxfi/luxd/releases) increases its RPC chain VM protocol version, which you can also check in [its `version/compatibility.json`](https://github.com/luxfi/luxd/blob/master/version/compatibility.json)
-- When Subnet-EVM needs to release a new feature or bug fix.
+- When EVM needs to release a new feature or bug fix.
 
 ## Procedure
 
@@ -173,7 +173,7 @@ Once the tag is created, you need to test it on the Testnet testnet both locally
     git clone git@github.com:luxfi/luxd.git
     ```
 
-6. Checkout correct Luxd version, the version should match the one used in Subnet-EVM `go.mod` file
+6. Checkout correct Luxd version, the version should match the one used in EVM `go.mod` file
 
     ```bash
     cd luxd
