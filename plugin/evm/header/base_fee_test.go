@@ -9,7 +9,7 @@ import (
 
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/params/extras"
-	"github.com/luxfi/evm/plugin/evm/upgrade/subnetevm"
+	"github.com/luxfi/evm/plugin/evm/upgrade/feewindow"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/types"
@@ -40,14 +40,14 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	}{
 		{
 			name:     "pre_subnet_evm",
-			upgrades: extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
 			want:     nil,
 			wantErr:  nil,
 		},
 		{
 			name: "subnet_evm_first_block",
 			upgrades: extras.NetworkUpgrades{
-				SubnetEVMTimestamp: utils.NewUint64(1),
+				EVMTimestamp: utils.NewUint64(1),
 			},
 			parent: &types.Header{
 				Number: big.NewInt(1),
@@ -57,7 +57,7 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:     "subnet_evm_genesis_block",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
@@ -65,31 +65,31 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:     "subnet_evm_invalid_fee_window",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
 			},
-			wantErr: subnetevm.ErrWindowInsufficientLength,
+			wantErr: feewindow.ErrWindowInsufficientLength,
 		},
 		{
 			name:     "subnet_evm_invalid_timestamp",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
 				Time:   1,
-				Extra:  (&subnetevm.Window{}).Bytes(),
+				Extra:  (&feewindow.Window{}).Bytes(),
 			},
 			timestamp: 0,
 			wantErr:   errInvalidTimestamp,
 		},
 		{
 			name:     "subnet_evm_no_change",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number:  big.NewInt(1),
 				GasUsed: feeConfig.TargetGas.Uint64(),
 				Time:    1,
-				Extra:   (&subnetevm.Window{}).Bytes(),
+				Extra:   (&feewindow.Window{}).Bytes(),
 				BaseFee: big.NewInt(feeConfig.MinBaseFee.Int64() + 1),
 			},
 			timestamp: 1,
@@ -97,10 +97,10 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:     "subnet_evm_small_decrease",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number:  big.NewInt(1),
-				Extra:   (&subnetevm.Window{}).Bytes(),
+				Extra:   (&feewindow.Window{}).Bytes(),
 				BaseFee: big.NewInt(maxBaseFee),
 			},
 			timestamp: 1,
@@ -120,13 +120,13 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:     "subnet_evm_large_decrease",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number:  big.NewInt(1),
-				Extra:   (&subnetevm.Window{}).Bytes(),
+				Extra:   (&feewindow.Window{}).Bytes(),
 				BaseFee: big.NewInt(maxBaseFee),
 			},
-			timestamp: 2 * subnetevm.WindowLen,
+			timestamp: 2 * feewindow.WindowLen,
 			want: func() *big.Int {
 				var (
 					gasTarget                  = feeConfig.TargetGas.Int64()
@@ -144,11 +144,11 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:     "subnet_evm_increase",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number:  big.NewInt(1),
 				GasUsed: 2 * feeConfig.TargetGas.Uint64(),
-				Extra:   (&subnetevm.Window{}).Bytes(),
+				Extra:   (&feewindow.Window{}).Bytes(),
 				BaseFee: big.NewInt(feeConfig.MinBaseFee.Int64()),
 			},
 			timestamp: 1,
@@ -168,14 +168,14 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:     "subnet_evm_big_1_not_modified",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number:  big.NewInt(1),
 				GasUsed: 1,
-				Extra:   (&subnetevm.Window{}).Bytes(),
+				Extra:   (&feewindow.Window{}).Bytes(),
 				BaseFee: big.NewInt(1),
 			},
-			timestamp: 2 * subnetevm.WindowLen,
+			timestamp: 2 * feewindow.WindowLen,
 			want:      big.NewInt(feeConfig.MinBaseFee.Int64()),
 		},
 	}
@@ -218,10 +218,10 @@ func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	}{
 		{
 			name:     "activated",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number:  big.NewInt(1),
-				Extra:   (&subnetevm.Window{}).Bytes(),
+				Extra:   (&feewindow.Window{}).Bytes(),
 				BaseFee: new(big.Int).SetUint64(testBaseFee),
 			},
 			timestamp: 1,

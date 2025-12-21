@@ -56,7 +56,7 @@ The Subnet EVM is compatible with almost all Ethereum tooling, including [Remix]
 
 ## Block Format
 
-To support these changes, there have been a number of changes to the SubnetEVM block format compared to what exists on the C-Chain and Ethereum. Here we list the changes to the block format as compared to Ethereum.
+To support these changes, there have been a number of changes to the EVM block format compared to what exists on the C-Chain and Ethereum. Here we list the changes to the block format as compared to Ethereum.
 
 ### Block Header
 
@@ -65,7 +65,7 @@ To support these changes, there have been a number of changes to the SubnetEVM b
 
 ## Create an EVM Subnet on a Local Network
 
-### Clone Subnet-evm
+### Clone EVM
 
 First install Go 1.23.9 or later. Follow the instructions [here](https://go.dev/doc/install). You can verify by running `go version`.
 
@@ -87,12 +87,12 @@ This will clone and checkout to `master` branch.
 
 ### Run Local Network
 
-To run a local network, it is recommended to use the [lux-cli](https://github.com/luxfi/lux-cli#lux-cli) to set up an instance of Subnet-EVM on a local Lux Network.
+To run a local network, it is recommended to use the [lux-cli](https://github.com/luxfi/lux-cli#lux-cli) to set up an instance of EVM on a local Lux Network.
 
 There are two options when using the Lux-CLI:
 
-1. Use an official Subnet-EVM release: <https://docs.lux.network/subnets/build-first-subnet>
-2. Build and deploy a locally built (and optionally modified) version of Subnet-EVM: <https://docs.lux.network/subnets/create-custom-subnet>
+1. Use an official EVM release: <https://docs.lux.network/subnets/build-first-subnet>
+2. Build and deploy a locally built (and optionally modified) version of EVM: <https://docs.lux.network/subnets/create-custom-subnet>
 
 ## Releasing
 

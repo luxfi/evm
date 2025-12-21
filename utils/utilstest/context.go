@@ -14,8 +14,8 @@ import (
 	"github.com/luxfi/ids"
 )
 
-// SubnetEVMTestChainID is a evm specific chain ID for testing
-var SubnetEVMTestChainID = ids.GenerateTestID()
+// EVMTestChainID is a evm specific chain ID for testing
+var EVMTestChainID = ids.GenerateTestID()
 
 // testValidatorState wraps validatorstest.State to implement consensuscontext.ValidatorState
 type testValidatorState struct {
@@ -102,7 +102,7 @@ func NewTestValidatorState() consensuscontext.ValidatorState {
 		},
 		// GetSubnetIDF: func(chainID ids.ID) (ids.ID, error) { // TODO: Fix GetSubnetIDF field
 		// 	// For testing, all chains belong to the primary network
-		// 	if chainID == constants.PlatformChainID || chainID == SubnetEVMTestChainID {
+		// 	if chainID == constants.PlatformChainID || chainID == EVMTestChainID {
 		// 		return constants.PrimaryNetworkID, nil
 		// 	}
 		// 	// Default to primary network for any test chain
@@ -139,7 +139,7 @@ func NewTestValidatorStateFromBase(baseState *validatorstest.State) consensuscon
 // This function ensures that the consensus context has a properly configured validator state
 // that includes the GetValidatorSetF function, which is required by many tests.
 func NewTestConsensusContext(t testing.TB) context.Context {
-	consensusCtx := consensustest.Context(t, SubnetEVMTestChainID)
+	consensusCtx := consensustest.Context(t, EVMTestChainID)
 	// Create a standard context and add the consensus context to it
 	ctx := context.Background()
 	ctx = consensuscontext.WithContext(ctx, consensusCtx)

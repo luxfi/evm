@@ -403,8 +403,8 @@ func (st *StateTransition) preCheck() error {
 				if st.evm.Config.NoBaseFee {
 					// If NoBaseFee is set, skip this check
 					skipCheck = true
-				} else if st.evm.ChainConfig() != nil && params.GetExtra(st.evm.ChainConfig()).IsSubnetEVM(st.evm.Context.Time) {
-					// Set default BaseFee for SubnetEVM
+				} else if st.evm.ChainConfig() != nil && params.GetExtra(st.evm.ChainConfig()).IsEVM(st.evm.Context.Time) {
+					// Set default BaseFee for EVM
 					st.evm.Context.BaseFee = new(big.Int).Set(params.GetExtra(st.evm.ChainConfig()).FeeConfig.MinBaseFee)
 				} else {
 					return fmt.Errorf("BaseFee is nil in EVM context")
@@ -543,7 +543,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	if overflow {
 		return nil, ErrGasUintOverflow
 	}
-	gasRefund := st.refundGas(rulesExtra.IsSubnetEVM)
+	gasRefund := st.refundGas(rulesExtra.IsEVM)
 	fee := new(uint256.Int).SetUint64(st.gasUsed())
 	fee.Mul(fee, price)
 	st.state.AddBalance(st.evm.Context.Coinbase, fee, tracing.BalanceIncreaseRewardTransactionFee)
@@ -556,10 +556,10 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}, nil
 }
 
-func (st *StateTransition) refundGas(subnetEVM bool) uint64 {
+func (st *StateTransition) refundGas(isEVM bool) uint64 {
 	var refund uint64
 	// Inspired by: https://gist.github.com/holiman/460f952716a74eeb9ab358bb1836d821#gistcomment-3642048
-	if !subnetEVM {
+	if !isEVM {
 		// Apply refund counter, capped to half of the used gas.
 		refund = st.gasUsed() / 2
 		if refund > st.state.GetRefund() {

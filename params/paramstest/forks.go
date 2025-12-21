@@ -11,8 +11,8 @@ import (
 
 // ForkToChainConfig maps a fork to a chain config
 var ForkToChainConfig = map[upgradetest.Fork]*params.ChainConfig{
-	upgradetest.ApricotPhase5: params.TestPreSubnetEVMChainConfig,
-	upgradetest.ApricotPhase6: params.TestSubnetEVMChainConfig,
+	upgradetest.ApricotPhase5: params.TestPreEVMChainConfig,
+	upgradetest.ApricotPhase6: params.TestEVMChainConfig,
 	upgradetest.Durango:       params.TestDurangoChainConfig,
 	upgradetest.Etna:          params.TestEtnaChainConfig,
 	upgradetest.Fortuna:       params.TestFortunaChainConfig,
