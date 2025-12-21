@@ -33,6 +33,8 @@ func (h HeaderSerializable) MarshalJSON() ([]byte, error) {
 		MixDigest        common.Hash      `json:"mixHash"`
 		Nonce            types.BlockNonce `json:"nonce"`
 		BaseFee          *hexutil.Big     `json:"baseFeePerGas" rlp:"optional"`
+		ExtDataHash      *common.Hash     `json:"extDataHash" rlp:"optional"`
+		ExtDataGasUsed   *hexutil.Big     `json:"extDataGasUsed" rlp:"optional"`
 		BlockGasCost     *hexutil.Big     `json:"blockGasCost" rlp:"optional"`
 		BlobGasUsed      *hexutil.Uint64  `json:"blobGasUsed" rlp:"optional"`
 		ExcessBlobGas    *hexutil.Uint64  `json:"excessBlobGas" rlp:"optional"`
@@ -57,6 +59,8 @@ func (h HeaderSerializable) MarshalJSON() ([]byte, error) {
 	enc.MixDigest = h.MixDigest
 	enc.Nonce = h.Nonce
 	enc.BaseFee = (*hexutil.Big)(h.BaseFee)
+	enc.ExtDataHash = h.ExtDataHash
+	enc.ExtDataGasUsed = (*hexutil.Big)(h.ExtDataGasUsed)
 	enc.BlockGasCost = (*hexutil.Big)(h.BlockGasCost)
 	enc.BlobGasUsed = (*hexutil.Uint64)(h.BlobGasUsed)
 	enc.ExcessBlobGas = (*hexutil.Uint64)(h.ExcessBlobGas)
@@ -85,6 +89,8 @@ func (h *HeaderSerializable) UnmarshalJSON(input []byte) error {
 		MixDigest        *common.Hash      `json:"mixHash"`
 		Nonce            *types.BlockNonce `json:"nonce"`
 		BaseFee          *hexutil.Big      `json:"baseFeePerGas" rlp:"optional"`
+		ExtDataHash      *common.Hash      `json:"extDataHash" rlp:"optional"`
+		ExtDataGasUsed   *hexutil.Big      `json:"extDataGasUsed" rlp:"optional"`
 		BlockGasCost     *hexutil.Big      `json:"blockGasCost" rlp:"optional"`
 		BlobGasUsed      *hexutil.Uint64   `json:"blobGasUsed" rlp:"optional"`
 		ExcessBlobGas    *hexutil.Uint64   `json:"excessBlobGas" rlp:"optional"`
@@ -155,6 +161,12 @@ func (h *HeaderSerializable) UnmarshalJSON(input []byte) error {
 	}
 	if dec.BaseFee != nil {
 		h.BaseFee = (*big.Int)(dec.BaseFee)
+	}
+	if dec.ExtDataHash != nil {
+		h.ExtDataHash = dec.ExtDataHash
+	}
+	if dec.ExtDataGasUsed != nil {
+		h.ExtDataGasUsed = (*big.Int)(dec.ExtDataGasUsed)
 	}
 	if dec.BlockGasCost != nil {
 		h.BlockGasCost = (*big.Int)(dec.BlockGasCost)
