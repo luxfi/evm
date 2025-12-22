@@ -196,7 +196,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 // ValidatorOutputGetter is an optional interface that can be implemented
 // by validator states to provide full validator output including public keys
 type ValidatorOutputGetter interface {
-	GetValidatorSetWithOutput(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error)
+	GetValidatorSetWithOutput(ctx context.Context, height uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error)
 }
 
 // VerifyPredicate returns whether the predicate described by [predicateBytes] passes verification.
@@ -227,37 +227,36 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	sourceChainID := warpMsg.UnsignedMessage.SourceChainID
 
 	// Get network ID from validator state for the source chain
-	sourceSubnetID, err := validatorState.GetNetworkID(sourceChainID)
+	sourceNetworkID, err := validatorState.GetNetworkID(sourceChainID)
 	if err != nil {
-		return fmt.Errorf("failed to get subnet ID for source chain: %w", err)
+		return fmt.Errorf("failed to get network ID for source chain: %w", err)
 	}
 
-	// Get the receiving subnet ID (the subnet this VM is running on)
-	// Use the EVM consensus package's GetSubnetID which matches how vm.ctx is set up
-	receivingSubnetID := evmconsensus.GetSubnetID(predicateContext.ConsensusCtx)
+	// Get the receiving chain ID (the chain this VM is running on)
+	receivingChainID := evmconsensus.GetChainID(predicateContext.ConsensusCtx)
 
-	// Determine which subnet's validators to use
+	// Determine which chain's validators to use
 	// The logic is:
-	// 1. For subnet sources (sourceSubnetID != Empty): Use source subnet's validators
-	// 2. For P-Chain sources: Use receiving subnet's validators (P-Chain exempt)
+	// 1. For non-primary network sources (sourceNetworkID != Empty): Use source chain's validators
+	// 2. For P-Chain sources: Use receiving chain's validators (P-Chain exempt)
 	// 3. For other primary network sources (e.g., C-Chain):
 	//    - With RequirePrimaryNetworkSigners=true: Use primary network's validators
-	//    - With RequirePrimaryNetworkSigners=false: Use receiving subnet's validators
-	var requestedSubnetID ids.ID
-	if sourceSubnetID != ids.Empty && sourceSubnetID != constants.PrimaryNetworkID {
-		// Source is from a subnet - use that subnet's validators
-		requestedSubnetID = sourceSubnetID
+	//    - With RequirePrimaryNetworkSigners=false: Use receiving chain's validators
+	var requestedChainID ids.ID
+	if sourceNetworkID != ids.Empty && sourceNetworkID != constants.PrimaryNetworkID {
+		// Source is from a non-primary network - use that chain's validators
+		requestedChainID = sourceChainID
 	} else if sourceChainID == constants.PlatformChainID {
-		// P-Chain source - always use receiving subnet's validators
-		requestedSubnetID = receivingSubnetID
+		// P-Chain source - always use receiving chain's validators
+		requestedChainID = receivingChainID
 	} else if c.RequirePrimaryNetworkSigners {
 		// Other primary network source with RequirePrimaryNetworkSigners
 		// Use primary network validators
-		requestedSubnetID = constants.PrimaryNetworkID
+		requestedChainID = constants.PrimaryNetworkID
 	} else {
 		// Other primary network source without RequirePrimaryNetworkSigners
-		// Use receiving subnet's validators
-		requestedSubnetID = receivingSubnetID
+		// Use receiving chain's validators
+		requestedChainID = receivingChainID
 	}
 
 	pChainHeight := predicateContext.ProposerVMBlockCtx.PChainHeight
@@ -269,7 +268,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	// Check if the validator state supports getting full output with public keys
 	if outputGetter, ok := validatorState.(ValidatorOutputGetter); ok {
 		// Use the full validator output which includes public keys
-		vdrOutputs, err := outputGetter.GetValidatorSetWithOutput(predicateContext.ConsensusCtx, pChainHeight, requestedSubnetID)
+		vdrOutputs, err := outputGetter.GetValidatorSetWithOutput(predicateContext.ConsensusCtx, pChainHeight, requestedChainID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", errCannotRetrieveValidatorSet, err)
 		}
@@ -298,7 +297,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 		}
 	} else {
 		// Fallback: get weights only (signature verification will fail without public keys)
-		vdrWeights, err := validatorState.GetValidatorSet(pChainHeight, requestedSubnetID)
+		vdrWeights, err := validatorState.GetValidatorSet(pChainHeight, requestedChainID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", errCannotRetrieveValidatorSet, err)
 		}
