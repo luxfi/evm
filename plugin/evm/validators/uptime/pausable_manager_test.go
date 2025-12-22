@@ -346,9 +346,9 @@ func addTime(clk *mockable.Clock, duration time.Duration) time.Time {
 
 func checkUptime(t *testing.T, up interfaces.PausableManager, nodeID ids.NodeID, expectedUptime time.Duration, expectedLastUpdate time.Time) {
 	t.Helper()
-	// Use a default subnet ID for testing
-	subnetID := ids.GenerateTestID()
-	uptime, totalUptime, err := up.CalculateUptime(nodeID, subnetID)
+	// Use a default chain ID for testing
+	chainID := ids.GenerateTestID()
+	uptime, totalUptime, err := up.CalculateUptime(nodeID, chainID)
 	require.NoError(t, err)
 	// Compare the duration directly, not Unix timestamps
 	require.Equal(t, expectedUptime, uptime)
