@@ -24,7 +24,7 @@ import (
 	"github.com/luxfi/evm/utils/utilstest"
 	"github.com/luxfi/ids"
 	agoUtils "github.com/luxfi/node/utils"
-	luxWarp "github.com/luxfi/warp"
+	"github.com/luxfi/warp"
 	"github.com/luxfi/warp/payload"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +39,7 @@ var (
 	sourceNetworkID = ids.GenerateTestID()
 
 	// valid unsigned warp message used throughout testing
-	unsignedMsg *luxWarp.UnsignedMessage
+	unsignedMsg *warp.UnsignedMessage
 	// valid addressed payload
 	addressedPayload      *payload.AddressedCall
 	addressedPayloadBytes []byte
@@ -86,7 +86,7 @@ func init() {
 		panic(err)
 	}
 	addressedPayloadBytes = addressedPayload.Bytes()
-	unsignedMsg, err = luxWarp.NewUnsignedMessage(constants.UnitTestID, sourceChainID, addressedPayload.Bytes())
+	unsignedMsg, err = warp.NewUnsignedMessage(constants.UnitTestID, sourceChainID, addressedPayload.Bytes())
 	if err != nil {
 		panic(err)
 	}
@@ -103,7 +103,7 @@ func init() {
 type testValidator struct {
 	nodeID   ids.NodeID
 	sk       bls.Signer
-	vdr      *luxWarp.Validator
+	vdr      *warp.Validator
 	cryptoPK *bls.PublicKey // Cached crypto/bls public key for consensus validation
 }
 
@@ -132,7 +132,7 @@ func newTestValidator() *testValidator {
 		nodeID:   nodeID,
 		sk:       sk,
 		cryptoPK: cryptoPK,
-		vdr: &luxWarp.Validator{
+		vdr: &warp.Validator{
 			PublicKey:      cryptoPK, // warp now uses crypto/bls directly
 			PublicKeyBytes: cryptoPKBytes,
 			Weight:         3,
@@ -143,16 +143,16 @@ func newTestValidator() *testValidator {
 
 // createWarpMessage constructs a signed warp message using the global variable [unsignedMsg]
 // and the first [numKeys] signatures from [blsSignatures]
-func createWarpMessage(numKeys int) *luxWarp.Message {
+func createWarpMessage(numKeys int) *warp.Message {
 	aggregateSignature, err := bls.AggregateSignatures(blsSignatures[0:numKeys])
 	if err != nil {
 		panic(err)
 	}
-	bitSet := luxWarp.NewBitSet()
+	bitSet := warp.NewBitSet()
 	for i := 0; i < numKeys; i++ {
 		bitSet.Add(i)
 	}
-	warpSignature := &luxWarp.BitSetSignature{
+	warpSignature := &warp.BitSetSignature{
 		Signers: bitSet,
 	}
 	copy(warpSignature.Signature[:], bls.SignatureToBytes(aggregateSignature))
@@ -160,7 +160,7 @@ func createWarpMessage(numKeys int) *luxWarp.Message {
 	// Create a simplified Message structure for testing
 	// Since the warp package has interface serialization issues,
 	// we'll create a mock message that contains the necessary data
-	warpMsg := &luxWarp.Message{
+	warpMsg := &warp.Message{
 		UnsignedMessage: unsignedMsg,
 		Signature:       warpSignature,
 	}
@@ -297,7 +297,7 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 	cChainID := ids.GenerateTestID()
 	addressedCall, err := payload.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
 	require.NoError(err)
-	unsignedMsg, err := luxWarp.NewUnsignedMessage(constants.UnitTestID, cChainID, addressedCall.Bytes())
+	unsignedMsg, err := warp.NewUnsignedMessage(constants.UnitTestID, cChainID, addressedCall.Bytes())
 	require.NoError(err)
 
 	getValidatorsOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
@@ -316,15 +316,15 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 	}
 	aggregateSignature, err := bls.AggregateSignatures(blsSignatures)
 	require.NoError(err)
-	bitSet := luxWarp.NewBitSet()
+	bitSet := warp.NewBitSet()
 	for i := 0; i < numKeys; i++ {
 		bitSet.Add(i)
 	}
-	warpSignature := &luxWarp.BitSetSignature{
+	warpSignature := &warp.BitSetSignature{
 		Signers: bitSet,
 	}
 	copy(warpSignature.Signature[:], bls.SignatureToBytes(aggregateSignature))
-	warpMsg := &luxWarp.Message{
+	warpMsg := &warp.Message{
 		UnsignedMessage: unsignedMsg,
 		Signature:       warpSignature,
 	}
@@ -452,18 +452,18 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	})
 	aggregateSignature, err := bls.AggregateSignatures(blsSignatures[0:numKeys])
 	require.NoError(t, err)
-	bitSet := luxWarp.NewBitSet()
+	bitSet := warp.NewBitSet()
 	for i := 0; i < numKeys; i++ {
 		bitSet.Add(i)
 	}
-	warpSignature := &luxWarp.BitSetSignature{
+	warpSignature := &warp.BitSetSignature{
 		Signers: bitSet,
 	}
 	copy(warpSignature.Signature[:], bls.SignatureToBytes(aggregateSignature))
 	// Create an unsigned message with an invalid addressed payload
-	unsignedMsg, err := luxWarp.NewUnsignedMessage(constants.UnitTestID, sourceChainID, []byte{1, 2, 3})
+	unsignedMsg, err := warp.NewUnsignedMessage(constants.UnitTestID, sourceChainID, []byte{1, 2, 3})
 	require.NoError(t, err)
-	warpMsg := &luxWarp.Message{
+	warpMsg := &warp.Message{
 		UnsignedMessage: unsignedMsg,
 		Signature:       warpSignature,
 	}
@@ -489,16 +489,16 @@ func TestInvalidAddressedPayload(t *testing.T) {
 func TestInvalidBitSet(t *testing.T) {
 	addressedCall, err := payload.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
 	require.NoError(t, err)
-	unsignedMsg, err := luxWarp.NewUnsignedMessage(
+	unsignedMsg, err := warp.NewUnsignedMessage(
 		constants.UnitTestID,
 		sourceChainID,
 		addressedCall.Bytes(),
 	)
 	require.NoError(t, err)
 
-	msg := &luxWarp.Message{
+	msg := &warp.Message{
 		UnsignedMessage: unsignedMsg,
-		Signature: &luxWarp.BitSetSignature{
+		Signature: &warp.BitSetSignature{
 			Signers:   make([]byte, 1),
 			Signature: [bls.SignatureLen]byte{},
 		},
