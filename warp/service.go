@@ -67,16 +67,16 @@ func (a *API) GetBlockSignature(ctx context.Context, blockID ids.ID) (hexutil.By
 }
 
 // GetMessageAggregateSignature fetches the aggregate signature for the requested [messageID]
-func (a *API) GetMessageAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64, subnetIDStr string) (signedMessageBytes hexutil.Bytes, err error) {
+func (a *API) GetMessageAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64, chainIDStr string) (signedMessageBytes hexutil.Bytes, err error) {
 	unsignedMessage, err := a.backend.GetMessage(messageID)
 	if err != nil {
 		return nil, err
 	}
-	return a.aggregateSignatures(ctx, unsignedMessage, quorumNum, subnetIDStr)
+	return a.aggregateSignatures(ctx, unsignedMessage, quorumNum, chainIDStr)
 }
 
 // GetBlockAggregateSignature fetches the aggregate signature for the requested [blockID]
-func (a *API) GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, quorumNum uint64, subnetIDStr string) (signedMessageBytes hexutil.Bytes, err error) {
+func (a *API) GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, quorumNum uint64, chainIDStr string) (signedMessageBytes hexutil.Bytes, err error) {
 	blockHashPayload, err := payload.NewHash(blockID[:])
 	if err != nil {
 		return nil, err
@@ -87,17 +87,17 @@ func (a *API) GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, qu
 		return nil, err
 	}
 
-	return a.aggregateSignatures(ctx, unsignedMessage, quorumNum, subnetIDStr)
+	return a.aggregateSignatures(ctx, unsignedMessage, quorumNum, chainIDStr)
 }
 
-func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *luxWarp.UnsignedMessage, quorumNum uint64, netIDStr string) (hexutil.Bytes, error) {
-	netID := consensuscontext.GetNetID(a.chainContext)
-	if len(netIDStr) > 0 {
-		sid, err := ids.FromString(netIDStr)
+func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *luxWarp.UnsignedMessage, quorumNum uint64, chainIDStr string) (hexutil.Bytes, error) {
+	chainID := consensuscontext.GetChainID(a.chainContext)
+	if len(chainIDStr) > 0 {
+		cid, err := ids.FromString(chainIDStr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse netID: %q", netIDStr)
+			return nil, fmt.Errorf("failed to parse chainID: %q", chainIDStr)
 		}
-		netID = sid
+		chainID = cid
 	}
 	validatorState := consensuscontext.GetValidatorState(a.chainContext)
 	pChainHeight, err := validatorState.GetCurrentHeight(ctx)
@@ -115,11 +115,11 @@ func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *luxWarp.
 		return nil, fmt.Errorf("failed to get validator set: %w", err)
 	}
 	if len(validators) == 0 {
-		return nil, fmt.Errorf("%w (NetID: %s, Height: %d)", errNoValidators, netID, pChainHeight)
+		return nil, fmt.Errorf("%w (ChainID: %s, Height: %d)", errNoValidators, chainID, pChainHeight)
 	}
 
 	log.Debug("Fetching signature",
-		"sourceNetID", netID,
+		"sourceChainID", chainID,
 		"height", pChainHeight,
 		"numValidators", len(validators),
 		"totalWeight", totalWeight,

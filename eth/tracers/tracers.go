@@ -41,7 +41,8 @@ type Context = ethtracers.Context
 type Tracer = ethtracers.Tracer
 
 // DefaultDirectory is the collection of tracers bundled by default.
-var DefaultDirectory = ethtracers.DefaultDirectory
+// Note: We reference the pointer to geth's directory so registrations work correctly.
+var DefaultDirectory = &ethtracers.DefaultDirectory
 
 // GetMemoryCopyPadded returns offset + size as a new slice.
 // It zero-pads the slice if it extends beyond memory bounds.

@@ -58,7 +58,7 @@ const (
 	// - state sync time: ~6 hrs.
 	defaultStateSyncMinBlocks   = 300_000
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
-	defaultDBType               = "pebbledb"
+	defaultDBType               = "badgerdb"
 	defaultValidatorAPIEnabled  = true
 	defaultAdminAPIEnabled      = true
 
