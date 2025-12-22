@@ -20,7 +20,7 @@ import (
 	"github.com/luxfi/geth/common/math"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/log"
-	luxwarp "github.com/luxfi/warp"
+	"github.com/luxfi/warp"
 	"github.com/luxfi/warp/payload"
 )
 
@@ -163,7 +163,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("%w: %s", errInvalidPredicateBytes, err)
 	}
-	warpMessage, err := luxwarp.ParseMessage(unpackedPredicateBytes)
+	warpMessage, err := warp.ParseMessage(unpackedPredicateBytes)
 	if err != nil {
 		return 0, fmt.Errorf("%w: %s", errInvalidWarpMsg, err)
 	}
@@ -173,7 +173,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 	}
 
 	// Type assert to BitSetSignature to get number of signers
-	bitSetSig, ok := warpMessage.Signature.(*luxwarp.BitSetSignature)
+	bitSetSig, ok := warpMessage.Signature.(*warp.BitSetSignature)
 	if !ok {
 		return 0, fmt.Errorf("%w: signature is not a BitSetSignature", errCannotGetNumSigners)
 	}
@@ -207,7 +207,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	}
 
 	// Note: PredicateGas should be called before VerifyPredicate, so we should never reach an error case here.
-	warpMsg, err := luxwarp.ParseMessage(unpackedPredicateBytes)
+	warpMsg, err := warp.ParseMessage(unpackedPredicateBytes)
 	if err != nil {
 		return fmt.Errorf("%w: %w", errCannotParseWarpMsg, err)
 	}
@@ -262,7 +262,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	pChainHeight := predicateContext.ProposerVMBlockCtx.PChainHeight
 
 	// Build warp validators - try to get full validator output with public keys
-	var allValidators []*luxwarp.Validator
+	var allValidators []*warp.Validator
 	var totalWeight uint64
 
 	// Check if the validator state supports getting full output with public keys
@@ -273,18 +273,18 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 			return fmt.Errorf("%w: %w", errCannotRetrieveValidatorSet, err)
 		}
 
-		allValidators = make([]*luxwarp.Validator, 0, len(vdrOutputs))
+		allValidators = make([]*warp.Validator, 0, len(vdrOutputs))
 		for nodeID, output := range vdrOutputs {
 			totalWeight += output.Weight
 
-			vdr := &luxwarp.Validator{
+			vdr := &warp.Validator{
 				NodeID: nodeID,
 				Weight: output.Weight,
 			}
 
 			// Parse public key if available
 			if len(output.PublicKey) > 0 {
-				pk, pkErr := luxwarp.ParsePublicKey(output.PublicKey)
+				pk, pkErr := warp.ParsePublicKey(output.PublicKey)
 				if pkErr == nil {
 					vdr.PublicKey = pk
 					vdr.PublicKeyBytes = output.PublicKey
@@ -302,10 +302,10 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 			return fmt.Errorf("%w: %w", errCannotRetrieveValidatorSet, err)
 		}
 
-		allValidators = make([]*luxwarp.Validator, 0, len(vdrWeights))
+		allValidators = make([]*warp.Validator, 0, len(vdrWeights))
 		for nodeID, weight := range vdrWeights {
 			totalWeight += weight
-			vdr := &luxwarp.Validator{
+			vdr := &warp.Validator{
 				NodeID: nodeID,
 				Weight: weight,
 			}
@@ -317,7 +317,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	// validators share the same public key. We sum their weights and keep one
 	// representative validator per unique public key.
 	pkeyToWeight := make(map[string]uint64)
-	pkeyToValidator := make(map[string]*luxwarp.Validator)
+	pkeyToValidator := make(map[string]*warp.Validator)
 
 	for _, vdr := range allValidators {
 		if len(vdr.PublicKeyBytes) == 0 {
@@ -331,10 +331,10 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	}
 
 	// Build canonical validator set with aggregated weights
-	canonicalValidators := make([]*luxwarp.Validator, 0, len(pkeyToValidator))
+	canonicalValidators := make([]*warp.Validator, 0, len(pkeyToValidator))
 	for pkStr, vdr := range pkeyToValidator {
 		// Create a copy with aggregated weight
-		aggregatedVdr := &luxwarp.Validator{
+		aggregatedVdr := &warp.Validator{
 			NodeID:         vdr.NodeID,
 			Weight:         pkeyToWeight[pkStr],
 			PublicKey:      vdr.PublicKey,
@@ -350,7 +350,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	})
 
 	// Get signature
-	bitSetSig, ok := warpMsg.Signature.(*luxwarp.BitSetSignature)
+	bitSetSig, ok := warpMsg.Signature.(*warp.BitSetSignature)
 	if !ok {
 		return fmt.Errorf("%w: signature is not a BitSetSignature", errCannotGetNumSigners)
 	}
@@ -362,7 +362,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	}
 
 	// Verify quorum
-	err = luxwarp.VerifyWeight(signedWeight, totalWeight, quorumNumerator, WarpQuorumDenominator)
+	err = warp.VerifyWeight(signedWeight, totalWeight, quorumNumerator, WarpQuorumDenominator)
 	if err != nil {
 		return fmt.Errorf("%w: %w", errFailedVerification, err)
 	}
