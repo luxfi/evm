@@ -78,14 +78,6 @@ func NewTestValidatorState() consensuscontext.ValidatorState {
 		GetCurrentHeightF: func(context.Context) (uint64, error) {
 			return 0, nil
 		},
-		// GetSubnetIDF: func(chainID ids.ID) (ids.ID, error) { // TODO: Fix GetSubnetIDF field
-		// 	// For testing, all chains belong to the primary network
-		// 	if chainID == constants.PlatformChainID || chainID == EVMTestChainID {
-		// 		return constants.PrimaryNetworkID, nil
-		// 	}
-		// 	// Default to primary network for any test chain
-		// 	return constants.PrimaryNetworkID, nil
-		// },
 		GetValidatorSetF: func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 			return map[ids.NodeID]*validators.GetValidatorOutput{}, nil
 		},
