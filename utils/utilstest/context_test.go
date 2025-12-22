@@ -30,8 +30,8 @@ func TestNewTestConsensusContext(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), height)
 
-	// Test GetSubnetID
-	subnetID, err := validatorState.GetSubnetID(EVMTestChainID)
+	// Test GetChainID
+	chainID, err := validatorState.GetChainID(EVMTestChainID)
 	require.NoError(t, err)
-	require.Equal(t, ids.Empty, subnetID) // Default returns empty ID
+	require.Equal(t, ids.Empty, chainID) // Default returns empty ID
 }
