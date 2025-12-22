@@ -43,6 +43,10 @@ func Run(versionStr string) {
 		os.Exit(1)
 	}
 	debugLog("Calling rpcchainvm.Serve")
-	rpcchainvm.Serve(context.Background(), &evm.VM{})
+	if err := rpcchainvm.Serve(context.Background(), log.Root(), &evm.VM{}); err != nil {
+		debugLog("rpcchainvm.Serve error: " + err.Error())
+		fmt.Printf("rpcchainvm.Serve error: %s\n", err)
+		os.Exit(1)
+	}
 	debugLog("rpcchainvm.Serve returned")
 }

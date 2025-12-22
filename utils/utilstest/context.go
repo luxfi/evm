@@ -93,6 +93,10 @@ func (t *testValidatorState) GetNetID(chainID ids.ID) (ids.ID, error) {
 	return ids.Empty, nil // TODO: Fix GetNetID
 }
 
+func (t *testValidatorState) GetNetworkID(chainID ids.ID) (ids.ID, error) {
+	return ids.Empty, nil // Returns primary network ID for test
+}
+
 // @TODO: This should eventually be replaced by a more robust solution, or alternatively, the presence of nil
 // validator states shouldn't be depended upon by tests
 func NewTestValidatorState() consensuscontext.ValidatorState {
