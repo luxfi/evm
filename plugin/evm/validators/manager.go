@@ -116,12 +116,18 @@ func (m *manager) sync(ctx context.Context) error {
 	log.Debug("performing validator sync")
 	// get current validator set
 	validatorState := consensuscontext.GetValidatorState(m.chainCtx)
-	netID := consensuscontext.GetNetID(m.chainCtx)
+	if validatorState == nil {
+		// ValidatorState not available in context - this is normal for subnets
+		// that don't have access to P-Chain validator information
+		log.Debug("validator state not available, skipping sync")
+		return nil
+	}
+	chainID := consensuscontext.GetChainID(m.chainCtx)
 	currentHeight, err := validatorState.GetCurrentHeight(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get current height: %w", err)
 	}
-	currentValidatorSet, err := validatorState.GetValidatorSet(currentHeight, netID)
+	currentValidatorSet, err := validatorState.GetValidatorSet(currentHeight, chainID)
 	if err != nil {
 		return fmt.Errorf("failed to get current validator set: %w", err)
 	}
