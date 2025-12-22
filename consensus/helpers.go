@@ -17,7 +17,6 @@ type contextKey string
 const (
 	chainIDKey    contextKey = "chainID"
 	networkIDKey  contextKey = "networkID"
-	subnetIDKey   contextKey = "subnetID"
 	warpSignerKey contextKey = "warpSigner"
 )
 
@@ -41,17 +40,6 @@ func GetNetworkID(ctx context.Context) uint32 {
 	}
 	// Return default network ID
 	return 1
-}
-
-// GetSubnetID retrieves the subnet ID from the context
-func GetSubnetID(ctx context.Context) ids.ID {
-	if v := ctx.Value(subnetIDKey); v != nil {
-		if subnetID, ok := v.(ids.ID); ok {
-			return subnetID
-		}
-	}
-	// Return empty ID if not found
-	return ids.Empty
 }
 
 // WarpSigner is an interface for signing warp messages
@@ -80,11 +68,6 @@ func WithChainID(ctx context.Context, chainID ids.ID) context.Context {
 // WithNetworkID adds a network ID to the context
 func WithNetworkID(ctx context.Context, networkID uint32) context.Context {
 	return context.WithValue(ctx, networkIDKey, networkID)
-}
-
-// WithSubnetID adds a subnet ID to the context
-func WithSubnetID(ctx context.Context, subnetID ids.ID) context.Context {
-	return context.WithValue(ctx, subnetIDKey, subnetID)
 }
 
 // WithWarpSigner adds a warp signer to the context
