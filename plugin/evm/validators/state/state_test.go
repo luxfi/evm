@@ -26,13 +26,13 @@ func TestState(t *testing.T) {
 	// get non-existent uptime
 	nodeID := ids.GenerateTestNodeID()
 	vID := ids.GenerateTestID()
-	subnetID := ids.GenerateTestID() // Test subnet ID
-	_, _, err = state.GetUptime(nodeID, subnetID)
+	chainID := ids.GenerateTestID() // Test chain ID
+	_, _, err = state.GetUptime(nodeID, chainID)
 	require.ErrorIs(err, database.ErrNotFound)
 
 	// set non-existent uptime
 	startTime := time.Now()
-	err = state.SetUptime(nodeID, subnetID, 1, startTime)
+	err = state.SetUptime(nodeID, chainID, 1, startTime)
 	require.ErrorIs(err, database.ErrNotFound)
 
 	// add new validator
@@ -57,7 +57,7 @@ func TestState(t *testing.T) {
 	require.ErrorIs(err, ErrAlreadyExists)
 
 	// get uptime
-	uptime, timeSinceLastUpdate, err := state.GetUptime(nodeID, subnetID)
+	uptime, timeSinceLastUpdate, err := state.GetUptime(nodeID, chainID)
 	require.NoError(err)
 	require.Equal(time.Duration(0), uptime)
 	// timeSinceLastUpdate should be very small since we just added the validator
@@ -66,9 +66,9 @@ func TestState(t *testing.T) {
 	// set uptime
 	newUptime := 2 * time.Minute
 	newLastUpdated := time.Now()
-	require.NoError(state.SetUptime(nodeID, subnetID, newUptime, newLastUpdated))
+	require.NoError(state.SetUptime(nodeID, chainID, newUptime, newLastUpdated))
 	// get new uptime
-	uptime, timeSinceLastUpdate, err = state.GetUptime(nodeID, subnetID)
+	uptime, timeSinceLastUpdate, err = state.GetUptime(nodeID, chainID)
 	require.NoError(err)
 	require.Equal(newUptime, uptime)
 	// timeSinceLastUpdate should be very small since we just set it
@@ -116,7 +116,7 @@ func TestState(t *testing.T) {
 	require.NoError(state.DeleteValidator(vID))
 
 	// get deleted uptime
-	_, _, err = state.GetUptime(nodeID, subnetID)
+	_, _, err = state.GetUptime(nodeID, chainID)
 	require.ErrorIs(err, database.ErrNotFound)
 }
 
@@ -131,7 +131,7 @@ func TestWriteValidator(t *testing.T) {
 	// load uptime
 	nodeID := ids.GenerateTestNodeID()
 	vID := ids.GenerateTestID()
-	subnetID := ids.GenerateTestID() // Test subnet ID
+	chainID := ids.GenerateTestID() // Test chain ID
 	startTime := time.Now()
 	require.NoError(state.AddValidator(interfaces.Validator{
 		ValidationID:   vID,
@@ -149,7 +149,7 @@ func TestWriteValidator(t *testing.T) {
 	// set uptime
 	newUptime := 2 * time.Minute
 	newLastUpdated := startTime.Add(time.Hour)
-	require.NoError(state.SetUptime(nodeID, subnetID, newUptime, newLastUpdated))
+	require.NoError(state.SetUptime(nodeID, chainID, newUptime, newLastUpdated))
 	require.NoError(state.WriteState())
 
 	// refresh state, should load from DB
@@ -157,7 +157,7 @@ func TestWriteValidator(t *testing.T) {
 	require.NoError(err)
 
 	// get uptime
-	uptime, timeSinceLastUpdate, err := state.GetUptime(nodeID, subnetID)
+	uptime, timeSinceLastUpdate, err := state.GetUptime(nodeID, chainID)
 	require.NoError(err)
 	require.Equal(newUptime, uptime)
 	// timeSinceLastUpdate should be small but accounting for db reload

@@ -189,7 +189,7 @@ func (m *Manager) StopTracking(nodeIDs []ids.NodeID) error {
 }
 
 // CalculateUptime returns the uptime duration and total tracking duration for a node
-func (m *Manager) CalculateUptime(nodeID ids.NodeID, netID ids.ID) (time.Duration, time.Duration, error) {
+func (m *Manager) CalculateUptime(nodeID ids.NodeID, chainID ids.ID) (time.Duration, time.Duration, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -197,7 +197,7 @@ func (m *Manager) CalculateUptime(nodeID ids.NodeID, netID ids.ID) (time.Duratio
 	if !ok {
 		// Try to load from state
 		if m.state != nil {
-			previousUptime, _, err := m.state.GetUptime(nodeID, netID)
+			previousUptime, _, err := m.state.GetUptime(nodeID, chainID)
 			if err == nil && previousUptime > 0 {
 				return previousUptime, previousUptime, nil
 			}
@@ -227,8 +227,8 @@ func (m *Manager) CalculateUptime(nodeID ids.NodeID, netID ids.ID) (time.Duratio
 }
 
 // CalculateUptimePercent returns the uptime percentage for a node
-func (m *Manager) CalculateUptimePercent(nodeID ids.NodeID, subnetID ids.ID) (float64, error) {
-	uptime, total, err := m.CalculateUptime(nodeID, subnetID)
+func (m *Manager) CalculateUptimePercent(nodeID ids.NodeID, chainID ids.ID) (float64, error) {
+	uptime, total, err := m.CalculateUptime(nodeID, chainID)
 	if err != nil {
 		return 0, err
 	}
@@ -239,9 +239,9 @@ func (m *Manager) CalculateUptimePercent(nodeID ids.NodeID, subnetID ids.ID) (fl
 }
 
 // CalculateUptimePercentFrom returns the uptime percentage since a given time
-func (m *Manager) CalculateUptimePercentFrom(nodeID ids.NodeID, subnetID ids.ID, _ time.Time) (float64, error) {
+func (m *Manager) CalculateUptimePercentFrom(nodeID ids.NodeID, chainID ids.ID, _ time.Time) (float64, error) {
 	// For now, just use the same calculation
-	return m.CalculateUptimePercent(nodeID, subnetID)
+	return m.CalculateUptimePercent(nodeID, chainID)
 }
 
 // SetCalculator is a no-op for compatibility with uptime.Calculator interface
