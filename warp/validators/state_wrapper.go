@@ -28,9 +28,9 @@ func (w *ConsensusStateWrapper) GetCurrentHeight(ctx context.Context) (uint64, e
 }
 
 // GetValidatorSet implements validators.State
-func (w *ConsensusStateWrapper) GetValidatorSet(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+func (w *ConsensusStateWrapper) GetValidatorSet(ctx context.Context, height uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 	// consensus.ValidatorState returns a simpler map, need to convert
-	simpleMap, err := w.vs.GetValidatorSet(height, subnetID)
+	simpleMap, err := w.vs.GetValidatorSet(height, chainID)
 	if err != nil {
 		return nil, err
 	}
@@ -52,23 +52,18 @@ func (w *ConsensusStateWrapper) GetMinimumHeight(ctx context.Context) (uint64, e
 	return 0, nil
 }
 
-// GetNetID implements validators.State
-func (w *ConsensusStateWrapper) GetNetID(ctx context.Context, chainID ids.ID) (ids.ID, error) {
-	// consensus.ValidatorState doesn't have GetNetID, return empty
+// GetNetworkID implements validators.State
+func (w *ConsensusStateWrapper) GetNetworkID(ctx context.Context, chainID ids.ID) (ids.ID, error) {
+	// consensus.ValidatorState doesn't have GetNetworkID, return empty
 	return ids.Empty, nil
 }
 
-// GetSubnetID implements validators.State (deprecated: use GetNetID)
-func (w *ConsensusStateWrapper) GetSubnetID(ctx context.Context, chainID ids.ID) (ids.ID, error) {
-	return w.GetNetID(ctx, chainID)
-}
-
 // GetCurrentValidatorSet implements validators.State
-func (w *ConsensusStateWrapper) GetCurrentValidatorSet(ctx context.Context, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+func (w *ConsensusStateWrapper) GetCurrentValidatorSet(ctx context.Context, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 	// Get current height and use GetValidatorSet
 	height, err := w.vs.GetCurrentHeight(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return w.GetValidatorSet(ctx, height, subnetID)
+	return w.GetValidatorSet(ctx, height, chainID)
 }

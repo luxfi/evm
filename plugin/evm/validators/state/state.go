@@ -67,10 +67,10 @@ func NewState(db luxdb.Database) (interfaces.State, error) {
 // GetUptime returns the uptime of the validator with the given nodeID
 func (s *state) GetUptime(
 	nodeID ids.NodeID,
-	subnetID ids.ID,
+	chainID ids.ID,
 ) (time.Duration, time.Duration, error) {
-	// Note: For subnet-specific validators, we currently ignore the subnetID
-	// as this state tracks validators per subnet already
+	// Note: For chain-specific validators, we currently ignore the chainID
+	// as this state tracks validators per chain already
 	data, err := s.getData(nodeID)
 	if err != nil {
 		return 0, 0, err
@@ -84,12 +84,12 @@ func (s *state) GetUptime(
 // SetUptime sets the uptime of the validator with the given nodeID
 func (s *state) SetUptime(
 	nodeID ids.NodeID,
-	subnetID ids.ID,
+	chainID ids.ID,
 	upDuration time.Duration,
 	lastUpdated time.Time,
 ) error {
-	// Note: For subnet-specific validators, we currently ignore the subnetID
-	// as this state tracks validators per subnet already
+	// Note: For chain-specific validators, we currently ignore the chainID
+	// as this state tracks validators per chain already
 	data, err := s.getData(nodeID)
 	if err != nil {
 		return err
@@ -102,9 +102,9 @@ func (s *state) SetUptime(
 }
 
 // GetStartTime returns the start time of the validator with the given nodeID
-func (s *state) GetStartTime(nodeID ids.NodeID, subnetID ids.ID) (time.Time, error) {
-	// Note: For subnet-specific validators, we currently ignore the subnetID
-	// as this state tracks validators per subnet already
+func (s *state) GetStartTime(nodeID ids.NodeID, chainID ids.ID) (time.Time, error) {
+	// Note: For chain-specific validators, we currently ignore the chainID
+	// as this state tracks validators per chain already
 	data, err := s.getData(nodeID)
 	if err != nil {
 		return time.Time{}, err
