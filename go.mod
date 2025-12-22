@@ -20,26 +20,26 @@ require (
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.1.0
 	github.com/luxfi/codec v1.0.4
-	github.com/luxfi/consensus v1.22.35
-	github.com/luxfi/constants v1.2.3
+	github.com/luxfi/consensus v1.22.39
+	github.com/luxfi/constants v1.2.4
 	github.com/luxfi/crypto v1.17.25
-	github.com/luxfi/database v1.2.12
-	github.com/luxfi/geth v1.16.57
+	github.com/luxfi/database v1.2.14
+	github.com/luxfi/geth v1.16.60
 	github.com/luxfi/go-bip39 v1.1.2
-	github.com/luxfi/ids v1.2.4
+	github.com/luxfi/ids v1.2.5
 	github.com/luxfi/log v1.1.26
-	github.com/luxfi/math v1.1.0
+	github.com/luxfi/math v1.1.1
 	github.com/luxfi/metric v1.4.8
 	github.com/luxfi/node v1.22.31
-	github.com/luxfi/p2p v1.4.7
+	github.com/luxfi/p2p v1.4.9
 	github.com/luxfi/timer v1.0.1
 	github.com/luxfi/trace v0.1.4
 	github.com/luxfi/units v1.0.0
 	github.com/luxfi/upgrade v1.0.0
 	github.com/luxfi/utils v1.1.0
-	github.com/luxfi/vm v1.0.0
+	github.com/luxfi/vm v1.0.1
 	github.com/luxfi/vms v1.0.0
-	github.com/luxfi/warp v1.16.37
+	github.com/luxfi/warp v1.16.38
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
 	github.com/prometheus/client_golang v1.23.2
@@ -165,9 +165,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-// Remote packages - no local replace directives
-// github.com/luxfi/consensus v1.22.27
-// github.com/luxfi/node v1.22.17
-
-replace github.com/luxfi/node => ../node
