@@ -82,8 +82,10 @@ func (vm *VM) initializeDBs(avaDB luxdatabase.Database) error {
 		// Pass nil for metrics as it's optional
 		db, err = newStandaloneDatabase(dbConfig, nil, logger)
 		if err != nil {
-			return err
+			log.Error("Failed to create standalone database", "error", err)
+			return fmt.Errorf("failed to create standalone database: %w", err)
 		}
+		log.Info("Standalone database created successfully")
 		vm.usingStandaloneDB = true
 	}
 	// Use NewNested rather than New so that the structure of the database
