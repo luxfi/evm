@@ -4,7 +4,7 @@
 package warp
 
 import (
-	luxWarp "github.com/luxfi/warp"
+	"github.com/luxfi/warp"
 	platformWarp "github.com/luxfi/warp"
 )
 
@@ -23,7 +23,7 @@ func NewLP118SignerAdapter(signer *LocalSigner) *LP118SignerAdapter {
 // Sign implements the lp118.Signer interface (using platformvm/warp.UnsignedMessage)
 func (a *LP118SignerAdapter) Sign(unsignedMsg *platformWarp.UnsignedMessage) ([]byte, error) {
 	// Convert platformvm/warp.UnsignedMessage to luxfi/warp.UnsignedMessage
-	msg, err := luxWarp.NewUnsignedMessage(
+	msg, err := warp.NewUnsignedMessage(
 		unsignedMsg.NetworkID,
 		unsignedMsg.SourceChainID,
 		unsignedMsg.Payload,
