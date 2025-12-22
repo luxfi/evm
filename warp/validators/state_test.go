@@ -20,16 +20,16 @@ type testValidatorState struct {
 	getCurrentHeight     func(context.Context) (uint64, error)
 }
 
-func (t *testValidatorState) GetValidatorSet(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+func (t *testValidatorState) GetValidatorSet(ctx context.Context, height uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 	if t.getValidatorSet != nil {
-		return t.getValidatorSet(ctx, height, subnetID)
+		return t.getValidatorSet(ctx, height, chainID)
 	}
 	return nil, nil
 }
 
-func (t *testValidatorState) GetCurrentValidators(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+func (t *testValidatorState) GetCurrentValidators(ctx context.Context, height uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 	if t.getCurrentValidators != nil {
-		return t.getCurrentValidators(ctx, height, subnetID)
+		return t.getCurrentValidators(ctx, height, chainID)
 	}
 	return nil, nil
 }
@@ -41,19 +41,19 @@ func (t *testValidatorState) GetCurrentHeight(ctx context.Context) (uint64, erro
 	return 0, nil
 }
 
-func (t *testValidatorState) GetWarpValidatorSet(ctx context.Context, height uint64, netID ids.ID) (*validators.WarpSet, error) {
+func (t *testValidatorState) GetWarpValidatorSet(ctx context.Context, height uint64, chainID ids.ID) (*validators.WarpSet, error) {
 	return &validators.WarpSet{
 		Height:     height,
 		Validators: make(map[ids.NodeID]*validators.WarpValidator),
 	}, nil
 }
 
-func (t *testValidatorState) GetWarpValidatorSets(ctx context.Context, heights []uint64, netIDs []ids.ID) (map[ids.ID]map[uint64]*validators.WarpSet, error) {
+func (t *testValidatorState) GetWarpValidatorSets(ctx context.Context, heights []uint64, chainIDs []ids.ID) (map[ids.ID]map[uint64]*validators.WarpSet, error) {
 	result := make(map[ids.ID]map[uint64]*validators.WarpSet)
-	for _, netID := range netIDs {
-		result[netID] = make(map[uint64]*validators.WarpSet)
+	for _, chainID := range chainIDs {
+		result[chainID] = make(map[uint64]*validators.WarpSet)
 		for _, height := range heights {
-			result[netID][height] = &validators.WarpSet{
+			result[chainID][height] = &validators.WarpSet{
 				Height:     height,
 				Validators: make(map[ids.NodeID]*validators.WarpValidator),
 			}
@@ -65,18 +65,18 @@ func (t *testValidatorState) GetWarpValidatorSets(ctx context.Context, heights [
 func TestGetValidatorSetPrimaryNetwork(t *testing.T) {
 	require := require.New(t)
 
-	mySubnetID := ids.GenerateTestID()
-	otherSubnetID := ids.GenerateTestID()
 	myChainID := ids.GenerateTestID()
+	otherChainID := ids.GenerateTestID()
+	sourceChainID := ids.GenerateTestID()
 
 	// Create a mock state with the necessary functions
 	mockState := &testValidatorState{
-		getValidatorSet: func(_ context.Context, _ uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-			// Return empty validator set for any subnet
+		getValidatorSet: func(_ context.Context, _ uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+			// Return empty validator set for any chain
 			return make(map[ids.NodeID]*validators.GetValidatorOutput), nil
 		},
-		getCurrentValidators: func(_ context.Context, _ uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-			// Return empty validator set for any subnet
+		getCurrentValidators: func(_ context.Context, _ uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+			// Return empty validator set for any chain
 			return make(map[ids.NodeID]*validators.GetValidatorOutput), nil
 		},
 		getCurrentHeight: func(_ context.Context) (uint64, error) {
@@ -84,10 +84,10 @@ func TestGetValidatorSetPrimaryNetwork(t *testing.T) {
 		},
 	}
 
-	state := NewState(mockState, mySubnetID, myChainID, false)
+	state := NewState(mockState, myChainID, sourceChainID, false)
 
 	// Test that requesting my validator set returns my validator set
-	output, err := state.GetValidatorSet(context.Background(), 10, mySubnetID)
+	output, err := state.GetValidatorSet(context.Background(), 10, myChainID)
 	require.NoError(err)
 	require.Len(output, 0)
 
@@ -97,7 +97,7 @@ func TestGetValidatorSetPrimaryNetwork(t *testing.T) {
 	require.Len(output, 0)
 
 	// Test that requesting other validator set returns that validator set
-	output, err = state.GetValidatorSet(context.Background(), 10, otherSubnetID)
+	output, err = state.GetValidatorSet(context.Background(), 10, otherChainID)
 	require.NoError(err)
 	require.Len(output, 0)
 }
