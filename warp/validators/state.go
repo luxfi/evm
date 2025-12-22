@@ -14,24 +14,24 @@ import (
 var _ validators.State = (*State)(nil)
 
 // State provides a special case used to handle Lux Warp Message verification for messages sent
-// from the Primary Network. Subnets have strictly fewer validators than the Primary Network, so we require
-// signatures from a threshold of the RECEIVING subnet validator set rather than the full Primary Network
-// since the receiving subnet already relies on a majority of its validators being correct.
+// from the Primary Network. Chains have strictly fewer validators than the Primary Network, so we require
+// signatures from a threshold of the RECEIVING chain validator set rather than the full Primary Network
+// since the receiving chain already relies on a majority of its validators being correct.
 type State struct {
 	validators.State
-	mySubnetID                   ids.ID
+	myChainID                    ids.ID
 	sourceChainID                ids.ID
 	requirePrimaryNetworkSigners bool
 }
 
 // NewState returns a wrapper of [validators.State] which special cases the handling of the Primary Network.
 //
-// The wrapped state will return the [mySubnetID's] validator set instead of the Primary Network when
-// the Primary Network SubnetID is passed in.
-func NewState(state validators.State, mySubnetID ids.ID, sourceChainID ids.ID, requirePrimaryNetworkSigners bool) *State {
+// The wrapped state will return the [myChainID's] validator set instead of the Primary Network when
+// the Primary Network ChainID is passed in.
+func NewState(state validators.State, myChainID ids.ID, sourceChainID ids.ID, requirePrimaryNetworkSigners bool) *State {
 	return &State{
 		State:                        state,
-		mySubnetID:                   mySubnetID,
+		myChainID:                    myChainID,
 		sourceChainID:                sourceChainID,
 		requirePrimaryNetworkSigners: requirePrimaryNetworkSigners,
 	}
@@ -40,16 +40,16 @@ func NewState(state validators.State, mySubnetID ids.ID, sourceChainID ids.ID, r
 func (s *State) GetValidatorSet(
 	ctx context.Context,
 	height uint64,
-	subnetID ids.ID,
+	chainID ids.ID,
 ) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-	// If the subnetID is anything other than the Primary Network, or Primary
+	// If the chainID is anything other than the Primary Network, or Primary
 	// Network signers are required (except P-Chain), this is a direct passthrough.
 	usePrimary := s.requirePrimaryNetworkSigners && s.sourceChainID != constants.PlatformChainID
-	if usePrimary || subnetID != constants.PrimaryNetworkID {
-		return s.State.GetValidatorSet(ctx, height, subnetID)
+	if usePrimary || chainID != constants.PrimaryNetworkID {
+		return s.State.GetValidatorSet(ctx, height, chainID)
 	}
 
-	// If the requested subnet is the primary network, then we return the validator
-	// set for the Subnet that is receiving the message instead.
-	return s.State.GetValidatorSet(ctx, height, s.mySubnetID)
+	// If the requested chain is the primary network, then we return the validator
+	// set for the chain that is receiving the message instead.
+	return s.State.GetValidatorSet(ctx, height, s.myChainID)
 }

@@ -79,25 +79,25 @@ Therefore, we use the [Predicate Utils](https://github.com/luxfi/evm/blob/master
 
 ### Performance Optimization: Primary Network to Lux L1
 
-The Primary Network has a large validator set compared to most Subnets and L1s, which makes Warp signature collection and verification from the entire Primary Network validator set costly. All Subnets and L1s track at least one blockchain of the Primary Network, so we can instead optimize this by using the validator set of the receiving L1 instead of the Primary Network for certain Warp messages.
+The Primary Network has a large validator set compared to most L1s, which makes Warp signature collection and verification from the entire Primary Network validator set costly. All L1s track at least one blockchain of the Primary Network, so we can instead optimize this by using the validator set of the receiving L1 instead of the Primary Network for certain Warp messages.
 
-#### Subnets
+#### Legacy Validators
 
-Recall that Lux Subnet validators must also validate the Primary Network, so it tracks all of the blockchains in the Primary Network (X, C, and P-Chains).
+Recall that legacy Lux validators must also validate the Primary Network, so it tracks all of the blockchains in the Primary Network (X, C, and P-Chains).
 
-When an Lux Subnet receives a message from a blockchain on the Primary Network, we use the validator set of the receiving Subnet instead of the entire network when validating the message. 
+When an Lux L1 receives a message from a blockchain on the Primary Network, we use the validator set of the receiving L1 instead of the entire network when validating the message. 
 
 Sending messages from the X, C, or P-Chain remains unchanged.
-However, when the Subnet receives the message, it changes the semantics to the following:
+However, when the L1 receives the message, it changes the semantics to the following:
 
 1. Read the `SourceChainID` of the signed message
-2. Look up the `SubnetID` that validates `SourceChainID`. In this case it will be the Primary Network's `SubnetID`
-3. Look up the validator set of the Subnet (instead of the Primary Network) and the registered BLS Public Keys of the Subnet validators at the P-Chain height specified by the ProposerVM header
-4. Continue Warp Message verification using the validator set of the Subnet instead of the Primary Network
+2. Look up the `NetworkID` that validates `SourceChainID`. In this case it will be the Primary Network's `NetworkID`
+3. Look up the validator set of the L1 (instead of the Primary Network) and the registered BLS Public Keys of the L1 validators at the P-Chain height specified by the ProposerVM header
+4. Continue Warp Message verification using the validator set of the L1 instead of the Primary Network
 
-This means that Primary Network to Subnet communication only requires a threshold of stake on the receiving Subnet to sign the message instead of a threshold of stake for the entire Primary Network.
+This means that Primary Network to L1 communication only requires a threshold of stake on the receiving L1 to sign the message instead of a threshold of stake for the entire Primary Network.
 
-Since the security of the Subnet is provided by trust in its validator set, requiring a threshold of stake from the receiving Subnet's validator set instead of the whole Primary Network does not meaningfully change the security of the receiving L1.
+Since the security of the L1 is provided by trust in its validator set, requiring a threshold of stake from the receiving L1's validator set instead of the whole Primary Network does not meaningfully change the security of the receiving L1.
 
 Note: this special case is ONLY applied during Warp Message verification. The message sent by the Primary Network will still contain the blockchainID of the Primary Network chain that sent the message as the sourceChainID and signatures will be served by querying the source chain directly.
 
