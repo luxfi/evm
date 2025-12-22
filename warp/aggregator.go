@@ -11,7 +11,7 @@ import (
 
 	"github.com/luxfi/crypto/bls"
 	"github.com/luxfi/ids"
-	luxWarp "github.com/luxfi/warp"
+	"github.com/luxfi/warp"
 )
 
 var (
@@ -22,7 +22,7 @@ var (
 // SignatureGetter fetches a signature for a warp message from a specific validator
 type SignatureGetter interface {
 	// GetSignature fetches a signature for the message from the given node
-	GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedMessage *luxWarp.UnsignedMessage) ([]byte, error)
+	GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedMessage *warp.UnsignedMessage) ([]byte, error)
 }
 
 // ValidatorInfo contains validator information for signature aggregation
@@ -49,7 +49,7 @@ func NewSignatureAggregator(signatureGetter SignatureGetter) *SignatureAggregato
 // Returns the signed message bytes if successful
 func (a *SignatureAggregator) AggregateSignatures(
 	ctx context.Context,
-	unsignedMessage *luxWarp.UnsignedMessage,
+	unsignedMessage *warp.UnsignedMessage,
 	validators []*ValidatorInfo,
 	quorumNum uint64,
 	quorumDen uint64,
@@ -117,7 +117,7 @@ func (a *SignatureAggregator) AggregateSignatures(
 	}()
 
 	// Collect valid signatures
-	signers := luxWarp.NewBitSet()
+	signers := warp.NewBitSet()
 	signatures := make([]*bls.Signature, 0, len(validators))
 	var signedWeight uint64
 
@@ -154,13 +154,13 @@ func (a *SignatureAggregator) AggregateSignatures(
 	var aggSigBytes [bls.SignatureLen]byte
 	copy(aggSigBytes[:], bls.SignatureToBytes(aggSig))
 
-	bitSetSig := &luxWarp.BitSetSignature{
+	bitSetSig := &warp.BitSetSignature{
 		Signers:   signers,
 		Signature: aggSigBytes,
 	}
 
 	// Create signed message
-	signedMessage, err := luxWarp.NewMessage(unsignedMessage, bitSetSig)
+	signedMessage, err := warp.NewMessage(unsignedMessage, bitSetSig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create signed message: %w", err)
 	}
@@ -188,7 +188,7 @@ func NewLocalSignatureGetter(backend Backend) *LocalSignatureGetter {
 }
 
 // GetSignature gets a signature from the local backend (this node)
-func (g *LocalSignatureGetter) GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedMessage *luxWarp.UnsignedMessage) ([]byte, error) {
+func (g *LocalSignatureGetter) GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedMessage *warp.UnsignedMessage) ([]byte, error) {
 	return g.backend.GetMessageSignature(ctx, unsignedMessage)
 }
 
@@ -209,7 +209,7 @@ func NewNetworkSignatureGetter(client RequestClient) *NetworkSignatureGetter {
 }
 
 // GetSignature fetches a signature from a network peer
-func (g *NetworkSignatureGetter) GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedMessage *luxWarp.UnsignedMessage) ([]byte, error) {
+func (g *NetworkSignatureGetter) GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedMessage *warp.UnsignedMessage) ([]byte, error) {
 	// Encode the signature request
 	request := unsignedMessage.Bytes()
 
