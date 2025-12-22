@@ -57,7 +57,7 @@ import (
 	"github.com/luxfi/evm/sync/client/stats"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/evm/warp"
-	luxWarp "github.com/luxfi/warp"
+	warptypes "github.com/luxfi/warp"
 
 	// Force-load tracer engine to trigger registration
 	//
@@ -592,11 +592,11 @@ func (vm *VM) initializeInternal(
 
 	// VM implements warp.BlockClient directly
 
-	// Get warp signer from context - use luxWarp.Signer directly, no adapters
-	var warpSigner luxWarp.Signer
+	// Get warp signer from context - use warptypes.Signer directly, no adapters
+	var warpSigner warptypes.Signer
 	if chainCtx.WarpSigner != nil {
 		var ok bool
-		warpSigner, ok = chainCtx.WarpSigner.(luxWarp.Signer)
+		warpSigner, ok = chainCtx.WarpSigner.(warptypes.Signer)
 		if !ok {
 			return fmt.Errorf("invalid warp signer type: %T", chainCtx.WarpSigner)
 		}
@@ -636,7 +636,7 @@ func (vm *VM) initializeInternal(
 	// Add p2p warp message warpHandler
 	// Create adapter to convert our warp backend to lp118.Verifier
 	warpVerifier := &warpVerifierAdapter{backend: vm.warpBackend}
-	// Use warp signer directly - luxWarp.Signer is compatible with lp118.Signer
+	// Use warp signer directly - warp.Signer is compatible with lp118.Signer
 	warpHandler := lp118.NewCachedHandler(meteredCache, warpVerifier, warpSigner)
 	// Use built-in adapter to convert lp118.Handler to p2p.Handler
 	p2pHandler := lp118.NewHandlerAdapter(warpHandler)
@@ -1899,8 +1899,8 @@ type warpVerifierAdapter struct {
 }
 
 // Verify implements lp118.Verifier interface
-// Now receives *luxWarp.UnsignedMessage directly (no conversion needed)
-func (w *warpVerifierAdapter) Verify(ctx context.Context, msg *luxWarp.UnsignedMessage, justification []byte) *commonEng.AppError {
+// Now receives *warptypes.UnsignedMessage directly (no conversion needed)
+func (w *warpVerifierAdapter) Verify(ctx context.Context, msg *warptypes.UnsignedMessage, justification []byte) *commonEng.AppError {
 	if err := w.backend.Verify(ctx, msg, justification); err != nil {
 		return &commonEng.AppError{
 			Code:    1,

@@ -12,7 +12,7 @@ import (
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/log"
 	"github.com/luxfi/ids"
-	luxWarp "github.com/luxfi/warp"
+	"github.com/luxfi/warp"
 	"github.com/luxfi/warp/payload"
 )
 
@@ -82,7 +82,7 @@ func (a *API) GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, qu
 		return nil, err
 	}
 	chainID := consensuscontext.GetChainID(a.chainContext)
-	unsignedMessage, err := luxWarp.NewUnsignedMessage(consensuscontext.GetNetworkID(a.chainContext), chainID, blockHashPayload.Bytes())
+	unsignedMessage, err := warp.NewUnsignedMessage(consensuscontext.GetNetworkID(a.chainContext), chainID, blockHashPayload.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (a *API) GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, qu
 	return a.aggregateSignatures(ctx, unsignedMessage, quorumNum, chainIDStr)
 }
 
-func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *luxWarp.UnsignedMessage, quorumNum uint64, chainIDStr string) (hexutil.Bytes, error) {
+func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *warp.UnsignedMessage, quorumNum uint64, chainIDStr string) (hexutil.Bytes, error) {
 	chainID := consensuscontext.GetChainID(a.chainContext)
 	if len(chainIDStr) > 0 {
 		cid, err := ids.FromString(chainIDStr)

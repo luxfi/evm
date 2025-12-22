@@ -19,7 +19,7 @@ import (
 	"github.com/luxfi/ids"
 	"github.com/luxfi/math/set"
 	agoUtils "github.com/luxfi/node/utils"
-	luxWarp "github.com/luxfi/warp"
+	"github.com/luxfi/warp"
 	"github.com/luxfi/warp/payload"
 	"github.com/stretchr/testify/require"
 )
@@ -98,7 +98,7 @@ func TestSendWarpMessage(t *testing.T) {
 		sendWarpMessagePayload,
 	)
 	require.NoError(t, err)
-	unsignedWarpMessage, err := luxWarp.NewUnsignedMessage(
+	unsignedWarpMessage, err := warp.NewUnsignedMessage(
 		context.GetNetworkID(defaultConsensusCtx),
 		blockchainID,
 		sendWarpMessageAddressedPayload.Bytes(),
@@ -192,9 +192,9 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 		packagedPayloadBytes,
 	)
 	require.NoError(t, err)
-	unsignedWarpMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID, addressedPayload.Bytes())
+	unsignedWarpMsg, err := warp.NewUnsignedMessage(networkID, sourceChainID, addressedPayload.Bytes())
 	require.NoError(t, err)
-	warpMessage, err := luxWarp.NewMessage(unsignedWarpMsg, &luxWarp.BitSetSignature{}) // Create message with empty signature for testing
+	warpMessage, err := warp.NewMessage(unsignedWarpMsg, &warp.BitSetSignature{}) // Create message with empty signature for testing
 	require.NoError(t, err)
 	warpMessagePredicateBytes := predicate.PackPredicate(warpMessage.Bytes())
 	getVerifiedWarpMsg, err := PackGetVerifiedWarpMessage(0)
@@ -398,9 +398,9 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
 			Predicates: func() [][]byte {
-				unsignedMessage, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID, []byte{1, 2, 3}) // Invalid addressed payload
+				unsignedMessage, err := warp.NewUnsignedMessage(networkID, sourceChainID, []byte{1, 2, 3}) // Invalid addressed payload
 				require.NoError(t, err)
-				warpMessage, err := luxWarp.NewMessage(unsignedMessage, &luxWarp.BitSetSignature{})
+				warpMessage, err := warp.NewMessage(unsignedMessage, &warp.BitSetSignature{})
 				require.NoError(t, err)
 
 				return [][]byte{predicate.PackPredicate(warpMessage.Bytes())}
@@ -456,9 +456,9 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 	blockHash := ids.GenerateTestID()
 	blockHashPayload, err := payload.NewHash(blockHash[:])
 	require.NoError(t, err)
-	unsignedWarpMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID, blockHashPayload.Bytes())
+	unsignedWarpMsg, err := warp.NewUnsignedMessage(networkID, sourceChainID, blockHashPayload.Bytes())
 	require.NoError(t, err)
-	warpMessage, err := luxWarp.NewMessage(unsignedWarpMsg, &luxWarp.BitSetSignature{}) // Create message with empty signature for testing
+	warpMessage, err := warp.NewMessage(unsignedWarpMsg, &warp.BitSetSignature{}) // Create message with empty signature for testing
 	require.NoError(t, err)
 	warpMessagePredicateBytes := predicate.PackPredicate(warpMessage.Bytes())
 	getVerifiedWarpBlockHash, err := PackGetVerifiedWarpBlockHash(0)
@@ -659,9 +659,9 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
 			Predicates: func() [][]byte {
-				unsignedMessage, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID, []byte{1, 2, 3}) // Invalid block hash payload
+				unsignedMessage, err := warp.NewUnsignedMessage(networkID, sourceChainID, []byte{1, 2, 3}) // Invalid block hash payload
 				require.NoError(t, err)
-				warpMessage, err := luxWarp.NewMessage(unsignedMessage, &luxWarp.BitSetSignature{})
+				warpMessage, err := warp.NewMessage(unsignedMessage, &warp.BitSetSignature{})
 				require.NoError(t, err)
 
 				return [][]byte{predicate.PackPredicate(warpMessage.Bytes())}
@@ -722,7 +722,7 @@ func TestPackEvents(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	unsignedWarpMessage, err := luxWarp.NewUnsignedMessage(
+	unsignedWarpMessage, err := warp.NewUnsignedMessage(
 		networkID,
 		sourceChainID,
 		addressedPayload.Bytes(),
