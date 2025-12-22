@@ -30,7 +30,7 @@ require (
 	github.com/luxfi/log v1.1.26
 	github.com/luxfi/math v1.1.1
 	github.com/luxfi/metric v1.4.8
-	github.com/luxfi/node v1.22.43
+	github.com/luxfi/node v1.22.44
 	github.com/luxfi/p2p v1.4.9
 	github.com/luxfi/timer v1.0.1
 	github.com/luxfi/trace v0.1.4
