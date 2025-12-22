@@ -10,7 +10,7 @@ import (
 
 	"github.com/luxfi/crypto/bls"
 	"github.com/luxfi/ids"
-	luxWarp "github.com/luxfi/warp"
+	"github.com/luxfi/warp"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,7 +29,7 @@ func newMockSignatureGetter() *mockSignatureGetter {
 	}
 }
 
-func (m *mockSignatureGetter) GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedMessage *luxWarp.UnsignedMessage) ([]byte, error) {
+func (m *mockSignatureGetter) GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedMessage *warp.UnsignedMessage) ([]byte, error) {
 	if err, ok := m.errors[nodeID]; ok {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func TestSignatureAggregator_AggregateSignatures(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	payload := []byte("test payload")
 
-	unsignedMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID, payload)
+	unsignedMsg, err := warp.NewUnsignedMessage(networkID, sourceChainID, payload)
 	require.NoError(err)
 
 	// Test successful aggregation with 67% quorum
@@ -103,7 +103,7 @@ func TestSignatureAggregator_AggregateSignatures(t *testing.T) {
 	require.NotEmpty(signedMsgBytes)
 
 	// Verify the signed message can be parsed
-	signedMsg, err := luxWarp.ParseMessage(signedMsgBytes)
+	signedMsg, err := warp.ParseMessage(signedMsgBytes)
 	require.NoError(err)
 	require.NotNil(signedMsg)
 
@@ -149,7 +149,7 @@ func TestSignatureAggregator_InsufficientQuorum(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	payload := []byte("test payload")
 
-	unsignedMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID, payload)
+	unsignedMsg, err := warp.NewUnsignedMessage(networkID, sourceChainID, payload)
 	require.NoError(err)
 
 	// Try to aggregate with 67% quorum - should fail (only 1/3 validators available)
@@ -174,7 +174,7 @@ func TestSignatureAggregator_NoValidators(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	payload := []byte("test payload")
 
-	unsignedMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID, payload)
+	unsignedMsg, err := warp.NewUnsignedMessage(networkID, sourceChainID, payload)
 	require.NoError(err)
 
 	// Empty validator set
@@ -218,7 +218,7 @@ func TestSignatureAggregator_AllValidatorsFail(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	payload := []byte("test payload")
 
-	unsignedMsg, err := luxWarp.NewUnsignedMessage(networkID, sourceChainID, payload)
+	unsignedMsg, err := warp.NewUnsignedMessage(networkID, sourceChainID, payload)
 	require.NoError(err)
 
 	_, err = aggregator.AggregateSignatures(
@@ -232,11 +232,11 @@ func TestSignatureAggregator_AllValidatorsFail(t *testing.T) {
 	require.ErrorIs(err, errNoSignatures)
 }
 
-// toWarpValidators converts ValidatorInfo to luxWarp.Validator for verification
-func toWarpValidators(infos []*ValidatorInfo) []*luxWarp.Validator {
-	result := make([]*luxWarp.Validator, len(infos))
+// toWarpValidators converts ValidatorInfo to warp.Validator for verification
+func toWarpValidators(infos []*ValidatorInfo) []*warp.Validator {
+	result := make([]*warp.Validator, len(infos))
 	for i, info := range infos {
-		result[i] = &luxWarp.Validator{
+		result[i] = &warp.Validator{
 			PublicKey:      info.PublicKey,
 			PublicKeyBytes: bls.PublicKeyToCompressedBytes(info.PublicKey),
 			Weight:         info.Weight,

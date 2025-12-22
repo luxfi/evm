@@ -26,17 +26,12 @@ type SyncedNetworkClient interface {
 	TrackBandwidth(nodeID ids.NodeID, bandwidth float64)
 }
 
-// AppSender is the interface for sending application messages
-type AppSender interface {
-	p2p.Sender
-}
-
 // Network handles peer-to-peer networking for the EVM
 // It embeds p2p.Network to provide the base functionality
 type Network struct {
 	*p2p.Network
 
-	sender      AppSender
+	sender      p2p.Sender
 	codec       codec.Manager
 	maxRequests int64
 	metrics     metric.Registerer
@@ -59,7 +54,7 @@ type Network struct {
 // NewNetwork creates a new Network instance
 func NewNetwork(
 	ctx context.Context,
-	sender AppSender,
+	sender p2p.Sender,
 	codec codec.Manager,
 	maxOutboundActiveRequests int64,
 	metrics metric.Registerer,
