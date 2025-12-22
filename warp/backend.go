@@ -15,7 +15,7 @@ import (
 	"github.com/luxfi/ids"
 
 	"github.com/luxfi/consensus/protocol/chain"
-	luxWarp "github.com/luxfi/warp"
+	"github.com/luxfi/warp"
 	"github.com/luxfi/warp/payload"
 
 	"github.com/luxfi/crypto"
@@ -38,19 +38,19 @@ type BlockClient interface {
 // The backend is also used to query for warp message signatures by the signature request handler.
 type Backend interface {
 	// AddMessage signs [unsignedMessage] and adds it to the warp backend database
-	AddMessage(unsignedMessage *luxWarp.UnsignedMessage) error
+	AddMessage(unsignedMessage *warp.UnsignedMessage) error
 
 	// GetMessageSignature validates the message and returns the signature of the requested message.
-	GetMessageSignature(ctx context.Context, message *luxWarp.UnsignedMessage) ([]byte, error)
+	GetMessageSignature(ctx context.Context, message *warp.UnsignedMessage) ([]byte, error)
 
 	// GetBlockSignature returns the signature of a hash payload containing blockID if it's the ID of an accepted block.
 	GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte, error)
 
 	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
-	GetMessage(messageHash ids.ID) (*luxWarp.UnsignedMessage, error)
+	GetMessage(messageHash ids.ID) (*warp.UnsignedMessage, error)
 
 	// Verify verifies the signature of the message
-	Verify(ctx context.Context, unsignedMessage *luxWarp.UnsignedMessage, _ []byte) error
+	Verify(ctx context.Context, unsignedMessage *warp.UnsignedMessage, _ []byte) error
 }
 
 // backend implements Backend, keeps track of warp messages, and generates message signatures.
@@ -58,12 +58,12 @@ type backend struct {
 	networkID                 uint32
 	sourceChainID             ids.ID
 	db                        database.Database
-	warpSigner                luxWarp.Signer
+	warpSigner                warp.Signer
 	blockClient               BlockClient
 	validatorReader           interfaces.ValidatorReader
 	signatureCache            cache.Cacher[ids.ID, []byte]
-	messageCache              *lru.Cache[ids.ID, *luxWarp.UnsignedMessage]
-	offchainAddressedCallMsgs map[string]*luxWarp.UnsignedMessage
+	messageCache              *lru.Cache[ids.ID, *warp.UnsignedMessage]
+	offchainAddressedCallMsgs map[string]*warp.UnsignedMessage
 	stats                     *verifierStats
 }
 
@@ -71,7 +71,7 @@ type backend struct {
 func NewBackend(
 	networkID uint32,
 	sourceChainID ids.ID,
-	warpSigner luxWarp.Signer,
+	warpSigner warp.Signer,
 	blockClient BlockClient,
 	validatorReader interfaces.ValidatorReader,
 	db database.Database,
@@ -86,16 +86,16 @@ func NewBackend(
 		blockClient:               blockClient,
 		signatureCache:            signatureCache,
 		validatorReader:           validatorReader,
-		messageCache:              lru.NewCache[ids.ID, *luxWarp.UnsignedMessage](messageCacheSize),
+		messageCache:              lru.NewCache[ids.ID, *warp.UnsignedMessage](messageCacheSize),
 		stats:                     newVerifierStats(),
-		offchainAddressedCallMsgs: make(map[string]*luxWarp.UnsignedMessage),
+		offchainAddressedCallMsgs: make(map[string]*warp.UnsignedMessage),
 	}
 	return b, b.initOffChainMessages(offchainMessages)
 }
 
 func (b *backend) initOffChainMessages(offchainMessages [][]byte) error {
 	for i, offchainMsg := range offchainMessages {
-		unsignedMsg, err := luxWarp.ParseUnsignedMessage(offchainMsg)
+		unsignedMsg, err := warp.ParseUnsignedMessage(offchainMsg)
 		if err != nil {
 			return fmt.Errorf("%w at index %d: %w", errParsingOffChainMessage, i, err)
 		}
@@ -121,7 +121,7 @@ func (b *backend) initOffChainMessages(offchainMessages [][]byte) error {
 	return nil
 }
 
-func (b *backend) AddMessage(unsignedMessage *luxWarp.UnsignedMessage) error {
+func (b *backend) AddMessage(unsignedMessage *warp.UnsignedMessage) error {
 	messageIDBytes := unsignedMessage.ID()
 	messageID := ids.ID(crypto.Keccak256Hash(messageIDBytes[:]))
 	log.Debug("Adding warp message to backend", "messageID", messageID)
@@ -139,7 +139,7 @@ func (b *backend) AddMessage(unsignedMessage *luxWarp.UnsignedMessage) error {
 	return nil
 }
 
-func (b *backend) GetMessageSignature(ctx context.Context, unsignedMessage *luxWarp.UnsignedMessage) ([]byte, error) {
+func (b *backend) GetMessageSignature(ctx context.Context, unsignedMessage *warp.UnsignedMessage) ([]byte, error) {
 	messageIDBytes := unsignedMessage.ID()
 	messageID := ids.ID(crypto.Keccak256Hash(messageIDBytes[:]))
 
@@ -162,7 +162,7 @@ func (b *backend) GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte
 		return nil, fmt.Errorf("failed to create new block hash payload: %w", err)
 	}
 
-	unsignedMessage, err := luxWarp.NewUnsignedMessage(b.networkID, b.sourceChainID, blockHashPayload.Bytes())
+	unsignedMessage, err := warp.NewUnsignedMessage(b.networkID, b.sourceChainID, blockHashPayload.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new unsigned warp message: %w", err)
 	}
@@ -184,7 +184,7 @@ func (b *backend) GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte
 	return sig, nil
 }
 
-func (b *backend) GetMessage(messageID ids.ID) (*luxWarp.UnsignedMessage, error) {
+func (b *backend) GetMessage(messageID ids.ID) (*warp.UnsignedMessage, error) {
 	if message, ok := b.messageCache.Get(messageID); ok {
 		return message, nil
 	}
@@ -198,7 +198,7 @@ func (b *backend) GetMessage(messageID ids.ID) (*luxWarp.UnsignedMessage, error)
 		return nil, err
 	}
 
-	unsignedMessage, err := luxWarp.ParseUnsignedMessage(unsignedMessageBytes)
+	unsignedMessage, err := warp.ParseUnsignedMessage(unsignedMessageBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse unsigned message %s: %w", messageID.String(), err)
 	}
@@ -207,7 +207,7 @@ func (b *backend) GetMessage(messageID ids.ID) (*luxWarp.UnsignedMessage, error)
 	return unsignedMessage, nil
 }
 
-func (b *backend) signMessage(unsignedMessage *luxWarp.UnsignedMessage) ([]byte, error) {
+func (b *backend) signMessage(unsignedMessage *warp.UnsignedMessage) ([]byte, error) {
 	if b.warpSigner == nil {
 		return nil, errors.New("warp signer not configured")
 	}
