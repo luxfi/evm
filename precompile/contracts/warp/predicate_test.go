@@ -34,9 +34,9 @@ const pChainHeight uint64 = 1337
 var (
 	_ agoUtils.Sortable[*testValidator] = (*testValidator)(nil)
 
-	errTest        = errors.New("non-nil error")
-	sourceChainID  = ids.GenerateTestID()
-	sourceSubnetID = ids.GenerateTestID()
+	errTest         = errors.New("non-nil error")
+	sourceChainID   = ids.GenerateTestID()
+	sourceNetworkID = ids.GenerateTestID()
 
 	// valid unsigned warp message used throughout testing
 	unsignedMsg *luxWarp.UnsignedMessage
@@ -188,9 +188,8 @@ type validatorRange struct {
 type testValidatorStateWrapper struct {
 	*validatorstest.State
 	GetMinimumHeightF func(context.Context) (uint64, error)
-	GetSubnetIDF      func(ids.ID) (ids.ID, error)
 	GetChainIDF       func(ids.ID) (ids.ID, error)
-	GetNetIDF         func(ids.ID) (ids.ID, error)
+	GetNetworkIDF     func(ids.ID) (ids.ID, error)
 }
 
 func (t *testValidatorStateWrapper) GetCurrentHeight(ctx context.Context) (uint64, error) {
@@ -204,8 +203,8 @@ func (t *testValidatorStateWrapper) GetMinimumHeight(ctx context.Context) (uint6
 	return 0, nil
 }
 
-func (t *testValidatorStateWrapper) GetValidatorSet(height uint64, subnetID ids.ID) (map[ids.NodeID]uint64, error) {
-	validatorOutputs, err := t.State.GetValidatorSet(context.Background(), height, subnetID)
+func (t *testValidatorStateWrapper) GetValidatorSet(height uint64, chainID ids.ID) (map[ids.NodeID]uint64, error) {
+	validatorOutputs, err := t.State.GetValidatorSet(context.Background(), height, chainID)
 	if err != nil {
 		return nil, err
 	}
@@ -218,27 +217,20 @@ func (t *testValidatorStateWrapper) GetValidatorSet(height uint64, subnetID ids.
 
 // GetValidatorSetWithOutput returns the full validator output including public keys
 // This implements the ValidatorOutputGetter interface used by VerifyPredicate
-func (t *testValidatorStateWrapper) GetValidatorSetWithOutput(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-	return t.State.GetValidatorSet(ctx, height, subnetID)
+func (t *testValidatorStateWrapper) GetValidatorSetWithOutput(ctx context.Context, height uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+	return t.State.GetValidatorSet(ctx, height, chainID)
 }
 
-func (t *testValidatorStateWrapper) GetSubnetID(chainID ids.ID) (ids.ID, error) {
-	if t.GetSubnetIDF != nil {
-		return t.GetSubnetIDF(chainID)
-	}
-	return ids.Empty, nil
-}
-
-func (t *testValidatorStateWrapper) GetChainID(subnetID ids.ID) (ids.ID, error) {
+func (t *testValidatorStateWrapper) GetChainID(id ids.ID) (ids.ID, error) {
 	if t.GetChainIDF != nil {
-		return t.GetChainIDF(subnetID)
+		return t.GetChainIDF(id)
 	}
 	return ids.Empty, nil
 }
 
-func (t *testValidatorStateWrapper) GetNetID(chainID ids.ID) (ids.ID, error) {
-	if t.GetNetIDF != nil {
-		return t.GetNetIDF(chainID)
+func (t *testValidatorStateWrapper) GetNetworkID(id ids.ID) (ids.ID, error) {
+	if t.GetNetworkIDF != nil {
+		return t.GetNetworkIDF(id)
 	}
 	return ids.Empty, nil
 }
@@ -262,15 +254,15 @@ func createConsensusCtx(tb testing.TB, validatorRanges []validatorRange) context
 
 	consensusCtx := utilstest.NewTestConsensusContext(tb)
 	state := &validatorstest.State{
-		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+		GetValidatorSetF: func(ctx context.Context, height uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 			return getValidatorsOutput, nil
 		},
 	}
 	// Use consensuscontext.WithValidatorState to add validator state to context
 	wrappedState := &testValidatorStateWrapper{
 		State: state,
-		GetSubnetIDF: func(chainID ids.ID) (ids.ID, error) {
-			return sourceSubnetID, nil
+		GetNetworkIDF: func(id ids.ID) (ids.ID, error) {
+			return sourceNetworkID, nil
 		},
 	}
 	consensusCtx = consensuscontext.WithValidatorState(consensusCtx, wrappedState)
@@ -340,23 +332,22 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 	predicateBytes := predicate.PackPredicate(warpMsg.Bytes())
 
 	consensusCtx := utilstest.NewTestConsensusContext(t)
-	subnetID := ids.GenerateTestID()
 	chainID := ids.GenerateTestID()
 	// Use consensus helper functions to add values to context
 	consensusCtx = consensuscontext.WithIDs(consensusCtx, consensuscontext.IDs{
 		NetworkID: 1,
 		ChainID:   chainID,
 	})
-	// Set subnet ID in evm consensus context (needed by evmconsensus.GetSubnetID)
-	consensusCtx = evmconsensus.WithSubnetID(consensusCtx, subnetID)
+	// Also set chainID via evmconsensus for GetChainID
+	consensusCtx = evmconsensus.WithChainID(consensusCtx, chainID)
 
 	state := &validatorstest.State{
-		GetValidatorSetF: func(ctx context.Context, height uint64, requestedSubnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-			expectedSubnetID := subnetID
+		GetValidatorSetF: func(ctx context.Context, height uint64, requestedChainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+			expectedChainID := chainID
 			if requirePrimaryNetworkSigners {
-				expectedSubnetID = constants.PrimaryNetworkID
+				expectedChainID = constants.PrimaryNetworkID
 			}
-			require.Equal(expectedSubnetID, requestedSubnetID)
+			require.Equal(expectedChainID, requestedChainID)
 			return getValidatorsOutput, nil
 		},
 	}
@@ -364,8 +355,8 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 	// Add validator state to context (wrap it first)
 	wrappedState := &testValidatorStateWrapper{
 		State: state,
-		GetSubnetIDF: func(chainID ids.ID) (ids.ID, error) {
-			require.Equal(chainID, cChainID)
+		GetChainIDF: func(cID ids.ID) (ids.ID, error) {
+			require.Equal(cID, cChainID)
 			// C-Chain is on the primary network, so return PrimaryNetworkID (ids.Empty)
 			return constants.PrimaryNetworkID, nil
 		},
@@ -764,15 +755,15 @@ func makeWarpPredicateTests(tb testing.TB) map[string]precompiletest.PredicateTe
 		consensusCtx := utilstest.NewTestConsensusContext(tb)
 
 		state := &validatorstest.State{
-			GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+			GetValidatorSetF: func(ctx context.Context, height uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 				return getValidatorsOutput, nil
 			},
 		}
 		// Wrap state and add to context
 		wrappedState := &testValidatorStateWrapper{
 			State: state,
-			GetSubnetIDF: func(chainID ids.ID) (ids.ID, error) {
-				return sourceSubnetID, nil
+			GetNetworkIDF: func(id ids.ID) (ids.ID, error) {
+				return sourceNetworkID, nil
 			},
 		}
 		consensusCtx = consensuscontext.WithValidatorState(consensusCtx, wrappedState)
