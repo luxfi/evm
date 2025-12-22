@@ -345,10 +345,9 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 	// Use consensus helper functions to add values to context
 	consensusCtx = consensuscontext.WithIDs(consensusCtx, consensuscontext.IDs{
 		NetworkID: 1,
-		NetID:     subnetID,
 		ChainID:   chainID,
 	})
-	// Also set subnet ID in evm consensus context (needed by evmconsensus.GetSubnetID)
+	// Set subnet ID in evm consensus context (needed by evmconsensus.GetSubnetID)
 	consensusCtx = evmconsensus.WithSubnetID(consensusCtx, subnetID)
 
 	state := &validatorstest.State{

@@ -226,8 +226,8 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	// Get the source chain ID from the warp message
 	sourceChainID := warpMsg.UnsignedMessage.SourceChainID
 
-	// Get subnet ID from validator state for the source chain
-	sourceSubnetID, err := validatorState.GetSubnetID(sourceChainID)
+	// Get network ID from validator state for the source chain
+	sourceSubnetID, err := validatorState.GetNetworkID(sourceChainID)
 	if err != nil {
 		return fmt.Errorf("failed to get subnet ID for source chain: %w", err)
 	}
