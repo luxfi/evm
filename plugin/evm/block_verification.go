@@ -4,7 +4,6 @@
 package evm
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
@@ -133,24 +132,14 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 	if !cancun && ethHeader.BlobGasUsed != nil {
 		return fmt.Errorf("invalid blobGasUsed: have %d, expected nil", *ethHeader.BlobGasUsed)
 	}
-	if cancun && ethHeader.ExcessBlobGas == nil {
-		return errors.New("header is missing excessBlobGas")
-	}
-	if cancun && ethHeader.BlobGasUsed == nil {
-		return errors.New("header is missing blobGasUsed")
+	// Lux does NOT use Ethereum beacon chain or blob transactions
+	// Skip Cancun-specific field requirements for historic block imports
+	// Only reject if blob gas was actually used (which shouldn't happen on Lux)
+	if ethHeader.BlobGasUsed != nil && *ethHeader.BlobGasUsed > 0 {
+		return fmt.Errorf("blobs not enabled on lux networks: used %d blob gas", *ethHeader.BlobGasUsed)
 	}
 	if !cancun && ethHeader.ParentBeaconRoot != nil {
 		return fmt.Errorf("invalid parentBeaconRoot: have %x, expected nil", *ethHeader.ParentBeaconRoot)
-	}
-	// TODO: decide what to do after Cancun
-	// currently we are enforcing it to be empty hash
-	if cancun {
-		switch {
-		case ethHeader.ParentBeaconRoot == nil:
-			return errors.New("header is missing parentBeaconRoot")
-		case *ethHeader.ParentBeaconRoot != (common.Hash{}):
-			return fmt.Errorf("invalid parentBeaconRoot: have %x, expected empty hash", ethHeader.ParentBeaconRoot)
-		}
 	}
 	return nil
 }
