@@ -1566,10 +1566,21 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	}
 	log.Info("CreateHandlers eth service attached successfully")
 
+	// Register admin API with geth RPC server for underscore notation (admin_importChain)
+	if vm.config.AdminAPIEnabled {
+		log.Info("CreateHandlers registering admin API with geth RPC server")
+		adminAPI := NewAdminAPI(vm, os.ExpandEnv(fmt.Sprintf("%s_subnet_evm_performance_%s", vm.config.AdminAPIDir, vm.chainAlias)))
+		if err := handler.RegisterName("admin", adminAPI); err != nil {
+			log.Error("CreateHandlers failed to register admin API", "error", err)
+			return nil, fmt.Errorf("failed to register admin API: %w", err)
+		}
+		log.Info("CreateHandlers admin API registered (admin_importChain enabled)")
+	}
+
 	apis := make(map[string]http.Handler)
 	log.Info("CreateHandlers checking admin API", "adminAPIEnabled", vm.config.AdminAPIEnabled)
 	if vm.config.AdminAPIEnabled {
-		log.Info("CreateHandlers creating admin API handler")
+		log.Info("CreateHandlers creating admin API handler (Gorilla RPC for backward compat)")
 		adminAPI, err := newHandler("admin", NewAdminService(vm, os.ExpandEnv(fmt.Sprintf("%s_subnet_evm_performance_%s", vm.config.AdminAPIDir, vm.chainAlias))))
 		if err != nil {
 			log.Error("CreateHandlers failed to create admin API handler", "error", err)
