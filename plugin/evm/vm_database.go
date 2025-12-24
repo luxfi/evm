@@ -14,6 +14,7 @@ import (
 	consensuscontext "github.com/luxfi/consensus/context"
 	"github.com/luxfi/constants"
 	luxdatabase "github.com/luxfi/database"
+	"github.com/luxfi/ids"
 	"github.com/luxfi/database/factory"
 	"github.com/luxfi/database/prefixdb"
 	"github.com/luxfi/database/versiondb"
@@ -69,9 +70,23 @@ func (vm *VM) initializeDBs(avaDB luxdatabase.Database) error {
 	if useStandAloneDB {
 		// If we are using a standalone database, we need to create a new database
 		// for the chain state.
-		// Use unique path per chain to prevent database conflicts
-		chainID := vm.chainCtx.ChainID.String()
-		chainDataDir := filepath.Join("/tmp", "chaindata", chainID)
+		// Use the per-node ChainDataDir from context to prevent database conflicts
+		// Each node has its own ChainDataDir, so they won't conflict
+		var chainDataDir string
+		if vm.chainCtx != nil && vm.chainCtx.ChainDataDir != "" {
+			chainDataDir = vm.chainCtx.ChainDataDir
+		} else {
+			// Fallback: use a unique temp path with node ID to prevent conflicts
+			nodeIDStr := "unknown"
+			if vm.chainCtx != nil && vm.chainCtx.NodeID != ids.EmptyNodeID {
+				nodeIDStr = vm.chainCtx.NodeID.String()
+			}
+			chainID := "unknown"
+			if vm.chainCtx != nil && vm.chainCtx.ChainID != ids.Empty {
+				chainID = vm.chainCtx.ChainID.String()
+			}
+			chainDataDir = filepath.Join("/tmp", "chaindata", nodeIDStr, chainID)
+		}
 		dbConfig, err := getDatabaseConfig(vm.config, chainDataDir)
 		if err != nil {
 			return err

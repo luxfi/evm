@@ -20,7 +20,7 @@ import (
 	"github.com/luxfi/cache/metercacher"
 	"github.com/luxfi/p2p"
 	"github.com/luxfi/p2p/gossip"
-	"github.com/luxfi/p2p/lp118"
+	luxwarp "github.com/luxfi/warp"
 
 	// "github.com/luxfi/firewood-go-ethhash/ffi"
 	"github.com/prometheus/client_golang/prometheus"
@@ -434,20 +434,28 @@ func (vm *VM) initializeInternal(
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "[EVM-DEBUG] Calling parseGenesis with genesisAllocFile=%q\n", vm.config.GenesisAllocFile)
+	// Debug file for capturing initialization errors
+	debugFile, _ := os.OpenFile("/tmp/evm-debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	defer debugFile.Close()
+	debugLog := func(msg string, args ...interface{}) {
+		fmt.Fprintf(debugFile, "[EVM-DEBUG] "+msg+"\n", args...)
+		debugFile.Sync()
+	}
+
+	debugLog("Calling parseGenesis with genesisAllocFile=%q", vm.config.GenesisAllocFile)
 	g, err := parseGenesis(vm.ctx, genesisBytes, upgradeBytes, vm.config.AirdropFile, vm.config.GenesisAllocFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[EVM-DEBUG] parseGenesis failed: %v\n", err)
+		debugLog("parseGenesis failed: %v", err)
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "[EVM-DEBUG] parseGenesis succeeded: chainID=%v alloc=%d accounts\n", g.Config.ChainID, len(g.Alloc))
+	debugLog("parseGenesis succeeded: chainID=%v alloc=%d accounts", g.Config.ChainID, len(g.Alloc))
 
 	vm.syntacticBlockValidator = NewBlockValidator()
-	fmt.Fprintf(os.Stderr, "[EVM-DEBUG] Creating ethConfig\n")
+	debugLog("Creating ethConfig")
 
 	vm.ethConfig = ethconfig.NewDefaultConfig()
 	vm.ethConfig.Genesis = g
-	fmt.Fprintf(os.Stderr, "[EVM-DEBUG] ethConfig.Genesis set\n")
+	debugLog("ethConfig.Genesis set")
 	// NetworkID here is different than Lux's NetworkID.
 	// Lux's NetworkID represents the Lux network is running on
 	// like Testnet, Mainnet, Local, etc.
@@ -557,20 +565,26 @@ func (vm *VM) initializeInternal(
 
 	vm.networkCodec = message.Codec
 	// p2p.Sender is passed directly to network
+	debugLog("Creating network")
 	vm.Network, err = network.NewNetwork(context.Background(), sender, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
 	if err != nil {
+		debugLog("Failed to create network: %v", err)
 		return fmt.Errorf("failed to create network: %w", err)
 	}
+	debugLog("Network created successfully")
 	// P2PValidators might be nil in test environments
 	p2pValidatorsInterface := vm.Network.P2PValidators()
 	if p2pValidatorsInterface != nil {
 		vm.p2pValidators = p2pValidatorsInterface
 	}
 
+	debugLog("Creating validators manager")
 	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, &vm.clock)
 	if err != nil {
+		debugLog("Failed to create validators manager: %v", err)
 		return fmt.Errorf("failed to initialize validators manager: %w", err)
 	}
+	debugLog("Validators manager created successfully")
 
 	// Initialize warp backend
 	offchainWarpMessages := make([][]byte, len(vm.config.WarpOffChainMessages))
@@ -593,17 +607,21 @@ func (vm *VM) initializeInternal(
 	// VM implements warp.BlockClient directly
 
 	// Get warp signer from context - use warptypes.Signer directly, no adapters
+	debugLog("Getting warp signer from context (WarpSigner=%v)", chainCtx.WarpSigner != nil)
 	var warpSigner warptypes.Signer
 	if chainCtx.WarpSigner != nil {
 		var ok bool
 		warpSigner, ok = chainCtx.WarpSigner.(warptypes.Signer)
 		if !ok {
+			debugLog("Invalid warp signer type: %T", chainCtx.WarpSigner)
 			return fmt.Errorf("invalid warp signer type: %T", chainCtx.WarpSigner)
 		}
+		debugLog("Got warp signer successfully")
 	}
 
 	// Only create warp backend if we have a signer
 	if warpSigner != nil {
+		debugLog("Creating warp backend")
 		vm.warpBackend, err = warp.NewBackend(
 			chainCtx.NetworkID, // Use NetworkID from consensus Context
 			chainCtx.ChainID,
@@ -615,13 +633,18 @@ func (vm *VM) initializeInternal(
 			offchainWarpMessages,
 		)
 		if err != nil {
+			debugLog("Failed to create warp backend: %v", err)
 			return err
 		}
+		debugLog("Warp backend created successfully")
 	}
 
+	debugLog("Initializing chain with lastAcceptedHash=%s", lastAcceptedHash)
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
+		debugLog("Failed to initialize chain: %v", err)
 		return err
 	}
+	debugLog("Chain initialized successfully")
 
 	// Start continuous profiler in a goroutine with recovery
 	go func() {
@@ -633,14 +656,11 @@ func (vm *VM) initializeInternal(
 		vm.startContinuousProfiler()
 	}()
 
-	// Add p2p warp message warpHandler
-	// Create adapter to convert our warp backend to lp118.Verifier
+	// Add p2p warp message handler
 	warpVerifier := &warpVerifierAdapter{backend: vm.warpBackend}
-	// Use warp signer directly - warp.Signer is compatible with lp118.Signer
-	warpHandler := lp118.NewCachedHandler(meteredCache, warpVerifier, warpSigner)
-	// Use built-in adapter to convert lp118.Handler to p2p.Handler
-	p2pHandler := lp118.NewHandlerAdapter(warpHandler)
-	vm.Network.AddHandler(lp118.HandlerID, p2pHandler)
+	warpHandler := luxwarp.NewCachedSignatureHandler(meteredCache, warpVerifier, warpSigner)
+	p2pHandler := luxwarp.NewSignatureHandlerAdapter(warpHandler)
+	vm.Network.AddHandler(luxwarp.SignatureHandlerID, p2pHandler)
 
 	vm.setAppRequestHandlers()
 
@@ -1574,10 +1594,8 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	}
 
 	if vm.config.WarpAPIEnabled {
-		warpSDKClient := vm.Network.NewClient(lp118.HandlerID)
-		// lp118.NewSignatureAggregator expects a node/utils/logging.Logger
-		// For now, pass nil as the logger is optional
-		signatureAggregator := lp118.NewSignatureAggregator(nil, warpSDKClient)
+		warpSDKClient := vm.Network.NewClient(luxwarp.SignatureHandlerID)
+		signatureAggregator := luxwarp.NewSignatureAggregator(nil, warpSDKClient)
 
 		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx, vm.warpBackend, signatureAggregator, vm.requirePrimaryNetworkSigners)); err != nil {
 			return nil, err
@@ -1893,19 +1911,12 @@ func (vm *VM) GetStateSummary(ctx context.Context, height uint64) (nodeblock.Sta
 	return nil, fmt.Errorf("summary does not implement message.SyncSummary")
 }
 
-// warpVerifierAdapter adapts our warp.Backend to lp118.Verifier
+// warpVerifierAdapter adapts our warp.Backend to warp.Verifier
 type warpVerifierAdapter struct {
 	backend warp.Backend
 }
 
-// Verify implements lp118.Verifier interface
-// Now receives *warptypes.UnsignedMessage directly (no conversion needed)
-func (w *warpVerifierAdapter) Verify(ctx context.Context, msg *warptypes.UnsignedMessage, justification []byte) *commonEng.AppError {
-	if err := w.backend.Verify(ctx, msg, justification); err != nil {
-		return &commonEng.AppError{
-			Code:    1,
-			Message: err.Error(),
-		}
-	}
-	return nil
+// Verify implements warp.Verifier interface
+func (w *warpVerifierAdapter) Verify(ctx context.Context, msg *warptypes.UnsignedMessage, justification []byte) error {
+	return w.backend.Verify(ctx, msg, justification)
 }

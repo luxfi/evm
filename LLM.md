@@ -952,3 +952,50 @@ lux amm swap \
 **Location:** `plugin/evm/vm.go:590`
 **Impact:** Snapshots not available during import
 **Workaround:** Disable state sync for import node
+
+## Cancun/BeaconRoot Disabled (2025-12-22)
+
+### Status: ✅ FIXED - Lux Networks Do Not Use Ethereum Beacon Chain
+
+Lux networks use their own consensus mechanism and do NOT use Ethereum's beacon chain. The following Cancun-era EIP-4844 fields are NOT required for Lux EVM blocks:
+
+- `ExcessBlobGas` - NOT required
+- `BlobGasUsed` - NOT required  
+- `ParentBeaconRoot` - NOT required
+
+### Files Modified
+
+1. **`consensus/dummy/consensus.go`** (lines 231-238)
+   - Removed mandatory beaconRoot check
+   - Removed mandatory excessBlobGas/blobGasUsed check
+   - Only rejects if BlobGasUsed > 0 (which shouldn't happen)
+
+2. **`plugin/evm/block_verification.go`** (lines 136-144)
+   - Removed mandatory excessBlobGas check
+   - Removed mandatory blobGasUsed check
+   - Removed mandatory parentBeaconRoot check
+   - Only rejects if BlobGasUsed > 0
+
+### Why This Matters
+
+Historic blocks from Lux networks (e.g., Zoo chain 200200) were created before Cancun was even conceived. These blocks don't have:
+- `ExcessBlobGas` field
+- `BlobGasUsed` field
+- `ParentBeaconRoot` field
+
+Setting `cancunTime: null` in genesis doesn't help because the EVM code still checks these fields during block import via `admin.importChain`.
+
+### Key Principle
+
+**Lux networks are NOT Ethereum.** We use our own consensus (Snow/POA) and don't need Ethereum's beacon chain validators or blob transaction support.
+
+### Testing Verification
+
+Successfully imported 799 blocks from Zoo chain (200200) after these fixes:
+```bash
+curl -X POST http://127.0.0.1:9630/ext/bc/<zoo-id>/admin \
+  -d '{"jsonrpc":"2.0","id":1,"method":"admin.importChain","params":{"file":"/path/to/zoo-mainnet-200200.rlp"}}'
+
+# Response:
+{"jsonrpc":"2.0","result":{"success":true,"blocksImported":799,"heightAfter":799}}
+```
