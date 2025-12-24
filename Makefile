@@ -6,7 +6,8 @@ EVM_PATH := $(shell pwd)
 # Load constants
 GOPATH := $(shell go env GOPATH)
 DEFAULT_PLUGIN_DIR := $(HOME)/.lux/plugins
-DEFAULT_VM_ID := srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+# VM ID for "Lux EVM" - computed as base58(sha256(pad32("Lux EVM")))
+DEFAULT_VM_ID := ag3GReYPNuSR17rUP8acMdZipQBikdXNRKDyFszAysmy3vDXE
 
 # Git info
 EVM_COMMIT := $(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
@@ -28,7 +29,7 @@ CGO_CFLAGS := -O2 -D__BLST_PORTABLE__
 export CGO_ENABLED
 export CGO_CFLAGS
 
-.PHONY: all build build-node clean test lint install setup generate help
+.PHONY: all build build-node clean test lint install link setup generate help
 
 # Default target
 all: build
@@ -44,7 +45,8 @@ help:
 	@echo "  all             Build EVM plugin (default)"
 	@echo "  build           Build EVM plugin to build/evm"
 	@echo "  build-node      Build standalone evm-node binary"
-	@echo "  install         Install EVM plugin to ~/.luxd/plugins"
+	@echo "  install         Install EVM plugin to ~/.lux/plugins (copy)"
+	@echo "  link            Link EVM plugin to ~/.lux/plugins/current (symlink)"
 	@echo "  clean           Clean build artifacts"
 	@echo "  test            Run all tests"
 	@echo "  test-unit       Run unit tests"
@@ -76,12 +78,20 @@ fix-deps:
 	go mod download
 	@echo "Dependencies fixed."
 
-# Install to default plugin directory (with VM ID)
+# Install to default plugin directory (copy binary)
 install: build
 	@echo "Installing EVM plugin to $(DEFAULT_PLUGIN_DIR)"
 	@mkdir -p $(DEFAULT_PLUGIN_DIR)
 	@cp build/evm $(DEFAULT_PLUGIN_DIR)/$(DEFAULT_VM_ID)
 	@echo "Installed: $(DEFAULT_PLUGIN_DIR)/$(DEFAULT_VM_ID)"
+
+# Link to plugins/current directory (symlink for development)
+link: build
+	@echo "Linking EVM plugin to $(DEFAULT_PLUGIN_DIR)/current"
+	@mkdir -p $(DEFAULT_PLUGIN_DIR)/current
+	@rm -f $(DEFAULT_PLUGIN_DIR)/current/$(DEFAULT_VM_ID)
+	@ln -s $(EVM_PATH)/build/evm $(DEFAULT_PLUGIN_DIR)/current/$(DEFAULT_VM_ID)
+	@echo "Linked: $(DEFAULT_PLUGIN_DIR)/current/$(DEFAULT_VM_ID) -> $(EVM_PATH)/build/evm"
 
 # Clean build artifacts
 clean:

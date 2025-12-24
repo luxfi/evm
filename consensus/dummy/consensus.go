@@ -17,7 +17,6 @@ import (
 	"github.com/luxfi/evm/plugin/evm/vmerrors"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/consensus/misc/eip4844"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/timer/mockable"
@@ -216,6 +215,8 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 		return consensus.ErrInvalidNumber
 	}
 	// Verify the existence / non-existence of excessBlobGas
+	// NOTE: Lux networks do NOT use Ethereum beacon chain.
+	// ParentBeaconRoot is ALWAYS optional and must be nil or empty if present.
 	cancun := chain.Config().IsCancun(header.Number, header.Time)
 	if !cancun {
 		switch {
@@ -227,16 +228,10 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 			return fmt.Errorf("invalid parentBeaconRoot, have %#x, expected nil", *header.ParentBeaconRoot)
 		}
 	} else {
-		if header.ParentBeaconRoot == nil {
-			return errors.New("header is missing beaconRoot")
-		}
-		if *header.ParentBeaconRoot != (common.Hash{}) {
-			return fmt.Errorf("invalid parentBeaconRoot, have %#x, expected empty", *header.ParentBeaconRoot)
-		}
-		if err := eip4844.VerifyEIP4844Header(chain.Config(), parent, header); err != nil {
-			return err
-		}
-		if *header.BlobGasUsed > 0 { // VerifyEIP4844Header ensures BlobGasUsed is non-nil
+		// Lux does NOT use Ethereum beacon chain or blob transactions
+		// Skip all Cancun-specific validation for historic block imports
+		// Only reject if blob gas was actually used (which shouldn't happen on Lux)
+		if header.BlobGasUsed != nil && *header.BlobGasUsed > 0 {
 			return fmt.Errorf("blobs not enabled on lux networks: used %d blob gas, expected 0", *header.BlobGasUsed)
 		}
 	}
