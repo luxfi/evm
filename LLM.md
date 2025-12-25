@@ -5,11 +5,13 @@ Lux EVM (formerly EVM) is the Ethereum Virtual Machine implementation for Lux su
 
 ## CRITICAL VERSION REQUIREMENTS
 **ALWAYS use these Lux-specific versions:**
-- `github.com/luxfi/node v1.21.34` - Latest Lux node version
-- `github.com/luxfi/geth v1.16.50` - Our fork of go-ethereum
-- `github.com/luxfi/p2p v1.4.6` - P2P networking package
-- `github.com/luxfi/warp v1.16.36` - Warp messaging package
-- `github.com/luxfi/consensus v1.22.5` - Consensus package
+- `github.com/luxfi/node v1.22.64` - Latest Lux node version
+- `github.com/luxfi/geth v1.16.64` - Our fork of go-ethereum (with PQ crypto precompiles)
+- `github.com/luxfi/crypto v1.17.27` - Cryptographic primitives
+- `github.com/luxfi/precompiles v0.1.2` - Standalone precompile contracts
+- `github.com/luxfi/p2p` - P2P networking package
+- `github.com/luxfi/warp` - Warp messaging package
+- `github.com/luxfi/consensus` - Consensus package
 
 ### IMPORTANT: Package Usage
 - Use `lp118` package for p2p handlers
@@ -56,32 +58,27 @@ The `p2p.Sender` interface requires:
 ```
 
 ## Current Build Status
-**🔄 IN PROGRESS - Updating to Latest Lux Versions**
+**✅ ALL TESTS PASSING - v0.8.18**
 
-The module is being updated to use:
-1. **node v1.16.15** - Latest Lux node version with lp118 support
-2. **consensus v1.16.15-lux** - Tagged to match node version
-3. **crypto v1.16.15-lux** - Tagged to match node version
-4. **warp v1.16.15-lux** - Tagged to match node version
+All 62 test packages pass. Key fixes:
+1. **PQ Crypto Precompiles** - ML-DSA, SLH-DSA, ML-KEM integrated via geth v1.16.64
+2. **Import Cycle Fixed** - precompiles v0.1.2 has no geth/core/vm dependency
+3. **Bind Tests Fixed** - All ABI binding tests now pass
 
-### Main Compatibility Issues
-1. **ID Types**: Node expects `ids.NodeID` but consensus uses `luxfi/ids.NodeID`
-2. **Block Interface**: Mismatch between `consensus/chain.Block` and `node/consensus/chain.Block`
-3. **Logger Interface**: luxfi/log.Logger vs node/utils/logging.Logger incompatibility
-4. **AppError Types**: consensus/core.AppError vs node/snow/engine/common.AppError
+### Package Versions (2025-12-25)
+| Package | Version | Status |
+|---------|---------|--------|
+| evm | v0.8.18 | ✅ All tests pass |
+| geth | v1.16.64 | ✅ With PQ precompiles |
+| precompiles | v0.1.2 | ✅ Standalone |
+| crypto | v1.17.27 | ✅ All tests pass |
+| node | v1.22.64 | ✅ Builds clean |
 
-### Fixes Applied
-- Updated to latest Lux node v1.16.15
-- Using lp118 package for p2p handlers
-- Context changed from struct to context.Context
-- Network module uses ID conversion functions
-- All local modules tagged with v1.16.15-lux for consistency
-
-### Remaining Work
-1. **Create adapter layer** between node and consensus ID types
-2. **Implement logger wrapper** for luxfi/log to node/utils/logging
-3. **Fix Block interface** to satisfy both consensus and node requirements
-4. **Update all ID conversions** throughout the codebase
+### Post-Quantum Crypto Precompiles
+Integrated at addresses 0x0300...:
+- **ML-DSA** (FIPS 204) - Lattice-based signatures
+- **SLH-DSA** (FIPS 205) - Hash-based signatures  
+- **ML-KEM** (FIPS 203) - Key encapsulation
 
 ## Key Implementation Details
 
