@@ -42,7 +42,7 @@ func TestMLDSAVerify(t *testing.T) {
 	// Prepare input for precompile
 	pubBytes := pub.Bytes()
 	input := []byte(MLDSAVerifySelector[:4])
-	input = append(input, byte(mldsa.MLDSA44))
+	input = append(input, MLDSAMode44) // Use precompile mode constant
 	input = append(input, byte(len(pubBytes)>>8), byte(len(pubBytes)))
 	input = append(input, pubBytes...)
 	input = append(input, byte(len(message)>>8), byte(len(message)))
@@ -51,7 +51,7 @@ func TestMLDSAVerify(t *testing.T) {
 
 	// Call precompile
 	gas := precompile.RequiredGas(input)
-	require.Equal(uint64(MLDSAVerifyGas), gas)
+	require.Equal(uint64(MLDSA44VerifyGas), gas) // Using MLDSA44 mode
 
 	result, _, err := precompile.Run(nil, common.Address{}, ContractAddress, input, gas, true)
 	require.NoError(err)
@@ -60,7 +60,7 @@ func TestMLDSAVerify(t *testing.T) {
 	// Test invalid signature
 	signature[0] ^= 0xFF
 	input = []byte(MLDSAVerifySelector[:4])
-	input = append(input, byte(mldsa.MLDSA44))
+	input = append(input, MLDSAMode44) // Use precompile mode constant
 	input = append(input, byte(len(pubBytes)>>8), byte(len(pubBytes)))
 	input = append(input, pubBytes...)
 	input = append(input, byte(len(message)>>8), byte(len(message)))
@@ -88,7 +88,7 @@ func TestMLKEMEncapsulateDecapsulate(t *testing.T) {
 	encapInput = append(encapInput, pubBytes...)
 
 	gas := precompile.RequiredGas(encapInput)
-	require.Equal(uint64(MLKEMEncapsulateGas), gas)
+	require.Equal(uint64(MLKEM512EncapsulateGas), gas) // Using MLKEM512 mode
 
 	encapResult, _, err := precompile.Run(nil, common.Address{}, ContractAddress, encapInput, gas, true)
 	require.NoError(err)
@@ -109,7 +109,7 @@ func TestMLKEMEncapsulateDecapsulate(t *testing.T) {
 	decapInput = append(decapInput, ciphertext...)
 
 	gas = precompile.RequiredGas(decapInput)
-	require.Equal(uint64(MLKEMDecapsulateGas), gas)
+	require.Equal(uint64(MLKEM512DecapsulateGas), gas) // Using MLKEM512 mode
 
 	sharedSecret2, _, err := precompile.Run(nil, common.Address{}, ContractAddress, decapInput, gas, true)
 	require.NoError(err)
@@ -145,7 +145,7 @@ func TestSLHDSAVerify(t *testing.T) {
 
 	// Call precompile
 	gas := precompile.RequiredGas(input)
-	require.Equal(uint64(SLHDSAVerifyGas), gas)
+	require.Equal(uint64(SLHDSA128sVerifyGas), gas) // Using SHA2_128s mode
 
 	result, _, err := precompile.Run(nil, common.Address{}, ContractAddress, input, gas, true)
 	require.NoError(err)
@@ -153,24 +153,37 @@ func TestSLHDSAVerify(t *testing.T) {
 }
 
 func TestGasCalculation(t *testing.T) {
-	// Removed skip: tests gas cost calculation for PQ operations
+	// Tests gas cost calculation for PQ operations with per-mode costs
 	require := require.New(t)
 	precompile := PQCryptoPrecompile
 
 	tests := []struct {
 		name     string
 		selector string
+		mode     uint8
 		expected uint64
 	}{
-		{"ML-DSA Verify", MLDSAVerifySelector[:4], MLDSAVerifyGas},
-		{"ML-KEM Encapsulate", MLKEMEncapsulateSelector[:4], MLKEMEncapsulateGas},
-		{"ML-KEM Decapsulate", MLKEMDecapsulateSelector[:4], MLKEMDecapsulateGas},
-		{"SLH-DSA Verify", SLHDSAVerifySelector[:4], SLHDSAVerifyGas},
+		{"ML-DSA-44 Verify", MLDSAVerifySelector[:4], MLDSAMode44, MLDSA44VerifyGas},
+		{"ML-DSA-65 Verify", MLDSAVerifySelector[:4], MLDSAMode65, MLDSA65VerifyGas},
+		{"ML-DSA-87 Verify", MLDSAVerifySelector[:4], MLDSAMode87, MLDSA87VerifyGas},
+		{"ML-KEM-512 Encapsulate", MLKEMEncapsulateSelector[:4], MLKEMMode512, MLKEM512EncapsulateGas},
+		{"ML-KEM-768 Encapsulate", MLKEMEncapsulateSelector[:4], MLKEMMode768, MLKEM768EncapsulateGas},
+		{"ML-KEM-1024 Encapsulate", MLKEMEncapsulateSelector[:4], MLKEMMode1024, MLKEM1024EncapsulateGas},
+		{"ML-KEM-512 Decapsulate", MLKEMDecapsulateSelector[:4], MLKEMMode512, MLKEM512DecapsulateGas},
+		{"ML-KEM-768 Decapsulate", MLKEMDecapsulateSelector[:4], MLKEMMode768, MLKEM768DecapsulateGas},
+		{"ML-KEM-1024 Decapsulate", MLKEMDecapsulateSelector[:4], MLKEMMode1024, MLKEM1024DecapsulateGas},
+		{"SLH-DSA-SHA2-128s Verify", SLHDSAVerifySelector[:4], SLHDSAModeSHA2_128s, SLHDSA128sVerifyGas},
+		{"SLH-DSA-SHA2-128f Verify", SLHDSAVerifySelector[:4], SLHDSAModeSHA2_128f, SLHDSA128fVerifyGas},
+		{"SLH-DSA-SHA2-192s Verify", SLHDSAVerifySelector[:4], SLHDSAModeSHA2_192s, SLHDSA192sVerifyGas},
+		{"SLH-DSA-SHA2-192f Verify", SLHDSAVerifySelector[:4], SLHDSAModeSHA2_192f, SLHDSA192fVerifyGas},
+		{"SLH-DSA-SHA2-256s Verify", SLHDSAVerifySelector[:4], SLHDSAModeSHA2_256s, SLHDSA256sVerifyGas},
+		{"SLH-DSA-SHA2-256f Verify", SLHDSAVerifySelector[:4], SLHDSAModeSHA2_256f, SLHDSA256fVerifyGas},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			input := []byte(test.selector)
+			// Input format: selector(4) + mode(1) + ...
+			input := append([]byte(test.selector), test.mode)
 			gas := precompile.RequiredGas(input)
 			require.Equal(test.expected, gas)
 		})
@@ -188,7 +201,7 @@ func BenchmarkPQPrecompile(b *testing.B) {
 
 		pubBytes := pub.Bytes()
 		input := []byte(MLDSAVerifySelector[:4])
-		input = append(input, byte(mldsa.MLDSA44))
+		input = append(input, MLDSAMode44) // Use precompile mode constant
 		input = append(input, byte(len(pubBytes)>>8), byte(len(pubBytes)))
 		input = append(input, pubBytes...)
 		input = append(input, byte(len(message)>>8), byte(len(message)))
