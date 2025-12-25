@@ -22,9 +22,9 @@ require (
 	github.com/luxfi/codec v1.0.4
 	github.com/luxfi/consensus v1.22.44
 	github.com/luxfi/constants v1.2.4
-	github.com/luxfi/crypto v1.17.25
+	github.com/luxfi/crypto v1.17.26
 	github.com/luxfi/database v1.2.15
-	github.com/luxfi/geth v1.16.62
+	github.com/luxfi/geth v1.16.63
 	github.com/luxfi/go-bip39 v1.1.2
 	github.com/luxfi/ids v1.2.5
 	github.com/luxfi/log v1.1.26
