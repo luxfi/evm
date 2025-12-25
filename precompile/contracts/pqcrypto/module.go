@@ -1,7 +1,7 @@
-// Copyright (C) 2025, Lux Industries, Inc. All rights reserved.
+// Copyright (C) 2025, Lux Industries Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package mldsa
+package pqcrypto
 
 import (
 	"fmt"
@@ -9,24 +9,15 @@ import (
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/evm/precompile/modules"
 	"github.com/luxfi/evm/precompile/precompileconfig"
-
-	"github.com/luxfi/geth/common"
 )
 
 var _ contract.Configurator = (*configurator)(nil)
 
-// ConfigKey is the key used in json config files to specify this precompile config.
-// must be unique across all precompiles.
-const ConfigKey = "mldsaConfig"
-
-// ContractMLDSAVerifyAddress is the address of the ML-DSA verify precompile
-var ContractMLDSAVerifyAddress = common.HexToAddress("0x0200000000000000000000000000000000000006")
-
 // Module is the precompile module. It is used to register the precompile contract.
 var Module = modules.Module{
 	ConfigKey:    ConfigKey,
-	Address:      ContractMLDSAVerifyAddress,
-	Contract:     MLDSAVerifyPrecompile,
+	Address:      ContractAddress,
+	Contract:     PQCryptoPrecompile,
 	Configurator: &configurator{},
 }
 
@@ -46,7 +37,7 @@ func (*configurator) MakeConfig() precompileconfig.Config {
 	return new(Config)
 }
 
-// Configure is a no-op for ML-DSA since it does not need to store any information in the state
+// Configure is a no-op for PQCrypto since it does not need to store any information in the state
 func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, _ contract.ConfigurationBlockContext) error {
 	if _, ok := cfg.(*Config); !ok {
 		return fmt.Errorf("expected config type %T, got %T: %v", &Config{}, cfg, cfg)
