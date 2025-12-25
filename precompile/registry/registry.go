@@ -18,8 +18,10 @@ import (
 	_ "github.com/luxfi/evm/precompile/contracts/rewardmanager"
 
 	_ "github.com/luxfi/evm/precompile/contracts/warp"
-	// ADD YOUR PRECOMPILE HERE
-	// _ "github.com/luxfi/evm/precompile/contracts/yourprecompile"
+
+	// Post-Quantum Cryptography Precompiles (FIPS 203-205)
+	_ "github.com/luxfi/evm/precompile/contracts/mldsa"    // ML-DSA signature verification (FIPS 204)
+	_ "github.com/luxfi/evm/precompile/contracts/pqcrypto" // Unified PQ crypto operations
 )
 
 // This list is kept just for reference. The actual addresses defined in respective packages of precompiles.
@@ -40,5 +42,8 @@ import (
 // FeeManagerAddress                = common.HexToAddress("0x0200000000000000000000000000000000000003")
 // RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
 // WarpAddress                      = common.HexToAddress("0x0200000000000000000000000000000000000005")
+// MLDSAVerifyAddress               = common.HexToAddress("0x0200000000000000000000000000000000000006")
+// SLHDSAVerifyAddress              = common.HexToAddress("0x0200000000000000000000000000000000000007")
+// PQCryptoAddress                  = common.HexToAddress("0x0200000000000000000000000000000000000010")
 // ADD YOUR PRECOMPILE HERE
 // {YourPrecompile}Address          = common.HexToAddress("0x03000000000000000000000000000000000000??")

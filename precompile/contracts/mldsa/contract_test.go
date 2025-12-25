@@ -32,8 +32,9 @@ func TestMLDSAVerify_ValidSignature(t *testing.T) {
 	message := []byte("test message for ML-DSA-65 verification")
 	pk, signature, msg := createTestSignature(t, message)
 
-	// Prepare input: publicKey (1952 bytes) + message length (32 bytes) + signature (3309 bytes) + message
+	// Prepare input: mode(1) + publicKey (1952 bytes) + message length (32 bytes) + signature (3309 bytes) + message
 	input := make([]byte, 0)
+	input = append(input, ModeMLDSA65) // Mode byte
 	input = append(input, pk...)
 
 	// Message length as big-endian uint256
@@ -75,6 +76,7 @@ func TestMLDSAVerify_InvalidSignature(t *testing.T) {
 
 	// Prepare input
 	input := make([]byte, 0)
+	input = append(input, ModeMLDSA65) // Mode byte
 	input = append(input, pk...)
 
 	msgLen := make([]byte, 32)
@@ -113,6 +115,7 @@ func TestMLDSAVerify_WrongMessage(t *testing.T) {
 
 	// Prepare input with wrong message
 	input := make([]byte, 0)
+	input = append(input, ModeMLDSA65) // Mode byte
 	input = append(input, pk...)
 
 	msgLen := make([]byte, 32)
@@ -144,6 +147,7 @@ func TestMLDSAVerify_WrongMessage(t *testing.T) {
 func TestMLDSAVerify_InputTooShort(t *testing.T) {
 	// Input too short (less than minimum required)
 	input := make([]byte, 100)
+	input[0] = ModeMLDSA65 // Mode byte
 
 	gas := MLDSAVerifyPrecompile.RequiredGas(input)
 
@@ -167,6 +171,7 @@ func TestMLDSAVerify_EmptyMessage(t *testing.T) {
 
 	// Prepare input
 	input := make([]byte, 0)
+	input = append(input, ModeMLDSA65) // Mode byte
 	input = append(input, pk...)
 
 	msgLen := make([]byte, 32)
@@ -205,6 +210,7 @@ func TestMLDSAVerify_LargeMessage(t *testing.T) {
 
 	// Prepare input
 	input := make([]byte, 0)
+	input = append(input, ModeMLDSA65) // Mode byte
 	input = append(input, pk...)
 
 	msgLen := make([]byte, 32)
@@ -239,6 +245,7 @@ func TestMLDSAVerify_GasCost(t *testing.T) {
 	pk, signature, msg := createTestSignature(t, message)
 
 	input := make([]byte, 0)
+	input = append(input, ModeMLDSA65) // Mode byte
 	input = append(input, pk...)
 	msgLen := make([]byte, 32)
 	msgLen[31] = byte(len(msg))
@@ -246,15 +253,18 @@ func TestMLDSAVerify_GasCost(t *testing.T) {
 	input = append(input, signature...)
 	input = append(input, msg...)
 
-	// Calculate expected gas
-	expectedGas := MLDSAVerifyGasCost(input)
-
-	// Should be base cost + per-byte cost
-	require.Greater(t, expectedGas, uint64(50000)) // Minimum base cost
-
-	// Verify RequiredGas returns same value
+	// Verify RequiredGas returns expected per-mode gas
 	actualGas := MLDSAVerifyPrecompile.RequiredGas(input)
-	require.Equal(t, expectedGas, actualGas)
+	require.Equal(t, MLDSA65VerifyGas, actualGas)
+
+	// Test other modes
+	input[0] = ModeMLDSA44
+	actualGas = MLDSAVerifyPrecompile.RequiredGas(input)
+	require.Equal(t, MLDSA44VerifyGas, actualGas)
+
+	input[0] = ModeMLDSA87
+	actualGas = MLDSAVerifyPrecompile.RequiredGas(input)
+	require.Equal(t, MLDSA87VerifyGas, actualGas)
 }
 
 func TestMLDSAPrecompile_Address(t *testing.T) {
@@ -270,6 +280,7 @@ func BenchmarkMLDSAVerify_SmallMessage(b *testing.B) {
 	pk, signature, msg := createTestSignature(b, message)
 
 	input := make([]byte, 0)
+	input = append(input, ModeMLDSA65) // Mode byte
 	input = append(input, pk...)
 	msgLen := make([]byte, 32)
 	msgLen[31] = byte(len(msg))
@@ -297,6 +308,7 @@ func BenchmarkMLDSAVerify_LargeMessage(b *testing.B) {
 	pk, signature, msg := createTestSignature(b, message)
 
 	input := make([]byte, 0)
+	input = append(input, ModeMLDSA65) // Mode byte
 	input = append(input, pk...)
 	msgLen := make([]byte, 32)
 	msgLen[29] = byte(len(msg) >> 16)
