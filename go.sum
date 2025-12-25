@@ -234,12 +234,12 @@ github.com/luxfi/consensus v1.22.44 h1:GRzJUUG3ZEYcn3/Ve5GAJKNcOKgvFAIR4HErvsLbm
 github.com/luxfi/consensus v1.22.44/go.mod h1:mNUPWj7hy3ZI0vmhPQvTKaeRci3SpEqKhqosOUYU4b8=
 github.com/luxfi/constants v1.2.4 h1:tUZfdNnn/N8Zs0NnDn1z+atrDz1AZtH+Dtowvyhx+Bg=
 github.com/luxfi/constants v1.2.4/go.mod h1:YyHBi205pBpzgYCmD44QPb6dCOzKTK0jwpGrfB4kcRA=
-github.com/luxfi/crypto v1.17.25 h1:emTejQ17bGj/1tu0ETB196Hbn6fJfo8wUNGIOWit6RM=
-github.com/luxfi/crypto v1.17.25/go.mod h1:v6eaW5ejuzW2gecChWKQqx4CtVhoM1b+e40ro/6WVPg=
+github.com/luxfi/crypto v1.17.26 h1:B4hebyl2whu9Og+mb7QoQavD4LM1cUpwWQEnwi3H6fU=
+github.com/luxfi/crypto v1.17.26/go.mod h1:v6eaW5ejuzW2gecChWKQqx4CtVhoM1b+e40ro/6WVPg=
 github.com/luxfi/database v1.2.15 h1:tQsOAucLyWL3d+/orSpCVF8WVrqz/IsTDPlXCBhFmjI=
 github.com/luxfi/database v1.2.15/go.mod h1:lSmpKmL4e9ajUir89Y7Be1IOzK56fPr8D3ZDXh+y5T8=
-github.com/luxfi/geth v1.16.62 h1:2llJsWDV9AXNBh5uq3ZKi9zkdi5pYF+L7I11r4yvYqA=
-github.com/luxfi/geth v1.16.62/go.mod h1:w/BGYgOYQJ9Y2pmSDgPCZwTAV+vZqbCdLUJj+xQLLTY=
+github.com/luxfi/geth v1.16.63 h1:DmIBkmsxzXGrdj6ZPNrumpHyYznFabBRrV+CsjEe9T0=
+github.com/luxfi/geth v1.16.63/go.mod h1:7lQ25do4pQizMtrVKdepji2Pl/pL+8DUo5Q0SbSuWpE=
 github.com/luxfi/go-bip39 v1.1.2 h1:p+wLMPGs6MLQh7q0YIsmy2EhHL7LHiELEGTJko6t/Jg=
 github.com/luxfi/go-bip39 v1.1.2/go.mod h1:96de9VkR2kY/ASAnhMtvt3TSh+PZkAFAngNj0GjRGDo=
 github.com/luxfi/ids v1.2.5 h1:w4YSj3S6LQiUXhiChUmcbrMCRMfkCaBFIGn0Eo4ZSxk=
