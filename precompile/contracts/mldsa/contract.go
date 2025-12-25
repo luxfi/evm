@@ -13,31 +13,43 @@ import (
 )
 
 var (
-	// ContractMLDSAVerifyAddress is the address of the ML-DSA verify precompile
-	ContractMLDSAVerifyAddress = common.HexToAddress("0x0200000000000000000000000000000000000006")
-
 	// Singleton instance
 	MLDSAVerifyPrecompile = &mldsaVerifyPrecompile{}
 
 	_ contract.StatefulPrecompiledContract = &mldsaVerifyPrecompile{}
 
 	ErrInvalidInputLength = errors.New("invalid input length")
+	ErrUnsupportedMode    = errors.New("unsupported ML-DSA mode")
 )
 
+// ML-DSA mode bytes
 const (
-	// Gas cost for ML-DSA-65 verification
-	// Based on benchmarks: ~108μs verify time on M1
-	// Relative to ecrecover (3000 gas for ~50μs) ≈ 6480 gas per 108μs
-	MLDSAVerifyBaseGas    uint64 = 100_000 // Base cost for signature verification
-	MLDSAVerifyPerByteGas uint64 = 10      // Cost per byte of message
+	ModeMLDSA44 uint8 = 0x44
+	ModeMLDSA65 uint8 = 0x65
+	ModeMLDSA87 uint8 = 0x87
+)
 
-	// ML-DSA-65 constants
-	ML_DSA_PublicKeySize  = 1952 // ML-DSA-65 public key size
-	ML_DSA_SignatureSize  = 3309 // ML-DSA-65 signature size
-	ML_DSA_MessageLenSize = 32   // Size of message length field
+// Gas costs for ML-DSA verification (per mode)
+const (
+	MLDSA44VerifyGas    uint64 = 75_000  // Fastest, smallest keys
+	MLDSA65VerifyGas    uint64 = 100_000 // Medium
+	MLDSA87VerifyGas    uint64 = 150_000 // Slowest, largest keys
+	MLDSAVerifyPerByteGas uint64 = 10    // Cost per byte of message
+)
 
-	// Minimum input size: public key + message length + signature
-	MinInputSize = ML_DSA_PublicKeySize + ML_DSA_MessageLenSize + ML_DSA_SignatureSize
+// ML-DSA key and signature sizes per mode
+const (
+	// ML-DSA-44
+	MLDSA44PublicKeySize  = 1312
+	MLDSA44SignatureSize  = 2420
+
+	// ML-DSA-65
+	MLDSA65PublicKeySize  = 1952
+	MLDSA65SignatureSize  = 3309
+
+	// ML-DSA-87
+	MLDSA87PublicKeySize  = 2592
+	MLDSA87SignatureSize  = 4627
 )
 
 type mldsaVerifyPrecompile struct{}
@@ -49,24 +61,29 @@ func (p *mldsaVerifyPrecompile) Address() common.Address {
 
 // RequiredGas calculates the gas required for ML-DSA verification
 func (p *mldsaVerifyPrecompile) RequiredGas(input []byte) uint64 {
-	return MLDSAVerifyGasCost(input)
-}
-
-// MLDSAVerifyGasCost calculates the gas cost for ML-DSA verification
-func MLDSAVerifyGasCost(input []byte) uint64 {
-	if len(input) < MinInputSize {
-		return MLDSAVerifyBaseGas
+	if len(input) < 1 {
+		return MLDSA65VerifyGas // Default
 	}
 
-	// Extract message length from input
-	msgLenBytes := input[ML_DSA_PublicKeySize : ML_DSA_PublicKeySize+ML_DSA_MessageLenSize]
-	msgLen := readUint256(msgLenBytes)
+	// First byte is mode
+	mode := input[0]
+	var baseGas uint64
+	switch mode {
+	case ModeMLDSA44:
+		baseGas = MLDSA44VerifyGas
+	case ModeMLDSA65:
+		baseGas = MLDSA65VerifyGas
+	case ModeMLDSA87:
+		baseGas = MLDSA87VerifyGas
+	default:
+		baseGas = MLDSA65VerifyGas
+	}
 
-	// Base cost + per-byte cost for message
-	return MLDSAVerifyBaseGas + (msgLen * MLDSAVerifyPerByteGas)
+	return baseGas
 }
 
 // Run implements the ML-DSA signature verification precompile
+// Input format: [mode(1)][pubkey][msgLen(32)][signature][message]
 func (p *mldsaVerifyPrecompile) Run(
 	accessibleState contract.AccessibleState,
 	caller common.Address,
@@ -81,42 +98,64 @@ func (p *mldsaVerifyPrecompile) Run(
 		return nil, 0, errors.New("out of gas")
 	}
 
-	// Input format:
-	// [0:1952]       = ML-DSA-65 public key (1952 bytes)
-	// [1952:1984]    = message length as uint256 (32 bytes)
-	// [1984:5293]    = ML-DSA-65 signature (3309 bytes)
-	// [5293:...]     = message (variable length)
+	if len(input) < 1 {
+		return nil, suppliedGas - gasCost, ErrInvalidInputLength
+	}
 
-	if len(input) < MinInputSize {
+	// Parse mode byte
+	modeByte := input[0]
+	var mode mldsa.Mode
+	var pubKeySize, sigSize int
+
+	switch modeByte {
+	case ModeMLDSA44:
+		mode = mldsa.MLDSA44
+		pubKeySize = MLDSA44PublicKeySize
+		sigSize = MLDSA44SignatureSize
+	case ModeMLDSA65:
+		mode = mldsa.MLDSA65
+		pubKeySize = MLDSA65PublicKeySize
+		sigSize = MLDSA65SignatureSize
+	case ModeMLDSA87:
+		mode = mldsa.MLDSA87
+		pubKeySize = MLDSA87PublicKeySize
+		sigSize = MLDSA87SignatureSize
+	default:
+		return nil, suppliedGas - gasCost, fmt.Errorf("%w: 0x%02x", ErrUnsupportedMode, modeByte)
+	}
+
+	// Minimum input: mode(1) + pubkey + msgLen(32) + signature
+	minSize := 1 + pubKeySize + 32 + sigSize
+	if len(input) < minSize {
 		return nil, suppliedGas - gasCost, fmt.Errorf("%w: expected at least %d bytes, got %d",
-			ErrInvalidInputLength, MinInputSize, len(input))
+			ErrInvalidInputLength, minSize, len(input))
 	}
 
 	// Parse input
-	publicKey := input[0:ML_DSA_PublicKeySize]
-	messageLenBytes := input[ML_DSA_PublicKeySize : ML_DSA_PublicKeySize+ML_DSA_MessageLenSize]
-	signature := input[ML_DSA_PublicKeySize+ML_DSA_MessageLenSize : ML_DSA_PublicKeySize+ML_DSA_MessageLenSize+ML_DSA_SignatureSize]
+	publicKey := input[1 : 1+pubKeySize]
+	messageLenBytes := input[1+pubKeySize : 1+pubKeySize+32]
+	signature := input[1+pubKeySize+32 : 1+pubKeySize+32+sigSize]
 
 	// Read message length
 	messageLen := readUint256(messageLenBytes)
 
 	// Validate total input size
-	expectedSize := MinInputSize + messageLen
+	expectedSize := uint64(minSize) + messageLen
 	if uint64(len(input)) != expectedSize {
 		return nil, suppliedGas - gasCost, fmt.Errorf("%w: expected %d bytes total, got %d",
 			ErrInvalidInputLength, expectedSize, len(input))
 	}
 
 	// Extract message
-	message := input[MinInputSize:expectedSize]
+	message := input[minSize:]
 
-	// Parse public key from bytes (ML-DSA-65 mode)
-	pub, err := mldsa.PublicKeyFromBytes(publicKey, mldsa.MLDSA65)
+	// Parse public key from bytes
+	pub, err := mldsa.PublicKeyFromBytes(publicKey, mode)
 	if err != nil {
 		return nil, suppliedGas - gasCost, fmt.Errorf("invalid public key: %w", err)
 	}
 
-	// Verify signature using public key method
+	// Verify signature
 	valid := pub.Verify(message, signature, nil)
 
 	// Return result as 32-byte word (1 = valid, 0 = invalid)
