@@ -1,7 +1,7 @@
-// Copyright (C) 2025, Lux Industries Inc All rights reserved.
-// Post-Quantum Cryptography Precompile Configuration
+// Copyright (C) 2025, Lux Industries, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 
-package pqcrypto
+package mldsa
 
 import (
 	"fmt"
@@ -11,15 +11,12 @@ import (
 
 var _ precompileconfig.Config = &Config{}
 
-// ConfigKey is the key used in json config files to specify this precompile config.
-const ConfigKey = "pqCryptoConfig"
-
 // Config implements the precompileconfig.Config interface
 type Config struct {
 	precompileconfig.Upgrade
 }
 
-// NewConfig returns a new PQ crypto precompile config
+// NewConfig returns a new ML-DSA precompile config
 func NewConfig(blockTimestamp *uint64) *Config {
 	return &Config{
 		Upgrade: precompileconfig.Upgrade{
@@ -28,7 +25,7 @@ func NewConfig(blockTimestamp *uint64) *Config {
 	}
 }
 
-// NewDisableConfig returns a config that disables the PQ crypto precompile
+// NewDisableConfig returns a config that disables the ML-DSA precompile
 func NewDisableConfig(blockTimestamp *uint64) *Config {
 	return &Config{
 		Upgrade: precompileconfig.Upgrade{
@@ -38,14 +35,14 @@ func NewDisableConfig(blockTimestamp *uint64) *Config {
 	}
 }
 
-// Key returns the unique key for the PQ crypto precompile config
+// Key returns the unique key for the ML-DSA precompile config
 func (*Config) Key() string { return ConfigKey }
 
 // Verify returns an error if the config is invalid
 func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	// Basic validation - check that timestamp is set for enabling
 	if !c.Disable && c.BlockTimestamp == nil {
-		return fmt.Errorf("PQ crypto precompile is enabled but no activation timestamp is set")
+		return fmt.Errorf("ML-DSA precompile is enabled but no activation timestamp is set")
 	}
 	return nil
 }
@@ -61,5 +58,5 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 
 // String returns a string representation of the config
 func (c *Config) String() string {
-	return fmt.Sprintf("PQCrypto{BlockTimestamp: %v, Disable: %v}", c.BlockTimestamp, c.Disable)
+	return fmt.Sprintf("MLDSA{BlockTimestamp: %v, Disable: %v}", c.BlockTimestamp, c.Disable)
 }
