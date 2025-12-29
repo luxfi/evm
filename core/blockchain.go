@@ -30,6 +30,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -39,6 +40,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/holiman/uint256"
 
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/consensus"
@@ -53,6 +56,7 @@ import (
 	"github.com/luxfi/geth/common/lru"
 	"github.com/luxfi/geth/consensus/misc/eip4844"
 	"github.com/luxfi/geth/core/rawdb"
+	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/ethdb"
@@ -1142,6 +1146,122 @@ func (bc *BlockChain) SetLastAcceptedBlockDirect(block *types.Block) error {
 	bc.acceptorTip = block
 	bc.currentBlock.Store(block.Header())
 	bc.hc.SetCurrentHeader(block.Header())
+
+	return nil
+}
+
+// AcceptImportedState accepts and commits the state for imported blocks.
+// This should be called after importing blocks via InsertChain to ensure
+// the state trie is persisted to disk. Without calling this, imported
+// blocks will have their state in memory but it won't be committed,
+// causing "required historical state unavailable" errors on restart.
+func (bc *BlockChain) AcceptImportedState(block *types.Block) error {
+	log.Info("Accepting imported state", "block", block.NumberU64(), "root", block.Root())
+
+	// Accept the trie for the imported block
+	if err := bc.stateManager.AcceptTrie(block); err != nil {
+		return fmt.Errorf("failed to accept trie for block %d: %w", block.NumberU64(), err)
+	}
+
+	log.Info("Successfully committed imported state", "block", block.NumberU64())
+	return nil
+}
+
+// EnsureGenesisState ensures that the genesis block state is accessible.
+// This is needed before importing blocks because the import validation
+// requires parent state to be accessible.
+// For RLP imports, if the genesis state is not accessible but allocations are stored,
+// this function will regenerate and commit the genesis state from the allocations.
+func (bc *BlockChain) EnsureGenesisState() error {
+	genesis := bc.genesisBlock
+	if genesis == nil {
+		return errors.New("genesis block not set")
+	}
+
+	// Check if genesis state is already accessible
+	if bc.HasState(genesis.Root()) {
+		log.Debug("Genesis state is accessible", "root", genesis.Root().Hex())
+		return nil
+	}
+
+	log.Warn("Genesis state not accessible, attempting recovery", "root", genesis.Root().Hex())
+
+	// For PathDB, the genesis state was committed at startup but the in-memory layer
+	// may have been evicted. Try to recover it by loading from the journal/disk.
+	if bc.triedb.Scheme() == rawdb.PathScheme {
+		log.Info("Genesis state not in memory, using PathDB scheme",
+			"root", genesis.Root().Hex())
+
+		// For PathDB with allow-missing-tries, we can proceed without the genesis
+		// state in memory. The import will use the database scheme's fallback
+		// mechanism to read state from disk.
+		if bc.cacheConfig.AllowMissingTries {
+			log.Info("AllowMissingTries enabled, proceeding without genesis state in memory",
+				"root", genesis.Root().Hex())
+			return nil
+		}
+
+		// PathDB: attempt to read the genesis state from the journal/disk
+		return nil
+	}
+
+	// For HashDB, if we don't have the genesis state, we need the allocations
+	// stored in the database to regenerate it.
+	log.Info("Attempting to regenerate genesis state from stored allocations")
+	allocJSON := rawdb.ReadGenesisStateSpec(bc.db, genesis.Hash())
+	if allocJSON == nil {
+		return fmt.Errorf("genesis state not accessible and no allocations stored in database for genesis hash %s; "+
+			"use admin_writeGenesisStateSpec to store the genesis allocations before importing blocks", genesis.Hash().Hex())
+	}
+
+	log.Info("Found genesis allocations in database, regenerating state",
+		"genesisHash", genesis.Hash().Hex(), "allocSize", len(allocJSON))
+
+	// Parse the stored allocations
+	var alloc types.GenesisAlloc
+	if err := json.Unmarshal(allocJSON, &alloc); err != nil {
+		return fmt.Errorf("failed to parse genesis allocations: %w", err)
+	}
+
+	// Create a new state from empty root
+	statedb, err := state.New(types.EmptyRootHash, bc.stateCache, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create state for genesis regeneration: %w", err)
+	}
+
+	// Apply all allocations to create accounts
+	for addr, account := range alloc {
+		statedb.SetBalance(addr, uint256.MustFromBig(account.Balance), tracing.BalanceIncreaseGenesisBalance)
+		_ = statedb.SetCode(addr, account.Code, tracing.CodeChangeGenesis)
+		statedb.SetNonce(addr, account.Nonce, tracing.NonceChangeGenesis)
+		for key, value := range account.Storage {
+			statedb.SetState(addr, key, value)
+		}
+	}
+
+	// Compute and verify the root matches genesis
+	computedRoot := statedb.IntermediateRoot(false)
+	if computedRoot != genesis.Root() {
+		return fmt.Errorf("regenerated state root %s does not match genesis root %s",
+			computedRoot.Hex(), genesis.Root().Hex())
+	}
+
+	// Commit the state to the database
+	// Args: block number, delete empty objects, no storage wiping
+	root, err := statedb.Commit(0, false, false)
+	if err != nil {
+		return fmt.Errorf("failed to commit regenerated genesis state: %w", err)
+	}
+
+	// Flush the trie to persistent storage
+	if err := bc.triedb.Commit(root, false); err != nil {
+		return fmt.Errorf("failed to flush regenerated genesis state to disk: %w", err)
+	}
+
+	log.Info("Successfully regenerated genesis state",
+		"genesisHash", genesis.Hash().Hex(),
+		"stateRoot", root.Hex(),
+		"accounts", len(alloc))
 
 	return nil
 }

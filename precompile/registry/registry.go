@@ -7,21 +7,18 @@ package registry
 // Force imports of each precompile to ensure each precompile's init function runs and registers itself
 // with the registry.
 import (
+	// Chain-integrated precompiles (stay in evm)
 	_ "github.com/luxfi/evm/precompile/contracts/deployerallowlist"
-
-	_ "github.com/luxfi/evm/precompile/contracts/nativeminter"
-
-	_ "github.com/luxfi/evm/precompile/contracts/txallowlist"
-
 	_ "github.com/luxfi/evm/precompile/contracts/feemanager"
-
+	_ "github.com/luxfi/evm/precompile/contracts/nativeminter"
 	_ "github.com/luxfi/evm/precompile/contracts/rewardmanager"
-
+	_ "github.com/luxfi/evm/precompile/contracts/txallowlist"
 	_ "github.com/luxfi/evm/precompile/contracts/warp"
 
-	// Post-Quantum Cryptography Precompiles (FIPS 203-205)
-	_ "github.com/luxfi/evm/precompile/contracts/mldsa"    // ML-DSA signature verification (FIPS 204)
-	_ "github.com/luxfi/evm/precompile/contracts/pqcrypto" // Unified PQ crypto operations
+	// Crypto precompiles from standalone precompiles package
+	_ "github.com/luxfi/precompiles/fhe"      // FHE operations via Z-Chain coprocessor
+	_ "github.com/luxfi/precompiles/mldsa"    // ML-DSA signature verification (FIPS 204)
+	_ "github.com/luxfi/precompiles/pqcrypto" // Unified PQ crypto operations
 )
 
 // This list is kept just for reference. The actual addresses defined in respective packages of precompiles.

@@ -116,6 +116,10 @@ type Ethereum struct {
 	stackRPCs []rpc.API
 
 	settings Settings // Settings for Ethereum API
+
+	// PostImportCallback is called after successful block import via admin_importChain.
+	// This allows the VM layer to update its acceptedBlockDB after admin API imports.
+	postImportCallback func(lastBlockHash common.Hash, lastBlockHeight uint64) error
 }
 
 // roundUpCacheSize returns [input] rounded up to the next multiple of [allocSize]
@@ -383,6 +387,28 @@ func (s *Ethereum) ChainDb() ethdb.Database           { return s.chainDb }
 func (s *Ethereum) NetVersion() uint64               { return s.networkID }
 func (s *Ethereum) ArchiveMode() bool                { return !s.config.Pruning }
 func (s *Ethereum) BloomIndexer() *core.ChainIndexer { return s.bloomIndexer }
+
+// SetPostImportCallback registers a callback that is called after successful
+// block import via admin_importChain. This allows the VM layer to update its
+// acceptedBlockDB after admin API imports.
+func (s *Ethereum) SetPostImportCallback(cb func(lastBlockHash common.Hash, lastBlockHeight uint64) error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.postImportCallback = cb
+}
+
+// CallPostImportCallback invokes the post-import callback if set.
+// Returns nil if no callback is registered.
+func (s *Ethereum) CallPostImportCallback(lastBlockHash common.Hash, lastBlockHeight uint64) error {
+	s.lock.RLock()
+	cb := s.postImportCallback
+	s.lock.RUnlock()
+
+	if cb == nil {
+		return nil
+	}
+	return cb(lastBlockHash, lastBlockHeight)
+}
 
 // Start implements node.Lifecycle, starting all internal goroutines needed by the
 // Ethereum protocol implementation.
