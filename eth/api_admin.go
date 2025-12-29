@@ -29,13 +29,16 @@ package eth
 
 import (
 	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
+	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/geth/log"
 	"github.com/luxfi/geth/rlp"
 )
 
@@ -105,10 +108,20 @@ func (api *AdminAPI) ImportChain(file string) (bool, error) {
 		}
 	}
 
+	// Ensure genesis state is accessible before import
+	chain := api.eth.BlockChain()
+	if err := chain.EnsureGenesisState(); err != nil {
+		log.Error("ImportChain: failed to ensure genesis state", "error", err)
+		return false, fmt.Errorf("failed to ensure genesis state: %w", err)
+	}
+
 	// Run actual the import in pre-configured batches
 	stream := rlp.NewStream(reader, 0)
 
 	blocks, index := make([]*types.Block, 0, 2500), 0
+	var lastInsertedBlock *types.Block
+	log.Info("ImportChain: starting", "file", file, "currentBlock", chain.CurrentBlock().Number)
+
 	for batch := 0; ; batch++ {
 		// Load a batch of blocks from the input file
 		for len(blocks) < cap(blocks) {
@@ -120,22 +133,105 @@ func (api *AdminAPI) ImportChain(file string) (bool, error) {
 			}
 			// ignore the genesis block when importing blocks
 			if block.NumberU64() == 0 {
+				log.Info("ImportChain: skipping genesis block")
 				continue
 			}
 			blocks = append(blocks, block)
 			index++
 		}
 		if len(blocks) == 0 {
+			log.Info("ImportChain: no more blocks to load", "total", index)
 			break
 		}
+
+		log.Info("ImportChain: loaded batch", "batch", batch, "blocks", len(blocks), "firstNum", blocks[0].NumberU64())
 
 		// Always call InsertChain to ensure full transaction re-execution.
 		// InsertChain -> insertBlock handles ErrKnownBlock and still re-executes
 		// transactions to regenerate state and snapshots properly.
-		if _, err := api.eth.BlockChain().InsertChain(blocks); err != nil {
-			return false, fmt.Errorf("batch %d: failed to insert: %v", batch, err)
+		log.Info("ImportChain: inserting batch", "batch", batch, "blocks", len(blocks), "firstNum", blocks[0].NumberU64())
+		n, err := chain.InsertChain(blocks)
+		if err != nil {
+			return false, fmt.Errorf("batch %d: failed to insert after %d blocks: %v", batch, n, err)
+		}
+		log.Info("ImportChain: inserted", "batch", batch, "count", n)
+		if n > 0 {
+			lastInsertedBlock = blocks[n-1]
 		}
 		blocks = blocks[:0]
 	}
+
+	// Update the last accepted block so RPC queries can see imported blocks
+	if lastInsertedBlock != nil {
+		log.Info("ImportChain: setting last accepted", "block", lastInsertedBlock.NumberU64())
+		if err := chain.SetLastAcceptedBlockDirect(lastInsertedBlock); err != nil {
+			return false, fmt.Errorf("failed to set last accepted block: %v", err)
+		}
+
+		// CRITICAL FIX: Commit the imported state to disk
+		// Without this, the state trie is only in memory and will be lost on shutdown.
+		// This causes "required historical state unavailable" errors on restart.
+		log.Info("ImportChain: committing imported state", "block", lastInsertedBlock.NumberU64(), "root", lastInsertedBlock.Root())
+		if err := chain.AcceptImportedState(lastInsertedBlock); err != nil {
+			return false, fmt.Errorf("failed to commit imported state: %v", err)
+		}
+		log.Info("ImportChain: state committed successfully")
+
+		// CRITICAL: Call the post-import callback to update the VM layer's acceptedBlockDB.
+		// Without this, ReadLastAccepted() returns genesis hash on restart because
+		// acceptedBlockDB is not updated by the admin API import path.
+		if err := api.eth.CallPostImportCallback(lastInsertedBlock.Hash(), lastInsertedBlock.NumberU64()); err != nil {
+			return false, fmt.Errorf("failed to call post-import callback: %v", err)
+		}
+		log.Info("ImportChain: post-import callback completed")
+
+		log.Info("ImportChain: completed", "lastBlock", lastInsertedBlock.NumberU64(), "total", index)
+	} else {
+		log.Info("ImportChain: no blocks imported", "total", index)
+	}
+
+	return true, nil
+}
+
+// WriteGenesisStateSpec writes the genesis state spec to the database.
+// This is required for RLP import to work when the genesis state trie is not accessible.
+// The genesis allocs are stored in the database, enabling block_validator.go's special
+// handling for block 1 (which allows import even without the genesis state trie).
+func (api *AdminAPI) WriteGenesisStateSpec(genesisFile string) (bool, error) {
+	// Read genesis file
+	data, err := os.ReadFile(genesisFile)
+	if err != nil {
+		return false, fmt.Errorf("failed to read genesis file: %w", err)
+	}
+
+	// Parse genesis to get alloc
+	var genesis struct {
+		Alloc types.GenesisAlloc `json:"alloc"`
+	}
+	if err := json.Unmarshal(data, &genesis); err != nil {
+		return false, fmt.Errorf("failed to parse genesis: %w", err)
+	}
+
+	// Marshal alloc to JSON
+	allocJSON, err := json.Marshal(genesis.Alloc)
+	if err != nil {
+		return false, fmt.Errorf("failed to marshal alloc: %w", err)
+	}
+
+	// Get the genesis block hash
+	chain := api.eth.BlockChain()
+	genesisBlock := chain.GetBlockByNumber(0)
+	if genesisBlock == nil {
+		return false, errors.New("genesis block not found")
+	}
+
+	// Write to database using proper rawdb method
+	db := api.eth.ChainDb()
+	rawdb.WriteGenesisStateSpec(db, genesisBlock.Hash(), allocJSON)
+
+	log.Info("WriteGenesisStateSpec: written",
+		"genesisHash", genesisBlock.Hash().Hex(),
+		"allocSize", len(allocJSON))
+
 	return true, nil
 }
