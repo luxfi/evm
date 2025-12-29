@@ -43,11 +43,17 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 	for key, value := range raw {
 		module, ok := modules.GetPrecompileModule(key)
 		if !ok {
-			return fmt.Errorf("unknown precompile config: %s", key)
+			// Log registered modules for debugging
+			registeredMods := modules.RegisteredModules()
+			var keys []string
+			for _, m := range registeredMods {
+				keys = append(keys, m.ConfigKey)
+			}
+			return fmt.Errorf("unknown precompile config: %s (registered: %v)", key, keys)
 		}
 		config := module.MakeConfig()
 		if err := json.Unmarshal(value, config); err != nil {
-			return err
+			return fmt.Errorf("failed to unmarshal config for %s: %w", key, err)
 		}
 		u.Config = config
 	}
