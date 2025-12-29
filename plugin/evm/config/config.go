@@ -191,6 +191,11 @@ type Config struct {
 	// Address for Tx Fees (must be empty if not supported by blockchain)
 	FeeRecipient string `json:"feeRecipient"`
 
+	// Dev Mode Settings
+	// EnableAutomining enables automatic block production when there are pending transactions.
+	// This provides anvil-like behavior for development and testing.
+	EnableAutomining bool `json:"enable-automining"`
+
 	// Offline Pruning Settings
 	OfflinePruning                bool   `json:"offline-pruning-enabled"`
 	OfflinePruningBloomFilterSize uint64 `json:"offline-pruning-bloom-filter-size"`
