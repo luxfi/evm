@@ -154,3 +154,74 @@ func (b *blockBuilder) waitForNeedToBuild(ctx context.Context) (time.Time, error
 	}
 	return b.lastBuildTime, nil
 }
+
+// AutominingConfig contains configuration for automining.
+type AutominingConfig struct {
+	// BuildBlock builds a new block and returns it wrapped for consensus.
+	// The block must implement both Verify() and Accept() methods.
+	BuildBlock func(ctx context.Context) (interface {
+		Verify(context.Context) error
+		Accept(context.Context) error
+	}, error)
+	// Interval is the minimum time between block builds.
+	Interval time.Duration
+}
+
+// startAutomining starts the automining loop that builds and accepts blocks
+// immediately when there are pending transactions.
+func (b *blockBuilder) startAutomining(config AutominingConfig) {
+	// Subscribe to transaction pool events
+	txSubmitChan := make(chan core.NewTxsEvent)
+	b.txPool.SubscribeTransactions(txSubmitChan, true)
+
+	b.shutdownWg.Add(1)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error("panic in automining", "error", r)
+				panic(r)
+			}
+		}()
+		defer b.shutdownWg.Done()
+
+		log.Info("Automining started")
+
+		for {
+			select {
+			case <-txSubmitChan:
+				// Small delay to batch transactions
+				time.Sleep(config.Interval)
+				b.automineBlock(config)
+			case <-b.shutdownChan:
+				log.Info("Automining stopped")
+				return
+			}
+		}
+	}()
+}
+
+// automineBlock builds, verifies, and accepts a block immediately.
+func (b *blockBuilder) automineBlock(config AutominingConfig) {
+	ctx := context.Background()
+
+	// Build the block
+	blk, err := config.BuildBlock(ctx)
+	if err != nil {
+		log.Error("Automining: failed to build block", "err", err)
+		return
+	}
+
+	// Verify the block before accepting
+	if err := blk.Verify(ctx); err != nil {
+		log.Error("Automining: failed to verify block", "err", err)
+		return
+	}
+
+	// Accept the block (after verification)
+	if err := blk.Accept(ctx); err != nil {
+		log.Error("Automining: failed to accept block", "err", err)
+		return
+	}
+
+	log.Info("Automining: block built, verified, and accepted")
+}
