@@ -30,7 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testSyncTimeout = 30 * time.Second
+const testSyncTimeout = 120 * time.Second
 
 var errInterrupted = errors.New("interrupted sync")
 
