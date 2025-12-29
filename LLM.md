@@ -1119,3 +1119,79 @@ Full specification documented in:
 - `github.com/luxfi/crypto/mlkem` - ML-KEM implementation (FIPS 203)
 - `github.com/luxfi/crypto/slhdsa` - SLH-DSA implementation (FIPS 205)
 - Backend: Cloudflare CIRCL (audited, FIPS compliant)
+
+---
+
+## SPC Chain Genesis Recovery (2025-12-28)
+
+### Problem: Genesis Hash Mismatch for Existing Chain
+
+When deploying SPC chain with RLP block import, the genesis hash computed from genesis.json must match the original chain's block 0 hash exactly. Otherwise block import fails.
+
+### Solution: Extract Original Genesis from ChainData
+
+Extracted the original genesis alloc from the SPC pebbledb chaindata by:
+1. Analyzing pathdb key structure to find account hashes
+2. Extracting addresses from RLP transaction data (sender addresses from blocks 1-10)
+3. Matching Keccak256(address) with account hashes to identify addresses
+4. Computing state root to verify correct alloc
+
+### SPC Genesis Configuration
+
+| Property | Value |
+|----------|-------|
+| Chain ID | 36911 |
+| Genesis Hash | `0x4dc9fd5cf4ee64609f140ba0aa50f320cadf0ae8b59a29415979bc05b17cfac8` |
+| State Root | `0xb75eb0a501516b8d6e691c705660f05f77bc23c47378158152ba543f74556c6f` |
+| Timestamp | 1731369637 (0x67329aa5) |
+| GasLimit | 12000000 (0xb71b00) |
+| BaseFee | 25000000000 (0x5d21dba00) |
+| Token Symbol | SPC |
+| Total Supply | 1,000,000,000 SPC (1 billion) |
+
+### Genesis Alloc (2 entries)
+
+```json
+{
+  "alloc": {
+    "0200000000000000000000000000000000000005": {
+      "code": "0x01",
+      "balance": "0x0",
+      "nonce": "0x1"
+    },
+    "12c6EE1d226225756F57B75957d2BF3Ab2e8597e": {
+      "balance": "0x33b2e3c9fd0803ce8000000"
+    }
+  }
+}
+```
+
+| Address | Role | Balance |
+|---------|------|---------|
+| `0x0200...0005` | Warp Precompile | 0 (code=0x01, nonce=1) |
+| `0x12c6EE1d...` | Main Token Holder | 1,000,000,000 SPC |
+
+### Transaction History (Blocks 1-10)
+
+The main holder distributed tokens to 9 addresses:
+- Block 1: 1,000,000 SPC to `0x53dc35fA...`
+- Block 2: 9,000,000 SPC to `0x3eB5a2b6...`
+- Blocks 3-10: Further distribution to other addresses
+
+### Genesis File Location
+
+- **Path**: `/Users/z/work/lux/state/rlp/spc-mainnet/genesis.json`
+- **RLP Blocks**: `/Users/z/work/lux/state/rlp/spc-mainnet/spc-mainnet-36911.rlp`
+- **ChainData**: `/Users/z/work/lux/state/pebbledb/spc-mainnet/`
+
+### Key Insight
+
+The genesis produces the correct state root naturally. The original genesis had only 2 accounts:
+1. The warp precompile at `0x0200...0005`
+2. The main token holder at `0x12c6EE1d...` with the full supply
+
+All other addresses were created through subsequent transactions.
+
+---
+
+*Last Updated: 2025-12-28*

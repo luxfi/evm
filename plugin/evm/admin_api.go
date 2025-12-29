@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/eth"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/log"
@@ -65,7 +66,7 @@ func (api *AdminAPI) ImportChain(ctx context.Context, file string) (*ImportChain
 	beforeNum := currentBlock.Number.Uint64()
 
 	// Import the chain from file
-	totalImported, err := importBlocksFromFile(chain, file)
+	totalImported, err := importBlocksFromFile(chain, api.vm.eth, file)
 	if err != nil {
 		return nil, fmt.Errorf("import failed after %d blocks: %w", totalImported, err)
 	}
@@ -213,7 +214,7 @@ func (api *AdminAPI) GetVMConfig(ctx context.Context) (interface{}, error) {
 }
 
 // importBlocksFromFile imports blocks from an RLP-encoded file
-func importBlocksFromFile(chain *core.BlockChain, file string) (int, error) {
+func importBlocksFromFile(chain *core.BlockChain, eth *eth.Ethereum, file string) (int, error) {
 	in, err := os.Open(file)
 	if err != nil {
 		return 0, fmt.Errorf("failed to open file: %w", err)
@@ -288,6 +289,12 @@ func importBlocksFromFile(chain *core.BlockChain, file string) (int, error) {
 		lastInsertedBlock := blocks[n-1]
 		if err := chain.SetLastAcceptedBlockDirect(lastInsertedBlock); err != nil {
 			return totalImported, fmt.Errorf("batch %d: failed to set last accepted block: %w", batch, err)
+		}
+
+		// CRITICAL: Call PostImportCallback to update acceptedBlockDB for persistence across restarts.
+		// Without this, the VM's lastAcceptedKey won't be updated, causing blocks to be lost on restart.
+		if err := eth.CallPostImportCallback(lastInsertedBlock.Hash(), lastInsertedBlock.NumberU64()); err != nil {
+			return totalImported, fmt.Errorf("batch %d: failed to update acceptedBlockDB: %w", batch, err)
 		}
 		log.Info("admin_importChain: blocks finalized", "batch", batch, "count", n, "lastAccepted", lastInsertedBlock.NumberU64())
 

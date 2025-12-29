@@ -178,12 +178,34 @@ func SetupGenesisBlock(
 		// Check if the root exists in the database
 		if _, err := triedb.NodeReader(header.Root); err != nil {
 			// State root doesn't exist, need to recommit genesis
-			// But first verify the genesis block header matches what we expect
+			log.Info("Genesis state not found, recommitting", "root", header.Root.Hex(), "err", err)
+
 			if genesis.Config == nil {
 				return nil, common.Hash{}, errGenesisNoConfig
 			}
-			_, err := genesis.Commit(db, triedb)
-			return genesis.Config, common.Hash{}, err
+
+			// Recommit genesis - this will write the state trie
+			block, err := genesis.Commit(db, triedb)
+			if err != nil {
+				return genesis.Config, common.Hash{}, fmt.Errorf("failed to recommit genesis: %w", err)
+			}
+
+			// Verify state is now accessible
+			if _, verifyErr := triedb.NodeReader(header.Root); verifyErr != nil {
+				log.Warn("Genesis state still not accessible after recommit",
+					"expected_root", header.Root.Hex(),
+					"computed_root", block.Root().Hex())
+				// State was written but with different root - this is an alloc mismatch
+				if header.Root != block.Root() {
+					return genesis.Config, stored, fmt.Errorf(
+						"genesis alloc mismatch: expected stateRoot %s but got %s (alloc differs from original genesis)",
+						header.Root.Hex(), block.Root().Hex())
+				}
+				return genesis.Config, stored, fmt.Errorf("genesis state not accessible after recommit: %w", verifyErr)
+			}
+
+			log.Info("Successfully recommitted genesis state", "root", header.Root.Hex())
+			return genesis.Config, stored, nil
 		}
 	}
 	// Check whether the genesis block is already written.
@@ -343,8 +365,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 			statedb.SetState(addr, key, value)
 		}
 	}
-	root := statedb.IntermediateRoot(false)
-	head.Root = root
+	head.Root = statedb.IntermediateRoot(false)
 
 	if g.GasLimit == 0 {
 		head.GasLimit = ethparams.GenesisGasLimit
@@ -399,7 +420,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 		BlockGasCost: big.NewInt(0),
 	})
 
-	root, err = statedb.Commit(0, false, false)
+	root, err := statedb.Commit(0, false, false)
 	if err != nil {
 		panic(fmt.Sprintf("unable to commit genesis block to statedb: %v", err))
 	}
@@ -426,6 +447,16 @@ func (g *Genesis) Commit(db ethdb.Database, triedb *triedb.Database) (*types.Blo
 	if err := config.CheckConfigForkOrder(); err != nil {
 		return nil, err
 	}
+
+	// Marshal and store the genesis allocations for state recovery.
+	// This is critical for block import - when the state trie is missing,
+	// the chain can regenerate it from these stored allocations.
+	blob, err := json.Marshal(g.Alloc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal genesis alloc: %w", err)
+	}
+	rawdb.WriteGenesisStateSpec(db, block.Hash(), blob)
+
 	// Write all necessary database entries for genesis
 	hash := block.Hash()
 	number := block.NumberU64()
