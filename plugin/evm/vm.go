@@ -442,7 +442,10 @@ func (vm *VM) initializeInternal(
 		debugFile.Sync()
 	}
 
-	debugLog("Calling parseGenesis with genesisAllocFile=%q", vm.config.GenesisAllocFile)
+	debugLog("Calling parseGenesis with genesisAllocFile=%q, upgradeBytes len=%d", vm.config.GenesisAllocFile, len(upgradeBytes))
+	if len(upgradeBytes) > 0 {
+		debugLog("upgradeBytes content: %s", string(upgradeBytes))
+	}
 	g, err := parseGenesis(vm.ctx, genesisBytes, upgradeBytes, vm.config.AirdropFile, vm.config.GenesisAllocFile)
 	if err != nil {
 		debugLog("parseGenesis failed: %v", err)
@@ -864,9 +867,19 @@ func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte,
 	// Initializing the chain will verify upgradeBytes are compatible with existing values.
 	// This should be called before g.Verify().
 	if len(upgradeBytes) > 0 {
+		log.Info("DEBUG: Parsing upgrade bytes", "len", len(upgradeBytes), "content", string(upgradeBytes))
 		var upgradeConfig extras.UpgradeConfig
 		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
+			log.Error("DEBUG: Failed to parse upgrade bytes", "error", err)
 			return nil, fmt.Errorf("failed to parse upgrade bytes: %w", err)
+		}
+		log.Info("DEBUG: Parsed upgrade config", "numPrecompileUpgrades", len(upgradeConfig.PrecompileUpgrades))
+		for i, pu := range upgradeConfig.PrecompileUpgrades {
+			if pu.Config != nil {
+				log.Info("DEBUG: Precompile upgrade", "index", i, "key", pu.Config.Key(), "timestamp", pu.Config.Timestamp())
+			} else {
+				log.Warn("DEBUG: Precompile upgrade has nil config", "index", i)
+			}
 		}
 		configExtra.UpgradeConfig = upgradeConfig
 	}
@@ -950,6 +963,33 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	vm.txPool.SetGasTip(big.NewInt(0))
 
 	vm.eth.Start()
+
+	// Register callback for admin_importChain to update acceptedBlockDB.
+	// This is critical: when blocks are imported via the admin API, the VM layer's
+	// acceptedBlockDB must be updated so ReadLastAccepted() returns the correct hash on restart.
+	vm.eth.SetPostImportCallback(func(lastBlockHash common.Hash, lastBlockHeight uint64) error {
+		log.Info("PostImportCallback: updating acceptedBlockDB", "hash", lastBlockHash, "height", lastBlockHeight)
+		var blkID ids.ID
+		copy(blkID[:], lastBlockHash[:])
+		if err := vm.acceptedBlockDB.Put(lastAcceptedKey, blkID[:]); err != nil {
+			return fmt.Errorf("failed to update acceptedBlockDB: %w", err)
+		}
+		if err := vm.versiondb.Commit(); err != nil {
+			return fmt.Errorf("failed to commit versiondb: %w", err)
+		}
+		// CRITICAL: Force sync to disk to ensure persistence across restarts.
+		// Without this, async writes (e.g., badgerdb with SyncWrites=false) may be
+		// lost if the network stops before the background flush completes.
+		if syncer, ok := vm.db.(interface{ Sync() error }); ok {
+			if err := syncer.Sync(); err != nil {
+				return fmt.Errorf("failed to sync database: %w", err)
+			}
+			log.Info("PostImportCallback: database synced to disk")
+		}
+		log.Info("PostImportCallback: acceptedBlockDB updated successfully", "hash", lastBlockHash.Hex(), "height", lastBlockHeight)
+		return nil
+	})
+
 	return vm.initChainState(lastAccepted)
 }
 
@@ -1181,6 +1221,18 @@ func (vm *VM) onNormalOperationsStarted() error {
 	vm.builderLock.Lock()
 	vm.builder = vm.NewBlockBuilder()
 	vm.builder.awaitSubmittedTxs()
+	// Start automining if enabled (dev mode)
+	if vm.config.EnableAutomining {
+		vm.builder.startAutomining(AutominingConfig{
+			BuildBlock: func(ctx context.Context) (interface {
+				Verify(context.Context) error
+				Accept(context.Context) error
+			}, error) {
+				return vm.BuildBlock(ctx)
+			},
+			Interval: 100 * time.Millisecond,
+		})
+	}
 	vm.builderLock.Unlock()
 
 	if vm.ethTxGossipHandler == nil {
