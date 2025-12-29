@@ -12,7 +12,7 @@ import (
 
 	consensuscontext "github.com/luxfi/consensus/context"
 	validators "github.com/luxfi/consensus/validator"
-	"github.com/luxfi/constants"
+	"github.com/luxfi/const"
 	evmconsensus "github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/predicate"
