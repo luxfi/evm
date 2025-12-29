@@ -86,6 +86,11 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		}
 	}
 
+	// Set consensus context for warp precompiles
+	if chain != nil {
+		blockContext.ConsensusContext = chain.ConsensusContext()
+	}
+
 	return blockContext
 }
 
