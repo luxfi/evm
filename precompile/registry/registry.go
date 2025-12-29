@@ -16,7 +16,7 @@ import (
 	_ "github.com/luxfi/evm/precompile/contracts/warp"
 
 	// Crypto precompiles from standalone precompiles package
-	_ "github.com/luxfi/precompiles/fhe"      // FHE operations via Z-Chain coprocessor
+	// _ "github.com/luxfi/precompiles/fhe"      // FHE operations via Z-Chain coprocessor (disabled - tfhe not ready)
 	_ "github.com/luxfi/precompiles/mldsa"    // ML-DSA signature verification (FIPS 204)
 	_ "github.com/luxfi/precompiles/pqcrypto" // Unified PQ crypto operations
 )
