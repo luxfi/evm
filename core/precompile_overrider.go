@@ -5,7 +5,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 
 	"github.com/holiman/uint256"
@@ -23,14 +22,11 @@ import (
 
 func init() {
 	// Register the rules hook to populate Rules.Payload with our PrecompileOverrider
-	fmt.Println("WARP DEBUG: Registering luxRulesHook")
 	gethparams.SetRulesHook(luxRulesHook)
 }
 
 // luxRulesHook populates Rules.Payload with the LuxPrecompileOverrider
 func luxRulesHook(c *gethparams.ChainConfig, rules *gethparams.Rules, num *big.Int, isMerge bool, timestamp uint64) {
-	fmt.Printf("WARP DEBUG: luxRulesHook called, timestamp=%d, chainConfig=%v\n", timestamp, c != nil)
-	
 	// Store context for GetRulesExtra to use
 	params.SetRulesContext(rules, c, timestamp)
 
@@ -39,7 +35,6 @@ func luxRulesHook(c *gethparams.ChainConfig, rules *gethparams.Rules, num *big.I
 		chainConfig: c,
 		timestamp:   timestamp,
 	}
-	fmt.Printf("WARP DEBUG: Set rules.Payload to LuxPrecompileOverrider\n")
 }
 
 // LuxPrecompileOverrider implements vm.PrecompileOverrider to provide
@@ -52,24 +47,16 @@ type LuxPrecompileOverrider struct {
 // PrecompileOverride returns the precompile at the given address if it's
 // an active Lux custom precompile.
 func (o *LuxPrecompileOverrider) PrecompileOverride(addr common.Address) (vm.PrecompiledContract, bool) {
-	fmt.Printf("WARP DEBUG: PrecompileOverride called for addr=%s\n", addr.Hex())
-	
 	// Get the extras rules to check active precompiles
 	rulesExtra := params.GetRulesExtra(gethparams.Rules{})
-	enabled := rulesExtra.IsPrecompileEnabled(addr)
-	fmt.Printf("WARP DEBUG: IsPrecompileEnabled(%s) = %v\n", addr.Hex(), enabled)
-	if !enabled {
+	if !rulesExtra.IsPrecompileEnabled(addr) {
 		return nil, false
 	}
 
 	// Find the module for this address
-	allModules := modules.RegisteredModules()
-	fmt.Printf("WARP DEBUG: Searching %d registered modules for %s\n", len(allModules), addr.Hex())
-	for _, module := range allModules {
-		fmt.Printf("WARP DEBUG: Module %s at %s, Contract=%v\n", module.ConfigKey, module.Address.Hex(), module.Contract != nil)
+	for _, module := range modules.RegisteredModules() {
 		if module.Address == addr && module.Contract != nil {
 			// Wrap the contract in our adapter
-			fmt.Printf("WARP DEBUG: Found matching module %s, returning adapter\n", module.ConfigKey)
 			return &precompileAdapter{
 				address:  addr,
 				contract: module.Contract,
@@ -77,7 +64,6 @@ func (o *LuxPrecompileOverrider) PrecompileOverride(addr common.Address) (vm.Pre
 		}
 	}
 
-	fmt.Printf("WARP DEBUG: No matching module found for %s\n", addr.Hex())
 	return nil, false
 }
 
@@ -146,7 +132,7 @@ func (a *accessibleStateAdapter) GetBlockContext() contract.BlockContext {
 }
 
 func (a *accessibleStateAdapter) GetConsensusContext() context.Context {
-	return context.Background()
+	return a.env.ConsensusContext()
 }
 
 func (a *accessibleStateAdapter) GetChainConfig() precompileconfig.ChainConfig {
