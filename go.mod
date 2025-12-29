@@ -10,7 +10,6 @@ require (
 	github.com/cockroachdb/pebble v1.1.5
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.8.0
-	github.com/ethereum/go-ethereum v1.16.7
 	github.com/fjl/gencodec v0.1.1
 	github.com/gorilla/rpc v1.2.1
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
@@ -22,8 +21,8 @@ require (
 	github.com/luxfi/cache v1.1.0
 	github.com/luxfi/codec v1.1.0
 	github.com/luxfi/consensus v1.22.46
-	github.com/luxfi/constants v1.3.0
-	github.com/luxfi/crypto v1.17.26
+	github.com/luxfi/const v1.4.0
+	github.com/luxfi/crypto v1.17.27
 	github.com/luxfi/database v1.2.17
 	github.com/luxfi/geth v1.16.64
 	github.com/luxfi/go-bip39 v1.1.2
@@ -33,7 +32,7 @@ require (
 	github.com/luxfi/metric v1.4.8
 	github.com/luxfi/node v1.22.69
 	github.com/luxfi/p2p v1.18.2
-	github.com/luxfi/precompiles v0.1.8
+	github.com/luxfi/precompiles v0.1.10
 	github.com/luxfi/timer v1.0.1
 	github.com/luxfi/trace v0.1.4
 	github.com/luxfi/units v1.0.0
@@ -66,7 +65,6 @@ require (
 )
 
 require (
-	github.com/ALTree/bigfloat v0.2.0 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20251221085550-b8e13ca38217 // indirect
@@ -108,7 +106,6 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
@@ -119,10 +116,9 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/luxfi/lattice/v6 v6.1.2 // indirect
+	github.com/luxfi/constants v1.3.0 // indirect
 	github.com/luxfi/mock v0.1.0 // indirect
 	github.com/luxfi/sampler v1.0.0 // indirect
-	github.com/luxfi/tfhe v1.0.0 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/pointerstructure v1.2.1 // indirect
@@ -174,3 +170,10 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/luxfi/genesis => /Users/z/work/lux/genesis
+
+replace github.com/luxfi/node => /Users/z/work/lux/node
+
+// Module was renamed from constants to const
+replace github.com/luxfi/constants => github.com/luxfi/const v1.4.0

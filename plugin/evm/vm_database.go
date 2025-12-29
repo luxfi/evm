@@ -12,7 +12,7 @@ import (
 	"time"
 
 	consensuscontext "github.com/luxfi/consensus/context"
-	"github.com/luxfi/constants"
+	"github.com/luxfi/const"
 	luxdatabase "github.com/luxfi/database"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/database/factory"
