@@ -33,7 +33,6 @@ require (
 	github.com/luxfi/node v1.22.75
 	github.com/luxfi/p2p v1.18.2
 	github.com/luxfi/precompiles v0.1.10
-	github.com/luxfi/precompiles/dex v0.0.0-20251229190240-aa4133362cd3
 	github.com/luxfi/timer v1.0.1
 	github.com/luxfi/trace v0.1.4
 	github.com/luxfi/units v1.0.0
@@ -66,6 +65,7 @@ require (
 )
 
 require (
+	github.com/ALTree/bigfloat v0.2.0 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20251221085550-b8e13ca38217 // indirect
@@ -107,6 +107,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
@@ -117,6 +118,8 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/luxfi/fhe v1.2.0 // indirect
+	github.com/luxfi/lattice/v6 v6.1.2 // indirect
 	github.com/luxfi/mock v0.1.0 // indirect
 	github.com/luxfi/sampler v1.0.0 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
@@ -148,7 +151,6 @@ require (
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	github.com/zeebo/blake3 v0.2.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.37.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.37.0 // indirect
