@@ -22,11 +22,11 @@ import (
 
 func init() {
 	// Register the rules hook to populate Rules.Payload with our PrecompileOverrider
-	gethparams.SetRulesHook(luxRulesHook)
+	gethparams.SetRulesHook(precompileHook)
 }
 
-// luxRulesHook populates Rules.Payload with the LuxPrecompileOverrider
-func luxRulesHook(c *gethparams.ChainConfig, rules *gethparams.Rules, num *big.Int, isMerge bool, timestamp uint64) {
+// precompileHook populates Rules.Payload with the LuxPrecompileOverrider
+func precompileHook(c *gethparams.ChainConfig, rules *gethparams.Rules, num *big.Int, isMerge bool, timestamp uint64) {
 	// Store context for GetRulesExtra to use
 	params.SetRulesContext(rules, c, timestamp)
 
