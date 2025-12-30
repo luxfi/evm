@@ -16,9 +16,12 @@ import (
 	_ "github.com/luxfi/evm/precompile/contracts/warp"
 
 	// Crypto precompiles from standalone precompiles package
-	// _ "github.com/luxfi/precompiles/fhe"      // FHE operations via Z-Chain coprocessor (disabled - tfhe not ready)
+	_ "github.com/luxfi/precompiles/fhe"      // FHE operations at 0x0200...0080 (pure Go TFHE)
 	_ "github.com/luxfi/precompiles/mldsa"    // ML-DSA signature verification (FIPS 204)
 	_ "github.com/luxfi/precompiles/pqcrypto" // Unified PQ crypto operations
+
+	// DEX precompiles (from standalone precompiles package)
+	// _ "github.com/luxfi/precompiles/dex" // DEX PoolManager at 0x0300...0020 (TODO: enable when ready)
 )
 
 // This list is kept just for reference. The actual addresses defined in respective packages of precompiles.
