@@ -2231,12 +2231,14 @@ func golangBindings(t *testing.T, overload bool) {
 	}
 	tidier := exec.Command(gocmd, "mod", "tidy", "-compat=1.23")
 	tidier.Dir = pkg
+	tidier.Env = append(os.Environ(), "GOPRIVATE=github.com/luxfi/*")
 	if out, err := tidier.CombinedOutput(); err != nil {
 		t.Fatalf("failed to tidy Go module file: %v\n%s", err, out)
 	}
 	// Test the entire package and report any failures
 	cmd := exec.Command(gocmd, "test", "-v", "-count", "1")
 	cmd.Dir = pkg
+	cmd.Env = append(os.Environ(), "GOPRIVATE=github.com/luxfi/*")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("failed to run binding test: %v\n%s", err, out)
 	}
