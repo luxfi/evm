@@ -32,7 +32,7 @@ require (
 	github.com/luxfi/metric v1.4.8
 	github.com/luxfi/node v1.22.75
 	github.com/luxfi/p2p v1.18.2
-	github.com/luxfi/precompiles v0.1.11
+	github.com/luxfi/precompile v0.2.0
 	github.com/luxfi/timer v1.0.1
 	github.com/luxfi/trace v0.1.4
 	github.com/luxfi/units v1.0.0
@@ -176,3 +176,11 @@ require (
 replace github.com/luxfi/node => /Users/z/work/lux/node
 
 replace github.com/luxfi/geth => /Users/z/work/lux/geth
+
+exclude (
+	github.com/luxfi/lattice/v6 v6.1.1
+	github.com/luxfi/lattice/v6 v6.1.2
+	github.com/luxfi/lattice/v6 v6.1.3
+	github.com/luxfi/precompiles v0.1.10
+	github.com/luxfi/precompiles v0.1.11
+)
