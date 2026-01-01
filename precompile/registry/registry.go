@@ -15,13 +15,53 @@ import (
 	_ "github.com/luxfi/evm/precompile/contracts/txallowlist"
 	_ "github.com/luxfi/evm/precompile/contracts/warp"
 
-	// Crypto precompiles from standalone precompiles package
-	_ "github.com/luxfi/precompile/fhe"      // FHE operations at 0x0200...0080 (pure Go TFHE)
+	// ============================================
+	// Post-Quantum Cryptography (0x0600-0x06FF)
+	// ============================================
 	_ "github.com/luxfi/precompile/mldsa"    // ML-DSA signature verification (FIPS 204)
+	_ "github.com/luxfi/precompile/mlkem"    // ML-KEM key encapsulation (FIPS 203)
+	_ "github.com/luxfi/precompile/slhdsa"   // SLH-DSA stateless hash signatures (FIPS 205)
 	_ "github.com/luxfi/precompile/pqcrypto" // Unified PQ crypto operations
 
-	// DEX precompiles (from standalone precompiles package)
-	// _ "github.com/luxfi/precompile/dex" // DEX PoolManager at 0x0300...0020 (TODO: enable when ready)
+	// ============================================
+	// Privacy/Encryption (0x0700-0x07FF)
+	// ============================================
+	_ "github.com/luxfi/precompile/fhe"   // Fully Homomorphic Encryption
+	_ "github.com/luxfi/precompile/ecies" // Elliptic Curve Integrated Encryption
+	_ "github.com/luxfi/precompile/ring"  // Ring signatures (anonymity)
+	_ "github.com/luxfi/precompile/hpke"  // Hybrid Public Key Encryption
+
+	// ============================================
+	// Threshold Signatures (0x0800-0x08FF)
+	// ============================================
+	_ "github.com/luxfi/precompile/frost"    // FROST threshold Schnorr
+	_ "github.com/luxfi/precompile/cggmp21"  // CGGMP21 threshold ECDSA
+	_ "github.com/luxfi/precompile/ringtail" // Threshold lattice (post-quantum)
+
+	// ============================================
+	// ZK Proofs (0x0900-0x09FF)
+	// ============================================
+	_ "github.com/luxfi/precompile/kzg4844" // KZG commitments (EIP-4844)
+
+	// ============================================
+	// Curves (0x0A00-0x0AFF)
+	// ============================================
+	_ "github.com/luxfi/precompile/secp256r1" // P-256/secp256r1 verification
+
+	// ============================================
+	// AI Mining (0x0300-0x03FF)
+	// ============================================
+	_ "github.com/luxfi/precompile/ai" // AI mining rewards, TEE verification
+
+	// ============================================
+	// DEX (0x0400-0x04FF)
+	// ============================================
+	_ "github.com/luxfi/precompile/dex" // Uniswap v4-style DEX PoolManager
+
+	// ============================================
+	// Graph/Query Layer (0x0500-0x05FF)
+	// ============================================
+	_ "github.com/luxfi/precompile/graph" // GraphQL query interface
 )
 
 // This list is kept just for reference. The actual addresses defined in respective packages of precompiles.

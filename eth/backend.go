@@ -330,6 +330,7 @@ func (s *Ethereum) APIs() []rpc.API {
 	})
 
 	// Append all the local APIs and return
+	devAPI := NewDevAPI(s)
 	return append(apis, []rpc.API{
 		{
 			Namespace: "eth",
@@ -351,6 +352,30 @@ func (s *Ethereum) APIs() []rpc.API {
 			Namespace: "net",
 			Service:   s.netRPCService,
 			Name:      "net",
+		},
+		// Dev APIs for Anvil/Hardhat compatibility (eth namespace)
+		{
+			Namespace: "eth",
+			Service:   devAPI,
+			Name:      "eth-dev",
+		},
+		// Dev APIs (evm namespace)
+		{
+			Namespace: "evm",
+			Service:   devAPI,
+			Name:      "evm-dev",
+		},
+		// Dev APIs (anvil namespace)
+		{
+			Namespace: "anvil",
+			Service:   devAPI,
+			Name:      "anvil-dev",
+		},
+		// Dev APIs (hardhat namespace)
+		{
+			Namespace: "hardhat",
+			Service:   devAPI,
+			Name:      "hardhat-dev",
 		},
 	}...)
 }

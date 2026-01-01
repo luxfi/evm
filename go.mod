@@ -20,19 +20,19 @@ require (
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.1.0
 	github.com/luxfi/codec v1.1.0
-	github.com/luxfi/consensus v1.22.46
+	github.com/luxfi/consensus v1.22.47
 	github.com/luxfi/const v1.4.0
-	github.com/luxfi/crypto v1.17.30
-	github.com/luxfi/database v1.2.17
-	github.com/luxfi/geth v1.16.66
+	github.com/luxfi/crypto v1.17.32
+	github.com/luxfi/database v1.2.18
+	github.com/luxfi/geth v1.16.67
 	github.com/luxfi/go-bip39 v1.1.2
-	github.com/luxfi/ids v1.2.5
+	github.com/luxfi/ids v1.2.6
 	github.com/luxfi/log v1.2.1
 	github.com/luxfi/math v1.2.0
 	github.com/luxfi/metric v1.4.8
-	github.com/luxfi/node v1.22.75
-	github.com/luxfi/p2p v1.18.2
-	github.com/luxfi/precompile v0.2.0
+	github.com/luxfi/node v1.22.77
+	github.com/luxfi/p2p v1.18.3
+	github.com/luxfi/precompile v0.4.0
 	github.com/luxfi/timer v1.0.1
 	github.com/luxfi/trace v0.1.4
 	github.com/luxfi/units v1.0.0
@@ -83,6 +83,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/crate-crypto/go-eth-kzg v1.4.0 // indirect
 	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
+	github.com/crate-crypto/go-kzg-4844 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/dgraph-io/badger/v4 v4.9.0 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.3.0 // indirect
@@ -118,13 +119,15 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/luxfi/fhe v1.4.0 // indirect
+	github.com/luxfi/fhe v1.4.1 // indirect
 	github.com/luxfi/lattice/v7 v7.0.0 // indirect
 	github.com/luxfi/mock v0.1.0 // indirect
+	github.com/luxfi/ringtail v0.2.0 // indirect
 	github.com/luxfi/sampler v1.0.0 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/pointerstructure v1.2.1 // indirect
+	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
@@ -150,6 +153,7 @@ require (
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
+	github.com/zeebo/blake3 v0.2.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.39.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.39.0 // indirect
@@ -172,10 +176,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/luxfi/node => /Users/z/work/lux/node
-
-replace github.com/luxfi/geth => /Users/z/work/lux/geth
 
 exclude (
 	github.com/luxfi/lattice/v6 v6.1.1
