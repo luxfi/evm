@@ -22,10 +22,10 @@ EVM_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo 
 # Build flags
 LDFLAGS := -X github.com/luxfi/evm/plugin/evm.GitCommit=$(EVM_COMMIT) -X github.com/luxfi/evm/plugin/evm.Version=$(EVM_VERSION)
 STATIC_LD_FLAGS :=
-CGO_ENABLED := 1
 CGO_CFLAGS := -O2 -D__BLST_PORTABLE__
 
-# Export necessary variables
+# CGO enabled by default for C++/GPU backends, override with CGO_ENABLED=0
+CGO_ENABLED ?= 1
 export CGO_ENABLED
 export CGO_CFLAGS
 
