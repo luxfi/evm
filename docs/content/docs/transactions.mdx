@@ -366,8 +366,9 @@ interface IWarpMessenger {
 }
 
 contract CrossChainSender {
+    // LP-aligned address: P=6 (Bridges), C=2 (C-Chain), II=01 (Warp)
     IWarpMessenger constant WARP =
-        IWarpMessenger(0x0200000000000000000000000000000000000005);
+        IWarpMessenger(0x0000000000000000000000000000000000016201);
 
     function sendMessage(bytes memory data) external returns (bytes32) {
         return WARP.sendWarpMessage(data);
@@ -379,8 +380,9 @@ contract CrossChainSender {
 
 ```solidity
 contract CrossChainReceiver {
+    // LP-aligned address: P=6 (Bridges), C=2 (C-Chain), II=01 (Warp)
     IWarpMessenger constant WARP =
-        IWarpMessenger(0x0200000000000000000000000000000000000005);
+        IWarpMessenger(0x0000000000000000000000000000000000016201);
 
     function processMessage(uint32 index) external {
         (IWarpMessenger.WarpMessage memory message, bool valid) =

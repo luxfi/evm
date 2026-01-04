@@ -6,7 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./AllowList.sol";
 import "./interfaces/IFeeManager.sol";
 
-address constant FEE_MANAGER_ADDRESS = 0x0200000000000000000000000000000000000003;
+// LP-aligned address: P=3 (EVM/Crypto), C=2 (C-Chain), II=0F (FeeManager)
+address constant FEE_MANAGER_ADDRESS = 0x000000000000000000000000000000000001320F;
 
 uint constant WAGMI_GAS_LIMIT = 20_000_000;
 uint constant WAGMI_TARGET_BLOCK_RATE = 2;
