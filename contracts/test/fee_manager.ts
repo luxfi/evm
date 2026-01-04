@@ -8,7 +8,8 @@ import { Contract, Signer } from "ethers"
 import { IFeeManager } from "typechain-types"
 
 const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-const FEE_MANAGER = "0x0200000000000000000000000000000000000003"
+// LP-aligned address: P=3 (LP-3xxx EVM/Crypto), C=2 (C-Chain), II=0F (FeeManager)
+const FEE_MANAGER = "0x000000000000000000000000000000000001320F"
 
 const GENESIS_CONFIG = require('../../tests/precompile/genesis/fee_manager.json')
 

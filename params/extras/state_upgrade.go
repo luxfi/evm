@@ -9,7 +9,7 @@ import (
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
-	"github.com/luxfi/geth/common/math"
+	"github.com/luxfi/math/math"
 	ethparams "github.com/luxfi/geth/params"
 )
 

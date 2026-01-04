@@ -10,7 +10,8 @@ import { IAllowList } from "typechain-types";
 
 const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const OTHER_SIGNER = "0x0Fa8EA536Be85F32724D57A37758761B86416123"
-const DEPLOYER_ALLOWLIST_ADDRESS = "0x0200000000000000000000000000000000000000"
+// LP-aligned address: P=0 (Core), C=2 (C-Chain), II=01 (DeployerAllowList)
+const DEPLOYER_ALLOWLIST_ADDRESS = "0x0000000000000000000000000000000000010201"
 
 describe("ExampleDeployerList", function () {
   beforeEach('Setup DS-Test contract', async function () {

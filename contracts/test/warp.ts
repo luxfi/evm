@@ -6,7 +6,8 @@ import { ethers } from "hardhat";
 import { Contract, Signer } from "ethers";
 import { IWarpMessenger } from "typechain-types";
 
-const WARP_ADDRESS = "0x0200000000000000000000000000000000000005";
+// LP-aligned address: P=6 (LP-6xxx Bridges), C=2 (C-Chain), II=01 (Warp)
+const WARP_ADDRESS = "0x0000000000000000000000000000000000016201";
 let senderAddress = process.env["SENDER_ADDRESS"];
 // Expected to be a hex string
 let payload = process.env["PAYLOAD"];

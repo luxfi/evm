@@ -17,18 +17,30 @@ var (
 	// for deterministic iteration
 	registeredModules = make([]Module, 0)
 
+	// Reserved address ranges for stateful precompiles
+	//
+	// LP-ALIGNED ADDRESSING (LP-9015):
+	// BASE = 0x10000, address = BASE + (P << 12) | (C << 8) | II
+	// P = Family (LP range first digit), C = Chain slot, II = Item index
+	//
+	// Family Pages (P nibble aligns with LP-xxxx first digit):
+	// P=0: 0x10000-0x10FFF - Core/Network (AllowLists, Minting, Rewards)
+	// P=2: 0x12000-0x12FFF - LP-2xxx (Q-Chain, PQ Identity)
+	// P=3: 0x13000-0x13FFF - LP-3xxx (C-Chain, EVM/Crypto)
+	// P=4: 0x14000-0x14FFF - LP-4xxx (Z-Chain, Privacy/ZK)
+	// P=5: 0x15000-0x15FFF - LP-5xxx (T-Chain, Threshold/MPC)
+	// P=6: 0x16000-0x16FFF - LP-6xxx (B-Chain, Bridges)
+	// P=7: 0x17000-0x17FFF - LP-7xxx (A-Chain, AI)
+	// P=9: 0x19000-0x19FFF - LP-9xxx (DEX/Markets)
+	//
+	// Chain Slots (C nibble):
+	// 0=P-Chain, 1=X-Chain, 2=C-Chain, 3=Q-Chain, 4=A-Chain
+	// 5=B-Chain, 6=Z-Chain, 7=M-Chain, 8=Zoo, 9=Hanzo, A=SPC
 	reservedRanges = []utils.AddressRange{
+		// LP-aligned precompile range: 0x10000-0x1FFFF
 		{
-			Start: common.HexToAddress("0x0100000000000000000000000000000000000000"),
-			End:   common.HexToAddress("0x01000000000000000000000000000000000000ff"),
-		},
-		{
-			Start: common.HexToAddress("0x0200000000000000000000000000000000000000"),
-			End:   common.HexToAddress("0x02000000000000000000000000000000000000ff"),
-		},
-		{
-			Start: common.HexToAddress("0x0300000000000000000000000000000000000000"),
-			End:   common.HexToAddress("0x03000000000000000000000000000000000000ff"),
+			Start: common.HexToAddress("0x0000000000000000000000000000000000010000"),
+			End:   common.HexToAddress("0x000000000000000000000000000000000001ffff"),
 		},
 	}
 )

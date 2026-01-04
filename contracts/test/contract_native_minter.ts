@@ -8,7 +8,8 @@ import { Contract, Signer } from "ethers"
 import { INativeMinter } from "typechain-types";
 
 const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-const MINT_PRECOMPILE_ADDRESS = "0x0200000000000000000000000000000000000001"
+// LP-aligned address: P=0 (Core), C=2 (C-Chain), II=04 (NativeMinter)
+const MINT_PRECOMPILE_ADDRESS = "0x0000000000000000000000000000000000010204"
 
 describe("ERC20NativeMinter", function () {
   beforeEach('Setup DS-Test contract', async function () {

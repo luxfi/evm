@@ -38,7 +38,7 @@ import (
 	"github.com/luxfi/evm/precompile/contracts/txallowlist"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
-	cmath "github.com/luxfi/geth/common/math"
+	cmath "github.com/luxfi/math/math"
 	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/core/vm"

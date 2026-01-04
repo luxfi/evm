@@ -18,7 +18,8 @@ var _ contract.Configurator = (*configurator)(nil)
 // must be unique across all precompiles.
 const ConfigKey = "contractDeployerAllowListConfig"
 
-var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000000")
+// LP-aligned address: P=0 (Core), C=2 (C-Chain), II=01
+var ContractAddress = common.HexToAddress("0x10201")
 
 var Module = modules.Module{
 	ConfigKey:    ConfigKey,
