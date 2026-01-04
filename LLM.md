@@ -75,10 +75,10 @@ All 62 test packages pass. Key fixes:
 | node | v1.22.64 | ✅ Builds clean |
 
 ### Post-Quantum Crypto Precompiles
-Integrated at addresses 0x0300...:
-- **ML-DSA** (FIPS 204) - Lattice-based signatures
-- **SLH-DSA** (FIPS 205) - Hash-based signatures  
-- **ML-KEM** (FIPS 203) - Key encapsulation
+LP-aligned addresses (P=2 for PQ/Identity family):
+- **ML-DSA** (FIPS 204) - Lattice-based signatures - `0x12202`
+- **SLH-DSA** (FIPS 205) - Hash-based signatures - `0x12203`
+- **ML-KEM** (FIPS 203) - Key encapsulation - `0x12201`
 
 ## Key Implementation Details
 
@@ -1003,13 +1003,13 @@ curl -X POST http://127.0.0.1:9630/ext/bc/<zoo-id>/admin \
 
 Lux EVM includes native precompiled contracts for NIST FIPS 203-205 post-quantum cryptography algorithms.
 
-### Precompile Addresses
+### Precompile Addresses (LP-aligned)
 
 | Precompile | Address | Description |
 |------------|---------|-------------|
-| **ML-DSA Verify** | `0x0200000000000000000000000000000000000006` | Dedicated ML-DSA verification |
-| **SLH-DSA Verify** | `0x0200000000000000000000000000000000000007` | Dedicated SLH-DSA verification |
-| **PQCrypto Unified** | `0x0200000000000000000000000000000000000010` | All PQ crypto operations |
+| **PQCrypto Unified** | `0x0000000000000000000000000000000000012201` | All PQ crypto operations (P=2 PQ/Identity) |
+| **ML-DSA Verify** | `0x0000000000000000000000000000000000012202` | Dedicated ML-DSA verification |
+| **SLH-DSA Verify** | `0x0000000000000000000000000000000000012203` | Dedicated SLH-DSA verification |
 
 ### Gas Costs (Per Mode)
 

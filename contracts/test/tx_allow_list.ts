@@ -10,7 +10,8 @@ import { IAllowList } from "typechain-types";
 // make sure this is always an admin for minter precompile
 const ADMIN_ADDRESS = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const OTHER_SIGNER = "0x0Fa8EA536Be85F32724D57A37758761B86416123"
-const TX_ALLOW_LIST_ADDRESS = "0x0200000000000000000000000000000000000002"
+// LP-aligned address: P=0 (Core), C=2 (C-Chain), II=03 (TxAllowList)
+const TX_ALLOW_LIST_ADDRESS = "0x0000000000000000000000000000000000010203"
 
 describe("ExampleTxAllowList", function () {
   beforeEach('Setup DS-Test contract', async function () {

@@ -324,8 +324,9 @@ interface INativeMinter {
 }
 
 contract TokenBridge {
+    // LP-aligned address: P=0 (Core), C=2 (C-Chain), II=04 (NativeMinter)
     INativeMinter constant MINTER =
-        INativeMinter(0x0200000000000000000000000000000000000001);
+        INativeMinter(0x0000000000000000000000000000000000010204);
 
     function bridgeTokens(address recipient, uint256 amount) external {
         require(MINTER.readAllowList(address(this)) >= 1, "Not minter");
@@ -346,8 +347,9 @@ interface IMLDSAVerify {
 }
 
 contract QuantumSecureVault {
+    // LP-aligned address: P=2 (LP-2xxx PQ/Identity), C=2 (C-Chain), II=02 (ML-DSA)
     IMLDSAVerify constant MLDSA =
-        IMLDSAVerify(0x0200000000000000000000000000000000000006);
+        IMLDSAVerify(0x0000000000000000000000000000000000012202);
 
     mapping(bytes32 => bool) public authorizedKeys;
 
