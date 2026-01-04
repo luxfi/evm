@@ -252,8 +252,9 @@ interface IDeployerAllowList {
 }
 
 contract GatedFactory {
+    // LP-aligned address: P=0 (Core), C=2 (C-Chain), II=01 (DeployerAllowList)
     IDeployerAllowList constant DEPLOYER =
-        IDeployerAllowList(0x0200000000000000000000000000000000000000);
+        IDeployerAllowList(0x0000000000000000000000000000000000010201);
 
     modifier onlyAuthorized() {
         require(DEPLOYER.readAllowList(msg.sender) >= 1, "Not authorized");
@@ -280,8 +281,9 @@ interface IMLDSAVerify {
 }
 
 contract QuantumSecure {
+    // LP-aligned address: P=2 (PQ/Identity), C=2 (C-Chain), II=02 (ML-DSA)
     IMLDSAVerify constant MLDSA =
-        IMLDSAVerify(0x0200000000000000000000000000000000000006);
+        IMLDSAVerify(0x0000000000000000000000000000000000012202);
 
     function executeWithPQSignature(
         bytes calldata publicKey,
@@ -307,8 +309,9 @@ interface IWarpMessenger {
 }
 
 contract CrossChainBridge {
+    // LP-aligned address: P=6 (Bridges), C=2 (C-Chain), II=01 (Warp)
     IWarpMessenger constant WARP =
-        IWarpMessenger(0x0200000000000000000000000000000000000005);
+        IWarpMessenger(0x0000000000000000000000000000000000016201);
 
     function bridgeTokens(
         bytes32 destinationChain,

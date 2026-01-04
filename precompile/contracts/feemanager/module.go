@@ -18,7 +18,8 @@ var _ contract.Configurator = (*configurator)(nil)
 // must be unique across all precompiles.
 const ConfigKey = "feeManagerConfig"
 
-var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000003")
+// LP-aligned address: P=3 (LP-3xxx EVM), C=2 (C-Chain), II=F0 (LP-3511 Fee Manager)
+var ContractAddress = common.HexToAddress("0x13F01")
 
 // Module is the precompile module. It is used to register the precompile contract.
 var Module = modules.Module{

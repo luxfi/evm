@@ -5,8 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./AllowList.sol";
 import "./interfaces/INativeMinter.sol";
 
-// Precompiled Native Minter Contract Address
-address constant MINTER_ADDRESS = 0x0200000000000000000000000000000000000001;
+// LP-aligned address: P=0 (Core), C=2 (C-Chain), II=04 (NativeMinter)
+address constant MINTER_ADDRESS = 0x0000000000000000000000000000000000010204;
 // Designated Blackhole Address
 address constant BLACKHOLE_ADDRESS = 0x0100000000000000000000000000000000000000;
 
