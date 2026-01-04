@@ -11,7 +11,7 @@ import (
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/evm/utils/utilstest"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/math/math"
+	"github.com/luxfi/math"
 	"github.com/stretchr/testify/require"
 )
 
