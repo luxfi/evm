@@ -102,9 +102,11 @@ contract ZKVerifier {
 
 ## Lux-Specific Precompiles
 
-### DeployerAllowList (0x0200000000000000000000000000000000000000)
+### DeployerAllowList (0x10201)
 
 Controls who can deploy contracts on the chain.
+
+LP-aligned address: P=0 (Core), C=2 (C-Chain), II=01 (DeployerAllowList)
 
 ```solidity
 interface IDeployerAllowList {
@@ -125,7 +127,7 @@ interface IDeployerAllowList {
 // Usage example
 contract DeployerManager {
     IDeployerAllowList constant DEPLOYER_LIST =
-        IDeployerAllowList(0x0200000000000000000000000000000000000000);
+        IDeployerAllowList(0x0000000000000000000000000000000000010201);
 
     function grantDeployerRole(address account) public {
         require(DEPLOYER_LIST.readAllowList(msg.sender) == 2, "Not admin");
@@ -134,9 +136,11 @@ contract DeployerManager {
 }
 ```
 
-### FeeManager (0x0200000000000000000000000000000000000003)
+### FeeManager (0x1320F)
 
 Manages dynamic fee configuration.
+
+LP-aligned address: P=3 (LP-3xxx EVM/Crypto), C=2 (C-Chain), II=0F (FeeManager)
 
 ```solidity
 interface IFeeManager {
@@ -158,7 +162,7 @@ interface IFeeManager {
 // Usage example
 contract FeeController {
     IFeeManager constant FEE_MANAGER =
-        IFeeManager(0x0200000000000000000000000000000000000003);
+        IFeeManager(0x000000000000000000000000000000000001320F);
 
     function updateMinBaseFee(uint256 newMinFee) public {
         IFeeManager.FeeConfig memory config = FEE_MANAGER.getFeeConfig();
@@ -168,9 +172,11 @@ contract FeeController {
 }
 ```
 
-### NativeMinter (0x0200000000000000000000000000000000000001)
+### NativeMinter (0x10204)
 
 Allows minting of native tokens.
+
+LP-aligned address: P=0 (Core), C=2 (C-Chain), II=04 (NativeMinter)
 
 ```solidity
 interface INativeMinter {
@@ -186,7 +192,7 @@ interface INativeMinter {
 // Usage example
 contract TokenMinter {
     INativeMinter constant MINTER =
-        INativeMinter(0x0200000000000000000000000000000000000001);
+        INativeMinter(0x0000000000000000000000000000000000010204);
 
     function mintTokens(address recipient, uint256 amount) public {
         require(MINTER.readAllowList(msg.sender) >= 1, "Not minter");
@@ -195,9 +201,11 @@ contract TokenMinter {
 }
 ```
 
-### RewardManager (0x0200000000000000000000000000000000000004)
+### RewardManager (0x10205)
 
 Manages validator rewards distribution.
+
+LP-aligned address: P=0 (Core), C=2 (C-Chain), II=05 (RewardManager)
 
 ```solidity
 interface IRewardManager {
@@ -216,7 +224,7 @@ interface IRewardManager {
 // Usage example
 contract RewardDistributor {
     IRewardManager constant REWARDS =
-        IRewardManager(0x0200000000000000000000000000000000000004);
+        IRewardManager(0x0000000000000000000000000000000000010205);
 
     function updateRewardRecipient(address newRecipient) public {
         REWARDS.setRewardAddress(newRecipient);
@@ -224,9 +232,11 @@ contract RewardDistributor {
 }
 ```
 
-### TxAllowList (0x0200000000000000000000000000000000000002)
+### TxAllowList (0x10203)
 
 Controls transaction permissions.
+
+LP-aligned address: P=0 (Core), C=2 (C-Chain), II=03 (TxAllowList)
 
 ```solidity
 interface ITxAllowList {
@@ -243,7 +253,7 @@ interface ITxAllowList {
 // Usage example
 contract AccessController {
     ITxAllowList constant TX_LIST =
-        ITxAllowList(0x0200000000000000000000000000000000000002);
+        ITxAllowList(0x0000000000000000000000000000000000010203);
 
     function grantAccess(address user) public {
         require(TX_LIST.readAllowList(msg.sender) == 2, "Not admin");
@@ -252,9 +262,11 @@ contract AccessController {
 }
 ```
 
-### Warp Messenger (0x0200000000000000000000000000000000000005)
+### Warp Messenger (0x16201)
 
 Enables cross-chain messaging.
+
+LP-aligned address: P=6 (LP-6xxx Bridges), C=2 (C-Chain), II=01 (Warp)
 
 ```solidity
 interface IWarpMessenger {
@@ -284,7 +296,7 @@ interface IWarpMessenger {
 // Usage example
 contract CrossChainBridge {
     IWarpMessenger constant WARP =
-        IWarpMessenger(0x0200000000000000000000000000000000000005);
+        IWarpMessenger(0x0000000000000000000000000000000000016201);
 
     function sendCrossChainMessage(bytes memory data) public returns (bytes32) {
         return WARP.sendWarpMessage(data);
@@ -299,9 +311,11 @@ contract CrossChainBridge {
 }
 ```
 
-### PQCrypto (0x0200000000000000000000000000000000000100)
+### PQCrypto (0x12201)
 
 Post-quantum cryptographic operations.
+
+LP-aligned address: P=2 (LP-2xxx PQ/Identity), C=2 (C-Chain), II=01 (PQCrypto)
 
 ```solidity
 interface IPQCrypto {
@@ -334,7 +348,7 @@ interface IPQCrypto {
 // Usage example
 contract QuantumSecure {
     IPQCrypto constant PQ =
-        IPQCrypto(0x0200000000000000000000000000000000000100);
+        IPQCrypto(0x0000000000000000000000000000000000012201);
 
     function createQuantumSignature(bytes memory message)
         public returns (bytes memory signature) {
@@ -344,9 +358,11 @@ contract QuantumSecure {
 }
 ```
 
-### Quasar (0x0200000000000000000000000000000000000101)
+### Quasar (0x1020A)
 
 Advanced consensus features.
+
+LP-aligned address: P=0 (Core), C=2 (C-Chain), II=0A (Quasar/Consensus)
 
 ```solidity
 interface IQuasar {
@@ -373,7 +389,7 @@ interface IQuasar {
 // Usage example
 contract ValidatorInfo {
     IQuasar constant QUASAR =
-        IQuasar(0x0200000000000000000000000000000000000101);
+        IQuasar(0x000000000000000000000000000000000001020A);
 
     function getMyStake() public view returns (uint256) {
         require(QUASAR.isValidator(msg.sender), "Not a validator");
@@ -495,7 +511,7 @@ describe("Precompile Tests", function () {
     it("Should interact with FeeManager", async function () {
         const FeeManager = await ethers.getContractAt(
             "IFeeManager",
-            "0x0200000000000000000000000000000000000003"
+            "0x000000000000000000000000000000000001320F"
         );
 
         const config = await FeeManager.getFeeConfig();
@@ -505,7 +521,7 @@ describe("Precompile Tests", function () {
     it("Should verify Warp message", async function () {
         const Warp = await ethers.getContractAt(
             "IWarpMessenger",
-            "0x0200000000000000000000000000000000000005"
+            "0x0000000000000000000000000000000000016201"
         );
 
         const [message, valid] = await Warp.getVerifiedWarpMessage(0);
