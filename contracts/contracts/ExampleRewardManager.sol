@@ -4,7 +4,8 @@ pragma solidity ^0.8.24;
 import "./interfaces/IRewardManager.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-address constant REWARD_MANAGER_ADDRESS = 0x0200000000000000000000000000000000000004;
+// LP-aligned address: P=0 (Core), C=2 (C-Chain), II=05 (RewardManager)
+address constant REWARD_MANAGER_ADDRESS = 0x0000000000000000000000000000000000010205;
 
 // ExampleRewardManager is a sample wrapper contract for RewardManager precompile.
 contract ExampleRewardManager is Ownable {
