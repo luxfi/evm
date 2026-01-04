@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/geth/common/math"
+	"github.com/luxfi/math/math"
 )
 
 var _ = (*stEnvMarshaling)(nil)

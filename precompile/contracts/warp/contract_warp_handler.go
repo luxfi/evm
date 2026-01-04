@@ -10,7 +10,7 @@ import (
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/evm/predicate"
 	"github.com/luxfi/geth/common"
-	commonmath "github.com/luxfi/geth/common/math"
+	commonmath "github.com/luxfi/math/math"
 	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/log"
 	"github.com/luxfi/math/set"

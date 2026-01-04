@@ -9,7 +9,8 @@ import { IRewardManager } from "typechain-types";
 
 // make sure this is always an admin for reward manager precompile
 const ADMIN_ADDRESS = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-const REWARD_MANAGER_ADDRESS = "0x0200000000000000000000000000000000000004"
+// LP-aligned address: P=0 (Core), C=2 (C-Chain), II=05 (RewardManager)
+const REWARD_MANAGER_ADDRESS = "0x0000000000000000000000000000000000010205"
 const BLACKHOLE_ADDRESS = "0x0100000000000000000000000000000000000000"
 
 describe("ExampleRewardManager", function () {
