@@ -5,7 +5,8 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/IWarpMessenger.sol";
 
 contract ExampleWarp {
-  address constant WARP_ADDRESS = 0x0200000000000000000000000000000000000005;
+  // LP-aligned address: P=6 (Bridges), C=2 (C-Chain), II=01 (Warp)
+  address constant WARP_ADDRESS = 0x0000000000000000000000000000000000016201;
   IWarpMessenger warp = IWarpMessenger(WARP_ADDRESS);
 
   // sendWarpMessage sends a warp message containing the payload

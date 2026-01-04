@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"math"
 
-	safemath "github.com/luxfi/geth/common/math"
+	safemath "github.com/luxfi/math/math"
 	"github.com/luxfi/utils/wrappers"
 )
 
