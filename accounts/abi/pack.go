@@ -34,7 +34,7 @@ import (
 	"reflect"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/math/math"
+	math "github.com/luxfi/math/big"
 )
 
 // packBytesSlice packs the given bytes as [L, V] as the canonical representation

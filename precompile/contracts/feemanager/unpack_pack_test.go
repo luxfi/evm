@@ -12,7 +12,7 @@ import (
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/math/math"
+	"github.com/luxfi/math"
 	"github.com/stretchr/testify/require"
 )
 
