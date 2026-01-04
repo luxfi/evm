@@ -11,7 +11,7 @@ import (
 	"github.com/luxfi/evm/precompile/precompiletest"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/math/math"
+	"github.com/luxfi/math"
 	"go.uber.org/mock/gomock"
 )
 

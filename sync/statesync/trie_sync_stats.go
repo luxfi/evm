@@ -11,7 +11,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/log"
-	luxmath "github.com/luxfi/math/math"
+	luxmath "github.com/luxfi/math"
 	"github.com/luxfi/timer"
 )
 

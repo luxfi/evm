@@ -36,7 +36,7 @@ import (
 
 	"github.com/luxfi/crypto"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/math/math"
+	math "github.com/luxfi/math/big"
 )
 
 // packTopic packs rule into the corresponding hash value for a log's topic

@@ -52,7 +52,7 @@ import (
 	"github.com/luxfi/geth/accounts/scwallet"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
-	commonmath "github.com/luxfi/math/math"
+	commonmath "github.com/luxfi/math"
 	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/core/vm"
