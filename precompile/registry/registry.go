@@ -64,26 +64,39 @@ import (
 	_ "github.com/luxfi/precompile/graph" // GraphQL query interface
 )
 
-// This list is kept just for reference. The actual addresses defined in respective packages of precompiles.
-// Note: it is important that none of these addresses conflict with each other or any other precompiles
-// in core/vm/contracts.go.
-// The first stateful precompiles were added in coreth to support nativeAssetCall and nativeAssetBalance. New stateful precompiles
-// originating in coreth will continue at this prefix, so we reserve this range in evm so that they can be migrated into
-// evm without issue.
-// These start at the address: 0x0100000000000000000000000000000000000000 and will increment by 1.
-// Optional precompiles implemented in evm start at 0x0200000000000000000000000000000000000000 and will increment by 1
-// from here to reduce the risk of conflicts.
-// For forks of evm, users should start at 0x0300000000000000000000000000000000000000 to ensure
-// that their own modifications do not conflict with stateful precompiles that may be added to evm
-// in the future.
-// ContractDeployerAllowListAddress = common.HexToAddress("0x0200000000000000000000000000000000000000")
-// ContractNativeMinterAddress      = common.HexToAddress("0x0200000000000000000000000000000000000001")
-// TxAllowListAddress               = common.HexToAddress("0x0200000000000000000000000000000000000002")
-// FeeManagerAddress                = common.HexToAddress("0x0200000000000000000000000000000000000003")
-// RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
-// WarpAddress                      = common.HexToAddress("0x0200000000000000000000000000000000000005")
-// MLDSAVerifyAddress               = common.HexToAddress("0x0200000000000000000000000000000000000006")
-// SLHDSAVerifyAddress              = common.HexToAddress("0x0200000000000000000000000000000000000007")
-// PQCryptoAddress                  = common.HexToAddress("0x0200000000000000000000000000000000000010")
-// ADD YOUR PRECOMPILE HERE
-// {YourPrecompile}Address          = common.HexToAddress("0x03000000000000000000000000000000000000??")
+// LP-ALIGNED ADDRESSING (LP-9015):
+// All precompiles use LP-aligned addressing with format: 0x1PCII
+// where P = Family Page, C = Chain Slot, II = Item Index
+//
+// Family Pages (P nibble aligns with LP range first digit):
+//   P=0: Core (LP-0xxx) - DeployerAllowList, TxAllowList, NativeMinter, RewardManager, Quasar
+//   P=2: PQ/Identity (LP-2xxx) - ML-DSA, ML-KEM, SLH-DSA, PQCrypto
+//   P=3: EVM/Crypto (LP-3xxx) - FeeManager, Hashing
+//   P=4: Privacy/ZK (LP-4xxx) - FHE, ZK proofs
+//   P=5: Threshold (LP-5xxx) - FROST, CGGMP21, Ringtail
+//   P=6: Bridges (LP-6xxx) - Warp
+//   P=7: AI (LP-7xxx) - AI mining, attestation
+//   P=9: DEX (LP-9xxx) - PoolManager, Router
+//
+// Chain Slots (C nibble):
+//   C=0: P-Chain, C=1: X-Chain, C=2: C-Chain, C=3: Q-Chain, etc.
+//
+// Reserved Range: 0x10000-0x1FFFF (64K addresses for LP-aligned precompiles)
+//
+// LP-Aligned Precompile Addresses:
+// DeployerAllowListAddress = common.HexToAddress("0x10201") // P=0, C=2, II=01
+// TxAllowListAddress       = common.HexToAddress("0x10203") // P=0, C=2, II=03
+// NativeMinterAddress      = common.HexToAddress("0x10204") // P=0, C=2, II=04
+// RewardManagerAddress     = common.HexToAddress("0x10205") // P=0, C=2, II=05
+// QuasarAddress            = common.HexToAddress("0x1020A") // P=0, C=2, II=0A
+// MLDSAVerifyAddress       = common.HexToAddress("0x12202") // P=2, C=2, II=02
+// MLKEMAddress             = common.HexToAddress("0x12203") // P=2, C=2, II=03
+// SLHDSAAddress            = common.HexToAddress("0x12204") // P=2, C=2, II=04
+// PQCryptoAddress          = common.HexToAddress("0x12201") // P=2, C=2, II=01
+// FeeManagerAddress        = common.HexToAddress("0x1320F") // P=3, C=2, II=0F
+// FROSTAddress             = common.HexToAddress("0x15201") // P=5, C=2, II=01
+// CGGMP21Address           = common.HexToAddress("0x15202") // P=5, C=2, II=02
+// RingtailAddress          = common.HexToAddress("0x15203") // P=5, C=2, II=03
+// WarpAddress              = common.HexToAddress("0x16201") // P=6, C=2, II=01
+// AIAddress                = common.HexToAddress("0x17201") // P=7, C=2, II=01
+// DEXPoolManagerAddress    = common.HexToAddress("0x19201") // P=9, C=2, II=01

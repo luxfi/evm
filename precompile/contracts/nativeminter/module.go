@@ -20,7 +20,8 @@ var _ contract.Configurator = (*configurator)(nil)
 // must be unique across all precompiles.
 const ConfigKey = "contractNativeMinterConfig"
 
-var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000001")
+// LP-aligned address: P=0 (Core), C=2 (C-Chain), II=04
+var ContractAddress = common.HexToAddress("0x10401")
 
 // Module is the precompile module. It is used to register the precompile contract.
 var Module = modules.Module{
