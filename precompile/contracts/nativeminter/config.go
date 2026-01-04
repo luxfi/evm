@@ -11,7 +11,7 @@ import (
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/math/math"
+	"github.com/luxfi/math"
 )
 
 var _ precompileconfig.Config = (*Config)(nil)

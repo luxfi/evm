@@ -37,7 +37,7 @@ import (
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/math/math"
+	"github.com/luxfi/math"
 	"github.com/luxfi/geth/consensus/misc/eip4844"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/tracing"

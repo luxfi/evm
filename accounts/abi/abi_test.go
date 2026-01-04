@@ -39,7 +39,7 @@ import (
 
 	"github.com/luxfi/crypto"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/math/math"
+	"github.com/luxfi/math"
 	"github.com/stretchr/testify/assert"
 )
 
