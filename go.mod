@@ -22,13 +22,15 @@ require (
 	github.com/luxfi/codec v1.1.0
 	github.com/luxfi/consensus v1.22.47
 	github.com/luxfi/const v1.4.0
-	github.com/luxfi/crypto v1.17.32
+	github.com/luxfi/crypto v1.17.36
 	github.com/luxfi/database v1.2.18
-	github.com/luxfi/geth v1.16.67
+	github.com/luxfi/geth v1.16.68
 	github.com/luxfi/go-bip39 v1.1.2
 	github.com/luxfi/ids v1.2.6
 	github.com/luxfi/log v1.2.1
 	github.com/luxfi/math v1.2.0
+	github.com/luxfi/math/big v0.1.0
+	github.com/luxfi/math/safe v0.0.0-20260105032950-356605c2c1a3
 	github.com/luxfi/metric v1.4.8
 	github.com/luxfi/node v1.22.77
 	github.com/luxfi/p2p v1.18.3
