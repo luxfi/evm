@@ -145,7 +145,8 @@ func (api *DevAPI) Mine(ctx context.Context, timestamp *hexutil.Uint64) (common.
 	if err := api.eth.blockchain.Accept(block); err != nil {
 		return common.Hash{}, err
 	}
-	api.eth.blockchain.DrainAcceptorQueue()
+	// Note: We don't call DrainAcceptorQueue() here because it triggers
+	// snapshot flatten which isn't supported in PathDB mode.
 
 	return block.Hash(), nil
 }
@@ -240,7 +241,8 @@ func (api *DevAPI) IncreaseTime(ctx context.Context, seconds hexutil.Uint64) (he
 	if err := api.eth.blockchain.Accept(block); err != nil {
 		return 0, err
 	}
-	api.eth.blockchain.DrainAcceptorQueue()
+	// Note: We don't call DrainAcceptorQueue() here because it triggers
+	// snapshot flatten which isn't supported in PathDB mode.
 
 	return hexutil.Uint64(newTime), nil
 }
@@ -306,7 +308,8 @@ func (api *DevAPI) commitStateChanges(statedb *state.StateDB) error {
 	if err := api.eth.blockchain.Accept(block); err != nil {
 		return err
 	}
-	api.eth.blockchain.DrainAcceptorQueue()
+	// Note: We don't call DrainAcceptorQueue() here because it triggers
+	// snapshot flatten which isn't supported in PathDB mode.
 
 	return nil
 }

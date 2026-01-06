@@ -13,6 +13,7 @@ import (
 
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/eth"
+	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/log"
@@ -233,6 +234,7 @@ func importBlocksFromFile(chain *core.BlockChain, eth *eth.Ethereum, file string
 	totalParsed := 0
 	totalImported := 0
 	skippedGenesis := false
+	var finalBlock *types.Block
 
 	for batch := 0; ; batch++ {
 		// Load a batch of blocks from the input file
@@ -290,20 +292,34 @@ func importBlocksFromFile(chain *core.BlockChain, eth *eth.Ethereum, file string
 		if err := chain.SetLastAcceptedBlockDirect(lastInsertedBlock); err != nil {
 			return totalImported, fmt.Errorf("batch %d: failed to set last accepted block: %w", batch, err)
 		}
-
-		// CRITICAL: Call PostImportCallback to update acceptedBlockDB for persistence across restarts.
-		// Without this, the VM's lastAcceptedKey won't be updated, causing blocks to be lost on restart.
-		if err := eth.CallPostImportCallback(lastInsertedBlock.Hash(), lastInsertedBlock.NumberU64()); err != nil {
-			return totalImported, fmt.Errorf("batch %d: failed to update acceptedBlockDB: %w", batch, err)
-		}
 		log.Info("admin_importChain: blocks finalized", "batch", batch, "count", n, "lastAccepted", lastInsertedBlock.NumberU64())
 
 		totalImported += n
 		blocks = blocks[:0]
+
+		// Track final block for post-import callback
+		finalBlock = lastInsertedBlock
 	}
 
 	if totalImported == 0 {
 		return 0, fmt.Errorf("no blocks imported (parsed=%d)", totalParsed)
+	}
+
+	// CRITICAL: Call PostImportCallback to update acceptedBlockDB for persistence across restarts.
+	// Without this, the VM's lastAcceptedKey won't be updated, causing blocks to be lost on restart.
+	//
+	// Run asynchronously to avoid deadlock: SetLastAcceptedBlockDirect holds chainmu.Lock(),
+	// and PostImportCallback may contend with P-chain/Info API locks. By returning success
+	// immediately after state commit and letting the callback complete in background,
+	// we prevent cross-chain mutex contention that causes API timeouts.
+	if finalBlock != nil {
+		go func(hash common.Hash, height uint64) {
+			if err := eth.CallPostImportCallback(hash, height); err != nil {
+				log.Error("PostImportCallback failed", "error", err)
+				return
+			}
+			log.Info("admin_importChain: post-import callback completed asynchronously", "height", height)
+		}(finalBlock.Hash(), finalBlock.NumberU64())
 	}
 
 	return totalImported, nil
