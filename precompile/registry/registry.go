@@ -54,9 +54,9 @@ import (
 	_ "github.com/luxfi/precompile/ai" // AI mining rewards, TEE verification
 
 	// ============================================
-	// DEX (0x0400-0x04FF)
+	// DEX (LP-9xxx) - QuantumSwap Native DEX
 	// ============================================
-	_ "github.com/luxfi/precompile/dex" // Uniswap v4-style DEX PoolManager
+	_ "github.com/luxfi/precompile/dex" // Native DEX PoolManager (LP-9010)
 
 	// ============================================
 	// Graph/Query Layer (0x0500-0x05FF)
@@ -65,38 +65,23 @@ import (
 )
 
 // LP-ALIGNED ADDRESSING (LP-9015):
-// All precompiles use LP-aligned addressing with format: 0x1PCII
-// where P = Family Page, C = Chain Slot, II = Item Index
+// DEX precompiles use trailing LP number format: 0x0000...00LPNUM
+// The LP number IS the address suffix - maximum simplicity.
 //
-// Family Pages (P nibble aligns with LP range first digit):
-//   P=0: Core (LP-0xxx) - DeployerAllowList, TxAllowList, NativeMinter, RewardManager, Quasar
-//   P=2: PQ/Identity (LP-2xxx) - ML-DSA, ML-KEM, SLH-DSA, PQCrypto
-//   P=3: EVM/Crypto (LP-3xxx) - FeeManager, Hashing
-//   P=4: Privacy/ZK (LP-4xxx) - FHE, ZK proofs
-//   P=5: Threshold (LP-5xxx) - FROST, CGGMP21, Ringtail
-//   P=6: Bridges (LP-6xxx) - Warp
-//   P=7: AI (LP-7xxx) - AI mining, attestation
-//   P=9: DEX (LP-9xxx) - PoolManager, Router
+// Address format: 0x0000000000000000000000000000000000LPNUM
 //
-// Chain Slots (C nibble):
-//   C=0: P-Chain, C=1: X-Chain, C=2: C-Chain, C=3: Q-Chain, etc.
+// DEX Precompiles (LP-9xxx - QuantumSwap Native DEX):
+//   POOL_MANAGER   = 0x0000...9010  // LP-9010 - Singleton pool manager
+//   ORACLE_HUB     = 0x0000...9011  // LP-9011 - Multi-source price aggregation
+//   SWAP_ROUTER    = 0x0000...9012  // LP-9012 - Optimized swap routing
+//   HOOKS_REGISTRY = 0x0000...9013  // LP-9013 - Hook contract registry
+//   FLASH_LOAN     = 0x0000...9014  // LP-9014 - Flash loan facility
+//   CLOB           = 0x0000...9020  // LP-9020 - Central limit order book
+//   VAULT          = 0x0000...9030  // LP-9030 - DeFi vault operations
+//   PRICE_FEED     = 0x0000...9040  // LP-9040 - Price feed aggregator
 //
-// Reserved Range: 0x10000-0x1FFFF (64K addresses for LP-aligned precompiles)
+// Bridge Precompiles (LP-6xxx):
+//   TELEPORT       = 0x0000...6010  // LP-6010 - Cross-chain teleportation
 //
-// LP-Aligned Precompile Addresses:
-// DeployerAllowListAddress = common.HexToAddress("0x10201") // P=0, C=2, II=01
-// TxAllowListAddress       = common.HexToAddress("0x10203") // P=0, C=2, II=03
-// NativeMinterAddress      = common.HexToAddress("0x10204") // P=0, C=2, II=04
-// RewardManagerAddress     = common.HexToAddress("0x10205") // P=0, C=2, II=05
-// QuasarAddress            = common.HexToAddress("0x1020A") // P=0, C=2, II=0A
-// MLDSAVerifyAddress       = common.HexToAddress("0x12202") // P=2, C=2, II=02
-// MLKEMAddress             = common.HexToAddress("0x12203") // P=2, C=2, II=03
-// SLHDSAAddress            = common.HexToAddress("0x12204") // P=2, C=2, II=04
-// PQCryptoAddress          = common.HexToAddress("0x12201") // P=2, C=2, II=01
-// FeeManagerAddress        = common.HexToAddress("0x1320F") // P=3, C=2, II=0F
-// FROSTAddress             = common.HexToAddress("0x15201") // P=5, C=2, II=01
-// CGGMP21Address           = common.HexToAddress("0x15202") // P=5, C=2, II=02
-// RingtailAddress          = common.HexToAddress("0x15203") // P=5, C=2, II=03
-// WarpAddress              = common.HexToAddress("0x16201") // P=6, C=2, II=01
-// AIAddress                = common.HexToAddress("0x17201") // P=7, C=2, II=01
-// DEXPoolManagerAddress    = common.HexToAddress("0x19201") // P=9, C=2, II=01
+// Same addresses work across ALL Lux EVM chains (C-Chain, Zoo, Hanzo, SPC)
+// See github.com/luxfi/precompile/registry for canonical Go addresses
