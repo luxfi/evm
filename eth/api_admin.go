@@ -180,10 +180,18 @@ func (api *AdminAPI) ImportChain(file string) (bool, error) {
 		// CRITICAL: Call the post-import callback to update the VM layer's acceptedBlockDB.
 		// Without this, ReadLastAccepted() returns genesis hash on restart because
 		// acceptedBlockDB is not updated by the admin API import path.
-		if err := api.eth.CallPostImportCallback(lastInsertedBlock.Hash(), lastInsertedBlock.NumberU64()); err != nil {
-			return false, fmt.Errorf("failed to call post-import callback: %v", err)
-		}
-		log.Info("ImportChain: post-import callback completed")
+		//
+		// Run asynchronously to avoid deadlock: SetLastAcceptedBlockDirect holds chainmu.Lock(),
+		// and PostImportCallback may contend with P-chain/Info API locks. By returning success
+		// immediately after state commit and letting the callback complete in background,
+		// we prevent cross-chain mutex contention that causes API timeouts.
+		go func() {
+			if err := api.eth.CallPostImportCallback(lastInsertedBlock.Hash(), lastInsertedBlock.NumberU64()); err != nil {
+				log.Error("PostImportCallback failed", "error", err)
+				return
+			}
+			log.Info("ImportChain: post-import callback completed asynchronously")
+		}()
 
 		log.Info("ImportChain: completed", "lastBlock", lastInsertedBlock.NumberU64(), "total", index)
 	} else {

@@ -1194,4 +1194,74 @@ All other addresses were created through subsequent transactions.
 
 ---
 
-*Last Updated: 2025-12-28*
+## P-Chain/Info API Deadlock Fix (2026-01-05)
+
+### Problem: API Timeouts After admin_importChain
+
+After calling `admin_importChain`, P-chain and Info APIs would hang/timeout. The C-Chain RPC continued working, but cross-chain API calls would fail.
+
+### Root Cause
+
+The `PostImportCallback` was called **synchronously** while `chainmu.Lock()` was held:
+1. `SetLastAcceptedBlockDirect()` acquires `chainmu.Lock()`
+2. `PostImportCallback` is called synchronously (within the lock)
+3. PostImportCallback may contend with P-chain/Info API locks
+4. **Deadlock**: APIs waiting for chainmu, chainmu waiting for APIs
+
+### Solution: Async PostImportCallback
+
+Made the callback run in a goroutine to prevent cross-chain mutex contention.
+
+### Files Fixed
+
+**eth/api_admin.go** (lines 180-196):
+```go
+// CRITICAL: Call the post-import callback to update the VM layer's acceptedBlockDB.
+// Without this, ReadLastAccepted() returns genesis hash on restart because
+// acceptedBlockDB is not updated by the admin API import path.
+//
+// Run asynchronously to avoid deadlock: SetLastAcceptedBlockDirect holds chainmu.Lock(),
+// and PostImportCallback may contend with P-chain/Info API locks. By returning success
+// immediately after state commit and letting the callback complete in background,
+// we prevent cross-chain mutex contention that causes API timeouts.
+go func() {
+    if err := api.eth.CallPostImportCallback(lastInsertedBlock.Hash(), lastInsertedBlock.NumberU64()); err != nil {
+        log.Error("PostImportCallback failed", "error", err)
+        return
+    }
+    log.Info("ImportChain: post-import callback completed asynchronously")
+}()
+```
+
+**plugin/evm/admin_api.go** (lines 315-323):
+```go
+// CRITICAL: Call PostImportCallback to update acceptedBlockDB for persistence across restarts.
+// Without this, the VM's lastAcceptedKey won't be updated, causing blocks to be lost on restart.
+//
+// Run asynchronously to avoid deadlock: SetLastAcceptedBlockDirect holds chainmu.Lock(),
+// and PostImportCallback may contend with P-chain/Info API locks.
+if finalBlock != nil {
+    go func(hash common.Hash, height uint64) {
+        if err := eth.CallPostImportCallback(hash, height); err != nil {
+            log.Error("PostImportCallback failed", "error", err)
+            return
+        }
+        log.Info("admin_importChain: post-import callback completed asynchronously", "height", height)
+    }(finalBlock.Hash(), finalBlock.NumberU64())
+}
+```
+
+### Also Fixed: Duplicate Logging
+
+Removed duplicate logging patterns where `log.Error()` was followed by `return fmt.Errorf()`, which caused the same error to be logged twice.
+
+### Verification
+
+All APIs responding after block import:
+- C-Chain RPC: `eth_blockNumber` returns correct height
+- P-Chain: `platform.getBlockchains` responds immediately
+- Info API: `info.getNodeVersion` responds immediately
+
+---
+
+*Last Updated: 2026-01-05*
