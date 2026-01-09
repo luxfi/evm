@@ -23,7 +23,7 @@ import (
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/evm/utils/utilstest"
 	"github.com/luxfi/ids"
-	agoUtils "github.com/luxfi/sdk/utils"
+	agoUtils "github.com/luxfi/vm/utils"
 	"github.com/luxfi/warp"
 	"github.com/luxfi/warp/payload"
 	"github.com/stretchr/testify/require"
