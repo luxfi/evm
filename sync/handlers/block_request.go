@@ -10,7 +10,7 @@ import (
 
 	"github.com/luxfi/codec"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/units"
+	"github.com/luxfi/constants"
 
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/sync/handlers/stats"
@@ -22,7 +22,7 @@ const (
 	// parentLimit specifies how many parents to retrieve and send given a starting hash
 	// This value overrides any specified limit in blockRequest.Parents if it is greater than this value
 	parentLimit           = uint16(64)
-	targetMessageByteSize = units.MiB - units.KiB // Target total block bytes slightly under original network codec max size of 1MB
+	targetMessageByteSize = constants.MiB - constants.KiB // Target total block bytes slightly under original network codec max size of 1MB
 )
 
 // BlockRequestHandler is a peer.RequestHandler for message.BlockRequest

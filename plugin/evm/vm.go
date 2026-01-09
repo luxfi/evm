@@ -88,19 +88,18 @@ import (
 	consensusversion "github.com/luxfi/consensus/version"
 	"github.com/luxfi/database/versiondb"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/vm/utils/perms"
-	"github.com/luxfi/vm/utils/profiler"
 	nodemockable "github.com/luxfi/timer/mockable"
-	"github.com/luxfi/units"
 	"github.com/luxfi/upgrade"
 	nodeChain "github.com/luxfi/vm/components/chain"
+	"github.com/luxfi/vm/utils/perms"
+	"github.com/luxfi/vm/utils/profiler"
 
 	commonEng "github.com/luxfi/consensus/core"
 	luxVM "github.com/luxfi/vm"
 
+	luxJSON "github.com/luxfi/codec/jsonrpc"
 	"github.com/luxfi/database"
 	luxUtils "github.com/luxfi/vm/utils"
-	luxJSON "github.com/luxfi/codec/jsonrpc"
 )
 
 var (
@@ -115,10 +114,10 @@ const (
 	// Max time from current time allowed for blocks, before they're considered future blocks
 	// and fail verification
 	maxFutureBlockTime     = 10 * time.Second
-	decidedCacheSize       = 10 * units.MiB
+	decidedCacheSize       = 10 * constants.MiB
 	missingCacheSize       = 50
-	unverifiedCacheSize    = 5 * units.MiB
-	bytesToIDCacheSize     = 5 * units.MiB
+	unverifiedCacheSize    = 5 * constants.MiB
+	bytesToIDCacheSize     = 5 * constants.MiB
 	warpSignatureCacheSize = 500
 
 	// Prefixes for metrics gatherers
@@ -1315,7 +1314,7 @@ func (vm *VM) setAppRequestHandlers() {
 		vm.chaindb,
 		&triedb.Config{
 			HashDB: &hashdb.Config{
-				CleanCacheSize: vm.config.StateSyncServerTrieCache * int(units.MiB),
+				CleanCacheSize: vm.config.StateSyncServerTrieCache * int(constants.MiB),
 			},
 		},
 	)

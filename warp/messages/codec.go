@@ -8,13 +8,13 @@ import (
 
 	"github.com/luxfi/codec"
 	"github.com/luxfi/codec/linearcodec"
-	"github.com/luxfi/units"
+	"github.com/luxfi/constants"
 )
 
 const (
 	CodecVersion = 0
 
-	MaxMessageSize = 24 * units.KiB
+	MaxMessageSize = 24 * constants.KiB
 )
 
 var Codec codec.Manager
