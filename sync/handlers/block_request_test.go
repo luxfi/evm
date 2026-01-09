@@ -19,7 +19,7 @@ import (
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/units"
+	"github.com/luxfi/constants"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -171,9 +171,9 @@ func TestBlockRequestHandlerLargeBlocks(t *testing.T) {
 		var data []byte
 		switch {
 		case i <= 32:
-			data = make([]byte, units.MiB)
+			data = make([]byte, constants.MiB)
 		default:
-			data = make([]byte, units.MiB/16)
+			data = make([]byte, constants.MiB/16)
 		}
 		tx, err := types.SignTx(types.NewTransaction(b.TxNonce(common.Address(addr1)), common.Address(addr1), big.NewInt(10000), 4_215_304, nil, data), signer, key1)
 		if err != nil {
