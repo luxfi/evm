@@ -88,18 +88,18 @@ import (
 	consensusversion "github.com/luxfi/consensus/version"
 	"github.com/luxfi/database/versiondb"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/sdk/utils/perms"
-	"github.com/luxfi/sdk/utils/profiler"
+	"github.com/luxfi/vm/utils/perms"
+	"github.com/luxfi/vm/utils/profiler"
 	nodemockable "github.com/luxfi/timer/mockable"
 	"github.com/luxfi/units"
 	"github.com/luxfi/upgrade"
-	nodeChain "github.com/luxfi/vm/vms/components/chain"
+	nodeChain "github.com/luxfi/vm/components/chain"
 
 	commonEng "github.com/luxfi/consensus/core"
 	luxVM "github.com/luxfi/vm"
 
 	"github.com/luxfi/database"
-	luxUtils "github.com/luxfi/sdk/utils"
+	luxUtils "github.com/luxfi/vm/utils"
 	luxJSON "github.com/luxfi/codec/jsonrpc"
 )
 
