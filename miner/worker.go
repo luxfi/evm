@@ -55,11 +55,11 @@ import (
 	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/log"
 	"github.com/luxfi/timer/mockable"
-	"github.com/luxfi/units"
+	"github.com/luxfi/constants"
 )
 
 const (
-	targetTxsSize = 1800 * units.KiB
+	targetTxsSize = 1800 * constants.KiB
 )
 
 // environment is the worker's current environment and holds all of the current state information.

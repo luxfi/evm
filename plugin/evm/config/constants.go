@@ -6,7 +6,7 @@ package config
 import (
 	"time"
 
-	"github.com/luxfi/units"
+	"github.com/luxfi/constants"
 )
 
 const (
@@ -15,7 +15,7 @@ const (
 	TxGossipBloomResetFalsePositiveRate  = 0.05
 	TxGossipBloomChurnMultiplier         = 3
 	PushGossipDiscardedElements          = 16_384
-	TxGossipTargetMessageSize            = 20 * units.KiB
+	TxGossipTargetMessageSize            = 20 * constants.KiB
 	TxGossipThrottlingPeriod             = 10 * time.Second
 	TxGossipThrottlingLimit              = 2
 	TxGossipPollSize                     = 1
