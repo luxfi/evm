@@ -17,10 +17,10 @@ import (
 	// "time" // Commented out - used in commented code
 
 	// "github.com/luxfi/ids" // Commented out - used in commented code
-	"github.com/luxfi/node/api/health"
+	"github.com/luxfi/vm/api/health"
 	// "github.com/luxfi/node/api/info" // Commented out - used in commented code
 	// "github.com/luxfi/node/genesis" // Commented out - used in commented code
-	// "github.com/luxfi/node/vms/secp256k1fx" // Commented out - used in commented code
+	// "github.com/luxfi/vm/vms/secp256k1fx" // Commented out - used in commented code
 	// "github.com/luxfi/node/wallet/net/primary" // TODO: This package doesn't exist in v1.16.15
 	"github.com/go-cmd/cmd"
 	// "github.com/luxfi/evm/core" // Commented out - used in commented code
