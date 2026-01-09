@@ -11,7 +11,7 @@ import (
 	"github.com/luxfi/codec/linearcodec"
 	"github.com/luxfi/evm/plugin/evm/upgrade/feewindow"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/sdk/utils/wrappers"
+	"github.com/luxfi/vm/utils/wrappers"
 	"github.com/luxfi/units"
 )
 
