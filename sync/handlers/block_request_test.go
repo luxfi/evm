@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/luxfi/constants"
 	"github.com/luxfi/crypto"
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/core"
@@ -19,7 +20,6 @@ import (
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/constants"
 	"github.com/stretchr/testify/assert"
 )
 
