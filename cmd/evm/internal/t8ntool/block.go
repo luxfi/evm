@@ -38,9 +38,9 @@ import (
 	"github.com/luxfi/crypto"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
-	"github.com/luxfi/math"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/rlp"
+	"github.com/luxfi/math"
 	"github.com/urfave/cli/v2"
 )
 
