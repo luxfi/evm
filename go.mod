@@ -21,7 +21,7 @@ require (
 	github.com/luxfi/cache v1.1.0
 	github.com/luxfi/codec v1.1.0
 	github.com/luxfi/consensus v1.22.51
-	github.com/luxfi/const v1.4.0
+	github.com/luxfi/constants v1.4.2
 	github.com/luxfi/crypto v1.17.37
 	github.com/luxfi/database v1.17.35
 	github.com/luxfi/geth v1.16.68
@@ -30,16 +30,16 @@ require (
 	github.com/luxfi/log v1.2.1
 	github.com/luxfi/math v1.2.2
 	github.com/luxfi/math/big v0.1.0
-	github.com/luxfi/math/safe v0.0.0-20260105032950-356605c2c1a3
+	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.4.8
-	github.com/luxfi/node v1.22.81
 	github.com/luxfi/p2p v1.18.4
 	github.com/luxfi/precompile v0.4.1
 	github.com/luxfi/timer v1.0.1
 	github.com/luxfi/trace v0.1.4
 	github.com/luxfi/units v1.0.0
+	github.com/luxfi/version v1.0.1
 	github.com/luxfi/upgrade v1.0.0
-	github.com/luxfi/utils v1.1.0
+	github.com/luxfi/sdk v1.16.40
 	github.com/luxfi/vm v1.0.2
 	github.com/luxfi/vms v1.0.1
 	github.com/luxfi/warp v1.18.2
@@ -65,6 +65,7 @@ require (
 	golang.org/x/tools v0.40.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
+
 
 require (
 	github.com/ALTree/bigfloat v0.2.0 // indirect

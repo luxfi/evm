@@ -8,13 +8,13 @@ import (
 func TestLocalNetworkChainID(t *testing.T) {
 	// Test that all test configurations use chain ID 1337 for local networks
 	testConfigs := map[string]*ChainConfig{
-		"TestChainConfig":             TestChainConfig,
-		"TestPreEVMChainConfig": TestPreEVMChainConfig,
-		"TestEVMChainConfig":    TestEVMChainConfig,
-		"TestDurangoChainConfig":      TestDurangoChainConfig,
-		"TestEtnaChainConfig":         TestEtnaChainConfig,
-		"TestFortunaChainConfig":      TestFortunaChainConfig,
-		"TestGraniteChainConfig":      TestGraniteChainConfig,
+		"TestChainConfig":        TestChainConfig,
+		"TestPreEVMChainConfig":  TestPreEVMChainConfig,
+		"TestEVMChainConfig":     TestEVMChainConfig,
+		"TestDurangoChainConfig": TestDurangoChainConfig,
+		"TestEtnaChainConfig":    TestEtnaChainConfig,
+		"TestFortunaChainConfig": TestFortunaChainConfig,
+		"TestGraniteChainConfig": TestGraniteChainConfig,
 	}
 
 	expectedChainID := big.NewInt(1337)

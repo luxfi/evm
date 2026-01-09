@@ -37,12 +37,12 @@ import (
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/plugin/evm/customrawdb"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/math"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/ethdb"
 	ethparams "github.com/luxfi/geth/params"
+	"github.com/luxfi/math"
 )
 
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {

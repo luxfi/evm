@@ -33,9 +33,9 @@ import (
 	"math/big"
 
 	"github.com/holiman/uint256"
+	"github.com/luxfi/constantsants"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/consensus"
-	"github.com/luxfi/evm/constants"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/plugin/evm/header"

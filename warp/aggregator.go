@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	errNoSignatures      = errors.New("no signatures collected")
+	errNoSignatures       = errors.New("no signatures collected")
 	errInsufficientQuorum = errors.New("insufficient quorum")
 )
 

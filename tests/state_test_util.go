@@ -45,7 +45,6 @@ import (
 	"github.com/luxfi/evm/plugin/evm/customrawdb"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
-	"github.com/luxfi/math"
 	"github.com/luxfi/geth/consensus/misc/eip4844"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/tracing"
@@ -55,6 +54,7 @@ import (
 	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/geth/triedb"
+	"github.com/luxfi/math"
 
 	// "github.com/luxfi/evm/triedb/firewood"
 	"github.com/holiman/uint256"

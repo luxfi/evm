@@ -39,10 +39,10 @@ $`,
 		"set": {
 			config: &ChainConfig{
 				NetworkUpgrades: NetworkUpgrades{
-					EVMTimestamp: pointer(uint64(1)),
-					DurangoTimestamp:   pointer(uint64(2)),
-					EtnaTimestamp:      pointer(uint64(3)),
-					FortunaTimestamp:   pointer(uint64(4)),
+					EVMTimestamp:     pointer(uint64(1)),
+					DurangoTimestamp: pointer(uint64(2)),
+					EtnaTimestamp:    pointer(uint64(3)),
+					FortunaTimestamp: pointer(uint64(4)),
 				},
 				FeeConfig: commontype.FeeConfig{
 					GasLimit:                 big.NewInt(5),
@@ -155,10 +155,10 @@ func TestChainConfigVerify(t *testing.T) {
 			config: ChainConfig{
 				FeeConfig: validFeeConfig,
 				NetworkUpgrades: NetworkUpgrades{
-					EVMTimestamp: pointer(uint64(0)), // Must be 0 (genesis activation)
-					DurangoTimestamp:   pointer(uint64(0)), // Must be 0 for default
-					EtnaTimestamp:      nil,                // Optional
-					FortunaTimestamp:   nil,                // Optional
+					EVMTimestamp:     pointer(uint64(0)), // Must be 0 (genesis activation)
+					DurangoTimestamp: pointer(uint64(0)), // Must be 0 for default
+					EtnaTimestamp:    nil,                // Optional
+					FortunaTimestamp: nil,                // Optional
 				},
 				LuxContext: LuxContext{ConsensusCtx: utilstest.NewTestConsensusContext(t)},
 			},

@@ -13,9 +13,9 @@ import (
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/precompile/precompiletest"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/math"
 	ethtypes "github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/core/vm"
+	"github.com/luxfi/math"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )

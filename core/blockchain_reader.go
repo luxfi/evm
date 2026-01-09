@@ -30,9 +30,9 @@ package core
 import (
 	"math/big"
 
+	"github.com/luxfi/constantsants"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/consensus"
-	"github.com/luxfi/evm/constants"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/core/state/snapshot"
 	"github.com/luxfi/evm/params"

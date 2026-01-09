@@ -60,11 +60,11 @@ func getPrecompileAddress(config precompileconfig.Config) common.Address {
 
 // RulesExtra represents extra EVM rules - part of libevm integration
 type RulesExtra struct {
-	IsEVM bool
-	IsDurango   bool
-	IsEtna      bool
-	IsFortuna   bool
-	IsGranite   bool
+	IsEVM     bool
+	IsDurango bool
+	IsEtna    bool
+	IsFortuna bool
+	IsGranite bool
 
 	// Fields for predicate support
 	PredicatersExist bool
@@ -314,7 +314,7 @@ func GetRulesExtra(rules Rules) RulesExtra {
 	if chainConfig == nil {
 		// No context found, return default RulesExtra
 		rulesExtra := RulesExtra{
-			IsEVM:      true,
+			IsEVM:            true,
 			IsDurango:        true,
 			IsEtna:           true,
 			IsFortuna:        true,
@@ -323,11 +323,11 @@ func GetRulesExtra(rules Rules) RulesExtra {
 			Predicaters:      make(map[common.Address]precompileconfig.Predicater),
 		}
 		rulesExtra.LuxRules = extras.LuxRules{
-			IsEVM: true,
-			IsDurango:   true,
-			IsEtna:      true,
-			IsFortuna:   true,
-			IsGranite:   true,
+			IsEVM:     true,
+			IsDurango: true,
+			IsEtna:    true,
+			IsFortuna: true,
+			IsGranite: true,
 		}
 		rulesExtra.activePrecompiles = make(map[common.Address]bool)
 		return rulesExtra
@@ -338,7 +338,7 @@ func GetRulesExtra(rules Rules) RulesExtra {
 
 	// Build RulesExtra from extras.Rules
 	rulesExtra := RulesExtra{
-		IsEVM:       extrasRules.IsEVM,
+		IsEVM:             extrasRules.IsEVM,
 		IsDurango:         extrasRules.IsDurango,
 		IsEtna:            extrasRules.IsEtna,
 		IsFortuna:         extrasRules.IsFortuna,

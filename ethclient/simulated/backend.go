@@ -32,8 +32,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/luxfi/constantsants"
 	"github.com/luxfi/evm/consensus/dummy"
-	"github.com/luxfi/evm/constants"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/eth"
 	"github.com/luxfi/evm/eth/ethconfig"
