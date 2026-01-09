@@ -37,6 +37,7 @@ import (
 	"math/big"
 
 	"github.com/holiman/uint256"
+	"github.com/luxfi/crypto/kzg4844"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/rpc"
@@ -44,7 +45,6 @@ import (
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/consensus/misc/eip4844"
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/crypto/kzg4844"
 	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/log"
 )

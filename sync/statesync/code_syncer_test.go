@@ -17,7 +17,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/ethdb/memorydb"
-	"github.com/luxfi/node/utils"
+	"github.com/luxfi/sdk/utils"
 	"github.com/stretchr/testify/assert"
 )
 

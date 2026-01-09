@@ -300,8 +300,8 @@ func TestExtrasMarshaling(t *testing.T) {
 		FeeConfig:          DefaultFeeConfig,
 		AllowFeeRecipients: false,
 		NetworkUpgrades: extras.NetworkUpgrades{
-			EVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.NewUint64(0),
+			EVMTimestamp:     utils.NewUint64(0),
+			DurangoTimestamp: utils.NewUint64(0),
 		},
 		GenesisPrecompiles: extras.Precompiles{},
 	}
@@ -339,7 +339,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		EVMTimestamp:  utils.NewUint64(0),
+		EVMTimestamp:        utils.NewUint64(0),
 		DurangoTimestamp:    utils.NewUint64(0),
 	}
 
@@ -347,8 +347,8 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 		FeeConfig:          DefaultFeeConfig,
 		AllowFeeRecipients: false,
 		NetworkUpgrades: extras.NetworkUpgrades{
-			EVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.NewUint64(0),
+			EVMTimestamp:     utils.NewUint64(0),
+			DurangoTimestamp: utils.NewUint64(0),
 		},
 		GenesisPrecompiles: extras.Precompiles{},
 	}

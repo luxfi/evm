@@ -14,8 +14,8 @@ import (
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/core/vm"
-	"github.com/luxfi/geth/rlp"
 	ethparams "github.com/luxfi/geth/params"
+	"github.com/luxfi/geth/rlp"
 	"github.com/stretchr/testify/require"
 )
 
