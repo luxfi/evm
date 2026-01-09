@@ -11,10 +11,10 @@ import (
 	"github.com/luxfi/ids"
 	"github.com/luxfi/node/consensus/validators"
 	"github.com/luxfi/node/consensus/validators/validatorstest"
-	"github.com/luxfi/node/utils/constants"
+	"github.com/luxfi/utils/constants"
 	"github.com/luxfi/crypto/bls"
-	"github.com/luxfi/node/utils/set"
-	luxWarp "github.com/luxfi/node/vms/platformvm/warp"
+	"github.com/luxfi/utils/set"
+	luxWarp "github.com/luxfi/vm/vms/platformvm/warp"
 	"github.com/stretchr/testify/require"
 )
 

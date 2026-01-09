@@ -9,8 +9,8 @@ import (
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
-	"github.com/luxfi/math"
 	ethparams "github.com/luxfi/geth/params"
+	"github.com/luxfi/math"
 )
 
 // StateUpgrade describes the modifications to be made to the state during

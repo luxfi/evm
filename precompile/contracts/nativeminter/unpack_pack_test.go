@@ -8,9 +8,9 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/luxfi/constantsants"
 	"github.com/luxfi/crypto"
 	"github.com/luxfi/evm/accounts/abi"
-	"github.com/luxfi/evm/constants"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"
 	"github.com/stretchr/testify/require"

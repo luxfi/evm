@@ -19,7 +19,7 @@ import (
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/log"
-	"github.com/luxfi/utils/profiler"
+	"github.com/luxfi/sdk/utils/profiler"
 )
 
 // Admin is the API service for admin API calls
@@ -99,11 +99,11 @@ type ImportChainArgs struct {
 
 // ImportChainReply represents the response from ImportChain
 type ImportChainReply struct {
-	Success       bool   `json:"success"`
+	Success        bool   `json:"success"`
 	BlocksImported int    `json:"blocksImported,omitempty"`
-	HeightBefore  uint64 `json:"heightBefore,omitempty"`
-	HeightAfter   uint64 `json:"heightAfter,omitempty"`
-	Message       string `json:"message,omitempty"`
+	HeightBefore   uint64 `json:"heightBefore,omitempty"`
+	HeightAfter    uint64 `json:"heightAfter,omitempty"`
+	Message        string `json:"message,omitempty"`
 }
 
 // ImportChain imports a blockchain from a local file
