@@ -25,7 +25,7 @@ import (
 	// "github.com/luxfi/firewood-go-ethhash/ffi"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/luxfi/constantsants"
+	"github.com/luxfi/constants"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/core"
@@ -93,7 +93,7 @@ import (
 	nodemockable "github.com/luxfi/timer/mockable"
 	"github.com/luxfi/units"
 	"github.com/luxfi/upgrade"
-	nodeChain "github.com/luxfi/vms/components/chain"
+	nodeChain "github.com/luxfi/vm/vms/components/chain"
 
 	commonEng "github.com/luxfi/consensus/core"
 	luxVM "github.com/luxfi/vm"
