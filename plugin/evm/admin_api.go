@@ -17,7 +17,7 @@ import (
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/log"
-	"github.com/luxfi/sdk/utils/profiler"
+	"github.com/luxfi/vm/utils/profiler"
 )
 
 // AdminAPI provides admin-level RPC methods using geth's RPC server
