@@ -13,7 +13,7 @@ import (
 	"github.com/luxfi/consensus/engine/chain/block"
 	validators "github.com/luxfi/consensus/validator"
 	"github.com/luxfi/consensus/validator/validatorstest"
-	"github.com/luxfi/constantsants"
+	"github.com/luxfi/constants"
 	"github.com/luxfi/crypto/bls"
 	"github.com/luxfi/crypto/bls/signer/localsigner"
 	evmconsensus "github.com/luxfi/evm/consensus"

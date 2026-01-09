@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/luxfi/constantsants"
+	"github.com/luxfi/constants"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/precompile/allowlist/allowlisttest"
