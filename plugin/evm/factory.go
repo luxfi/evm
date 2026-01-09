@@ -6,7 +6,7 @@ package evm
 import (
 	"github.com/luxfi/ids"
 	"github.com/luxfi/log"
-	"github.com/luxfi/vms"
+	"github.com/luxfi/vm"
 )
 
 var (
@@ -14,7 +14,7 @@ var (
 	IDStr = "evm"
 	ID    = ids.ID{'e', 'v', 'm'}
 
-	_ vms.Factory = (*Factory)(nil)
+	_ vm.Factory = (*Factory)(nil)
 )
 
 type Factory struct{}

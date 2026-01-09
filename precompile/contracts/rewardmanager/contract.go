@@ -11,7 +11,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/luxfi/constantsants"
+	"github.com/luxfi/constants"
 	"github.com/luxfi/evm/accounts/abi"
 	"github.com/luxfi/evm/precompile/allowlist"
 	"github.com/luxfi/evm/precompile/contract"
