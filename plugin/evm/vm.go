@@ -25,9 +25,9 @@ import (
 	// "github.com/luxfi/firewood-go-ethhash/ffi"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/luxfi/constantsants"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/consensus/dummy"
-	"github.com/luxfi/evm/constants"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/eth"
@@ -88,19 +88,19 @@ import (
 	consensusversion "github.com/luxfi/consensus/version"
 	"github.com/luxfi/database/versiondb"
 	"github.com/luxfi/ids"
+	"github.com/luxfi/sdk/utils/perms"
+	"github.com/luxfi/sdk/utils/profiler"
 	nodemockable "github.com/luxfi/timer/mockable"
 	"github.com/luxfi/units"
 	"github.com/luxfi/upgrade"
-	"github.com/luxfi/utils/perms"
-	"github.com/luxfi/utils/profiler"
 	nodeChain "github.com/luxfi/vms/components/chain"
 
 	commonEng "github.com/luxfi/consensus/core"
 	luxVM "github.com/luxfi/vm"
 
 	"github.com/luxfi/database"
-	luxUtils "github.com/luxfi/utils"
-	luxJSON "github.com/luxfi/utils/json"
+	luxUtils "github.com/luxfi/sdk/utils"
+	luxJSON "github.com/luxfi/codec/jsonrpc"
 )
 
 var (
@@ -155,8 +155,8 @@ var (
 	errInvalidBlock                  = errors.New("invalid block")
 	errInvalidNonce                  = errors.New("invalid nonce")
 	errUnclesUnsupported             = errors.New("uncles unsupported")
-	errNilBaseFeeEVM           = errors.New("nil base fee is invalid after EVM activation")
-	errNilBlockGasCostEVM      = errors.New("nil blockGasCost is invalid after EVM activation")
+	errNilBaseFeeEVM                 = errors.New("nil base fee is invalid after EVM activation")
+	errNilBlockGasCostEVM            = errors.New("nil blockGasCost is invalid after EVM activation")
 	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
 	errInitializingLogger            = errors.New("failed to initialize logger")
 	errShuttingDownVM                = errors.New("shutting down VM")
@@ -248,7 +248,7 @@ type VM struct {
 	// Continuous Profiler
 	profiler profiler.ContinuousProfiler
 
-	Network *network.Network
+	Network      *network.Network
 	networkCodec codec.Manager
 
 	// Metrics

@@ -12,9 +12,8 @@ import (
 	"time"
 
 	consensuscontext "github.com/luxfi/consensus/context"
-	"github.com/luxfi/const"
+	"github.com/luxfi/constantsants"
 	luxdatabase "github.com/luxfi/database"
-	"github.com/luxfi/ids"
 	"github.com/luxfi/database/factory"
 	"github.com/luxfi/database/prefixdb"
 	"github.com/luxfi/database/versiondb"
@@ -22,6 +21,7 @@ import (
 	evmdatabase "github.com/luxfi/evm/plugin/evm/database"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
+	"github.com/luxfi/ids"
 	"github.com/luxfi/log"
 	metrics "github.com/luxfi/metric"
 )

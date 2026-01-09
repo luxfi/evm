@@ -18,7 +18,7 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/log"
-	"github.com/luxfi/utils/wrappers"
+	"github.com/luxfi/sdk/utils/wrappers"
 )
 
 var (

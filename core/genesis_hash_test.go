@@ -193,9 +193,9 @@ func TestStateRootChainThroughZooBlocks(t *testing.T) {
 	stream := rlp.NewStream(file, 0)
 
 	type blockInfo struct {
-		number    uint64
-		hash      common.Hash
-		stateRoot common.Hash
+		number     uint64
+		hash       common.Hash
+		stateRoot  common.Hash
 		parentHash common.Hash
 	}
 
