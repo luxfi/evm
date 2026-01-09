@@ -6,13 +6,13 @@ package message
 import (
 	"github.com/luxfi/codec"
 	"github.com/luxfi/codec/linearcodec"
+	"github.com/luxfi/constants"
 	"github.com/luxfi/vm/utils/wrappers"
-	"github.com/luxfi/units"
 )
 
 const (
 	Version        = uint16(0)
-	maxMessageSize = 2*units.MiB - 64*units.KiB // Subtract 64 KiB from p2p network cap to leave room for encoding overhead from Luxd
+	maxMessageSize = 2*constants.MiB - 64*constants.KiB // Subtract 64 KiB from p2p network cap to leave room for encoding overhead from Luxd
 )
 
 var (
