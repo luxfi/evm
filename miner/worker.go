@@ -38,6 +38,7 @@ import (
 	"time"
 
 	"github.com/holiman/uint256"
+	"github.com/luxfi/constants"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/core"
@@ -55,7 +56,6 @@ import (
 	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/log"
 	"github.com/luxfi/timer/mockable"
-	"github.com/luxfi/constants"
 )
 
 const (
