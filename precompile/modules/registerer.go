@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/luxfi/constantsants"
+	"github.com/luxfi/constants"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
 )
