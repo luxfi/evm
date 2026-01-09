@@ -6,7 +6,7 @@ package api // Copied from luxfi/node to remove dependency
 import (
 	"encoding/json"
 
-	"github.com/luxfi/address/formatting"
+	"github.com/luxfi/formatting"
 	"github.com/luxfi/ids"
 
 	avajson "github.com/luxfi/evm/utils/json"
