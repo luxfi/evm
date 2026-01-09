@@ -217,19 +217,19 @@ func BlockGasCostWithStepTest(t *testing.T, feeConfig commontype.FeeConfig) {
 
 func TestEstimateRequiredTip(t *testing.T) {
 	tests := []struct {
-		name               string
+		name         string
 		evmTimestamp *uint64
-		header             *types.Header
-		want               *big.Int
-		wantErr            error
+		header       *types.Header
+		want         *big.Int
+		wantErr      error
 	}{
 		{
-			name:               "not_subnet_evm",
+			name:         "not_subnet_evm",
 			evmTimestamp: utils.NewUint64(1),
-			header:             &types.Header{},
+			header:       &types.Header{},
 		},
 		{
-			name:               "nil_base_fee",
+			name:         "nil_base_fee",
 			evmTimestamp: utils.NewUint64(0),
 			header: customtypes.WithHeaderExtra(
 				&types.Header{},
@@ -240,7 +240,7 @@ func TestEstimateRequiredTip(t *testing.T) {
 			wantErr: errBaseFeeNil,
 		},
 		{
-			name:               "nil_block_gas_cost",
+			name:         "nil_block_gas_cost",
 			evmTimestamp: utils.NewUint64(0),
 			header: &types.Header{
 				BaseFee: big.NewInt(1),
@@ -249,7 +249,7 @@ func TestEstimateRequiredTip(t *testing.T) {
 			wantErr: errBlockGasCostNil,
 		},
 		{
-			name:               "no_gas_used",
+			name:         "no_gas_used",
 			evmTimestamp: utils.NewUint64(0),
 			header: customtypes.WithHeaderExtra(
 				&types.Header{
@@ -263,7 +263,7 @@ func TestEstimateRequiredTip(t *testing.T) {
 			wantErr: errNoGasUsed,
 		},
 		{
-			name:               "success",
+			name:         "success",
 			evmTimestamp: utils.NewUint64(0),
 			header: customtypes.WithHeaderExtra(
 				&types.Header{
@@ -279,7 +279,7 @@ func TestEstimateRequiredTip(t *testing.T) {
 			want: big.NewInt((101112 * 456) / (912)),
 		},
 		{
-			name:               "success_rounds_up",
+			name:         "success_rounds_up",
 			evmTimestamp: utils.NewUint64(0),
 			header: customtypes.WithHeaderExtra(
 				&types.Header{
