@@ -41,7 +41,7 @@ require (
 	github.com/luxfi/upgrade v1.0.0
 	github.com/luxfi/sdk v1.16.40
 	github.com/luxfi/vm v1.0.2
-	github.com/luxfi/vms v1.0.1
+	github.com/luxfi/vm v1.0.0
 	github.com/luxfi/warp v1.18.2
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
