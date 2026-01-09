@@ -7,9 +7,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/luxfi/ids"
 	nodeblock "github.com/luxfi/consensus/engine/chain/block"
 	consensusblock "github.com/luxfi/consensus/protocol/chain"
+	"github.com/luxfi/ids"
 )
 
 // BlockAdapter adapts consensus Block to node Block interface
@@ -99,4 +99,3 @@ func (b *BlockAdapter) VerifyWithContext(ctx context.Context, blockCtx *nodebloc
 	// Fall back to regular verification
 	return b.consensus.Verify(ctx)
 }
-

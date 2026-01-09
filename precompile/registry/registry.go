@@ -20,22 +20,22 @@ import (
 	// ============================================
 	_ "github.com/luxfi/precompile/mldsa"    // ML-DSA signature verification (FIPS 204)
 	_ "github.com/luxfi/precompile/mlkem"    // ML-KEM key encapsulation (FIPS 203)
-	_ "github.com/luxfi/precompile/slhdsa"   // SLH-DSA stateless hash signatures (FIPS 205)
 	_ "github.com/luxfi/precompile/pqcrypto" // Unified PQ crypto operations
+	_ "github.com/luxfi/precompile/slhdsa"   // SLH-DSA stateless hash signatures (FIPS 205)
 
 	// ============================================
 	// Privacy/Encryption (0x0700-0x07FF)
 	// ============================================
-	_ "github.com/luxfi/precompile/fhe"   // Fully Homomorphic Encryption
 	_ "github.com/luxfi/precompile/ecies" // Elliptic Curve Integrated Encryption
-	_ "github.com/luxfi/precompile/ring"  // Ring signatures (anonymity)
+	_ "github.com/luxfi/precompile/fhe"   // Fully Homomorphic Encryption
 	_ "github.com/luxfi/precompile/hpke"  // Hybrid Public Key Encryption
+	_ "github.com/luxfi/precompile/ring"  // Ring signatures (anonymity)
 
 	// ============================================
 	// Threshold Signatures (0x0800-0x08FF)
 	// ============================================
-	_ "github.com/luxfi/precompile/frost"    // FROST threshold Schnorr
 	_ "github.com/luxfi/precompile/cggmp21"  // CGGMP21 threshold ECDSA
+	_ "github.com/luxfi/precompile/frost"    // FROST threshold Schnorr
 	_ "github.com/luxfi/precompile/ringtail" // Threshold lattice (post-quantum)
 
 	// ============================================

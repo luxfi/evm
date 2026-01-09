@@ -9,10 +9,10 @@ import (
 
 	"golang.org/x/exp/slog"
 
-	"github.com/luxfi/evm/plugin/evm/config"
-	"github.com/luxfi/ids"
 	"github.com/luxfi/evm/api"
+	"github.com/luxfi/evm/plugin/evm/config"
 	"github.com/luxfi/evm/utils/rpc"
+	"github.com/luxfi/ids"
 )
 
 // Interface compliance

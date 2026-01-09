@@ -242,20 +242,20 @@ func (n *NetworkUpgrades) Description() string {
 }
 
 type LuxRules struct {
-	IsEVM bool
-	IsDurango   bool
-	IsEtna      bool
-	IsFortuna   bool
-	IsGranite   bool
+	IsEVM     bool
+	IsDurango bool
+	IsEtna    bool
+	IsFortuna bool
+	IsGranite bool
 }
 
 func (n *NetworkUpgrades) GetLuxRules(time uint64) LuxRules {
 	return LuxRules{
-		IsEVM: n.IsEVM(time),
-		IsDurango:   n.IsDurango(time),
-		IsEtna:      n.IsEtna(time),
-		IsFortuna:   n.IsFortuna(time),
-		IsGranite:   n.IsGranite(time),
+		IsEVM:     n.IsEVM(time),
+		IsDurango: n.IsDurango(time),
+		IsEtna:    n.IsEtna(time),
+		IsFortuna: n.IsFortuna(time),
+		IsGranite: n.IsGranite(time),
 	}
 }
 
@@ -314,11 +314,11 @@ func GetNetworkUpgrades(agoUpgrade upgrade.Config) NetworkUpgrades {
 // GetDefaultNetworkUpgrades returns default network upgrades
 func GetDefaultNetworkUpgrades() NetworkUpgrades {
 	return NetworkUpgrades{
-		EVMTimestamp: utils.NewUint64(0),
-		DurangoTimestamp:   utils.NewUint64(0), // Already activated
-		EtnaTimestamp:      nil,                // Not scheduled
-		FortunaTimestamp:   nil,                // Not scheduled
-		GraniteTimestamp:   nil,                // Not scheduled
+		EVMTimestamp:     utils.NewUint64(0),
+		DurangoTimestamp: utils.NewUint64(0), // Already activated
+		EtnaTimestamp:    nil,                // Not scheduled
+		FortunaTimestamp: nil,                // Not scheduled
+		GraniteTimestamp: nil,                // Not scheduled
 	}
 }
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/luxfi/codec"
 	"github.com/luxfi/codec/linearcodec"
-	"github.com/luxfi/utils/wrappers"
+	"github.com/luxfi/sdk/utils/wrappers"
 )
 
 const (
