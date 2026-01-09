@@ -18,10 +18,10 @@ import (
 
 	"github.com/luxfi/p2p"
 	"github.com/luxfi/p2p/gossip"
-	"github.com/luxfi/node/proto/pb/sdk"
+	"github.com/luxfi/vm/proto/pb/sdk"
 
 	"github.com/luxfi/consensus/utils/set"
-	agoUtils "github.com/luxfi/node/utils"
+	agoUtils "github.com/luxfi/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 
