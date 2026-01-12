@@ -18,8 +18,8 @@ import (
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/log"
-	"github.com/luxfi/vm/utils/profiler"
+	log "github.com/luxfi/log"
+	"github.com/luxfi/metric/profiler"
 )
 
 // Admin is the API service for admin API calls

@@ -7,7 +7,7 @@ import (
 	"github.com/luxfi/codec"
 	"github.com/luxfi/codec/linearcodec"
 	"github.com/luxfi/constants"
-	"github.com/luxfi/vm/utils/wrappers"
+	"github.com/luxfi/codec/wrappers"
 )
 
 const (
