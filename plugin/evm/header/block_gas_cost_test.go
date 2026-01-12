@@ -65,7 +65,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		expected   *big.Int
 	}{
 		{
-			name:       "before_subnet_evm",
+			name:       "before_chain_evm",
 			parentTime: 10,
 			upgrades:   extras.TestPreEVMChainConfig.NetworkUpgrades,
 			parentCost: maxBlockGasCostBig,
@@ -224,7 +224,7 @@ func TestEstimateRequiredTip(t *testing.T) {
 		wantErr      error
 	}{
 		{
-			name:         "not_subnet_evm",
+			name:         "not_chain_evm",
 			evmTimestamp: utils.NewUint64(1),
 			header:       &types.Header{},
 		},

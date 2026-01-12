@@ -103,7 +103,7 @@ type Config struct {
 	// The file should contain a JSON object with address-to-account mappings.
 	GenesisAllocFile string `json:"genesis-alloc-file"`
 
-	// Subnet EVM APIs
+	// Chain EVM APIs
 	ValidatorsAPIEnabled bool   `json:"validators-api-enabled"`
 	AdminAPIEnabled      bool   `json:"admin-api-enabled"`
 	AdminAPIDir          string `json:"admin-api-dir"`

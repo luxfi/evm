@@ -12,7 +12,7 @@ import (
 
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/plugin/evm/message"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 type stateSyncServerConfig struct {
