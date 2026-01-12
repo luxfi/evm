@@ -155,7 +155,7 @@ func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 }
 
 // Tests that if multiple transactions have the same price, the ones seen earlier
-// are prioritized to avoid network spam attacks aiming for a specific ordering.
+// are prioritized to avoid network spam attacks aiming for a specific utils.
 func TestTransactionTimeSort(t *testing.T) {
 	t.Parallel()
 	// Generate a batch of accounts to start with

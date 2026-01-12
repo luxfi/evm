@@ -39,7 +39,7 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/geth/triedb"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 // journalGenerator is a disk layer entry containing the generator progress marker.

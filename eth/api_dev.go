@@ -169,7 +169,7 @@ func (api *DevAPI) Snapshot(ctx context.Context) hexutil.Uint64 {
 }
 
 // Revert reverts the state to a previous snapshot.
-// Note: In subnet-evm, revert is limited - it can only revert to the current or
+// Note: In chain-evm, revert is limited - it can only revert to the current or
 // recent state. Full reorg capabilities are not available.
 // Anvil: evm_revert
 // Hardhat: evm_revert

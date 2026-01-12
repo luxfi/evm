@@ -44,7 +44,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 func TestClientRequest(t *testing.T) {

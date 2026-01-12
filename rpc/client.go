@@ -38,7 +38,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 var (
