@@ -43,7 +43,7 @@ import (
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/geth/trie"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 // DebugAPI is the collection of Ethereum full node APIs for debugging the

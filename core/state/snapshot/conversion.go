@@ -42,7 +42,7 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/geth/trie"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 // trieKV represents a trie key-value pair

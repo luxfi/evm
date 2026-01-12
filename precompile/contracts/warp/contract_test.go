@@ -18,7 +18,7 @@ import (
 	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/math/set"
-	agoUtils "github.com/luxfi/vm/utils"
+	agoUtils "github.com/luxfi/utils"
 	"github.com/luxfi/warp"
 	"github.com/luxfi/warp/payload"
 	"github.com/stretchr/testify/require"

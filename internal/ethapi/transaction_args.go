@@ -46,7 +46,7 @@ import (
 	"github.com/luxfi/geth/consensus/misc/eip4844"
 	"github.com/luxfi/geth/core/types"
 	ethparams "github.com/luxfi/geth/params"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 var (

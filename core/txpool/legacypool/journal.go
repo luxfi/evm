@@ -36,7 +36,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/rlp"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 // errNoActiveJournal is returned if a transaction is attempted to be inserted

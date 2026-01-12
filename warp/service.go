@@ -10,7 +10,7 @@ import (
 
 	consensuscontext "github.com/luxfi/consensus/context"
 	"github.com/luxfi/geth/common/hexutil"
-	"github.com/luxfi/geth/log"
+	log "github.com/luxfi/log"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/warp"
 	"github.com/luxfi/warp/payload"

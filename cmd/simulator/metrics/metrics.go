@@ -11,49 +11,45 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/luxfi/log"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/luxfi/log"
+	"github.com/luxfi/metric"
 )
 
 type Metrics struct {
-	reg *prometheus.Registry
+	reg metric.Registry
 	// Summary of the quantiles of Individual Issuance Tx Times
-	IssuanceTxTimes prometheus.Summary
+	IssuanceTxTimes metric.Summary
 	// Summary of the quantiles of Individual Confirmation Tx Times
-	ConfirmationTxTimes prometheus.Summary
+	ConfirmationTxTimes metric.Summary
 	// Summary of the quantiles of Individual Issuance To Confirmation Tx Times
-	IssuanceToConfirmationTxTimes prometheus.Summary
+	IssuanceToConfirmationTxTimes metric.Summary
 }
 
 func NewDefaultMetrics() *Metrics {
-	registry := prometheus.NewRegistry()
+	registry := metric.NewRegistry()
 	return NewMetrics(registry)
 }
 
 // NewMetrics creates and returns a Metrics and registers it with a Collector
-func NewMetrics(reg *prometheus.Registry) *Metrics {
+func NewMetrics(reg metric.Registry) *Metrics {
 	m := &Metrics{
 		reg: reg,
-		IssuanceTxTimes: prometheus.NewSummary(prometheus.SummaryOpts{
+		IssuanceTxTimes: metric.NewSummary(metric.SummaryOpts{
 			Name:       "tx_issuance_time",
 			Help:       "Individual Tx Issuance Times for a Load Test",
 			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		}),
-		ConfirmationTxTimes: prometheus.NewSummary(prometheus.SummaryOpts{
+		ConfirmationTxTimes: metric.NewSummary(metric.SummaryOpts{
 			Name:       "tx_confirmation_time",
 			Help:       "Individual Tx Confirmation Times for a Load Test",
 			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		}),
-		IssuanceToConfirmationTxTimes: prometheus.NewSummary(prometheus.SummaryOpts{
+		IssuanceToConfirmationTxTimes: metric.NewSummary(metric.SummaryOpts{
 			Name:       "tx_issuance_to_confirmation_time",
 			Help:       "Individual Tx Issuance To Confirmation Times for a Load Test",
 			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		}),
 	}
-	reg.MustRegister(m.IssuanceTxTimes)
-	reg.MustRegister(m.ConfirmationTxTimes)
-	reg.MustRegister(m.IssuanceToConfirmationTxTimes)
 	return m
 }
 
@@ -67,7 +63,7 @@ type MetricsServer struct {
 
 func (m *Metrics) Serve(ctx context.Context, metricsPort string, metricsEndpoint string) *MetricsServer {
 	ctx, cancel := context.WithCancel(ctx)
-	// Create a prometheus server to expose individual tx metrics
+	// Create a metrics server to expose individual tx metrics
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%s", metricsPort),
 	}
@@ -93,7 +89,7 @@ func (m *Metrics) Serve(ctx context.Context, metricsPort string, metricsEndpoint
 	go func() {
 		defer close(ms.stopCh)
 
-		http.Handle(metricsEndpoint, promhttp.HandlerFor(m.reg, promhttp.HandlerOpts{Registry: m.reg}))
+		http.Handle(metricsEndpoint, metric.HandlerFor(m.reg))
 		log.Info(fmt.Sprintf("Metrics Server: localhost:%s%s", metricsPort, metricsEndpoint))
 		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			log.Error("Metrics server error: %v", err)
@@ -118,8 +114,8 @@ func (m *Metrics) Print(outputFile string) error {
 		// Printout to stdout
 		fmt.Println("*** Metrics ***")
 		for _, mf := range metrics {
-			for _, m := range mf.GetMetric() {
-				fmt.Printf("Type: %s, Name: %s, Description: %s, Values: %s\n", mf.GetType().String(), mf.GetName(), mf.GetHelp(), m.String())
+			for _, m := range mf.Metrics {
+				fmt.Printf("Type: %s, Name: %s, Description: %s, Values: %+v\n", mf.Type.String(), mf.Name, mf.Help, m.Value)
 			}
 		}
 		fmt.Println("***************")

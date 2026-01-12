@@ -30,14 +30,14 @@ func TestExtraPrefix(t *testing.T) {
 		wantErr  error
 	}{
 		{
-			name:     "pre_subnet_evm",
+			name:     "pre_chain_evm",
 			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
 			header:   &types.Header{},
 			want:     nil,
 			wantErr:  nil,
 		},
 		{
-			name: "subnet_evm_first_block",
+			name: "chain_evm_first_block",
 			upgrades: extras.NetworkUpgrades{
 				EVMTimestamp: utils.NewUint64(1),
 			},
@@ -50,7 +50,7 @@ func TestExtraPrefix(t *testing.T) {
 			want: (&feewindow.Window{}).Bytes(),
 		},
 		{
-			name:     "subnet_evm_genesis_block",
+			name:     "chain_evm_genesis_block",
 			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
@@ -59,7 +59,7 @@ func TestExtraPrefix(t *testing.T) {
 			want:   (&feewindow.Window{}).Bytes(),
 		},
 		{
-			name:     "subnet_evm_invalid_fee_window",
+			name:     "chain_evm_invalid_fee_window",
 			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
@@ -68,7 +68,7 @@ func TestExtraPrefix(t *testing.T) {
 			wantErr: feewindow.ErrWindowInsufficientLength,
 		},
 		{
-			name:     "subnet_evm_invalid_timestamp",
+			name:     "chain_evm_invalid_timestamp",
 			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
@@ -81,7 +81,7 @@ func TestExtraPrefix(t *testing.T) {
 			wantErr: errInvalidTimestamp,
 		},
 		{
-			name:     "subnet_evm_normal",
+			name:     "chain_evm_normal",
 			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: customtypes.WithHeaderExtra(
 				&types.Header{
@@ -131,13 +131,13 @@ func TestVerifyExtraPrefix(t *testing.T) {
 		wantErr  error
 	}{
 		{
-			name:     "pre_subnet_evm",
+			name:     "pre_chain_evm",
 			upgrades: extras.TestPreEVMChainConfig.NetworkUpgrades,
 			header:   &types.Header{},
 			wantErr:  nil,
 		},
 		{
-			name:     "subnet_evm_invalid_parent_header",
+			name:     "chain_evm_invalid_parent_header",
 			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
@@ -146,7 +146,7 @@ func TestVerifyExtraPrefix(t *testing.T) {
 			wantErr: feewindow.ErrWindowInsufficientLength,
 		},
 		{
-			name:     "subnet_evm_invalid_header",
+			name:     "chain_evm_invalid_header",
 			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
@@ -155,7 +155,7 @@ func TestVerifyExtraPrefix(t *testing.T) {
 			wantErr: errInvalidExtraPrefix,
 		},
 		{
-			name:     "subnet_evm_valid",
+			name:     "chain_evm_valid",
 			upgrades: extras.TestEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
@@ -197,7 +197,7 @@ func TestVerifyExtra(t *testing.T) {
 			expected: errInvalidExtraLength,
 		},
 		{
-			name: "subnet_evm_valid",
+			name: "chain_evm_valid",
 			rules: extras.LuxRules{
 				IsEVM: true,
 			},
@@ -205,7 +205,7 @@ func TestVerifyExtra(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name: "subnet_evm_invalid_less",
+			name: "chain_evm_invalid_less",
 			rules: extras.LuxRules{
 				IsEVM: true,
 			},
@@ -213,7 +213,7 @@ func TestVerifyExtra(t *testing.T) {
 			expected: errInvalidExtraLength,
 		},
 		{
-			name: "subnet_evm_invalid_more",
+			name: "chain_evm_invalid_more",
 			rules: extras.LuxRules{
 				IsEVM: true,
 			},
