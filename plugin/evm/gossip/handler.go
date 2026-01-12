@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/luxfi/ids"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
+	"github.com/luxfi/metric"
 	"github.com/luxfi/p2p"
 	"github.com/luxfi/p2p/gossip"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var _ p2p.Handler = (*txGossipHandler)(nil)
@@ -25,7 +25,7 @@ func NewTxGossipHandler[T gossip.Gossipable](
 	throttlingPeriod time.Duration,
 	requestsPerPeer float64,
 	validators p2p.ValidatorSet,
-	registerer prometheus.Registerer,
+	registerer metric.Registerer,
 	namespace string,
 ) (*txGossipHandler, error) {
 	// push gossip messages can be handled from any peer

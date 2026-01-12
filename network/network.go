@@ -10,7 +10,7 @@ import (
 
 	"github.com/luxfi/codec"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 	"github.com/luxfi/math/set"
 	"github.com/luxfi/metric"
 	"github.com/luxfi/p2p"
@@ -95,6 +95,30 @@ func (n *Network) Shutdown() {
 	}
 	n.pendingRequests = make(map[uint32]chan []byte)
 	n.requestsLock.Unlock()
+}
+
+// AddHandler registers a handler for a given protocol ID.
+// Safely handles the case where the embedded p2p.Network is nil (e.g., when sender is nil in tests).
+func (n *Network) AddHandler(handlerID uint64, handler p2p.Handler) error {
+	if n.Network == nil {
+		// No p2p network available (sender was nil during init)
+		// This is expected in test environments or standalone mode
+		n.log.Debug("Skipping AddHandler: no p2p network available", "handlerID", handlerID)
+		return nil
+	}
+	return n.Network.AddHandler(handlerID, handler)
+}
+
+// NewClient creates a new p2p client for the given handler ID.
+// Returns a no-op client when the embedded p2p.Network is nil (e.g., when sender is nil in tests).
+func (n *Network) NewClient(handlerID uint64, options ...p2p.ClientOption) *p2p.Client {
+	if n.Network == nil {
+		// No p2p network available (sender was nil during init)
+		// Return nil - callers must handle nil client gracefully
+		n.log.Debug("NewClient: no p2p network available, returning nil client", "handlerID", handlerID)
+		return nil
+	}
+	return n.Network.NewClient(handlerID, options...)
 }
 
 // P2PValidators returns the p2p validators if available

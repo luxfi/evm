@@ -16,7 +16,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/types"
 	ethparams "github.com/luxfi/geth/params"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 // DistributeFunds ensures that each address in keys has at least [minFundsPerAddr] by sending funds

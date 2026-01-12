@@ -40,7 +40,7 @@ import (
 	"github.com/luxfi/geth/accounts/keystore"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 // ErrNoChainID is returned whenever the user failed to specify a chain id.
