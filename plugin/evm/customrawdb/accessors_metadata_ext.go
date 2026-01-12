@@ -13,7 +13,7 @@ import (
 	ethrawdb "github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/rlp"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 // writeCurrentTimeMarker writes a marker of the current time in the db at `key`.

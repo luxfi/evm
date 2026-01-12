@@ -54,7 +54,7 @@ import (
 	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/event"
 	ethparams "github.com/luxfi/geth/params"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 	"github.com/luxfi/timer/mockable"
 )
 
