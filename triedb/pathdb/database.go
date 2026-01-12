@@ -40,7 +40,7 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/trie/trienode"
 	"github.com/luxfi/geth/trie/triestate"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 const (

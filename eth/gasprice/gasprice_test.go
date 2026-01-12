@@ -252,7 +252,7 @@ func testGenBlock(t *testing.T, tip int64, numTx int) func(int, *core.BlockGen) 
 
 func TestSuggestTipCapNetworkUpgrades(t *testing.T) {
 	tests := map[string]suggestTipCapTest{
-		"subnet evm": {
+		"chain evm": {
 			chainConfig: params.TestChainConfig,
 			expectedTip: DefaultMinPrice,
 		},
@@ -350,7 +350,7 @@ func TestSuggestTipCapMinGas(t *testing.T) {
 	}, defaultOracleConfig())
 }
 
-// Regression test to ensure that SuggestPrice does not panic with activation of Subnet EVM
+// Regression test to ensure that SuggestPrice does not panic with activation of Chain EVM
 // Note: support for gas estimation without activated hard forks has been deprecated, but we still
 // ensure that the call does not panic.
 func TestSuggestGasPriceEVM(t *testing.T) {

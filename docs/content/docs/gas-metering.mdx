@@ -164,8 +164,8 @@ function sumExpensive() public view returns (uint256) {
     return sum;
 }
 
-// Optimized: Cache length
-function sumOptimized() public view returns (uint256) {
+// Cache length for reuse
+function sumCached() public view returns (uint256) {
     uint256 sum = 0;
     uint256 length = array.length; // Single read
     for (uint i = 0; i < length; i++) {

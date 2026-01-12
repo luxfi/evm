@@ -22,7 +22,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 	metrics "github.com/luxfi/metric"
 )
 
@@ -92,10 +92,8 @@ func (vm *VM) initializeDBs(avaDB luxdatabase.Database) error {
 			return err
 		}
 		log.Info("Using standalone database for the chain state", "DatabaseConfig", dbConfig)
-		// Create a logger adapter for newStandaloneDatabase
-		logger := log.NoLog{}
 		// Pass nil for metrics as it's optional
-		db, err = newStandaloneDatabase(dbConfig, nil, logger)
+		db, err = newStandaloneDatabase(dbConfig, nil, log.Noop())
 		if err != nil {
 			log.Error("Failed to create standalone database", "error", err)
 			return fmt.Errorf("failed to create standalone database: %w", err)
