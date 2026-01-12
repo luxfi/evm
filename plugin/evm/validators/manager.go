@@ -19,7 +19,7 @@ import (
 	"github.com/luxfi/ids"
 	"github.com/luxfi/timer/mockable"
 
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 const (
@@ -117,7 +117,7 @@ func (m *manager) sync(ctx context.Context) error {
 	// get current validator set
 	validatorState := consensuscontext.GetValidatorState(m.chainCtx)
 	if validatorState == nil {
-		// ValidatorState not available in context - this is normal for subnets
+		// ValidatorState not available in context - this is normal for chains
 		// that don't have access to P-Chain validator information
 		log.Debug("validator state not available, skipping sync")
 		return nil

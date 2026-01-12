@@ -11,7 +11,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cockroachdb/pebble"
+	"github.com/luxfi/database"
+	"github.com/luxfi/database/manager"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/rlp"
 )
@@ -30,7 +31,7 @@ func main() {
 	}
 
 	// Open database in readonly mode
-	db, err := pebble.Open(*dbPath, &pebble.Options{ReadOnly: true})
+	db, err := openDatabase(*dbPath, true)
 	if err != nil {
 		fmt.Printf("Failed to open database: %v\n", err)
 		os.Exit(1)
@@ -88,16 +89,15 @@ func main() {
 	fmt.Printf("\nExported %d blocks to %s\n", exported, *output)
 }
 
-func findTip(db *pebble.DB) (uint64, []byte, error) {
+func findTip(db database.Database) (uint64, []byte, error) {
 	// Look for AcceptorTipKey
 	tipKey := append(zooNamespace, []byte("AcceptorTipKey")...)
-	tipHash, closer, err := db.Get(tipKey)
+	tipHash, err := db.Get(tipKey)
 	if err != nil {
 		return 0, nil, fmt.Errorf("AcceptorTipKey not found: %v", err)
 	}
 	tipHashCopy := make([]byte, len(tipHash))
 	copy(tipHashCopy, tipHash)
-	closer.Close()
 
 	// Get height from hash
 	height, err := getHeightByHash(db, tipHashCopy)
@@ -108,16 +108,15 @@ func findTip(db *pebble.DB) (uint64, []byte, error) {
 	return height, tipHashCopy, nil
 }
 
-func getHeightByHash(db *pebble.DB, hash []byte) (uint64, error) {
+func getHeightByHash(db database.Database, hash []byte) (uint64, error) {
 	// Key: namespace + 'H' + hash
 	key := append(zooNamespace, 'H')
 	key = append(key, hash...)
 
-	value, closer, err := db.Get(key)
+	value, err := db.Get(key)
 	if err != nil {
 		return 0, err
 	}
-	defer closer.Close()
 
 	if len(value) != 8 {
 		return 0, fmt.Errorf("invalid height value length: %d", len(value))
@@ -126,7 +125,7 @@ func getHeightByHash(db *pebble.DB, hash []byte) (uint64, error) {
 	return binary.BigEndian.Uint64(value), nil
 }
 
-func getHashByHeight(db *pebble.DB, height uint64) ([]byte, error) {
+func getHashByHeight(db database.Database, height uint64) ([]byte, error) {
 	// Iterate to find header with this height
 	// Key format: namespace + 'h' + be8(height) + hash
 	prefix := append(zooNamespace, 'h')
@@ -134,16 +133,10 @@ func getHashByHeight(db *pebble.DB, height uint64) ([]byte, error) {
 	binary.BigEndian.PutUint64(heightBytes, height)
 	prefix = append(prefix, heightBytes...)
 
-	iter, err := db.NewIter(&pebble.IterOptions{
-		LowerBound: prefix,
-		UpperBound: append(prefix, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff),
-	})
-	if err != nil {
-		return nil, err
-	}
-	defer iter.Close()
+	iter := db.NewIteratorWithPrefix(prefix)
+	defer iter.Release()
 
-	if iter.First() {
+	if iter.Next() {
 		key := iter.Key()
 		// Key is: namespace(32) + 'h'(1) + height(8) + hash(32) = 73 bytes
 		if len(key) >= 73 {
@@ -157,7 +150,7 @@ func getHashByHeight(db *pebble.DB, height uint64) ([]byte, error) {
 	return nil, fmt.Errorf("hash not found for height %d", height)
 }
 
-func getBlockByHeight(db *pebble.DB, height uint64) (*types.Block, error) {
+func getBlockByHeight(db database.Database, height uint64) (*types.Block, error) {
 	hash, err := getHashByHeight(db, height)
 	if err != nil {
 		return nil, err
@@ -177,7 +170,7 @@ func getBlockByHeight(db *pebble.DB, height uint64) (*types.Block, error) {
 	return types.NewBlockWithHeader(header).WithBody(*body), nil
 }
 
-func getHeader(db *pebble.DB, height uint64, hash []byte) (*types.Header, error) {
+func getHeader(db database.Database, height uint64, hash []byte) (*types.Header, error) {
 	// Key: namespace + 'h' + be8(height) + hash
 	key := append(zooNamespace, 'h')
 	heightBytes := make([]byte, 8)
@@ -185,11 +178,10 @@ func getHeader(db *pebble.DB, height uint64, hash []byte) (*types.Header, error)
 	key = append(key, heightBytes...)
 	key = append(key, hash...)
 
-	value, closer, err := db.Get(key)
+	value, err := db.Get(key)
 	if err != nil {
 		return nil, err
 	}
-	defer closer.Close()
 
 	var header types.Header
 	if err := rlp.DecodeBytes(value, &header); err != nil {
@@ -199,7 +191,7 @@ func getHeader(db *pebble.DB, height uint64, hash []byte) (*types.Header, error)
 	return &header, nil
 }
 
-func getBody(db *pebble.DB, height uint64, hash []byte) (*types.Body, error) {
+func getBody(db database.Database, height uint64, hash []byte) (*types.Body, error) {
 	// Key: namespace + 'b' + be8(height) + hash
 	key := append(zooNamespace, 'b')
 	heightBytes := make([]byte, 8)
@@ -207,11 +199,10 @@ func getBody(db *pebble.DB, height uint64, hash []byte) (*types.Body, error) {
 	key = append(key, heightBytes...)
 	key = append(key, hash...)
 
-	value, closer, err := db.Get(key)
+	value, err := db.Get(key)
 	if err != nil {
 		return nil, err
 	}
-	defer closer.Close()
 
 	var body types.Body
 	if err := rlp.DecodeBytes(value, &body); err != nil {
@@ -219,4 +210,13 @@ func getBody(db *pebble.DB, height uint64, hash []byte) (*types.Body, error) {
 	}
 
 	return &body, nil
+}
+
+func openDatabase(path string, readOnly bool) (database.Database, error) {
+	mgr := manager.NewManager("", nil)
+	return mgr.New(&manager.Config{
+		Type:     "pebbledb",
+		Path:     path,
+		ReadOnly: readOnly,
+	})
 }

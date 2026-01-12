@@ -97,7 +97,7 @@ func NewDefaultConfig() Config {
 		// RPC settings
 		BatchRequestLimit:    1000,
 		BatchResponseMaxSize: 25 * 1000 * 1000, // 25MB
-		// Subnet EVM API settings
+		// Chain EVM API settings
 		ValidatorsAPIEnabled: true,
 		// Database settings
 		DatabaseType: badgerdbName,

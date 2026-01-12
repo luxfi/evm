@@ -43,9 +43,6 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/hexutil"
 	"github.com/luxfi/geth/core/types"
-
-	// Force-load precompiles to trigger registration
-	_ "github.com/luxfi/evm/precompile/registry"
 )
 
 // Verify that Client implements required interfaces

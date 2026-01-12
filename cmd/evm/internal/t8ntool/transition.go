@@ -46,7 +46,7 @@ import (
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/eth/tracers/logger"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 	"github.com/urfave/cli/v2"
 )
 

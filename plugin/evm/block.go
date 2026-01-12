@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/luxfi/geth/rlp"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/params"
@@ -25,13 +25,12 @@ import (
 	"github.com/luxfi/consensus/core/choices"
 	"github.com/luxfi/consensus/engine/chain/block"
 	consensusBlock "github.com/luxfi/consensus/engine/chain/block"
-	"github.com/luxfi/consensus/protocol/chain"
 	"github.com/luxfi/ids"
 )
 
 var (
 	// Block implements the chain.Block interface
-	_ chain.Block = (*Block)(nil)
+	_ block.Block = (*Block)(nil)
 )
 
 // Block implements the chain.Block interface

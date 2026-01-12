@@ -27,7 +27,7 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/geth/trie"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 const (

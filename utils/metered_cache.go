@@ -8,23 +8,23 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/VictoriaMetrics/fastcache"
-	"github.com/luxfi/geth/metrics"
+	"github.com/luxfi/cache/bytecache"
+	"github.com/luxfi/metric"
 )
 
-// MeteredCache wraps *fastcache.Cache and periodically pulls stats from it.
+// MeteredCache wraps *bytecache.Cache and periodically pulls stats from it.
 type MeteredCache struct {
-	*fastcache.Cache
+	cache     *bytecache.Cache
 	namespace string
 
 	// stats to be surfaced
-	entriesCount *metrics.Gauge
-	bytesSize    *metrics.Gauge
-	collisions   *metrics.Gauge
-	gets         *metrics.Gauge
-	sets         *metrics.Gauge
-	misses       *metrics.Gauge
-	statsTime    *metrics.Gauge
+	entriesCount metric.Gauge
+	bytesSize    metric.Gauge
+	collisions   metric.Gauge
+	gets         metric.Gauge
+	sets         metric.Gauge
+	misses       metric.Gauge
+	statsTime    metric.Counter
 
 	// count all operations to decide when to update stats
 	ops             uint64
@@ -39,24 +39,24 @@ func NewMeteredCache(size int, namespace string, updateFrequency uint64) *Metere
 		updateFrequency = 1 // avoid division by zero
 	}
 	mc := &MeteredCache{
-		Cache:           fastcache.New(size),
+		cache:           bytecache.New(size),
 		namespace:       namespace,
 		updateFrequency: updateFrequency,
 	}
 	if namespace != "" {
 		// only register stats if a namespace is provided.
-		mc.entriesCount = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/entriesCount", namespace), nil)
-		mc.bytesSize = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/bytesSize", namespace), nil)
-		mc.collisions = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/collisions", namespace), nil)
-		mc.gets = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/gets", namespace), nil)
-		mc.sets = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/sets", namespace), nil)
-		mc.misses = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/misses", namespace), nil)
-		mc.statsTime = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/statsTime", namespace), nil)
+		mc.entriesCount = metric.NewGauge(metric.GaugeOpts{Name: fmt.Sprintf("%s/entriesCount", namespace), Help: "cache entries"})
+		mc.bytesSize = metric.NewGauge(metric.GaugeOpts{Name: fmt.Sprintf("%s/bytesSize", namespace), Help: "cache size in bytes"})
+		mc.collisions = metric.NewGauge(metric.GaugeOpts{Name: fmt.Sprintf("%s/collisions", namespace), Help: "cache collisions"})
+		mc.gets = metric.NewGauge(metric.GaugeOpts{Name: fmt.Sprintf("%s/gets", namespace), Help: "cache gets"})
+		mc.sets = metric.NewGauge(metric.GaugeOpts{Name: fmt.Sprintf("%s/sets", namespace), Help: "cache sets"})
+		mc.misses = metric.NewGauge(metric.GaugeOpts{Name: fmt.Sprintf("%s/misses", namespace), Help: "cache misses"})
+		mc.statsTime = metric.NewCounter(metric.CounterOpts{Name: fmt.Sprintf("%s/statsTime", namespace), Help: "time spent updating cache stats"})
 	}
 	return mc
 }
 
-// updateStatsIfNeeded updates metrics from fastcache
+// updateStatsIfNeeded updates metrics from cache
 func (mc *MeteredCache) updateStatsIfNeeded() {
 	if mc.namespace == "" {
 		return
@@ -67,48 +67,62 @@ func (mc *MeteredCache) updateStatsIfNeeded() {
 	}
 
 	start := time.Now()
-	s := fastcache.Stats{}
-	mc.UpdateStats(&s)
-	mc.entriesCount.Update(int64(s.EntriesCount))
-	mc.bytesSize.Update(int64(s.BytesSize))
-	mc.collisions.Update(int64(s.Collisions))
-	mc.gets.Update(int64(s.GetCalls))
-	mc.sets.Update(int64(s.SetCalls))
-	mc.misses.Update(int64(s.Misses))
-	mc.statsTime.Inc(int64(time.Since(start))) // cumulative metric
+	s := bytecache.Stats{}
+	mc.cache.UpdateStats(&s)
+	if mc.entriesCount != nil {
+		mc.entriesCount.Set(float64(s.EntriesCount))
+		mc.bytesSize.Set(float64(s.BytesSize))
+		mc.collisions.Set(float64(s.Collisions))
+		mc.gets.Set(float64(s.GetCalls))
+		mc.sets.Set(float64(s.SetCalls))
+		mc.misses.Set(float64(s.Misses))
+		mc.statsTime.Add(float64(time.Since(start).Nanoseconds()))
+	}
 }
 
 func (mc *MeteredCache) Del(k []byte) {
 	mc.updateStatsIfNeeded()
-	mc.Cache.Del(k)
+	mc.cache.Del(k)
 }
 
 func (mc *MeteredCache) Get(dst, k []byte) []byte {
 	mc.updateStatsIfNeeded()
-	return mc.Cache.Get(dst, k)
+	return mc.cache.Get(dst, k)
 }
 
 func (mc *MeteredCache) GetBig(dst, k []byte) []byte {
 	mc.updateStatsIfNeeded()
-	return mc.Cache.GetBig(dst, k)
+	return mc.cache.GetBig(dst, k)
 }
 
 func (mc *MeteredCache) Has(k []byte) bool {
 	mc.updateStatsIfNeeded()
-	return mc.Cache.Has(k)
+	return mc.cache.Has(k)
 }
 
 func (mc *MeteredCache) HasGet(dst, k []byte) ([]byte, bool) {
 	mc.updateStatsIfNeeded()
-	return mc.Cache.HasGet(dst, k)
+	return mc.cache.HasGet(dst, k)
 }
 
 func (mc *MeteredCache) Set(k, v []byte) {
 	mc.updateStatsIfNeeded()
-	mc.Cache.Set(k, v)
+	mc.cache.Set(k, v)
 }
 
 func (mc *MeteredCache) SetBig(k, v []byte) {
 	mc.updateStatsIfNeeded()
-	mc.Cache.SetBig(k, v)
+	mc.cache.SetBig(k, v)
+}
+
+func (mc *MeteredCache) Reset() {
+	mc.cache.Reset()
+}
+
+func (mc *MeteredCache) SaveToFileConcurrent(filePath string, concurrency int) error {
+	return mc.cache.SaveToFileConcurrent(filePath, concurrency)
+}
+
+func (mc *MeteredCache) LoadFromFile(filePath string) error {
+	return mc.cache.LoadFromFile(filePath)
 }

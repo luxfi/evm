@@ -85,24 +85,24 @@ func TestSetupGenesis(t *testing.T) {
 }
 
 func testSetupGenesis(t *testing.T, scheme string) {
-	preSubnetConfig := params.Copy(params.TestPreEVMChainConfig)
-	params.GetExtra(preSubnetConfig).EVMTimestamp = utils.NewUint64(100)
+	preChainConfig := params.Copy(params.TestPreEVMChainConfig)
+	params.GetExtra(preChainConfig).EVMTimestamp = utils.NewUint64(100)
 	var (
 		customg = Genesis{
-			Config: preSubnetConfig,
+			Config: preChainConfig,
 			Alloc: types.GenesisAlloc{
 				{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 			},
-			GasLimit: params.GetExtra(preSubnetConfig).FeeConfig.GasLimit.Uint64(),
+			GasLimit: params.GetExtra(preChainConfig).FeeConfig.GasLimit.Uint64(),
 		}
 		oldcustomg = customg
 	)
 	// Compute the actual genesis hash from the genesis spec
 	customghash := customg.ToBlock().Hash()
 
-	rollbackpreSubnetConfig := params.Copy(preSubnetConfig)
-	params.GetExtra(rollbackpreSubnetConfig).EVMTimestamp = utils.NewUint64(90)
-	oldcustomg.Config = rollbackpreSubnetConfig
+	rollbackpreChainConfig := params.Copy(preChainConfig)
+	params.GetExtra(rollbackpreChainConfig).EVMTimestamp = utils.NewUint64(90)
+	oldcustomg.Config = rollbackpreChainConfig
 	oldcustomghash := oldcustomg.ToBlock().Hash()
 
 	tests := []struct {

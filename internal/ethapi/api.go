@@ -59,7 +59,7 @@ import (
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/go-bip39"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 	commonmath "github.com/luxfi/math"
 )
 

@@ -13,7 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cockroachdb/pebble"
+	"github.com/luxfi/database"
+	"github.com/luxfi/database/manager"
 	"github.com/luxfi/evm/internal/flags"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/rlp"
@@ -69,7 +70,7 @@ func exportChain(ctx *cli.Context) error {
 	}
 
 	fmt.Printf("Opening pebbledb: %s\n", dbPath)
-	db, err := pebble.Open(dbPath, &pebble.Options{ReadOnly: true})
+	db, err := openDatabase(dbPath, true)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %v", err)
 	}
@@ -171,26 +172,24 @@ func importChain(ctx *cli.Context) error {
 
 // EVM pebbledb helpers
 
-func findTip(db *pebble.DB, ns []byte) (uint64, []byte, error) {
-	val, closer, err := db.Get(append(ns, []byte("AcceptorTipKey")...))
+func findTip(db database.Database, ns []byte) (uint64, []byte, error) {
+	val, err := db.Get(append(ns, []byte("AcceptorTipKey")...))
 	if err != nil {
 		return 0, nil, err
 	}
 	hash := make([]byte, len(val))
 	copy(hash, val)
-	closer.Close()
 
 	heightKey := append(ns, 'H')
 	heightKey = append(heightKey, hash...)
-	hval, hcloser, err := db.Get(heightKey)
+	hval, err := db.Get(heightKey)
 	if err != nil {
 		return 0, nil, err
 	}
-	defer hcloser.Close()
 	return binary.BigEndian.Uint64(hval), hash, nil
 }
 
-func getBlock(db *pebble.DB, ns []byte, height uint64) (*types.Block, error) {
+func getBlock(db database.Database, ns []byte, height uint64) (*types.Block, error) {
 	hash, err := getHash(db, ns, height)
 	if err != nil {
 		return nil, err
@@ -209,16 +208,16 @@ func getBlock(db *pebble.DB, ns []byte, height uint64) (*types.Block, error) {
 	return types.NewBlockWithHeader(hdr).WithBody(*body), nil
 }
 
-func getHash(db *pebble.DB, ns []byte, height uint64) ([]byte, error) {
+func getHash(db database.Database, ns []byte, height uint64) ([]byte, error) {
 	prefix := append(ns, 'h')
 	hb := make([]byte, 8)
 	binary.BigEndian.PutUint64(hb, height)
 	prefix = append(prefix, hb...)
 
-	iter, _ := db.NewIter(&pebble.IterOptions{LowerBound: prefix, UpperBound: append(prefix, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff)})
-	defer iter.Close()
+	iter := db.NewIteratorWithPrefix(prefix)
+	defer iter.Release()
 
-	if iter.First() && len(iter.Key()) >= 73 {
+	if iter.Next() && len(iter.Key()) >= 73 {
 		h := make([]byte, 32)
 		copy(h, iter.Key()[41:73])
 		return h, nil
@@ -226,18 +225,17 @@ func getHash(db *pebble.DB, ns []byte, height uint64) ([]byte, error) {
 	return nil, fmt.Errorf("hash not found for height %d", height)
 }
 
-func getHeader(db *pebble.DB, ns []byte, height uint64, hash []byte) (*types.Header, error) {
+func getHeader(db database.Database, ns []byte, height uint64, hash []byte) (*types.Header, error) {
 	key := append(ns, 'h')
 	hb := make([]byte, 8)
 	binary.BigEndian.PutUint64(hb, height)
 	key = append(key, hb...)
 	key = append(key, hash...)
 
-	val, closer, err := db.Get(key)
+	val, err := db.Get(key)
 	if err != nil {
 		return nil, err
 	}
-	defer closer.Close()
 
 	var hdr types.Header
 	if err := rlp.DecodeBytes(val, &hdr); err != nil {
@@ -246,22 +244,30 @@ func getHeader(db *pebble.DB, ns []byte, height uint64, hash []byte) (*types.Hea
 	return &hdr, nil
 }
 
-func getBody(db *pebble.DB, ns []byte, height uint64, hash []byte) (*types.Body, error) {
+func getBody(db database.Database, ns []byte, height uint64, hash []byte) (*types.Body, error) {
 	key := append(ns, 'b')
 	hb := make([]byte, 8)
 	binary.BigEndian.PutUint64(hb, height)
 	key = append(key, hb...)
 	key = append(key, hash...)
 
-	val, closer, err := db.Get(key)
+	val, err := db.Get(key)
 	if err != nil {
 		return nil, err
 	}
-	defer closer.Close()
 
 	var body types.Body
 	if err := rlp.DecodeBytes(val, &body); err != nil {
 		return nil, err
 	}
 	return &body, nil
+}
+
+func openDatabase(path string, readOnly bool) (database.Database, error) {
+	mgr := manager.NewManager("", nil)
+	return mgr.New(&manager.Config{
+		Type:     "pebbledb",
+		Path:     path,
+		ReadOnly: readOnly,
+	})
 }

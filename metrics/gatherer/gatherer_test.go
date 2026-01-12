@@ -1,20 +1,18 @@
 // Copyright (C) 2019-2025, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package prometheus
+package gatherer
 
 import (
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/prometheus/common/expfmt"
-	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/luxfi/evm/metrics/metricstest"
 	"github.com/luxfi/geth/metrics"
+	"github.com/luxfi/metric"
 )
 
 func TestGatherer_Gather(t *testing.T) {
@@ -84,53 +82,103 @@ func TestGatherer_Gather(t *testing.T) {
 	families, err := gatherer.Gather()
 	require.NoError(t, err)
 
-	const expectedString = `
-# TYPE test_counter counter
-test_counter 12345
-# TYPE test_counter_float64 counter
-test_counter_float64 1.1
-# TYPE test_gauge gauge
-test_gauge 23456
-# TYPE test_gauge_float64 gauge
-test_gauge_float64 34567.89
-# TYPE test_histogram summary
-test_histogram{quantile="0.5"} 0
-test_histogram{quantile="0.75"} 0
-test_histogram{quantile="0.95"} 0
-test_histogram{quantile="0.99"} 0
-test_histogram{quantile="0.999"} 0
-test_histogram{quantile="0.9999"} 0
-test_histogram_sum 0
-test_histogram_count 0
-# TYPE test_meter gauge
-test_meter 9.999999e+06
-# TYPE test_resetting_timer summary
-test_resetting_timer{quantile="50"} 1e+09
-test_resetting_timer{quantile="95"} 1e+09
-test_resetting_timer{quantile="99"} 1e+09
-test_resetting_timer_sum 1e+09
-test_resetting_timer_count 1
-# TYPE test_timer summary
-test_timer{quantile="0.5"} 2.25e+07
-test_timer{quantile="0.75"} 4.8e+07
-test_timer{quantile="0.95"} 1.2e+08
-test_timer{quantile="0.99"} 1.2e+08
-test_timer{quantile="0.999"} 1.2e+08
-test_timer{quantile="0.9999"} 1.2e+08
-test_timer_sum 2.3e+08
-test_timer_count 6
-`
-	stringReader := strings.NewReader(expectedString)
-	parser := expfmt.NewTextParser(model.LegacyValidation)
-	expectedMetrics, err := parser.TextToMetricFamilies(stringReader)
-	require.NoError(t, err)
+	// Build expected metrics programmatically to match gatherer output format
+	expectedFamilies := map[string]*metric.MetricFamily{
+		"test_counter": {
+			Name: "test_counter",
+			Type: metric.MetricTypeCounter,
+			Metrics: []metric.Metric{{
+				Value: metric.MetricValue{Value: 12345},
+			}},
+		},
+		"test_counter_float64": {
+			Name: "test_counter_float64",
+			Type: metric.MetricTypeCounter,
+			Metrics: []metric.Metric{{
+				Value: metric.MetricValue{Value: 1.1},
+			}},
+		},
+		"test_gauge": {
+			Name: "test_gauge",
+			Type: metric.MetricTypeGauge,
+			Metrics: []metric.Metric{{
+				Value: metric.MetricValue{Value: 23456},
+			}},
+		},
+		"test_gauge_float64": {
+			Name: "test_gauge_float64",
+			Type: metric.MetricTypeGauge,
+			Metrics: []metric.Metric{{
+				Value: metric.MetricValue{Value: 34567.89},
+			}},
+		},
+		"test_histogram": {
+			Name: "test_histogram",
+			Type: metric.MetricTypeSummary,
+			Metrics: []metric.Metric{{
+				Value: metric.MetricValue{
+					SampleCount: 0,
+					SampleSum:   0,
+					Quantiles: []metric.Quantile{
+						{Quantile: 0.5, Value: 0},
+						{Quantile: 0.75, Value: 0},
+						{Quantile: 0.95, Value: 0},
+						{Quantile: 0.99, Value: 0},
+						{Quantile: 0.999, Value: 0},
+						{Quantile: 0.9999, Value: 0},
+					},
+				},
+			}},
+		},
+		"test_meter": {
+			Name: "test_meter",
+			Type: metric.MetricTypeGauge,
+			Metrics: []metric.Metric{{
+				Value: metric.MetricValue{Value: 9999999},
+			}},
+		},
+		"test_resetting_timer": {
+			Name: "test_resetting_timer",
+			Type: metric.MetricTypeSummary,
+			Metrics: []metric.Metric{{
+				Value: metric.MetricValue{
+					SampleCount: 1,
+					SampleSum:   1e9,
+					Quantiles: []metric.Quantile{
+						{Quantile: 50, Value: 1e9},
+						{Quantile: 95, Value: 1e9},
+						{Quantile: 99, Value: 1e9},
+					},
+				},
+			}},
+		},
+		"test_timer": {
+			Name: "test_timer",
+			Type: metric.MetricTypeSummary,
+			Metrics: []metric.Metric{{
+				Value: metric.MetricValue{
+					SampleCount: 6,
+					SampleSum:   2.3e8,
+					Quantiles: []metric.Quantile{
+						{Quantile: 0.5, Value: 2.25e7},
+						{Quantile: 0.75, Value: 4.8e7},
+						{Quantile: 0.95, Value: 1.2e8},
+						{Quantile: 0.99, Value: 1.2e8},
+						{Quantile: 0.999, Value: 1.2e8},
+						{Quantile: 0.9999, Value: 1.2e8},
+					},
+				},
+			}},
+		},
+	}
 
-	assert.Len(t, families, len(expectedMetrics))
-	for i, got := range families {
-		require.NotNil(t, *got.Name)
-
-		want := expectedMetrics[*got.Name]
-		assert.Equal(t, want, got, i)
+	assert.Len(t, families, len(expectedFamilies))
+	for _, got := range families {
+		want, ok := expectedFamilies[got.Name]
+		require.True(t, ok, "unexpected metric family: %s", got.Name)
+		assert.Equal(t, want.Type, got.Type, "type mismatch for %s", got.Name)
+		assert.Equal(t, want.Help, got.Help, "help mismatch for %s", got.Name)
+		assert.Equal(t, want.Metrics, got.Metrics, "metrics mismatch for %s", got.Name)
 	}
 
 	register(t, "unsupported", metrics.NewHealthcheck(nil))

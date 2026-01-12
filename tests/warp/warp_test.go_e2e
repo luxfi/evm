@@ -33,8 +33,8 @@ import (
 	"github.com/luxfi/vm/tests/fixture/e2e"
 	"github.com/luxfi/vm/tests/fixture/tmpnet"
 	"github.com/luxfi/utils/constants"
-	"github.com/luxfi/vm/vms/platformvm"
-	"github.com/luxfi/vm/vms/platformvm/api"
+	"github.com/luxfi/node/vms/platformvm"
+	"github.com/luxfi/platformvm/api"
 	luxWarp "github.com/luxfi/warp"
 	"github.com/luxfi/warp/payload"
 

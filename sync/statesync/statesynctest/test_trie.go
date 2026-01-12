@@ -14,7 +14,7 @@ import (
 	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/geth/trie/trienode"
 	"github.com/luxfi/geth/triedb"
-	"github.com/luxfi/vm/utils/wrappers"
+	"github.com/luxfi/codec/wrappers"
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"

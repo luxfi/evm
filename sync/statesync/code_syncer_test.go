@@ -17,7 +17,6 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/ethdb/memorydb"
-	"github.com/luxfi/vm/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,7 +87,7 @@ func testCodeSyncer(t *testing.T, test codeSyncerTest) {
 }
 
 func TestCodeSyncerSingleCodeHash(t *testing.T) {
-	codeBytes := utils.RandomBytes(100)
+	codeBytes := crypto.RandomBytes(100)
 	codeHash := crypto.Keccak256Hash(codeBytes)
 	testCodeSyncer(t, codeSyncerTest{
 		codeRequestHashes: [][]common.Hash{{common.Hash(codeHash)}},
@@ -101,7 +100,7 @@ func TestCodeSyncerManyCodeHashes(t *testing.T) {
 	codeHashes := make([]common.Hash, 0, numCodeSlices)
 	codeByteSlices := make([][]byte, 0, numCodeSlices)
 	for i := 0; i < numCodeSlices; i++ {
-		codeBytes := utils.RandomBytes(100)
+		codeBytes := crypto.RandomBytes(100)
 		codeHash := crypto.Keccak256Hash(codeBytes)
 		codeHashes = append(codeHashes, common.Hash(codeHash))
 		codeByteSlices = append(codeByteSlices, codeBytes)
@@ -117,7 +116,7 @@ func TestCodeSyncerManyCodeHashes(t *testing.T) {
 }
 
 func TestCodeSyncerRequestErrors(t *testing.T) {
-	codeBytes := utils.RandomBytes(100)
+	codeBytes := crypto.RandomBytes(100)
 	codeHash := crypto.Keccak256Hash(codeBytes)
 	err := errors.New("dummy error")
 	testCodeSyncer(t, codeSyncerTest{
@@ -131,7 +130,7 @@ func TestCodeSyncerRequestErrors(t *testing.T) {
 }
 
 func TestCodeSyncerAddsInProgressCodeHashes(t *testing.T) {
-	codeBytes := utils.RandomBytes(100)
+	codeBytes := crypto.RandomBytes(100)
 	codeHash := crypto.Keccak256Hash(codeBytes)
 	testCodeSyncer(t, codeSyncerTest{
 		setupCodeSyncer: func(c *codeSyncer) {
@@ -147,7 +146,7 @@ func TestCodeSyncerAddsMoreInProgressThanQueueSize(t *testing.T) {
 	codeHashes := make([]common.Hash, 0, numCodeSlices)
 	codeByteSlices := make([][]byte, 0, numCodeSlices)
 	for i := 0; i < numCodeSlices; i++ {
-		codeBytes := utils.RandomBytes(100)
+		codeBytes := crypto.RandomBytes(100)
 		codeHash := crypto.Keccak256Hash(codeBytes)
 		codeHashes = append(codeHashes, common.Hash(codeHash))
 		codeByteSlices = append(codeByteSlices, codeBytes)

@@ -20,7 +20,7 @@ import (
 
 	"github.com/luxfi/crypto"
 	"github.com/luxfi/evm/plugin/evm/validators/interfaces"
-	"github.com/luxfi/geth/log"
+	log "github.com/luxfi/log"
 )
 
 var (

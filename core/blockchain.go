@@ -63,7 +63,7 @@ import (
 	"github.com/luxfi/geth/event"
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/geth/triedb"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 
 	// "github.com/luxfi/evm/triedb/firewood"
 	"github.com/luxfi/geth/triedb/hashdb"
@@ -173,7 +173,7 @@ const (
 	statsReportLimit = 8 * time.Second
 
 	// trieCleanCacheStatsNamespace is the namespace to surface stats from the trie
-	// clean cache's underlying fastcache.
+	// clean cache's underlying cache.
 	trieCleanCacheStatsNamespace = "hashdb/memcache/clean/fastcache"
 
 	firewoodFileName = "firewood_state"

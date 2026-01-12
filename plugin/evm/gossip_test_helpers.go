@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/luxfi/ids"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
+	"github.com/luxfi/metric"
 	"github.com/luxfi/p2p"
 	"github.com/luxfi/p2p/gossip"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/luxfi/evm/plugin/evm/config"
@@ -106,7 +106,7 @@ func setupGossipInfrastructure(t *testing.T, vm *VM, testNodeID ids.NodeID) {
 	// we need to manually set up the gossip handlers
 
 	// Create the gossip eth tx pool
-	ethTxPool, err := NewGossipEthTxPool(vm.txPool, prometheus.NewRegistry())
+	ethTxPool, err := NewGossipEthTxPool(vm.txPool, metric.NewRegistry())
 	require.NoError(err)
 
 	// Start the subscription in a goroutine
@@ -150,14 +150,14 @@ func setupPushGossiper(t *testing.T, vm *VM, sender *TestSender) {
 	require := require.New(t)
 
 	// Create gossip metrics
-	ethTxGossipMetrics, err := gossip.NewMetrics(prometheus.NewRegistry(), ethTxGossipNamespace)
+	ethTxGossipMetrics, err := gossip.NewMetrics(metric.NewRegistry(), ethTxGossipNamespace)
 	require.NoError(err)
 
 	// Create gossip marshaller
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
 
 	// Create the gossip eth tx pool
-	ethTxPool, err := NewGossipEthTxPool(vm.txPool, prometheus.NewRegistry())
+	ethTxPool, err := NewGossipEthTxPool(vm.txPool, metric.NewRegistry())
 	require.NoError(err)
 
 	// Create a mock p2p.Validators
@@ -165,7 +165,7 @@ func setupPushGossiper(t *testing.T, vm *VM, sender *TestSender) {
 	mockValidators := newTestP2PValidators(testNodeID)
 
 	// Create a p2p network for the client
-	network, err := p2p.NewNetwork(log.NewNoOpLogger(), sender, prometheus.NewRegistry(), "")
+	network, err := p2p.NewNetwork(log.NewNoOpLogger(), sender, metric.NewRegistry(), "")
 	require.NoError(err)
 
 	// Create the gossip client
@@ -206,14 +206,14 @@ func setupPushGossiperWithLoop(t *testing.T, vm *VM, sender *TestSender) context
 	require := require.New(t)
 
 	// Create gossip metrics
-	ethTxGossipMetrics, err := gossip.NewMetrics(prometheus.NewRegistry(), ethTxGossipNamespace)
+	ethTxGossipMetrics, err := gossip.NewMetrics(metric.NewRegistry(), ethTxGossipNamespace)
 	require.NoError(err)
 
 	// Create gossip marshaller
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
 
 	// Create the gossip eth tx pool
-	ethTxPool, err := NewGossipEthTxPool(vm.txPool, prometheus.NewRegistry())
+	ethTxPool, err := NewGossipEthTxPool(vm.txPool, metric.NewRegistry())
 	require.NoError(err)
 
 	// Start the subscription in a goroutine
@@ -225,7 +225,7 @@ func setupPushGossiperWithLoop(t *testing.T, vm *VM, sender *TestSender) context
 	mockValidators := newTestP2PValidators(testNodeID)
 
 	// Create a p2p network for the client
-	network, err := p2p.NewNetwork(log.NewNoOpLogger(), sender, prometheus.NewRegistry(), "")
+	network, err := p2p.NewNetwork(log.NewNoOpLogger(), sender, metric.NewRegistry(), "")
 	require.NoError(err)
 
 	// Create the gossip client

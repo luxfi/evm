@@ -11,6 +11,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/luxfi/codec"
+	"github.com/luxfi/codec/wrappers"
 	"github.com/luxfi/database"
 	"github.com/luxfi/database/memdb"
 	"github.com/luxfi/evm/plugin/evm/validators/state/interfaces"
@@ -267,7 +268,7 @@ func TestParseValidator(t *testing.T) {
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x0D, 0xBB, 0xA0,
 			},
 			expected:    nil,
-			expectedErr: codec.ErrInsufficientLength,
+			expectedErr: wrappers.ErrInsufficientLength,
 		},
 	}
 	for _, tt := range tests {

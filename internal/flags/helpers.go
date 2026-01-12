@@ -36,7 +36,7 @@ import (
 
 	"github.com/luxfi/evm/internal/version"
 	"github.com/luxfi/evm/params"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
 )

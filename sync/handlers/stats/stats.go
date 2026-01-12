@@ -9,7 +9,7 @@ import (
 	"github.com/luxfi/geth/metrics"
 )
 
-// HandlerStats reports prometheus metrics for the state sync handlers
+// HandlerStats reports metrics for the state sync handlers.
 type HandlerStats interface {
 	BlockRequestHandlerStats
 	CodeRequestHandlerStats

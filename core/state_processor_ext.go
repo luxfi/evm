@@ -15,7 +15,7 @@ import (
 	"github.com/luxfi/evm/precompile/modules"
 	"github.com/luxfi/evm/stateupgrade"
 	"github.com/luxfi/geth/core/tracing"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 // ApplyPrecompileActivations checks if any of the precompiles specified by the chain config are enabled or disabled by the block

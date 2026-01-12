@@ -10,7 +10,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cockroachdb/pebble"
+	"github.com/luxfi/database"
+	"github.com/luxfi/database/manager"
 )
 
 func main() {
@@ -23,9 +24,7 @@ func main() {
 	}
 
 	// Open database in readonly mode
-	db, err := pebble.Open(*dbPath, &pebble.Options{
-		ReadOnly: true,
-	})
+	db, err := openDatabase(*dbPath, true)
 	if err != nil {
 		fmt.Printf("Failed to open database: %v\n", err)
 		os.Exit(1)
@@ -35,18 +34,14 @@ func main() {
 	fmt.Printf("Database opened successfully: %s\n\n", *dbPath)
 
 	// Count keys and analyze structure
-	iter, err := db.NewIter(nil)
-	if err != nil {
-		fmt.Printf("Failed to create iterator: %v\n", err)
-		os.Exit(1)
-	}
-	defer iter.Close()
+	iter := db.NewIterator()
+	defer iter.Release()
 
 	keyCount := 0
 	totalSize := int64(0)
 	prefixCounts := make(map[string]int)
 
-	for iter.First(); iter.Valid(); iter.Next() {
+	for iter.Next() {
 		keyCount++
 		key := iter.Key()
 		value := iter.Value()
@@ -91,11 +86,11 @@ func main() {
 	fmt.Printf("\n=== Database verified successfully ===\n")
 }
 
-func findKey(db *pebble.DB, suffix []byte) {
-	iter, _ := db.NewIter(nil)
-	defer iter.Close()
+func findKey(db database.Database, suffix []byte) {
+	iter := db.NewIterator()
+	defer iter.Release()
 
-	for iter.First(); iter.Valid(); iter.Next() {
+	for iter.Next() {
 		key := iter.Key()
 		// Check if key ends with suffix
 		if len(key) >= len(suffix) {
@@ -109,4 +104,13 @@ func findKey(db *pebble.DB, suffix []byte) {
 		}
 	}
 	fmt.Printf("Key '%s' not found\n", string(suffix))
+}
+
+func openDatabase(path string, readOnly bool) (database.Database, error) {
+	mgr := manager.NewManager("", nil)
+	return mgr.New(&manager.Config{
+		Type:     "pebbledb",
+		Path:     path,
+		ReadOnly: readOnly,
+	})
 }

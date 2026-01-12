@@ -43,7 +43,7 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/geth/triedb"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 const (

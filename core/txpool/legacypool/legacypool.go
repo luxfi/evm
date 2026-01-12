@@ -51,7 +51,7 @@ import (
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/event"
 	"github.com/luxfi/geth/metrics"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 
 	// Force geth metrics of the same name to be registered first.
 	_ "github.com/luxfi/geth/core/txpool/legacypool"
@@ -1831,7 +1831,7 @@ func (pool *LegacyPool) periodicBaseFeeUpdate() {
 }
 
 // updateBaseFee updates the base fee in the tx pool based on the current head block.
-// should only be called when the chain is in Subnet EVM.
+// should only be called when the chain is in Chain EVM.
 func (pool *LegacyPool) updateBaseFee() {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
@@ -1843,7 +1843,7 @@ func (pool *LegacyPool) updateBaseFee() {
 }
 
 // assumes lock is already held
-// should only be called when the chain is in Subnet EVM.
+// should only be called when the chain is in Chain EVM.
 func (pool *LegacyPool) updateBaseFeeAt(head *types.Header) error {
 	feeConfig, _, err := pool.chain.GetFeeConfigAt(head)
 	if err != nil {

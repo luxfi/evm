@@ -12,7 +12,7 @@ import (
 	commonEng "github.com/luxfi/consensus/core"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/txpool"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 const (

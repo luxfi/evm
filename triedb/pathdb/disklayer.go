@@ -32,13 +32,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/VictoriaMetrics/fastcache"
+	"github.com/luxfi/cache/bytecache"
 	"github.com/luxfi/crypto"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/trie/trienode"
 	"github.com/luxfi/geth/trie/triestate"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -47,19 +47,19 @@ type diskLayer struct {
 	root   common.Hash      // Immutable, root hash to which this layer was made for
 	id     uint64           // Immutable, corresponding state id
 	db     *Database        // Path-based trie database
-	cleans *fastcache.Cache // GC friendly memory cache of clean node RLPs
+	cleans *bytecache.Cache // GC friendly memory cache of clean node RLPs
 	buffer *nodebuffer      // Node buffer to aggregate writes
 	stale  bool             // Signals that the layer became stale (state progressed)
 	lock   sync.RWMutex     // Lock used to protect stale flag
 }
 
 // newDiskLayer creates a new disk layer based on the passing arguments.
-func newDiskLayer(root common.Hash, id uint64, db *Database, cleans *fastcache.Cache, buffer *nodebuffer) *diskLayer {
+func newDiskLayer(root common.Hash, id uint64, db *Database, cleans *bytecache.Cache, buffer *nodebuffer) *diskLayer {
 	// Initialize a clean cache if the memory allowance is not zero
 	// or reuse the provided cache if it is not nil (inherited from
 	// the original disk layer).
 	if cleans == nil && db.config.CleanCacheSize != 0 {
-		cleans = fastcache.New(db.config.CleanCacheSize)
+		cleans = bytecache.New(db.config.CleanCacheSize)
 	}
 	return &diskLayer{
 		root:   root,

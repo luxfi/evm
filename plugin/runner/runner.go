@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/luxfi/log"
-	"github.com/luxfi/vm/utils/ulimit"
-	"github.com/luxfi/vm/vms/rpcchainvm"
+	log "github.com/luxfi/log"
+	"github.com/luxfi/sys/ulimit"
+	"github.com/luxfi/vm/rpc"
 
 	"github.com/luxfi/evm/plugin/evm"
 )
@@ -42,11 +42,11 @@ func Run(versionStr string) {
 		fmt.Printf("failed to set fd limit correctly due to: %s", err)
 		os.Exit(1)
 	}
-	debugLog("Calling rpcchainvm.Serve")
-	if err := rpcchainvm.Serve(context.Background(), log.Root(), &evm.VM{}); err != nil {
-		debugLog("rpcchainvm.Serve error: " + err.Error())
-		fmt.Printf("rpcchainvm.Serve error: %s\n", err)
+	debugLog("Calling rpc.Serve")
+	if err := rpc.Serve(context.Background(), log.Root(), &evm.VM{}); err != nil {
+		debugLog("rpc.Serve error: " + err.Error())
+		fmt.Printf("rpc.Serve error: %s\n", err)
 		os.Exit(1)
 	}
-	debugLog("rpcchainvm.Serve returned")
+	debugLog("rpc.Serve returned")
 }

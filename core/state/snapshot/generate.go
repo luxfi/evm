@@ -41,7 +41,7 @@ import (
 	"github.com/luxfi/geth/rlp"
 	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/geth/triedb"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 const (

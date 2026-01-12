@@ -36,6 +36,7 @@ import (
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/core/state/snapshot"
 	"github.com/luxfi/evm/params"
+	"github.com/luxfi/evm/plugin/evm/customrawdb"
 	"github.com/luxfi/evm/precompile/contracts/feemanager"
 	"github.com/luxfi/evm/precompile/contracts/rewardmanager"
 	"github.com/luxfi/geth/common"
@@ -135,6 +136,10 @@ func (bc *BlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
 	if block == nil {
 		return nil
 	}
+	// Restore BlockGasCost from its separate database key.
+	// This is needed because BlockGasCost is stored separately from the
+	// standard RLP block encoding, so rawdb.ReadBlock doesn't restore it.
+	customrawdb.RestoreHeaderExtra(bc.db, block.Header(), hash, number)
 	// Cache the found block for next time and return
 	bc.blockCache.Add(block.Hash(), block)
 	return block
