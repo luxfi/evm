@@ -37,7 +37,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/event"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 
 	// "github.com/luxfi/metric" // TODO: Add metrics support
 	"github.com/luxfi/evm/core"

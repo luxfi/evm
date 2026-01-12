@@ -30,12 +30,11 @@ package snapshot
 import (
 	"encoding/binary"
 	"fmt"
-	"log/slog"
 	"math"
 	"time"
 
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 // generatorStats is a collection of statistics gathered by the snapshot generator
@@ -63,7 +62,7 @@ func (gs *generatorStats) Debug(msg string, root common.Hash, marker []byte) {
 
 // log creates an contextual log with the given message and the context pulled
 // from the internally maintained statistics.
-func (gs *generatorStats) log(level slog.Level, msg string, root common.Hash, marker []byte) {
+func (gs *generatorStats) log(level log.Level, msg string, root common.Hash, marker []byte) {
 	var ctx []interface{}
 	if root != (common.Hash{}) {
 		ctx = append(ctx, []interface{}{"root", root}...)

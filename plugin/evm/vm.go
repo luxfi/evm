@@ -23,7 +23,7 @@ import (
 	luxwarp "github.com/luxfi/warp"
 
 	// "github.com/luxfi/firewood-go-ethhash/ffi"
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/luxfi/metric"
 
 	"github.com/luxfi/constants"
 	"github.com/luxfi/evm/commontype"
@@ -32,7 +32,7 @@ import (
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/eth"
 	"github.com/luxfi/evm/eth/ethconfig"
-	evmprometheus "github.com/luxfi/evm/metrics/prometheus"
+	evmmetrics "github.com/luxfi/evm/metrics/gatherer"
 	"github.com/luxfi/evm/miner"
 	"github.com/luxfi/evm/network"
 	"github.com/luxfi/evm/node"
@@ -40,7 +40,6 @@ import (
 	"github.com/luxfi/evm/params/extras"
 	"github.com/luxfi/evm/plugin/evm/config"
 	gossipHandler "github.com/luxfi/evm/plugin/evm/gossip"
-	evmlog "github.com/luxfi/evm/plugin/evm/log"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/plugin/evm/validators"
 	"github.com/luxfi/evm/plugin/evm/validators/interfaces"
@@ -59,6 +58,9 @@ import (
 	"github.com/luxfi/evm/warp"
 	warptypes "github.com/luxfi/warp"
 
+	"github.com/luxfi/evm/plugin/evm/customtypes"
+	customheader "github.com/luxfi/evm/plugin/evm/header"
+
 	// Force-load tracer engine to trigger registration
 	//
 	// We must import this package (not referenced elsewhere) so that the native "callTracer"
@@ -74,32 +76,30 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/rlp"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 
 	luxRPC "github.com/gorilla/rpc/v2"
 
 	"github.com/luxfi/codec"
 	nodeConsensus "github.com/luxfi/consensus"
 	consensuscontext "github.com/luxfi/consensus/context"
-	nodeConsensusBlock "github.com/luxfi/consensus/engine/chain/block"
 	nodeblock "github.com/luxfi/consensus/engine/chain/block"
-	nodechain "github.com/luxfi/consensus/protocol/chain"
 	consensusmockable "github.com/luxfi/consensus/utils/timer/mockable"
 	consensusversion "github.com/luxfi/consensus/version"
 	"github.com/luxfi/database/versiondb"
 	"github.com/luxfi/ids"
 	nodemockable "github.com/luxfi/timer/mockable"
 	"github.com/luxfi/upgrade"
+	"github.com/luxfi/filesystem/perms"
+	"github.com/luxfi/metric/profiler"
 	nodeChain "github.com/luxfi/vm/components/chain"
-	"github.com/luxfi/vm/utils/perms"
-	"github.com/luxfi/vm/utils/profiler"
 
 	commonEng "github.com/luxfi/consensus/core"
 	luxVM "github.com/luxfi/vm"
 
 	luxJSON "github.com/luxfi/codec/jsonrpc"
 	"github.com/luxfi/database"
-	luxUtils "github.com/luxfi/vm/utils"
+	luxUtils "github.com/luxfi/utils"
 )
 
 var (
@@ -251,13 +251,13 @@ type VM struct {
 	networkCodec codec.Manager
 
 	// Metrics
-	sdkMetrics *prometheus.Registry
+	sdkMetrics metric.Registry
 
 	bootstrapped luxUtils.Atomic[bool]
 
 	stateSyncDone chan struct{}
 
-	logger evmlog.Logger
+	logger log.Logger
 	// State sync server and client
 	StateSyncServer
 	StateSyncClient
@@ -280,14 +280,13 @@ type VM struct {
 }
 
 // ParseBlock implements nodeblock.ChainVM interface
-func (vm *VM) ParseBlock(ctx context.Context, b []byte) (nodeConsensusBlock.Block, error) {
+func (vm *VM) ParseBlock(ctx context.Context, b []byte) (nodeblock.Block, error) {
 	// Call the embedded State's ParseBlock and convert the result
 	blk, err := vm.State.ParseBlock(ctx, b)
 	if err != nil {
 		return nil, err
 	}
-	// Adapt the consensus block to node block interface
-	return NewBlockAdapter(blk.(nodechain.Block)), nil
+	return blk, nil
 }
 
 // Initialize implements the chain.ChainVM interface with generic interface{} parameters
@@ -396,13 +395,13 @@ func (vm *VM) initializeInternal(
 	// TODO: Integrate with proper logging from consensus package
 	contextLogger := log.New()
 	logWriter := newLoggerWriter(contextLogger)
-	evmLogger, err := evmlog.InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, logWriter)
+	evmLogger, err := log.InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, logWriter)
 	if err != nil {
 		return fmt.Errorf("%w: %w ", errInitializingLogger, err)
 	}
 	vm.logger = evmLogger
 
-	log.Info("Initializing Subnet EVM VM", "Version", Version, "geth version", params.VersionWithMeta, "Config", vm.config)
+	log.Info("Initializing Chain EVM VM", "Version", Version, "geth version", params.VersionWithMeta, "Config", vm.config)
 
 	if deprecateMsg != "" {
 		log.Warn("Deprecation Warning", "msg", deprecateMsg)
@@ -908,8 +907,8 @@ func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte,
 func (vm *VM) initializeMetrics() error {
 	// Enable metrics collection using our geth's Enable function
 	metrics.Enable()
-	vm.sdkMetrics = prometheus.NewRegistry()
-	gatherer := evmprometheus.NewGatherer(metrics.DefaultRegistry)
+	vm.sdkMetrics = metric.NewRegistry()
+	gatherer := evmmetrics.NewGatherer(metrics.DefaultRegistry)
 	// Metrics are handled through sdkMetrics parameter
 	_ = gatherer
 
@@ -1066,6 +1065,38 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 			if err := rlp.DecodeBytes(b, ethBlock); err != nil {
 				return nil, err
 			}
+
+			// CRITICAL: Populate BlockGasCost on blocks received via P2P.
+			// The BlockGasCost is stored in an in-memory map on the block producer,
+			// but this data is NOT included in RLP encoding. We must calculate it
+			// from the parent header before verification.
+			header := ethBlock.Header()
+			if header.Number.Uint64() > 0 {
+				// Non-genesis block: calculate BlockGasCost from parent
+				parent := vm.blockChain.GetHeaderByHash(header.ParentHash)
+				if parent != nil {
+					config := params.GetExtra(vm.chainConfig)
+					// Get fee config at parent height
+					feeConfig, _, err := vm.blockChain.GetFeeConfigAt(parent)
+					if err == nil && config.IsEVM(header.Time) {
+						blockGasCost := customheader.BlockGasCost(
+							config,
+							feeConfig,
+							parent,
+							header.Time,
+						)
+						customtypes.SetHeaderExtra(header, &customtypes.HeaderExtra{
+							BlockGasCost: blockGasCost,
+						})
+					}
+				}
+			} else {
+				// Genesis block: BlockGasCost is always 0
+				customtypes.SetHeaderExtra(header, &customtypes.HeaderExtra{
+					BlockGasCost: big.NewInt(0),
+				})
+			}
+
 			block := vm.newBlock(ethBlock)
 			// Performing syntactic verification in ParseBlock allows for
 			// short-circuiting bad blocks before they are processed by the VM.
@@ -1086,7 +1117,7 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	}
 
 	// Register chain state metrics
-	chainStateRegisterer := prometheus.NewRegistry()
+	chainStateRegisterer := metric.NewRegistry()
 	state, err := nodeChain.NewMeteredState(chainStateRegisterer, config)
 	if err != nil {
 		return fmt.Errorf("could not create metered state: %w", err)
@@ -1261,11 +1292,10 @@ func (vm *VM) onNormalOperationsStarted() error {
 
 	if vm.ethTxPullGossiper == nil && p2pValidators != nil {
 		// Only create pull gossiper if we have P2P validators
-		// Use VM's logger instead of consensus logger
-		// Convert to node logging interface
-		nodeLogger := gossipHandler.NewLoggerAdapter(vm.logger.Logger)
+		// Create a log.Logger for gossip (required by gossip package)
+		gossipLogger := log.New("component", "gossip", "chain", vm.chainAlias)
 		ethTxPullGossiper := gossip.NewPullGossiper[*GossipEthTx](
-			nodeLogger,
+			gossipLogger,
 			ethTxGossipMarshaller,
 			ethTxPool,
 			ethTxGossipClient,
@@ -1280,23 +1310,21 @@ func (vm *VM) onNormalOperationsStarted() error {
 		}
 	}
 
-	// Get logger for gossip routines
-	// Use VM's logger for gossip routines
-	// Convert to node logging interface
-	nodeLogger := gossipHandler.NewLoggerAdapter(vm.logger.Logger)
+	// Create a log.Logger for gossip routines (required by gossip package)
+	gossipEveryLogger := log.New("component", "gossip", "chain", vm.chainAlias)
 
 	// Only start gossip routines if gossipers are initialized (requires P2P validators)
 	if ethTxPushGossiper != nil {
 		vm.shutdownWg.Add(1)
 		go func() {
-			gossip.Every(ctx, nodeLogger, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
+			gossip.Every(ctx, gossipEveryLogger, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
 			vm.shutdownWg.Done()
 		}()
 	}
 	if vm.ethTxPullGossiper != nil {
 		vm.shutdownWg.Add(1)
 		go func() {
-			gossip.Every(ctx, nodeLogger, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
+			gossip.Every(ctx, gossipEveryLogger, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
 			vm.shutdownWg.Done()
 		}()
 	}
@@ -1390,7 +1418,7 @@ func (vm *VM) Shutdown(context.Context) error {
 
 // BuildBlock implements the ChainVM interface
 // Uses State.BuildBlock to ensure proper block tracking (for LastAccepted, etc.)
-func (vm *VM) BuildBlock(ctx context.Context) (nodeConsensusBlock.Block, error) {
+func (vm *VM) BuildBlock(ctx context.Context) (nodeblock.Block, error) {
 	// Use State's BuildBlock which properly wraps and tracks blocks
 	// The State's BuildBlock callback calls vm.buildBlock() and wraps the result
 	// so Accept() updates the State's lastAccepted
@@ -1398,7 +1426,7 @@ func (vm *VM) BuildBlock(ctx context.Context) (nodeConsensusBlock.Block, error) 
 }
 
 // BuildBlockWithContext implements the BuildBlockWithContextChainVM interface
-func (vm *VM) BuildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nodeblock.Context) (nodeConsensusBlock.Block, error) {
+func (vm *VM) BuildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nodeblock.Context) (nodeblock.Block, error) {
 	// Convert node context to consensus context
 	var consensusCtx *nodeblock.Context
 	if proposerVMBlockCtx != nil {
@@ -1406,20 +1434,15 @@ func (vm *VM) BuildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nod
 			PChainHeight: proposerVMBlockCtx.PChainHeight,
 		}
 	}
-	blk, err := vm.buildBlockWithContext(ctx, consensusCtx)
-	if err != nil {
-		return nil, err
-	}
-	// Adapt the consensus block to node block interface
-	return NewBlockAdapter(blk.(*Block)), nil
+	return vm.buildBlockWithContext(ctx, consensusCtx)
 }
 
 // buildBlock builds a block to be wrapped by ChainState
-func (vm *VM) buildBlock(ctx context.Context) (nodechain.Block, error) {
+func (vm *VM) buildBlock(ctx context.Context) (nodeblock.Block, error) {
 	return vm.buildBlockWithContext(ctx, nil)
 }
 
-func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nodeblock.Context) (nodechain.Block, error) {
+func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nodeblock.Context) (nodeblock.Block, error) {
 	if proposerVMBlockCtx != nil {
 		log.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
 	} else {
@@ -1464,7 +1487,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nod
 }
 
 // parseBlock parses [b] into a block to be wrapped by ChainState.
-func (vm *VM) parseBlock(_ context.Context, b []byte) (nodechain.Block, error) {
+func (vm *VM) parseBlock(_ context.Context, b []byte) (nodeblock.Block, error) {
 	ethBlock := new(types.Block)
 	if err := rlp.DecodeBytes(b, ethBlock); err != nil {
 		return nil, err
@@ -1492,16 +1515,15 @@ func (vm *VM) ParseEthBlock(b []byte) (*types.Block, error) {
 // getBlock attempts to retrieve block [id] from the VM to be wrapped
 // by ChainState.
 // GetBlock implements the ChainVM interface
-func (vm *VM) GetBlock(ctx context.Context, id ids.ID) (nodeConsensusBlock.Block, error) {
+func (vm *VM) GetBlock(ctx context.Context, id ids.ID) (nodeblock.Block, error) {
 	blk, err := vm.getBlock(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	// Adapt the consensus block to node block interface
-	return NewBlockAdapter(blk.(nodechain.Block)), nil
+	return blk, nil
 }
 
-func (vm *VM) getBlock(_ context.Context, id ids.ID) (nodechain.Block, error) {
+func (vm *VM) getBlock(_ context.Context, id ids.ID) (nodeblock.Block, error) {
 	ethBlock := vm.blockChain.GetBlockByHash(common.Hash(id))
 	// If [ethBlock] is nil, return [database.ErrNotFound] here
 	// so that the miss is considered cacheable.
@@ -1514,7 +1536,7 @@ func (vm *VM) getBlock(_ context.Context, id ids.ID) (nodechain.Block, error) {
 
 // GetAcceptedBlock attempts to retrieve block [blkID] from the VM. This method
 // only returns accepted blocks.
-func (vm *VM) GetAcceptedBlock(ctx context.Context, blkID ids.ID) (nodeConsensusBlock.Block, error) {
+func (vm *VM) GetAcceptedBlock(ctx context.Context, blkID ids.ID) (nodeblock.Block, error) {
 	// First verify the block is accepted
 	ethBlock := vm.blockChain.GetBlockByHash(common.BytesToHash(blkID[:]))
 	if ethBlock == nil {
@@ -1620,7 +1642,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	// Register admin API with geth RPC server for underscore notation (admin_importChain)
 	if vm.config.AdminAPIEnabled {
 		log.Info("CreateHandlers registering admin API with geth RPC server")
-		adminAPI := NewAdminAPI(vm, os.ExpandEnv(fmt.Sprintf("%s_subnet_evm_performance_%s", vm.config.AdminAPIDir, vm.chainAlias)))
+		adminAPI := NewAdminAPI(vm, os.ExpandEnv(fmt.Sprintf("%s_chain_evm_performance_%s", vm.config.AdminAPIDir, vm.chainAlias)))
 		if err := handler.RegisterName("admin", adminAPI); err != nil {
 			log.Error("CreateHandlers failed to register admin API", "error", err)
 			return nil, fmt.Errorf("failed to register admin API: %w", err)
@@ -1632,7 +1654,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	log.Info("CreateHandlers checking admin API", "adminAPIEnabled", vm.config.AdminAPIEnabled)
 	if vm.config.AdminAPIEnabled {
 		log.Info("CreateHandlers creating admin API handler (Gorilla RPC for backward compat)")
-		adminAPI, err := newHandler("admin", NewAdminService(vm, os.ExpandEnv(fmt.Sprintf("%s_subnet_evm_performance_%s", vm.config.AdminAPIDir, vm.chainAlias))))
+		adminAPI, err := newHandler("admin", NewAdminService(vm, os.ExpandEnv(fmt.Sprintf("%s_chain_evm_performance_%s", vm.config.AdminAPIDir, vm.chainAlias))))
 		if err != nil {
 			log.Error("CreateHandlers failed to create admin API handler", "error", err)
 			return nil, fmt.Errorf("failed to register service for admin API due to %w", err)
@@ -1657,7 +1679,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 
 	if vm.config.WarpAPIEnabled {
 		warpSDKClient := vm.Network.NewClient(luxwarp.SignatureHandlerID)
-		signatureAggregator := luxwarp.NewSignatureAggregator(nil, warpSDKClient)
+		signatureAggregator := luxwarp.NewSignatureAggregator(log.Noop(), warpSDKClient)
 
 		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx, vm.warpBackend, signatureAggregator, vm.requirePrimaryNetworkSigners)); err != nil {
 			return nil, err
@@ -1735,7 +1757,7 @@ func (vm *VM) currentRules() extras.Rules {
 
 // requirePrimaryNetworkSigners returns true if warp messages from the primary
 // network must be signed by the primary network validators.
-// This is necessary when the subnet is not validating the primary network.
+// This is necessary when the chain is not validating the primary network.
 func (vm *VM) requirePrimaryNetworkSigners() bool {
 	switch c := vm.currentRules().Precompiles[warpcontract.ContractAddress].(type) {
 	case *warpcontract.Config:

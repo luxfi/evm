@@ -43,7 +43,7 @@ import (
 	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/geth/triedb"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 // noopReleaser is returned in case there is no operation expected

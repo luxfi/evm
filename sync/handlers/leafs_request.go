@@ -22,7 +22,7 @@ import (
 	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/log"
+	log "github.com/luxfi/log"
 )
 
 const (

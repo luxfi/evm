@@ -73,7 +73,7 @@ import (
 // DEX Precompiles (LP-9xxx - QuantumSwap Native DEX):
 //   POOL_MANAGER   = 0x0000...9010  // LP-9010 - Singleton pool manager
 //   ORACLE_HUB     = 0x0000...9011  // LP-9011 - Multi-source price aggregation
-//   SWAP_ROUTER    = 0x0000...9012  // LP-9012 - Optimized swap routing
+//   SWAP_ROUTER    = 0x0000...9012  // LP-9012 - Swap routing
 //   HOOKS_REGISTRY = 0x0000...9013  // LP-9013 - Hook contract registry
 //   FLASH_LOAN     = 0x0000...9014  // LP-9014 - Flash loan facility
 //   CLOB           = 0x0000...9020  // LP-9020 - Central limit order book

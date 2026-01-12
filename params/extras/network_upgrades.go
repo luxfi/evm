@@ -46,7 +46,7 @@ type NetworkUpgrades struct {
 	EVMTimestamp *uint64 `json:"evmTimestamp,omitempty"`
 	// Durango activates the Shanghai Execution Spec Upgrade from Ethereum (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/shanghai.md#included-eips)
 	// and Lux Warp Messaging.
-	// Note: EIP-4895 is excluded since withdrawals are not relevant to the Lux C-Chain or Subnets running the EVM.
+	// Note: EIP-4895 is excluded since withdrawals are not relevant to the Lux C-Chain or Chains running the EVM.
 	DurangoTimestamp *uint64 `json:"durangoTimestamp,omitempty"`
 	// Placeholder for EtnaTimestamp
 	EtnaTimestamp *uint64 `json:"etnaTimestamp,omitempty"`
