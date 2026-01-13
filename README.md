@@ -1,4 +1,4 @@
-# Subnet EVM
+# Lux EVM
 
 [![Releases](https://img.shields.io/github/v/tag/luxfi/evm.svg?sort=semver)](https://github.com/luxfi/evm/releases)
 [![CI](https://github.com/luxfi/evm/actions/workflows/ci.yml/badge.svg)](https://github.com/luxfi/evm/actions/workflows/ci.yml)
@@ -9,7 +9,9 @@
 Each blockchain is an instance of a Virtual Machine (VM), much like an object in an object-oriented language is an instance of a class.
 That is, the VM defines the behavior of the blockchain.
 
-Subnet EVM is the [Virtual Machine (VM)](https://docs.lux.network/learn/virtual-machines) that defines the Subnet Contract Chains. Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/luxfi/coreth).
+Lux EVM is the unified [Virtual Machine (VM)](https://docs.lux.network/learn/virtual-machines) that powers both the C-Chain and L1/L2 Subnet EVM chains. This package consolidates the former Coreth (C-Chain) and Subnet EVM codebases into a single implementation.
+
+> **Note**: The `github.com/luxfi/coreth` repository has been deprecated and merged here. See the [migration guide](#migrating-from-coreth) below.
 
 This chain implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
 
@@ -40,19 +42,39 @@ The Subnet EVM supports the following API namespaces:
 - `debug`
 
 Only the `eth` namespace is enabled by default.
-Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/luxfi/coreth).
 Full documentation for the C-Chain's API can be found [here](https://build.lux.network/docs/api-reference/c-chain/api).
 
 ## Compatibility
 
 The Subnet EVM is compatible with almost all Ethereum tooling, including [Remix](https://docs.lux.network/build/dapp/smart-contracts/remix-deploy), [Metamask](https://docs.lux.network/build/dapp/chain-settings), and [Foundry](https://docs.lux.network/build/dapp/smart-contracts/toolchains/foundry).
 
-## Differences Between Subnet EVM and Coreth
+## C-Chain vs Subnet EVM Mode
 
-- Added configurable fees and gas limits in genesis
-- Merged Lux hardforks into the single "Subnet EVM" hardfork
-- Removed Atomic Txs and Shared Memory
-- Removed Multicoin Contract and State
+This unified EVM package supports both modes:
+
+**C-Chain Mode** (Primary Network):
+- Atomic transactions for cross-chain transfers (X-Chain ↔ C-Chain)
+- Shared memory integration
+- Primary network consensus
+
+**Subnet EVM Mode** (L1/L2 Subnets):
+- Configurable fees and gas limits in genesis
+- Simplified hardfork configuration
+- No atomic transactions (cross-chain via Warp messaging)
+
+## Migrating from Coreth
+
+If you were using `github.com/luxfi/coreth`, update your imports:
+
+```go
+// Before
+import "github.com/luxfi/coreth/core"
+
+// After
+import "github.com/luxfi/evm/core"
+```
+
+All coreth functionality is preserved in this package.
 
 ## Block Format
 
