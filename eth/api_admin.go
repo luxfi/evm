@@ -177,6 +177,16 @@ func (api *AdminAPI) ImportChain(file string) (bool, error) {
 		}
 		log.Info("ImportChain: state committed successfully")
 
+		// Ensure txpool resets to the imported head so pending/executable sets are
+		// recomputed from the new canonical state.
+		if txPool := api.eth.TxPool(); txPool != nil {
+			if err := txPool.Sync(); err != nil {
+				log.Warn("ImportChain: txpool sync failed", "err", err)
+			} else {
+				log.Info("ImportChain: txpool sync completed")
+			}
+		}
+
 		// CRITICAL: Call the post-import callback to update the VM layer's acceptedBlockDB.
 		// Without this, ReadLastAccepted() returns genesis hash on restart because
 		// acceptedBlockDB is not updated by the admin API import path.
