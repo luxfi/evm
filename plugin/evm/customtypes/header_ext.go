@@ -31,12 +31,18 @@ func GetHeaderExtra(h *ethtypes.Header) *HeaderExtra {
 	}
 	hash := h.Hash()
 	headerExtrasMutex.RLock()
-	defer headerExtrasMutex.RUnlock()
 	extra := headerExtrasByHash[hash]
+	headerExtrasMutex.RUnlock()
 	if extra == nil {
-		// Return a default HeaderExtra with BlockGasCost set to nil
-		// This matches the expected behavior for blocks without gas cost set
-		return &HeaderExtra{BlockGasCost: nil}
+		// Fallback to header fields for RLP-imported blocks.
+		// The header may already carry ExtData/BlockGasCost even if the in-memory map
+		// hasn't been populated (e.g. during admin_importChain).
+		extra = &HeaderExtra{
+			BlockGasCost: h.BlockGasCost,
+		}
+		headerExtrasMutex.Lock()
+		headerExtrasByHash[hash] = extra
+		headerExtrasMutex.Unlock()
 	}
 	return extra
 }
