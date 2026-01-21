@@ -8,11 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/holiman/uint256"
-	commonEng "github.com/luxfi/consensus/core"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/txpool"
 	log "github.com/luxfi/log"
+	luxvm "github.com/luxfi/vm"
 )
 
 const (
@@ -60,9 +59,11 @@ func (b *blockBuilder) handleGenerateBlock() {
 // needToBuild returns true if there are outstanding transactions to be issued
 // into a block.
 func (b *blockBuilder) needToBuild() bool {
-	size := b.txPool.PendingSize(txpool.PendingFilter{
-		MinTip: uint256.MustFromBig(b.txPool.GasTip()),
-	})
+	// Use empty filter to check if ANY pending transactions exist
+	// The miner will apply proper fee filters when building the block
+	// Using MinTip filter here rejects valid legacy transactions that
+	// don't have GasTipCap set, causing block production to stall
+	size := b.txPool.PendingSize(txpool.PendingFilter{})
 	return size > 0
 }
 
@@ -106,23 +107,23 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 
 // waitForEvent waits until a block needs to be built.
 // It returns only after at least [minBlockBuildingRetryDelay] passed from the last time a block was built.
-func (b *blockBuilder) waitForEvent(ctx context.Context) (commonEng.Message, error) {
+func (b *blockBuilder) waitForEvent(ctx context.Context) (luxvm.Message, error) {
 	lastBuildTime, err := b.waitForNeedToBuild(ctx)
 	if err != nil {
-		return commonEng.Message{}, err
+		return luxvm.Message{}, err
 	}
 	timeSinceLastBuildTime := time.Since(lastBuildTime)
 	if b.lastBuildTime.IsZero() || timeSinceLastBuildTime >= minBlockBuildingRetryDelay {
 		log.Debug("Last time we built a block was long enough ago, no need to wait", "timeSinceLastBuildTime", timeSinceLastBuildTime)
-		return commonEng.Message{Type: commonEng.PendingTxs}, nil
+		return luxvm.Message{Type: luxvm.PendingTxs}, nil
 	}
 	timeUntilNextBuild := minBlockBuildingRetryDelay - timeSinceLastBuildTime
 	log.Debug("Last time we built a block was too recent, waiting", "timeUntilNextBuild", timeUntilNextBuild)
 	select {
 	case <-ctx.Done():
-		return commonEng.Message{}, ctx.Err()
+		return luxvm.Message{}, ctx.Err()
 	case <-time.After(timeUntilNextBuild):
-		return commonEng.Message{Type: commonEng.PendingTxs}, nil
+		return luxvm.Message{Type: luxvm.PendingTxs}, nil
 	}
 }
 
