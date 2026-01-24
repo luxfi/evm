@@ -3,12 +3,17 @@
 
 package evm
 
-import "context"
+import (
+	"context"
 
-// Health returns nil if this chain is healthy.
-// Also returns details, which should be one of:
-// string, []byte, map[string]string
-func (vm *VM) HealthCheck(context.Context) (interface{}, error) {
+	"github.com/luxfi/vm/chain"
+)
+
+// HealthCheck returns the health status of this chain.
+func (vm *VM) HealthCheck(context.Context) (chain.HealthResult, error) {
 	// TODO perform actual health check
-	return nil, nil
+	return chain.HealthResult{
+		Healthy: true,
+		Details: nil,
+	}, nil
 }
