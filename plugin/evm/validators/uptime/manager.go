@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/consensus/validator/uptime"
+	"github.com/luxfi/validators/uptime"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/math/set"
 	"github.com/luxfi/timer/mockable"

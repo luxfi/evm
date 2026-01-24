@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/luxfi/consensus/engine/chain/block"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/txpool"
 	log "github.com/luxfi/log"
-	luxvm "github.com/luxfi/vm"
 )
 
 const (
@@ -107,23 +107,23 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 
 // waitForEvent waits until a block needs to be built.
 // It returns only after at least [minBlockBuildingRetryDelay] passed from the last time a block was built.
-func (b *blockBuilder) waitForEvent(ctx context.Context) (luxvm.Message, error) {
+func (b *blockBuilder) waitForEvent(ctx context.Context) (block.Message, error) {
 	lastBuildTime, err := b.waitForNeedToBuild(ctx)
 	if err != nil {
-		return luxvm.Message{}, err
+		return block.Message{}, err
 	}
 	timeSinceLastBuildTime := time.Since(lastBuildTime)
 	if b.lastBuildTime.IsZero() || timeSinceLastBuildTime >= minBlockBuildingRetryDelay {
 		log.Debug("Last time we built a block was long enough ago, no need to wait", "timeSinceLastBuildTime", timeSinceLastBuildTime)
-		return luxvm.Message{Type: luxvm.PendingTxs}, nil
+		return block.Message{Type: block.PendingTxs}, nil
 	}
 	timeUntilNextBuild := minBlockBuildingRetryDelay - timeSinceLastBuildTime
 	log.Debug("Last time we built a block was too recent, waiting", "timeUntilNextBuild", timeUntilNextBuild)
 	select {
 	case <-ctx.Done():
-		return luxvm.Message{}, ctx.Err()
+		return block.Message{}, ctx.Err()
 	case <-time.After(timeUntilNextBuild):
-		return luxvm.Message{Type: luxvm.PendingTxs}, nil
+		return block.Message{Type: block.PendingTxs}, nil
 	}
 }
 

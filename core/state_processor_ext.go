@@ -21,9 +21,20 @@ import (
 // ApplyPrecompileActivations checks if any of the precompiles specified by the chain config are enabled or disabled by the block
 // transition from `parentTimestamp` to the timestamp set in `blockContext`. If this is the case, it calls [modules.Module]'s Configure
 // to apply the necessary state transitions for the upgrade.
-// This function is called within genesis setup to configure the starting state for precompiles enabled at genesis.
+//
+// IMPORTANT: This function does NOT run at genesis (parentTimestamp == nil). Genesis state is determined
+// purely by alloc + header, ensuring deterministic genesis hash. Precompile initialization happens via
+// scheduled state transitions at a later time, not at genesis.
+//
 // In block processing and building, [ApplyUpgrades] is called instead which also applies state upgrades.
 func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.ConfigurationBlockContext, statedb *state.StateDB) error {
+	// Genesis guard: at genesis (parentTimestamp == nil), return immediately.
+	// Genesis state must be a pure function of alloc + header for determinism.
+	// Stateful precompile initialization happens via scheduled activations, not genesis.
+	if parentTimestamp == nil {
+		return nil
+	}
+
 	blockTimestamp := blockContext.Timestamp()
 	// Note: [modules.RegisteredModules] returns precompiles sorted by module addresses.
 	// This ensures:
