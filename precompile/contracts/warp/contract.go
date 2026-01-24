@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	consensuscontext "github.com/luxfi/consensus/context"
+	consensuscontext "github.com/luxfi/runtime"
 	"github.com/luxfi/evm/accounts/abi"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/geth/common"

@@ -6,7 +6,7 @@ package consensus
 import (
 	"context"
 
-	consensuscontext "github.com/luxfi/consensus/context"
+	consensuscontext "github.com/luxfi/runtime"
 	"github.com/luxfi/crypto/bls"
 	"github.com/luxfi/ids"
 )
