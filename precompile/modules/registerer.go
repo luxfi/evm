@@ -103,6 +103,17 @@ func RegisteredModules() []Module {
 	return registeredModules
 }
 
+// AllGenesisPrecompiles returns a map of all registered precompile configs
+// configured for genesis activation (timestamp = 0). This is used to populate
+// the genesisPrecompiles field in ChainConfig for deterministic genesis hash.
+func AllGenesisPrecompiles() map[string]interface{} {
+	result := make(map[string]interface{})
+	for _, module := range registeredModules {
+		result[module.ConfigKey] = module.Configurator.MakeGenesisConfig()
+	}
+	return result
+}
+
 func insertSortedByAddress(data []Module, stm Module) []Module {
 	data = append(data, stm)
 	sort.Sort(moduleArray(data))

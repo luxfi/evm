@@ -6,7 +6,7 @@ package evm
 import (
 	"context"
 
-	nodeblock "github.com/luxfi/consensus/engine/chain/block"
+	nodeblock "github.com/luxfi/vm/chain"
 	"github.com/luxfi/database"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/ids"
