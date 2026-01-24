@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/luxfi/consensus/engine/chain/block"
 	"github.com/luxfi/database"
 	"github.com/luxfi/database/versiondb"
 	"github.com/luxfi/evm/core/state/snapshot"
@@ -22,6 +21,7 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/ids"
 	log "github.com/luxfi/log"
+	block "github.com/luxfi/vm/chain"
 	"github.com/luxfi/vm/components/chain"
 )
 

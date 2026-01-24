@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/luxfi/consensus/engine/chain/block"
+	block "github.com/luxfi/vm/chain"
 	"github.com/luxfi/database"
 
 	"github.com/luxfi/evm/core"

@@ -69,7 +69,13 @@ type BlockContext interface {
 }
 
 type Configurator interface {
+	// MakeConfig returns a new empty precompile config instance.
+	// This is required to Marshal/Unmarshal the precompile config.
 	MakeConfig() precompileconfig.Config
+	// MakeGenesisConfig returns a precompile config for genesis activation (timestamp = 0).
+	// This is used by AllGenesisPrecompiles() to enumerate all precompiles with default configs.
+	MakeGenesisConfig() precompileconfig.Config
+	// Configure is called when the precompile is activated.
 	Configure(
 		chainConfig precompileconfig.ChainConfig,
 		precompileconfig precompileconfig.Config,
