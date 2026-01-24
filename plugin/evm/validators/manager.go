@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	consensuscontext "github.com/luxfi/consensus/context"
-	luxvalidators "github.com/luxfi/consensus/validator"
+	"github.com/luxfi/runtime"
+	luxvalidators "github.com/luxfi/validators"
 	"github.com/luxfi/database"
 	validators "github.com/luxfi/evm/plugin/evm/validators/state"
 	stateinterfaces "github.com/luxfi/evm/plugin/evm/validators/state/interfaces"
@@ -27,7 +27,7 @@ const (
 )
 
 type manager struct {
-	chainCtx context.Context
+	runtimeCtx runtime.VMContext
 	stateinterfaces.State
 	uptimeinterfaces.PausableManager
 }
@@ -36,7 +36,7 @@ type manager struct {
 // that manages the validator state and the uptime manager.
 // Manager is not thread safe and should be used with the VM locked.
 func NewManager(
-	ctx context.Context,
+	runtimeCtx runtime.VMContext,
 	db database.Database,
 	clock *mockable.Clock,
 ) (*manager, error) {
@@ -50,7 +50,7 @@ func NewManager(
 	validatorState.RegisterListener(uptimeManager)
 
 	return &manager{
-		chainCtx:        ctx,
+		runtimeCtx:      runtimeCtx,
 		State:           validatorState,
 		PausableManager: uptimeManager,
 	}, nil
@@ -115,34 +115,35 @@ func (m *manager) sync(ctx context.Context) error {
 	now := time.Now()
 	log.Debug("performing validator sync")
 	// get current validator set
-	validatorState := consensuscontext.GetValidatorState(m.chainCtx)
+	if m.runtimeCtx == nil {
+		log.Debug("runtime context not available, skipping sync")
+		return nil
+	}
+	validatorState := m.runtimeCtx.GetValidatorState()
 	if validatorState == nil {
 		// ValidatorState not available in context - this is normal for chains
 		// that don't have access to P-Chain validator information
 		log.Debug("validator state not available, skipping sync")
 		return nil
 	}
-	chainID := consensuscontext.GetChainID(m.chainCtx)
+	chainID := m.runtimeCtx.GetChainID()
 	currentHeight, err := validatorState.GetCurrentHeight(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get current height: %w", err)
 	}
-	currentValidatorSet, err := validatorState.GetValidatorSet(currentHeight, chainID)
+	currentValidatorSet, err := validatorState.GetValidatorSet(ctx, currentHeight, chainID)
 	if err != nil {
 		return fmt.Errorf("failed to get current validator set: %w", err)
 	}
 
 	// Convert validator set format for loadValidators
 	convertedValidatorSet := make(map[ids.ID]*luxvalidators.GetValidatorOutput)
-	for nodeID, weight := range currentValidatorSet {
+	for nodeID, vdrOutput := range currentValidatorSet {
 		// Create a simple validator output - use a unique ID based on NodeID
 		// NodeID is 20 bytes (ShortID), but ids.ID is 32 bytes, so pad with zeros
 		var validationID ids.ID
 		copy(validationID[:], nodeID[:])
-		convertedValidatorSet[validationID] = &luxvalidators.GetValidatorOutput{
-			NodeID: nodeID,
-			Weight: weight,
-		}
+		convertedValidatorSet[validationID] = vdrOutput
 	}
 
 	// load the current validator set into the validator state
