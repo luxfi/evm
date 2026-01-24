@@ -15,29 +15,29 @@ require (
 	github.com/holiman/billy v0.0.0-20250707135307-f2f9b9aae7db
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
-	github.com/luxfi/cache v1.2.0
+	github.com/luxfi/cache v1.2.1
 	github.com/luxfi/codec v1.1.3
-	github.com/luxfi/consensus v1.22.53
+	github.com/luxfi/consensus v1.22.56
 	github.com/luxfi/constants v1.4.3
-	github.com/luxfi/crypto v1.17.39
-	github.com/luxfi/database v1.17.38
-	github.com/luxfi/geth v1.16.69
+	github.com/luxfi/crypto v1.17.40
+	github.com/luxfi/database v1.17.39
+	github.com/luxfi/geth v1.16.73
 	github.com/luxfi/go-bip39 v1.1.2
 	github.com/luxfi/ids v1.2.9
-	github.com/luxfi/log v1.3.0
+	github.com/luxfi/log v1.4.1
 	github.com/luxfi/math v1.2.3
 	github.com/luxfi/math/big v0.1.0
 	github.com/luxfi/math/safe v0.0.1
-	github.com/luxfi/metric v1.4.10
-	github.com/luxfi/p2p v1.18.7
-	github.com/luxfi/precompile v0.4.4
+	github.com/luxfi/metric v1.4.11
+	github.com/luxfi/p2p v1.18.8
+	github.com/luxfi/precompile v0.4.5
 	github.com/luxfi/timer v1.0.1
 	github.com/luxfi/trace v0.1.4
 	github.com/luxfi/upgrade v1.0.0
 	github.com/luxfi/utils v1.1.3
 	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.0.17
-	github.com/luxfi/warp v1.18.4
+	github.com/luxfi/vm v1.0.23
+	github.com/luxfi/warp v1.18.5
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
 	github.com/spf13/cast v1.10.0
@@ -59,15 +59,28 @@ require (
 )
 
 require (
+	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/VictoriaMetrics/fastcache v1.13.2 // indirect
+	github.com/cockroachdb/errors v1.12.0 // indirect
+	github.com/cockroachdb/fifo v0.0.0-20240816210425-c5d0cb0b6fc0 // indirect
+	github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506 // indirect
+	github.com/cockroachdb/pebble v1.1.5 // indirect
+	github.com/cockroachdb/redact v1.1.6 // indirect
+	github.com/cockroachdb/tokenbucket v0.0.0-20250429170803-42689b6311bb // indirect
+	github.com/getsentry/sentry-go v0.40.0 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/luxfi/compress v0.0.4 // indirect
-	github.com/luxfi/concurrent v0.0.2 // indirect
+	github.com/luxfi/concurrent v0.0.3 // indirect
 	github.com/luxfi/container v0.0.4 // indirect
-	github.com/luxfi/protocol v0.0.1 // indirect
+	github.com/luxfi/protocol v0.0.2 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
+	github.com/rogpeppe/go-internal v1.14.1 // indirect
 )
 
 require (
@@ -173,11 +186,3 @@ exclude (
 	github.com/luxfi/precompiles v0.1.10
 	github.com/luxfi/precompiles v0.1.11
 )
-
-replace github.com/luxfi/log => ../log
-
-replace github.com/luxfi/metric => ../metric
-
-replace github.com/luxfi/vm => ../vm
-
-replace github.com/luxfi/cache => ../cache

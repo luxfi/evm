@@ -124,22 +124,11 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 		}
 	}
 
-	// Verify the existence / non-existence of excessBlobGas
-	cancun := rules.IsCancun
-	if !cancun && ethHeader.ExcessBlobGas != nil {
-		return fmt.Errorf("invalid excessBlobGas: have %d, expected nil", *ethHeader.ExcessBlobGas)
-	}
-	if !cancun && ethHeader.BlobGasUsed != nil {
-		return fmt.Errorf("invalid blobGasUsed: have %d, expected nil", *ethHeader.BlobGasUsed)
-	}
 	// Lux does NOT use Ethereum beacon chain or blob transactions
-	// Skip Cancun-specific field requirements for historic block imports
+	// Skip Cancun-specific field requirements for pre-Cancun blocks
 	// Only reject if blob gas was actually used (which shouldn't happen on Lux)
 	if ethHeader.BlobGasUsed != nil && *ethHeader.BlobGasUsed > 0 {
 		return fmt.Errorf("blobs not enabled on lux networks: used %d blob gas", *ethHeader.BlobGasUsed)
-	}
-	if !cancun && ethHeader.ParentBeaconRoot != nil {
-		return fmt.Errorf("invalid parentBeaconRoot: have %x, expected nil", *ethHeader.ParentBeaconRoot)
 	}
 	return nil
 }

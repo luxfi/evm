@@ -39,21 +39,28 @@ type (
 	Trie     = ethstate.Trie
 )
 
+// NewDatabase creates a state database with default trie configuration.
+// This is a convenience wrapper that creates a triedb internally with nil config.
+// The snapshot tree is set to nil (no snapshot support).
 func NewDatabase(db ethdb.Database) Database {
-	// TODO: NewDatabase now requires triedb and snapshot tree parameters
-	// Using nil for now, may need to be updated based on usage
 	trieDB := triedb.NewDatabase(db, nil)
 	return ethstate.NewDatabase(trieDB, nil)
 }
 
+// NewDatabaseWithConfig creates a state database with custom trie configuration.
+// This is a convenience wrapper that creates a triedb with the specified config.
+// The snapshot tree is set to nil (no snapshot support).
 func NewDatabaseWithConfig(db ethdb.Database, config *triedb.Config) Database {
-	// TODO: NewDatabaseWithConfig seems to be removed, using NewDatabase instead
 	trieDB := triedb.NewDatabase(db, config)
 	return ethstate.NewDatabase(trieDB, nil)
 }
 
+// NewDatabaseWithNodeDB creates a state database using an existing triedb.
+// This allows sharing a triedb instance across multiple state databases.
+// The snapshot tree is set to nil (no snapshot support).
+// Note: The db parameter is kept for backward compatibility but is not used
+// since the triedb already contains the underlying database reference.
 func NewDatabaseWithNodeDB(db ethdb.Database, tdb *triedb.Database) Database {
-	// TODO: NewDatabaseWithNodeDB seems to be removed, using NewDatabase instead
 	return ethstate.NewDatabase(tdb, nil)
 }
 

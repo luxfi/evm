@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/luxfi/consensus/core/choices"
-	"github.com/luxfi/consensus/protocol/chain"
+	"github.com/luxfi/vm/chain"
 	"github.com/luxfi/ids"
 )
 

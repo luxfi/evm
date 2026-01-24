@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/luxfi/evm/commontype"
+	"github.com/luxfi/evm/precompile/modules"
+	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
 	ethparams "github.com/luxfi/geth/params"
@@ -21,6 +23,10 @@ var (
 	// TODO: UnscheduledActivationTime seems to be removed from upgrade package
 	UnscheduledActivationTime = time.Unix(1<<63-1, 0) // Max time value
 	InitiallyActiveTime       = time.Unix(0, 0)       // Unix epoch
+
+	// LegacyWarpAddress is the historical warp precompile address used in C-Chain
+	// and legacy Subnet-EVM chains. New chains should use the LP-aligned address (0x16201).
+	LegacyWarpAddress = common.HexToAddress("0x0200000000000000000000000000000000000005")
 
 	DefaultFeeConfig = commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
@@ -151,6 +157,34 @@ type ChainConfig struct {
 	AllowFeeRecipients bool                 `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
 	GenesisPrecompiles Precompiles          `json:"-"`                            // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
 	UpgradeConfig      `json:"-"`           // Config specified in upgradeBytes (lux network upgrades or enable/disabling precompiles). Not serialized.
+
+	// AddressBook provides per-chain address overrides for precompile addresses.
+	// This allows historical chains (e.g., C-Chain) to use legacy addresses
+	// (like 0x0200...0005 for warp) while new chains use LP-aligned addresses.
+	// Resolution order: AddressBook[configKey] -> module.Address (compiled-in default)
+	AddressBook map[string]common.Address `json:"addressBook,omitempty"`
+}
+
+// GetPrecompileAddress returns the address for a precompile given its config key.
+// Resolution order:
+//  1. AddressBook[configKey] if present (per-chain override)
+//  2. Module's compiled-in Address (default)
+//
+// This allows historical chains (e.g., C-Chain with warp at 0x0200...0005) to use
+// legacy addresses while new chains use LP-aligned addresses (0x16201).
+func (c *ChainConfig) GetPrecompileAddress(configKey string) common.Address {
+	// Check addressBook first for per-chain override
+	if c.AddressBook != nil {
+		if addr, ok := c.AddressBook[configKey]; ok {
+			return addr
+		}
+	}
+	// Fall back to module's compiled-in default address
+	if module, ok := modules.GetPrecompileModule(configKey); ok {
+		return module.Address
+	}
+	// Return zero address if not found (should not happen for registered precompiles)
+	return common.Address{}
 }
 
 func (c *ChainConfig) CheckConfigCompatible(newConfig *ethparams.ChainConfig, headNumber *big.Int, headTimestamp uint64) *ethparams.ConfigCompatError {
@@ -235,9 +269,14 @@ func configTimestampEqual(x, y *uint64) bool {
 
 // UnmarshalJSON parses the JSON-encoded data and stores the result in the
 // object pointed to by c.
-// This is a custom unmarshaler to handle the Precompiles field.
-// Precompiles was presented as an inline object in the JSON.
-// This custom unmarshaler ensures backwards compatibility with the old format.
+// This is a custom unmarshaler to handle the GenesisPrecompiles field.
+//
+// The genesisPrecompiles field is now stored under an explicit "genesisPrecompiles" key
+// to ensure deterministic serialization. For backwards compatibility, we also check
+// for inline precompile configs at the root level.
+//
+// IMPORTANT: Explicit is authoritative. If "genesisPrecompiles" is missing or empty,
+// it means NO precompiles are enabled at genesis - we do NOT fall back to defaults.
 func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 	// Alias ChainConfigExtra to avoid recursion
 	type _ChainConfigExtra ChainConfig
@@ -246,15 +285,41 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// At this point we have populated all fields except PrecompileUpgrade
+	// At this point we have populated all fields except GenesisPrecompiles
 	*c = ChainConfig(tmp)
 
-	// Unmarshal inlined PrecompileUpgrade
-	return json.Unmarshal(data, &c.GenesisPrecompiles)
+	// Try to unmarshal from explicit "genesisPrecompiles" key first (new format)
+	raw := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	if gpData, ok := raw["genesisPrecompiles"]; ok {
+		// New format: explicit genesisPrecompiles key
+		if err := json.Unmarshal(gpData, &c.GenesisPrecompiles); err != nil {
+			return err
+		}
+	} else {
+		// Backwards compatibility: try inlined precompile configs at root level
+		if err := json.Unmarshal(data, &c.GenesisPrecompiles); err != nil {
+			return err
+		}
+	}
+
+	// Ensure GenesisPrecompiles is never nil (explicit is authoritative - empty means none)
+	if c.GenesisPrecompiles == nil {
+		c.GenesisPrecompiles = Precompiles{}
+	}
+
+	return nil
 }
 
 // MarshalJSON returns the JSON encoding of c.
-// This is a custom marshaler to handle the Precompiles field.
+// This is a custom marshaler to handle the GenesisPrecompiles field.
+//
+// GenesisPrecompiles is serialized under an explicit "genesisPrecompiles" key
+// with deterministic key ordering (sorted alphabetically) to ensure consistent
+// hash computation across different Go versions and map iteration orders.
 func (c *ChainConfig) MarshalJSON() ([]byte, error) {
 	// Alias ChainConfigExtra to avoid recursion
 	type _ChainConfigExtra ChainConfig
@@ -263,22 +328,44 @@ func (c *ChainConfig) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 
-	// To include PrecompileUpgrades, we unmarshal the json representing c
-	// then directly add the corresponding keys to the json.
+	// Unmarshal to raw map to add genesisPrecompiles
 	raw := make(map[string]json.RawMessage)
 	if err := json.Unmarshal(tmp, &raw); err != nil {
 		return nil, err
 	}
 
-	for key, value := range c.GenesisPrecompiles {
-		conf, err := json.Marshal(value)
+	// Marshal GenesisPrecompiles with deterministic key order
+	if len(c.GenesisPrecompiles) > 0 {
+		gpBytes, err := c.GenesisPrecompiles.MarshalJSONDeterministic()
 		if err != nil {
 			return nil, err
 		}
-		raw[key] = conf
+		raw["genesisPrecompiles"] = gpBytes
 	}
 
 	return json.Marshal(raw)
+}
+
+// SetAllGenesisPrecompiles populates GenesisPrecompiles with default configs
+// for all registered precompile modules (timestamp = 0). This ensures deterministic
+// genesis hash when "all precompiles active at genesis" is the intended state.
+// Call this when building genesis configs for new chains.
+func (c *ChainConfig) SetAllGenesisPrecompiles() {
+	c.GenesisPrecompiles = make(Precompiles)
+	for _, module := range modules.RegisteredModules() {
+		c.GenesisPrecompiles[module.ConfigKey] = module.Configurator.MakeGenesisConfig()
+	}
+}
+
+// AllGenesisPrecompiles returns a new Precompiles map populated with default
+// genesis configs for all registered precompile modules (timestamp = 0).
+// This is the authoritative source for "all precompiles active at genesis".
+func AllGenesisPrecompiles() Precompiles {
+	precompiles := make(Precompiles)
+	for _, module := range modules.RegisteredModules() {
+		precompiles[module.ConfigKey] = module.Configurator.MakeGenesisConfig().(precompileconfig.Config)
+	}
+	return precompiles
 }
 
 type fork struct {

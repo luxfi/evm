@@ -81,21 +81,18 @@ import (
 	luxRPC "github.com/gorilla/rpc/v2"
 
 	"github.com/luxfi/codec"
-	nodeConsensus "github.com/luxfi/consensus"
-	consensuscontext "github.com/luxfi/consensus/context"
-	nodeblock "github.com/luxfi/consensus/engine/chain/block"
+	"github.com/luxfi/consensus/engine/chain/block"
+	"github.com/luxfi/runtime"
+	nodeblock "github.com/luxfi/vm/chain"
 	consensusmockable "github.com/luxfi/consensus/utils/timer/mockable"
-	consensusversion "github.com/luxfi/consensus/version"
 	"github.com/luxfi/database/versiondb"
 	"github.com/luxfi/ids"
+	p2pversion "github.com/luxfi/version"
 	nodemockable "github.com/luxfi/timer/mockable"
 	"github.com/luxfi/upgrade"
 	"github.com/luxfi/filesystem/perms"
 	"github.com/luxfi/metric/profiler"
 	nodeChain "github.com/luxfi/vm/components/chain"
-
-	commonEng "github.com/luxfi/consensus/core"
-	luxVM "github.com/luxfi/vm"
 
 	luxJSON "github.com/luxfi/codec/jsonrpc"
 	"github.com/luxfi/database"
@@ -185,8 +182,8 @@ var legacyApiNames = map[string]string{
 // warp.Signer is used directly from luxfi/warp - no adapters needed.
 
 type VM struct {
-	ctx      context.Context
-	chainCtx *nodeConsensus.Context
+	ctx     context.Context    // stdlib context for cancellation
+	runtime *runtime.Runtime   // chain wiring (IDs, validators, etc.)
 	// contextLock is used to coordinate global VM operations.
 	// This can be used safely instead of context.Context.Lock which is deprecated and should not be used in rpcchainvm.
 	vmLock sync.RWMutex
@@ -289,74 +286,17 @@ func (vm *VM) ParseBlock(ctx context.Context, b []byte) (nodeblock.Block, error)
 	return blk, nil
 }
 
-// Initialize implements the chain.ChainVM interface with generic interface{} parameters
-func (vm *VM) Initialize(
-	ctx context.Context,
-	chainCtx interface{},
-	dbManager interface{},
-	genesisBytes []byte,
-	upgradeBytes []byte,
-	configBytes []byte,
-	msgChan interface{},
-	fxs []interface{},
-	sender interface{},
-) error {
-	// Write debug info to stderr for troubleshooting
-	fmt.Fprintf(os.Stderr, "[EVM] Initialize called with chainCtx type: %T\n", chainCtx)
+// Initialize implements the chain.ChainVM interface
+func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
+	// Store runtime for chain wiring (IDs, validators, etc.)
+	vm.runtime = init.Runtime
+	vm.ctx = ctx
 
-	// Type assert the parameters - try both the alias and the direct type
-	var typedChainCtx *nodeConsensus.Context
-	if ctxPtr, ok := chainCtx.(*nodeConsensus.Context); ok {
-		fmt.Fprintf(os.Stderr, "[EVM] Successfully asserted as *nodeConsensus.Context\n")
-		typedChainCtx = ctxPtr
-	} else if ctxPtr, ok := chainCtx.(*consensuscontext.Context); ok {
-		// Accept the direct type from rpcchainvm.VMServer
-		fmt.Fprintf(os.Stderr, "[EVM] Successfully asserted as *consensuscontext.Context, converting\n")
-		typedChainCtx = (*nodeConsensus.Context)(ctxPtr)
-	} else {
-		errMsg := fmt.Sprintf("chainCtx is not *nodeConsensus.Context or *consensuscontext.Context, got: %T", chainCtx)
-		fmt.Fprintf(os.Stderr, "[EVM] ERROR: %s\n", errMsg)
-		return fmt.Errorf("%s", errMsg)
-	}
-	typedDBManager, ok := dbManager.(database.Database)
-	if !ok {
-		return fmt.Errorf("dbManager is not database.Database")
-	}
-	// Handle nil sender (used in some tests)
-	var typedSender p2p.Sender
-	if sender != nil {
-		var ok bool
-		typedSender, ok = sender.(p2p.Sender)
-		if !ok {
-			return fmt.Errorf("sender is not p2p.Sender")
-		}
-	}
-
-	// Convert fxs from []interface{} to []*luxVM.Fx
-	typedFxs := make([]*commonEng.Fx, len(fxs))
-	for i, fx := range fxs {
-		if typedFx, ok := fx.(*luxVM.Fx); ok {
-			typedFxs[i] = &commonEng.Fx{
-				ID: typedFx.ID,
-				Fx: typedFx.Fx,
-			}
-		}
-	}
-
-	return vm.initializeInternal(ctx, typedChainCtx, typedDBManager, genesisBytes, upgradeBytes, configBytes, typedFxs, typedSender)
-}
-
-// initializeInternal contains the actual initialization logic with strongly typed parameters
-func (vm *VM) initializeInternal(
-	ctx context.Context,
-	chainCtx *nodeConsensus.Context,
-	db database.Database,
-	genesisBytes []byte,
-	upgradeBytes []byte,
-	configBytes []byte,
-	fxs []*commonEng.Fx,
-	sender p2p.Sender,
-) error {
+	// Get database and other init params
+	db := init.DB
+	genesisBytes := init.Genesis
+	upgradeBytes := init.Upgrade
+	configBytes := init.Config
 	vm.stateSyncDone = make(chan struct{})
 	vm.config.SetDefaults(defaultTxPoolConfig)
 	if len(configBytes) > 0 {
@@ -372,20 +312,10 @@ func (vm *VM) initializeInternal(
 	// initialized the logger.
 	deprecateMsg := vm.config.Deprecate()
 
-	// Store the chain context
-	vm.chainCtx = chainCtx
-	// Create a regular context for operations, embedding the chain context
-	// so that functions like GetNetworkID can extract values from it
-	if chainCtx != nil {
-		vm.ctx = consensuscontext.WithContext(ctx, chainCtx)
-	} else {
-		vm.ctx = ctx
-	}
-
-	// Use ChainID from chainCtx for alias
+	// Use ChainID from runtime for alias
 	var alias string
-	if chainCtx != nil && chainCtx.ChainID != ids.Empty {
-		alias = chainCtx.ChainID.String()
+	if vm.runtime != nil && vm.runtime.ChainID != ids.Empty {
+		alias = vm.runtime.ChainID.String()
 	} else {
 		alias = "evm"
 	}
@@ -407,7 +337,7 @@ func (vm *VM) initializeInternal(
 		log.Warn("Deprecation Warning", "msg", deprecateMsg)
 	}
 
-	if len(fxs) > 0 {
+	if len(init.Fx) > 0 {
 		return errUnsupportedFXs
 	}
 
@@ -567,7 +497,7 @@ func (vm *VM) initializeInternal(
 	vm.networkCodec = message.Codec
 	// p2p.Sender is passed directly to network
 	debugLog("Creating network")
-	vm.Network, err = network.NewNetwork(context.Background(), sender, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
+	vm.Network, err = network.NewNetwork(context.Background(), init.Sender, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
 	if err != nil {
 		debugLog("Failed to create network: %v", err)
 		return fmt.Errorf("failed to create network: %w", err)
@@ -580,7 +510,7 @@ func (vm *VM) initializeInternal(
 	}
 
 	debugLog("Creating validators manager")
-	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, &vm.clock)
+	vm.validatorsManager, err = validators.NewManager(vm.runtime, vm.validatorsDB, &vm.clock)
 	if err != nil {
 		debugLog("Failed to create validators manager: %v", err)
 		return fmt.Errorf("failed to initialize validators manager: %w", err)
@@ -608,14 +538,14 @@ func (vm *VM) initializeInternal(
 	// VM implements warp.BlockClient directly
 
 	// Get warp signer from context - use warptypes.Signer directly, no adapters
-	debugLog("Getting warp signer from context (WarpSigner=%v)", chainCtx.WarpSigner != nil)
+	debugLog("Getting warp signer from context (WarpSigner=%v)", vm.runtime.WarpSigner != nil)
 	var warpSigner warptypes.Signer
-	if chainCtx.WarpSigner != nil {
+	if vm.runtime.WarpSigner != nil {
 		var ok bool
-		warpSigner, ok = chainCtx.WarpSigner.(warptypes.Signer)
+		warpSigner, ok = vm.runtime.WarpSigner.(warptypes.Signer)
 		if !ok {
-			debugLog("Invalid warp signer type: %T", chainCtx.WarpSigner)
-			return fmt.Errorf("invalid warp signer type: %T", chainCtx.WarpSigner)
+			debugLog("Invalid warp signer type: %T", vm.runtime.WarpSigner)
+			return fmt.Errorf("invalid warp signer type: %T", vm.runtime.WarpSigner)
 		}
 		debugLog("Got warp signer successfully")
 	}
@@ -624,8 +554,8 @@ func (vm *VM) initializeInternal(
 	if warpSigner != nil {
 		debugLog("Creating warp backend")
 		vm.warpBackend, err = warp.NewBackend(
-			chainCtx.NetworkID, // Use NetworkID from consensus Context
-			chainCtx.ChainID,
+			vm.runtime.NetworkID, // Use NetworkID from consensus Context
+			vm.runtime.ChainID,
 			warpSigner,
 			&warpBlockClient{vm: vm}, // Wrapper that implements warp.BlockClient
 			validators.NewLockedValidatorReader(vm.validatorsManager, &vm.vmLock),
@@ -933,6 +863,15 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	if err != nil {
 		return err
 	}
+	// Create consensus engine with appropriate mode
+	// When automining is enabled, skip block fee validation to allow instant block production
+	consensusMode := dummy.Mode{}
+	if vm.config.EnableAutomining {
+		consensusMode.ModeSkipBlockFee = true
+		log.Info("Automining enabled: setting ModeSkipBlockFee=true on consensus engine")
+	}
+	consensusEngine := dummy.NewFakerWithModeAndClock(consensusMode, &vm.clock)
+
 	vm.eth, err = eth.New(
 		node,
 		&vm.ethConfig,
@@ -940,7 +879,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		vm.chaindb,
 		eth.Settings{MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest},
 		lastAcceptedHash,
-		dummy.NewFakerWithClock(&vm.clock),
+		consensusEngine,
 		&vm.clock,
 	)
 	if err != nil {
@@ -1137,16 +1076,21 @@ func (vm *VM) SetState(_ context.Context, state uint32) error {
 	vm.vmLock.Lock()
 	defer vm.vmLock.Unlock()
 
-	switch commonEng.VMState(state) {
-	case commonEng.VMStateSyncing:
+	// Debug: log the state values to verify iota constants
+	fmt.Printf("[EVM SetState] received state=%d, VMStateSyncing=%d, VMBootstrapping=%d, VMNormalOp=%d\n",
+		state, VMStateSyncing, VMBootstrapping, VMNormalOp)
+
+	switch VMState(state) {
+	case VMStateSyncing:
 		vm.bootstrapped.Set(false)
 		return nil
-	case commonEng.VMBootstrapping:
+	case VMBootstrapping:
 		return vm.onBootstrapStarted()
-	case commonEng.VMNormalOp:
+	case VMNormalOp:
 		return vm.onNormalOperationsStarted()
 	default:
-		return fmt.Errorf("unknown state: %v", state)
+		return fmt.Errorf("unknown state: %v (VMStateSyncing=%d, VMBootstrapping=%d, VMNormalOp=%d)",
+			state, VMStateSyncing, VMBootstrapping, VMNormalOp)
 	}
 }
 
@@ -1252,7 +1196,9 @@ func (vm *VM) onNormalOperationsStarted() error {
 	vm.builder = vm.NewBlockBuilder()
 	vm.builder.awaitSubmittedTxs()
 	// Start automining if enabled (dev mode)
+	log.Info("C-Chain automining config check", "enableAutomining", vm.config.EnableAutomining)
 	if vm.config.EnableAutomining {
+		log.Info("C-Chain automining ENABLED, starting automining loop")
 		vm.builder.startAutomining(AutominingConfig{
 			BuildBlock: func(ctx context.Context) (interface {
 				Verify(context.Context) error
@@ -1305,7 +1251,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 
 		vm.ethTxPullGossiper = gossip.ValidatorGossiper{
 			Gossiper:   ethTxPullGossiper,
-			NodeID:     vm.chainCtx.NodeID,
+			NodeID:     vm.runtime.NodeID,
 			Validators: p2pValidators,
 		}
 	}
@@ -1351,7 +1297,7 @@ func (vm *VM) setAppRequestHandlers() {
 	vm.Network.SetRequestHandler(networkHandler)
 }
 
-func (vm *VM) WaitForEvent(ctx context.Context) (interface{}, error) {
+func (vm *VM) WaitForEvent(ctx context.Context) (block.Message, error) {
 	vm.builderLock.Lock()
 	builder := vm.builder
 	vm.builderLock.Unlock()
@@ -1360,22 +1306,15 @@ func (vm *VM) WaitForEvent(ctx context.Context) (interface{}, error) {
 	if builder == nil {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return block.Message{}, ctx.Err()
 		case <-vm.stateSyncDone:
-			// Return nil message to indicate state sync is done
-			return nil, nil
+			return block.Message{Type: block.StateSyncDone}, nil
 		case <-vm.shutdownChan:
-			return nil, errShuttingDownVM
+			return block.Message{}, errShuttingDownVM
 		}
 	}
 
-	// Call builder's waitForEvent which returns commonEng.Message
-	msg, err := builder.waitForEvent(ctx)
-	if err != nil {
-		return nil, err
-	}
-	// Return the message type for the caller to handle
-	return msg.Type, nil
+	return builder.waitForEvent(ctx)
 }
 
 // Shutdown implements the chain.ChainVM interface
@@ -1681,7 +1620,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		warpSDKClient := vm.Network.NewClient(luxwarp.SignatureHandlerID)
 		signatureAggregator := luxwarp.NewSignatureAggregator(log.Noop(), warpSDKClient)
 
-		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx, vm.warpBackend, signatureAggregator, vm.requirePrimaryNetworkSigners)); err != nil {
+		if err := handler.RegisterName("warp", warp.NewAPI(vm.runtime, vm.warpBackend, signatureAggregator, vm.requirePrimaryNetworkSigners)); err != nil {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "warp")
@@ -1701,8 +1640,8 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	return apis, nil
 }
 
-// NewHTTPHandler implements the block.ChainVM interface
-func (vm *VM) NewHTTPHandler(ctx context.Context) (interface{}, error) {
+// NewHTTPHandler implements the chain.ChainVM interface
+func (vm *VM) NewHTTPHandler(ctx context.Context) (http.Handler, error) {
 	handlers, err := vm.CreateHandlers(ctx)
 	if err != nil {
 		return nil, err
@@ -1856,20 +1795,19 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	return nil
 }
 
-func (vm *VM) Connected(ctx context.Context, nodeID ids.NodeID, ver interface{}) error {
+func (vm *VM) Connected(ctx context.Context, nodeID ids.NodeID, ver *nodeblock.VersionInfo) error {
 	vm.vmLock.Lock()
 	defer vm.vmLock.Unlock()
 
-	// TODO: Fix Connect with new validator manager interface
-	// if err := vm.validatorsManager.Connect(nodeID); err != nil {
-	// 	return fmt.Errorf("uptime manager failed to connect node %s: %w", nodeID, err)
-	// }
-
-	// Convert the version interface to the correct type for the Network
-	var nodeVersion *consensusversion.Application
+	// Convert VersionInfo to the network's expected version type (p2p.Network uses github.com/luxfi/version)
+	// VersionInfo is an alias for version.Application, so ver already has Name, Major, Minor, Patch fields
+	var nodeVersion *p2pversion.Application
 	if ver != nil {
-		if v, ok := ver.(*consensusversion.Application); ok {
-			nodeVersion = v
+		nodeVersion = &p2pversion.Application{
+			Name:  ver.Name,
+			Major: ver.Major,
+			Minor: ver.Minor,
+			Patch: ver.Patch,
 		}
 	}
 	return vm.Network.Connected(ctx, nodeID, nodeVersion)
@@ -1888,7 +1826,7 @@ func (vm *VM) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
 }
 
 // AppRequestFailed implements the VM interface
-func (vm *VM) AppRequestFailed(ctx context.Context, nodeID ids.NodeID, requestID uint32, appErr *commonEng.AppError) error {
+func (vm *VM) AppRequestFailed(ctx context.Context, nodeID ids.NodeID, requestID uint32, appErr *warp.AppError) error {
 	// The Network interface doesn't expose AppRequestFailed directly
 	// We need to handle this at the VM level by logging the error
 	log.Debug("AppRequestFailed", "nodeID", nodeID, "requestID", requestID, "error", appErr)
@@ -1897,7 +1835,7 @@ func (vm *VM) AppRequestFailed(ctx context.Context, nodeID ids.NodeID, requestID
 }
 
 // CrossChainAppRequestFailed implements the VM interface
-func (vm *VM) CrossChainAppRequestFailed(ctx context.Context, chainID ids.ID, requestID uint32, appErr *commonEng.AppError) error {
+func (vm *VM) CrossChainAppRequestFailed(ctx context.Context, chainID ids.ID, requestID uint32, appErr *warp.AppError) error {
 	// Cross-chain app requests are not currently supported
 	// Just log and return nil to satisfy the interface
 	log.Debug("CrossChainAppRequestFailed called", "chainID", chainID, "requestID", requestID, "error", appErr.Message)

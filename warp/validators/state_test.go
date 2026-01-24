@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	validators "github.com/luxfi/consensus/validator"
+	validators "github.com/luxfi/validators"
 	"github.com/luxfi/constants"
 	"github.com/luxfi/ids"
 	"github.com/stretchr/testify/require"
@@ -39,6 +39,18 @@ func (t *testValidatorState) GetCurrentHeight(ctx context.Context) (uint64, erro
 		return t.getCurrentHeight(ctx)
 	}
 	return 0, nil
+}
+
+func (t *testValidatorState) GetMinimumHeight(ctx context.Context) (uint64, error) {
+	return 0, nil
+}
+
+func (t *testValidatorState) GetChainID(netID ids.ID) (ids.ID, error) {
+	return netID, nil
+}
+
+func (t *testValidatorState) GetNetworkID(chainID ids.ID) (ids.ID, error) {
+	return chainID, nil
 }
 
 func (t *testValidatorState) GetWarpValidatorSet(ctx context.Context, height uint64, chainID ids.ID) (*validators.WarpSet, error) {
