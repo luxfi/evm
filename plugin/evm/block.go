@@ -23,8 +23,7 @@ import (
 	"github.com/luxfi/geth/core/types"
 
 	"github.com/luxfi/consensus/core/choices"
-	"github.com/luxfi/consensus/engine/chain/block"
-	consensusBlock "github.com/luxfi/consensus/engine/chain/block"
+	block "github.com/luxfi/vm/chain"
 	"github.com/luxfi/ids"
 )
 
@@ -196,9 +195,9 @@ func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
 // VerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) error {
 	// Convert from node's block.Context to consensus's block.Context
-	var consensusBlockCtx *consensusBlock.Context
+	var consensusBlockCtx *block.Context
 	if proposerVMBlockCtx != nil {
-		consensusBlockCtx = &consensusBlock.Context{
+		consensusBlockCtx = &block.Context{
 			PChainHeight: proposerVMBlockCtx.PChainHeight,
 		}
 	}

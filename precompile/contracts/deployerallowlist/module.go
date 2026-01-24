@@ -42,6 +42,12 @@ func (*configurator) MakeConfig() precompileconfig.Config {
 	return new(Config)
 }
 
+// MakeGenesisConfig returns a precompile config for genesis activation (timestamp = 0).
+func (*configurator) MakeGenesisConfig() precompileconfig.Config {
+	var zero uint64
+	return NewConfig(&zero, nil, nil, nil)
+}
+
 // Configure configures [state] with the given [cfg] precompileconfig.
 // This function is called by the EVM once per precompile contract activation.
 func (c *configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, blockContext contract.ConfigurationBlockContext) error {
