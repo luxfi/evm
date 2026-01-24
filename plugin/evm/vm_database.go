@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	consensuscontext "github.com/luxfi/consensus/context"
+	consensuscontext "github.com/luxfi/runtime"
 	"github.com/luxfi/constants"
 	luxdatabase "github.com/luxfi/database"
 	"github.com/luxfi/database/factory"
@@ -73,17 +73,17 @@ func (vm *VM) initializeDBs(avaDB luxdatabase.Database) error {
 		// Use the per-node ChainDataDir from context to prevent database conflicts
 		// Each node has its own ChainDataDir, so they won't conflict
 		var chainDataDir string
-		if vm.chainCtx != nil && vm.chainCtx.ChainDataDir != "" {
-			chainDataDir = vm.chainCtx.ChainDataDir
+		if vm.runtime != nil && vm.runtime.ChainDataDir != "" {
+			chainDataDir = vm.runtime.ChainDataDir
 		} else {
 			// Fallback: use a unique temp path with node ID to prevent conflicts
 			nodeIDStr := "unknown"
-			if vm.chainCtx != nil && vm.chainCtx.NodeID != ids.EmptyNodeID {
-				nodeIDStr = vm.chainCtx.NodeID.String()
+			if vm.runtime != nil && vm.runtime.NodeID != ids.EmptyNodeID {
+				nodeIDStr = vm.runtime.NodeID.String()
 			}
 			chainID := "unknown"
-			if vm.chainCtx != nil && vm.chainCtx.ChainID != ids.Empty {
-				chainID = vm.chainCtx.ChainID.String()
+			if vm.runtime != nil && vm.runtime.ChainID != ids.Empty {
+				chainID = vm.runtime.ChainID.String()
 			}
 			chainDataDir = filepath.Join("/tmp", "chaindata", nodeIDStr, chainID)
 		}

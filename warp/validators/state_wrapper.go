@@ -6,8 +6,8 @@ package validators
 import (
 	"context"
 
-	consensuscontext "github.com/luxfi/consensus/context"
-	validators "github.com/luxfi/consensus/validator"
+	consensuscontext "github.com/luxfi/runtime"
+	validators "github.com/luxfi/validators"
 	"github.com/luxfi/ids"
 )
 
@@ -29,21 +29,8 @@ func (w *ConsensusStateWrapper) GetCurrentHeight(ctx context.Context) (uint64, e
 
 // GetValidatorSet implements validators.State
 func (w *ConsensusStateWrapper) GetValidatorSet(ctx context.Context, height uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-	// consensus.ValidatorState returns a simpler map, need to convert
-	simpleMap, err := w.vs.GetValidatorSet(height, chainID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert map[ids.NodeID]uint64 to map[ids.NodeID]*validators.GetValidatorOutput
-	result := make(map[ids.NodeID]*validators.GetValidatorOutput)
-	for nodeID, weight := range simpleMap {
-		result[nodeID] = &validators.GetValidatorOutput{
-			NodeID: nodeID,
-			Weight: weight,
-		}
-	}
-	return result, nil
+	// Pass through to underlying ValidatorState
+	return w.vs.GetValidatorSet(ctx, height, chainID)
 }
 
 // GetMinimumHeight implements validators.State

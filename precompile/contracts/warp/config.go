@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"sort"
 
-	consensuscontext "github.com/luxfi/consensus/context"
-	validators "github.com/luxfi/consensus/validator"
+	consensuscontext "github.com/luxfi/runtime"
+	validators "github.com/luxfi/validators"
 	"github.com/luxfi/constants"
 	evmconsensus "github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/precompile/precompileconfig"
@@ -296,18 +296,26 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 			allValidators = append(allValidators, vdr)
 		}
 	} else {
-		// Fallback: get weights only (signature verification will fail without public keys)
-		vdrWeights, err := validatorState.GetValidatorSet(pChainHeight, requestedChainID)
+		// Fallback: get full output (signature verification will fail without public keys)
+		vdrOutputs, err := validatorState.GetValidatorSet(predicateContext.ConsensusCtx, pChainHeight, requestedChainID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", errCannotRetrieveValidatorSet, err)
 		}
 
-		allValidators = make([]*warp.Validator, 0, len(vdrWeights))
-		for nodeID, weight := range vdrWeights {
-			totalWeight += weight
+		allValidators = make([]*warp.Validator, 0, len(vdrOutputs))
+		for nodeID, output := range vdrOutputs {
+			totalWeight += output.Weight
 			vdr := &warp.Validator{
 				NodeID: nodeID,
-				Weight: weight,
+				Weight: output.Weight,
+			}
+			// Parse public key if available
+			if len(output.PublicKey) > 0 {
+				pk, pkErr := warp.ParsePublicKey(output.PublicKey)
+				if pkErr == nil {
+					vdr.PublicKey = pk
+					vdr.PublicKeyBytes = output.PublicKey
+				}
 			}
 			allValidators = append(allValidators, vdr)
 		}

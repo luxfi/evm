@@ -6,7 +6,7 @@ package validators
 import (
 	"context"
 
-	validators "github.com/luxfi/consensus/validator"
+	validators "github.com/luxfi/validators"
 	"github.com/luxfi/constants"
 	"github.com/luxfi/ids"
 )
@@ -52,4 +52,22 @@ func (s *State) GetValidatorSet(
 	// If the requested chain is the primary network, then we return the validator
 	// set for the chain that is receiving the message instead.
 	return s.State.GetValidatorSet(ctx, height, s.myChainID)
+}
+
+// GetWarpValidatorSet returns the warp validator set with BLS public keys for signature aggregation.
+// This applies the same Primary Network handling as GetValidatorSet.
+func (s *State) GetWarpValidatorSet(
+	ctx context.Context,
+	height uint64,
+	chainID ids.ID,
+) (*validators.WarpSet, error) {
+	// Apply same logic as GetValidatorSet for Primary Network handling
+	usePrimary := s.requirePrimaryNetworkSigners && s.sourceChainID != constants.PlatformChainID
+	if usePrimary || chainID != constants.PrimaryNetworkID {
+		return s.State.GetWarpValidatorSet(ctx, height, chainID)
+	}
+
+	// If the requested chain is the primary network, return the validator
+	// set for the chain that is receiving the message instead.
+	return s.State.GetWarpValidatorSet(ctx, height, s.myChainID)
 }

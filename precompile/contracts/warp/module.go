@@ -46,6 +46,12 @@ func (*configurator) MakeConfig() precompileconfig.Config {
 	return new(Config)
 }
 
+// MakeGenesisConfig returns a precompile config for genesis activation (timestamp = 0).
+func (*configurator) MakeGenesisConfig() precompileconfig.Config {
+	var zero uint64
+	return NewDefaultConfig(&zero)
+}
+
 // Configure is a no-op for warp since it does not need to store any information in the state
 func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, _ contract.ConfigurationBlockContext) error {
 	if _, ok := cfg.(*Config); !ok {
