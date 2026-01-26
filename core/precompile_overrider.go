@@ -18,7 +18,6 @@ import (
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/core/vm"
 	gethparams "github.com/luxfi/geth/params"
-	"github.com/luxfi/runtime"
 )
 
 func init() {
@@ -133,11 +132,7 @@ func (a *accessibleStateAdapter) GetBlockContext() contract.BlockContext {
 }
 
 func (a *accessibleStateAdapter) GetConsensusContext() context.Context {
-	// The PrecompileEnvironment returns *runtime.Runtime, wrap it in context
-	if rt := a.env.ConsensusRuntime(); rt != nil {
-		return runtime.WithContext(context.Background(), rt)
-	}
-	return context.Background()
+	return a.env.ConsensusContext()
 }
 
 func (a *accessibleStateAdapter) GetChainConfig() precompileconfig.ChainConfig {
