@@ -39,7 +39,6 @@ import (
 	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/core/vm"
-	"github.com/luxfi/runtime"
 )
 
 type hooks struct{}
@@ -90,7 +89,7 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 	// Set consensus context for warp precompiles
 	if chain != nil {
 		if ctx := chain.ConsensusContext(); ctx != nil {
-			blockContext.ConsensusContext = runtime.FromContext(ctx)
+			blockContext.ConsensusContext = ctx
 		}
 	}
 
