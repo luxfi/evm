@@ -34,7 +34,7 @@ require (
 	github.com/luxfi/precompile v0.4.6
 	github.com/luxfi/runtime v1.0.1
 	github.com/luxfi/sys v0.0.0-20260110090042-50187ec5ffd8
-	github.com/luxfi/timer v1.0.1
+	github.com/luxfi/timer v1.0.2
 	github.com/luxfi/trace v0.1.4
 	github.com/luxfi/upgrade v1.0.0
 	github.com/luxfi/utils v1.1.4
