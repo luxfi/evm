@@ -238,7 +238,9 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	if env.header.BaseFee != nil {
 		filter.BaseFee = uint256.MustFromBig(env.header.BaseFee)
 	}
-	if env.header.ExcessBlobGas != nil {
+	// Only calculate blob fee if Cancun is active AND header has ExcessBlobGas.
+	// CalcBlobFee panics with "calculating blob fee on unsupported fork" otherwise.
+	if env.header.ExcessBlobGas != nil && w.chainConfig.IsCancun(env.header.Number, env.header.Time) {
 		filter.BlobFee = uint256.MustFromBig(eip4844.CalcBlobFee(w.chainConfig, env.header))
 	}
 	filter.OnlyPlainTxs, filter.OnlyBlobTxs = true, false
