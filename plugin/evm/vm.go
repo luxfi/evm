@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"sync"
 	"time"
@@ -157,6 +158,17 @@ var (
 	errInitializingLogger            = errors.New("failed to initialize logger")
 	errShuttingDownVM                = errors.New("shutting down VM")
 )
+
+// Package-level debug logging function
+func debugLog(msg string, args ...interface{}) {
+	f, err := os.OpenFile("/tmp/evm-debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	fmt.Fprintf(f, "[EVM-DEBUG] "+msg+"\n", args...)
+	f.Sync()
+}
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
 // used in attachEthService for backward configuration compatibility.
@@ -360,14 +372,6 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 		if err := vm.inspectDatabases(); err != nil {
 			return err
 		}
-	}
-
-	// Debug file for capturing initialization errors
-	debugFile, _ := os.OpenFile("/tmp/evm-debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	defer debugFile.Close()
-	debugLog := func(msg string, args ...interface{}) {
-		fmt.Fprintf(debugFile, "[EVM-DEBUG] "+msg+"\n", args...)
-		debugFile.Sync()
 	}
 
 	debugLog("Calling parseGenesis with genesisAllocFile=%q, upgradeBytes len=%d", vm.config.GenesisAllocFile, len(upgradeBytes))
@@ -853,16 +857,20 @@ func (vm *VM) initializeMetrics() error {
 }
 
 func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
+	debugLog("initializeChain: starting with lastAcceptedHash=%s", lastAcceptedHash.Hex())
 	nodecfg := &node.Config{
 		EVMVersion:            Version,
 		KeyStoreDir:           vm.config.KeystoreDirectory,
 		ExternalSigner:        vm.config.KeystoreExternalSigner,
 		InsecureUnlockAllowed: vm.config.KeystoreInsecureUnlockAllowed,
 	}
+	debugLog("initializeChain: creating node")
 	node, err := node.New(nodecfg)
 	if err != nil {
+		debugLog("initializeChain: node.New failed: %v", err)
 		return err
 	}
+	debugLog("initializeChain: node created successfully")
 	// Create consensus engine with appropriate mode
 	// When automining is enabled, skip block fee validation to allow instant block production
 	consensusMode := dummy.Mode{}
@@ -871,34 +879,51 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		log.Info("Automining enabled: setting ModeSkipBlockFee=true on consensus engine")
 	}
 	consensusEngine := dummy.NewFakerWithModeAndClock(consensusMode, &vm.clock)
-
-	vm.eth, err = eth.New(
-		node,
-		&vm.ethConfig,
-		&EthPushGossiper{vm: vm},
-		vm.chaindb,
-		eth.Settings{MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest},
-		lastAcceptedHash,
-		consensusEngine,
-		&vm.clock,
-	)
+	debugLog("initializeChain: calling eth.New")
+	// Wrap eth.New in panic recovery to capture any panics
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				debugLog("PANIC in eth.New: %v", r)
+				// Log stack trace
+				buf := make([]byte, 4096)
+				n := goruntime.Stack(buf, false)
+				debugLog("Stack trace:\n%s", string(buf[:n]))
+			}
+		}()
+		vm.eth, err = eth.New(
+			node,
+			&vm.ethConfig,
+			&EthPushGossiper{vm: vm},
+			vm.chaindb,
+			eth.Settings{MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest},
+			lastAcceptedHash,
+			consensusEngine,
+			&vm.clock,
+		)
+	}()
 	if err != nil {
+		debugLog("initializeChain: eth.New failed: %v", err)
 		return err
 	}
+	debugLog("initializeChain: eth.New succeeded")
 	vm.eth.SetEtherbase(ethConfig.Miner.Etherbase)
 	vm.txPool = vm.eth.TxPool()
 	vm.blockChain = vm.eth.BlockChain()
+	debugLog("initializeChain: got txPool and blockChain")
 	// Set consensus context for warp message chain ID/network ID
 	vm.blockChain.SetConsensusContext(vm.ctx)
 	vm.miner = vm.eth.Miner()
 	lastAccepted := vm.blockChain.LastAcceptedBlock()
+	debugLog("initializeChain: lastAccepted block number=%d", lastAccepted.NumberU64())
 	feeConfig, _, err := vm.blockChain.GetFeeConfigAt(lastAccepted.Header())
 	if err != nil {
+		debugLog("initializeChain: GetFeeConfigAt failed: %v", err)
 		return err
 	}
 	vm.txPool.SetMinFee(feeConfig.MinBaseFee)
 	vm.txPool.SetGasTip(big.NewInt(0))
-
+	debugLog("initializeChain: calling eth.Start")
 	vm.eth.Start()
 
 	// Register callback for admin_importChain to update acceptedBlockDB.
@@ -1361,7 +1386,14 @@ func (vm *VM) BuildBlock(ctx context.Context) (nodeblock.Block, error) {
 	// Use State's BuildBlock which properly wraps and tracks blocks
 	// The State's BuildBlock callback calls vm.buildBlock() and wraps the result
 	// so Accept() updates the State's lastAccepted
-	return vm.State.BuildBlock(ctx)
+	log.Info("[EVM DEBUG] BuildBlock called, calling vm.State.BuildBlock")
+	blk, err := vm.State.BuildBlock(ctx)
+	if err != nil {
+		log.Error("[EVM DEBUG] BuildBlock error", "error", err)
+		return nil, err
+	}
+	log.Info("[EVM DEBUG] BuildBlock returned", "id", blk.ID(), "height", blk.Height())
+	return blk, nil
 }
 
 // BuildBlockWithContext implements the BuildBlockWithContextChainVM interface
@@ -1400,6 +1432,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nod
 
 	// Note: the status of block is set by ChainState
 	blk := vm.newBlock(block)
+	log.Info("[EVM DEBUG] buildBlock: created block", "ethHash", block.Hash(), "id", blk.ID(), "height", blk.Height())
 
 	// Verify is called on a non-wrapped block here, such that this
 	// does not add [blk] to the processing blocks map in ChainState.
