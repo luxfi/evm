@@ -17,7 +17,7 @@ require (
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.2.1
 	github.com/luxfi/codec v1.1.3
-	github.com/luxfi/consensus v1.22.62
+	github.com/luxfi/consensus v1.22.63
 	github.com/luxfi/constants v1.4.3
 	github.com/luxfi/crypto v1.17.40
 	github.com/luxfi/database v1.17.40
@@ -40,7 +40,7 @@ require (
 	github.com/luxfi/utils v1.1.4
 	github.com/luxfi/validators v1.0.0
 	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.0.26
+	github.com/luxfi/vm v1.0.27
 	github.com/luxfi/warp v1.18.5
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
