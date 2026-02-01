@@ -1664,7 +1664,10 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 func (bc *BlockChain) collectUnflattenedLogs(b *types.Block, removed bool) [][]*types.Log {
 	var blobGasPrice *big.Int
 	excessBlobGas := b.ExcessBlobGas()
-	if excessBlobGas != nil {
+	// Only calculate blob fee if Cancun fork is active AND block has ExcessBlobGas.
+	// Without the IsCancun check, CalcBlobFee panics with "calculating blob fee on unsupported fork"
+	// when blocks have ExcessBlobGas set but the chain config doesn't have Cancun enabled.
+	if excessBlobGas != nil && bc.chainConfig.IsCancun(b.Number(), b.Time()) {
 		blobGasPrice = eip4844.CalcBlobFee(bc.chainConfig, b.Header())
 	}
 	receipts := rawdb.ReadRawReceipts(bc.db, b.Hash(), b.NumberU64())

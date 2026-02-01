@@ -997,6 +997,55 @@ curl -X POST http://127.0.0.1:9630/ext/bc/<zoo-id>/admin \
 {"jsonrpc":"2.0","result":{"success":true,"blocksImported":799,"heightAfter":799}}
 ```
 
+## CalcBlobFee Panic Fix (2026-01-29)
+
+### Status: ✅ FIXED - EVM Plugin No Longer Panics During Chain Initialization
+
+Fixed a panic that occurred during EVM plugin initialization: `"calculating blob fee on unsupported fork"`.
+
+### Root Cause
+
+The `collectUnflattenedLogs()` function in `core/blockchain.go` was calling `eip4844.CalcBlobFee()` when a block had `ExcessBlobGas` set, but without checking if the Cancun fork was actually active. The `CalcBlobFee()` function panics if called on a chain without Cancun fork enabled.
+
+**Stack trace:**
+```
+CalcBlobFee() → collectUnflattenedLogs() → collectLogs() → reorg() →
+writeKnownBlock() → setPreference() → loadLastState() → NewBlockChain() → PANIC
+```
+
+### File Modified
+
+**`core/blockchain.go`** (lines 1667-1672):
+```go
+// Before (panics):
+if excessBlobGas != nil {
+    blobGasPrice = eip4844.CalcBlobFee(bc.chainConfig, b.Header())
+}
+
+// After (safe):
+// Only calculate blob fee if Cancun fork is active AND block has ExcessBlobGas.
+// Without the IsCancun check, CalcBlobFee panics with "calculating blob fee on unsupported fork"
+// when blocks have ExcessBlobGas set but the chain config doesn't have Cancun enabled.
+if excessBlobGas != nil && bc.chainConfig.IsCancun(b.Number(), b.Time()) {
+    blobGasPrice = eip4844.CalcBlobFee(bc.chainConfig, b.Header())
+}
+```
+
+### Why This Happened
+
+- Blocks may have `ExcessBlobGas` field set (e.g., from RLP imports or state sync)
+- Chain config may not have Cancun fork enabled (especially for legacy Lux networks)
+- The code assumed if `ExcessBlobGas != nil`, then Cancun must be active (wrong!)
+
+### Verification
+
+After the fix, EVM plugin initializes successfully without panic:
+```
+[EVM-DEBUG] parseGenesis succeeded: chainID=1337 alloc=16 accounts
+[EVM-DEBUG] initializeChain: eth.New succeeded
+[EVM-DEBUG] Chain initialized successfully
+```
+
 ## Post-Quantum Cryptography Precompiles (2025-12-24)
 
 ### Status: ✅ COMPLETE - All PQ Crypto Precompiles Implemented and Tested
@@ -1264,4 +1313,64 @@ All APIs responding after block import:
 
 ---
 
-*Last Updated: 2026-01-05*
+## ZAP Transport Type Assertion Fix (2026-01-29)
+
+### Status: ✅ FIXED - ZAP Transport Working for C-Chain (EVM)
+
+Fixed a type assertion failure where `*zap.Client` wasn't being recognized as `chain.ChainVM` in the node's chains manager type switch.
+
+### Problem
+
+When starting the network with ZAP transport (no gRPC), the C-Chain would fail with:
+```
+unsupported VM type: *zap.Client
+```
+
+The ZAP handshake succeeded, but the chains manager's type switch at `chains/manager.go:880` didn't match `*zap.Client` against `chain.ChainVM`.
+
+### Root Cause
+
+The issue was caused by the `go.work` workspace. With all packages (node, vm, consensus) using local versions via go.work, the type definitions must be consistent across all packages. If the packages were built at different times or with different states, the `chain.ChainVM` interface from `github.com/luxfi/vm/chain` wouldn't match.
+
+### Solution
+
+Rebuild all packages consistently within the go.work workspace:
+1. Build the node: `cd /Users/z/work/lux/node && go build -o build/luxd ./main`
+2. Build the EVM plugin: `cd /Users/z/work/lux/evm && go build -o ~/.lux/plugins/current/<VMID> ./plugin`
+
+### Verification
+
+After rebuilding, the C-Chain initializes successfully via ZAP:
+```
+plugin handshake succeeded via ZAP
+VM client connected via ZAP
+DEBUG: About to check VM type vmType=*zap.Client
+creating linear chain
+ZAP handleInitialize
+ZAP VM initialized successfully
+VM initialized via ZAP
+CHAIN CREATED SUCCESSFULLY chainAlias=C vmName=evm
+C-Chain automining ENABLED, starting automining loop
+```
+
+### Key Files
+
+- **`/Users/z/work/lux/node/chains/manager.go:880`** - Type switch that checks `chain.ChainVM`
+- **`/Users/z/work/lux/node/vms/rpcchainvm/zap/client.go`** - ZAP client that implements `chain.ChainVM`
+- **`/Users/z/work/lux/vm/chain/interfaces.go`** - Defines `chain.ChainVM` as alias to `block.ChainVM`
+- **`/Users/z/work/lux/go.work`** - Workspace file that includes all local packages
+
+### Key Insight
+
+With `go.work`, Go uses local package versions instead of published versions from the module cache. This means:
+- All packages must be built together for type consistency
+- The `chain.ChainVM` interface from the local vm package must match what the node imports
+- The compile-time check `var _ chain.ChainVM = (*Client)(nil)` in the ZAP client ensures interface compliance
+
+### Additional Notes
+
+The remaining network startup failures (optional chains K, G, Z, T, B, A, Q) are due to missing VM plugins for optional VMs (Key, Graph, ZK, Threshold, Bridge, AI, Quantum), not ZAP transport issues. Build with `-tags=allvms` to include these optional VMs.
+
+---
+
+*Last Updated: 2026-01-29*

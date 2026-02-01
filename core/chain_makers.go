@@ -357,7 +357,9 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			txs = txs[:len(receipts)]
 		}
 		var blobGasPrice *big.Int
-		if block.ExcessBlobGas() != nil {
+		// Only calculate blob fee if Cancun is active AND block has ExcessBlobGas.
+		// CalcBlobFee panics with "calculating blob fee on unsupported fork" otherwise.
+		if block.ExcessBlobGas() != nil && config.IsCancun(block.Number(), block.Time()) {
 			blobGasPrice = eip4844.CalcBlobFee(config, block.Header())
 		}
 		if err := receipts.DeriveFields(config, block.Hash(), block.NumberU64(), block.Time(), block.BaseFee(), blobGasPrice, txs); err != nil {

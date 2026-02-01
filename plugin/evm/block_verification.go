@@ -91,9 +91,9 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 		return errUnclesUnsupported
 	}
 
-	// Block must not be empty
+	// Block must not be empty (unless automining/dev mode is enabled)
 	txs := b.ethBlock.Transactions()
-	if len(txs) == 0 {
+	if len(txs) == 0 && !b.vm.config.EnableAutomining {
 		return errEmptyBlock
 	}
 
