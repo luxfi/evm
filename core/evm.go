@@ -69,7 +69,10 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		GasLimit:    header.GasLimit,
 		Random:      nil,
 		BlobBaseFee: func() *big.Int {
-			if chain != nil && chain.Config() != nil && header.ExcessBlobGas != nil {
+			// Only calculate blob fee if Cancun fork is active AND header has ExcessBlobGas.
+			// CalcBlobFee panics with "calculating blob fee on unsupported fork" otherwise.
+			if chain != nil && chain.Config() != nil && header.ExcessBlobGas != nil &&
+				chain.Config().IsCancun(header.Number, header.Time) {
 				return eip4844.CalcBlobFee(chain.Config(), header)
 			}
 			return nil
