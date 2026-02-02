@@ -16,7 +16,7 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.2.1
-	github.com/luxfi/codec v1.1.3
+	github.com/luxfi/codec v1.1.4
 	github.com/luxfi/consensus v1.22.62
 	github.com/luxfi/constants v1.4.3
 	github.com/luxfi/crypto v1.17.40
