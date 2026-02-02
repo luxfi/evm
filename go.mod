@@ -18,7 +18,7 @@ require (
 	github.com/luxfi/cache v1.2.1
 	github.com/luxfi/codec v1.1.3
 	github.com/luxfi/consensus v1.22.62
-	github.com/luxfi/constants v1.4.3
+	github.com/luxfi/constants v1.4.4
 	github.com/luxfi/crypto v1.17.40
 	github.com/luxfi/database v1.17.40
 	github.com/luxfi/filesystem v0.0.1
