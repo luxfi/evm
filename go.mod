@@ -20,7 +20,7 @@ require (
 	github.com/luxfi/consensus v1.22.67
 	github.com/luxfi/constants v1.4.4
 	github.com/luxfi/crypto v1.17.40
-	github.com/luxfi/database v1.17.42
+	github.com/luxfi/database v1.17.43
 	github.com/luxfi/filesystem v0.0.1
 	github.com/luxfi/geth v1.16.75
 	github.com/luxfi/go-bip39 v1.1.2
@@ -88,7 +88,7 @@ require (
 	github.com/luxfi/node v1.23.4 // indirect
 	github.com/luxfi/protocol v0.0.2 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
-	github.com/luxfi/zapdb/v4 v4.9.1 // indirect
+	github.com/luxfi/zapdb/v4 v4.9.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
