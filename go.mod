@@ -31,7 +31,7 @@ require (
 	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.5.0
 	github.com/luxfi/p2p v1.19.2-zap
-	github.com/luxfi/precompile v0.4.6
+	github.com/luxfi/precompile v0.4.7
 	github.com/luxfi/runtime v1.0.1
 	github.com/luxfi/sys v0.0.0-20260110090042-50187ec5ffd8
 	github.com/luxfi/timer v1.0.2
