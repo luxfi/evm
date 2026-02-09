@@ -16,11 +16,11 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.2.1
-	github.com/luxfi/codec v1.1.3
-	github.com/luxfi/consensus v1.22.62
-	github.com/luxfi/constants v1.4.3
+	github.com/luxfi/codec v1.1.4
+	github.com/luxfi/consensus v1.22.67
+	github.com/luxfi/constants v1.4.4
 	github.com/luxfi/crypto v1.17.40
-	github.com/luxfi/database v1.17.40
+	github.com/luxfi/database v1.17.42
 	github.com/luxfi/filesystem v0.0.1
 	github.com/luxfi/geth v1.16.75
 	github.com/luxfi/go-bip39 v1.1.2
@@ -29,18 +29,18 @@ require (
 	github.com/luxfi/math v1.2.3
 	github.com/luxfi/math/big v0.1.0
 	github.com/luxfi/math/safe v0.0.1
-	github.com/luxfi/metric v1.4.11
-	github.com/luxfi/p2p v1.18.9
+	github.com/luxfi/metric v1.5.0
+	github.com/luxfi/p2p v1.19.2-zap
 	github.com/luxfi/precompile v0.4.6
 	github.com/luxfi/runtime v1.0.1
 	github.com/luxfi/sys v0.0.0-20260110090042-50187ec5ffd8
-	github.com/luxfi/timer v1.0.1
+	github.com/luxfi/timer v1.0.2
 	github.com/luxfi/trace v0.1.4
 	github.com/luxfi/upgrade v1.0.0
 	github.com/luxfi/utils v1.1.4
 	github.com/luxfi/validators v1.0.0
 	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.0.26
+	github.com/luxfi/vm v1.0.33
 	github.com/luxfi/warp v1.18.5
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
@@ -73,7 +73,7 @@ require (
 	github.com/cockroachdb/tokenbucket v0.0.0-20250429170803-42689b6311bb // indirect
 	github.com/getsentry/sentry-go v0.40.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/google/renameio/v2 v2.0.1 // indirect
+	github.com/google/renameio/v2 v2.0.2 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -85,9 +85,10 @@ require (
 	github.com/luxfi/container v0.0.4 // indirect
 	github.com/luxfi/fhe v1.7.6-0.20260106060801-28e308e4c2f8 // indirect
 	github.com/luxfi/lattice/v7 v7.0.0 // indirect
-	github.com/luxfi/node v1.22.83 // indirect
+	github.com/luxfi/node v1.23.4 // indirect
 	github.com/luxfi/protocol v0.0.2 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
+	github.com/luxfi/zapdb/v4 v4.9.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
@@ -110,7 +111,6 @@ require (
 	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
 	github.com/crate-crypto/go-kzg-4844 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
-	github.com/dgraph-io/badger/v4 v4.9.0 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.4.0 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/dop251/goja v0.0.0-20251201205617-2bb4c724c0f9 // indirect
@@ -134,7 +134,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20251213031049-b05bdaca462f // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.4 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.5 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/klauspost/compress v1.18.3 // indirect
@@ -184,8 +184,8 @@ require (
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20251222181119-0a764e51fe1b // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251222181119-0a764e51fe1b // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260120221211-b8f7ae30c516 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
 	google.golang.org/grpc v1.78.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
