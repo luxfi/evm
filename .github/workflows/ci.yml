@@ -18,6 +18,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Checkout vm dependency
+      uses: actions/checkout@v4
+      with:
+        repository: luxfi/vm
+        path: ../vm
+        token: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
@@ -68,6 +75,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Checkout vm dependency
+      uses: actions/checkout@v4
+      with:
+        repository: luxfi/vm
+        path: ../vm
+        token: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
@@ -106,6 +120,13 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
     - uses: actions/checkout@v4
+
+    - name: Checkout vm dependency
+      uses: actions/checkout@v4
+      with:
+        repository: luxfi/vm
+        path: ../vm
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Go
       uses: actions/setup-go@v6
@@ -148,6 +169,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+
+    - name: Checkout vm dependency
+      uses: actions/checkout@v4
+      with:
+        repository: luxfi/vm
+        path: ../vm
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Go
       uses: actions/setup-go@v6
