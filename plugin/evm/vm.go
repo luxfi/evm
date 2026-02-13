@@ -885,10 +885,11 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		defer func() {
 			if r := recover(); r != nil {
 				debugLog("PANIC in eth.New: %v", r)
-				// Log stack trace
 				buf := make([]byte, 4096)
 				n := goruntime.Stack(buf, false)
 				debugLog("Stack trace:\n%s", string(buf[:n]))
+				// CRITICAL: Set err so the caller doesn't continue with nil vm.eth
+				err = fmt.Errorf("panic in eth.New: %v", r)
 			}
 		}()
 		vm.eth, err = eth.New(
@@ -1101,10 +1102,6 @@ func (vm *VM) SetState(_ context.Context, state uint32) error {
 	vm.vmLock.Lock()
 	defer vm.vmLock.Unlock()
 
-	// Debug: log the state values to verify iota constants
-	fmt.Printf("[EVM SetState] received state=%d, VMStateSyncing=%d, VMBootstrapping=%d, VMNormalOp=%d\n",
-		state, VMStateSyncing, VMBootstrapping, VMNormalOp)
-
 	switch VMState(state) {
 	case VMStateSyncing:
 		vm.bootstrapped.Set(false)
@@ -1114,8 +1111,7 @@ func (vm *VM) SetState(_ context.Context, state uint32) error {
 	case VMNormalOp:
 		return vm.onNormalOperationsStarted()
 	default:
-		return fmt.Errorf("unknown state: %v (VMStateSyncing=%d, VMBootstrapping=%d, VMNormalOp=%d)",
-			state, VMStateSyncing, VMBootstrapping, VMNormalOp)
+		return fmt.Errorf("unknown state: %d", state)
 	}
 }
 
