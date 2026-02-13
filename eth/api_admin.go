@@ -93,8 +93,8 @@ func (api *AdminAPI) ExportChain(file string, first *uint64, last *uint64) (bool
 }
 
 // ImportChain imports a blockchain from a local file.
+// State is committed periodically during import for restart-safety.
 func (api *AdminAPI) ImportChain(file string) (bool, error) {
-	// Make sure the can access the file to import
 	in, err := os.Open(file)
 	if err != nil {
 		return false, err
@@ -108,22 +108,20 @@ func (api *AdminAPI) ImportChain(file string) (bool, error) {
 		}
 	}
 
-	// Ensure genesis state is accessible before import
 	chain := api.eth.BlockChain()
 	if err := chain.EnsureGenesisState(); err != nil {
-		log.Error("ImportChain: failed to ensure genesis state", "error", err)
 		return false, fmt.Errorf("failed to ensure genesis state: %w", err)
 	}
 
-	// Run actual the import in pre-configured batches
 	stream := rlp.NewStream(reader, 0)
-
 	blocks, index := make([]*types.Block, 0, 2500), 0
 	var lastInsertedBlock *types.Block
-	log.Info("ImportChain: starting", "file", file, "currentBlock", chain.CurrentBlock().Number)
+	commitInterval := chain.CommitInterval()
+	var lastCommitHeight uint64
+
+	log.Info("ImportChain: starting", "file", file, "currentBlock", chain.CurrentBlock().Number, "commitInterval", commitInterval)
 
 	for batch := 0; ; batch++ {
-		// Load a batch of blocks from the input file
 		for len(blocks) < cap(blocks) {
 			block := new(types.Block)
 			if err := stream.Decode(block); err == io.EOF {
@@ -131,81 +129,57 @@ func (api *AdminAPI) ImportChain(file string) (bool, error) {
 			} else if err != nil {
 				return false, fmt.Errorf("block %d: failed to parse: %v", index, err)
 			}
-			// ignore the genesis block when importing blocks
 			if block.NumberU64() == 0 {
-				log.Info("ImportChain: skipping genesis block")
 				continue
 			}
 			blocks = append(blocks, block)
 			index++
 		}
 		if len(blocks) == 0 {
-			log.Info("ImportChain: no more blocks to load", "total", index)
 			break
 		}
 
-		log.Info("ImportChain: loaded batch", "batch", batch, "blocks", len(blocks), "firstNum", blocks[0].NumberU64())
-
-		// Always call InsertChain to ensure full transaction re-execution.
-		// InsertChain -> insertBlock handles ErrKnownBlock and still re-executes
-		// transactions to regenerate state and snapshots properly.
 		log.Info("ImportChain: inserting batch", "batch", batch, "blocks", len(blocks), "firstNum", blocks[0].NumberU64())
 		n, err := chain.InsertChain(blocks)
 		if err != nil {
 			return false, fmt.Errorf("batch %d: failed to insert after %d blocks: %v", batch, n, err)
 		}
-		log.Info("ImportChain: inserted", "batch", batch, "count", n)
 		if n > 0 {
 			lastInsertedBlock = blocks[n-1]
+			currentHeight := lastInsertedBlock.NumberU64()
+
+			if err := chain.SetLastAcceptedBlockDirect(lastInsertedBlock); err != nil {
+				return false, fmt.Errorf("failed to set last accepted block: %v", err)
+			}
+
+			// Periodically commit state trie to disk for restart-safety
+			if currentHeight-lastCommitHeight >= commitInterval {
+				log.Info("ImportChain: committing state", "block", currentHeight)
+				if err := chain.ForceCommitState(lastInsertedBlock); err != nil {
+					return false, fmt.Errorf("failed to commit state at block %d: %v", currentHeight, err)
+				}
+				lastCommitHeight = currentHeight
+			}
 		}
 		blocks = blocks[:0]
 	}
 
-	// Update the last accepted block so RPC queries can see imported blocks
 	if lastInsertedBlock != nil {
-		log.Info("ImportChain: setting last accepted", "block", lastInsertedBlock.NumberU64())
-		if err := chain.SetLastAcceptedBlockDirect(lastInsertedBlock); err != nil {
-			return false, fmt.Errorf("failed to set last accepted block: %v", err)
-		}
-
-		// CRITICAL FIX: Commit the imported state to disk
-		// Without this, the state trie is only in memory and will be lost on shutdown.
-		// This causes "required historical state unavailable" errors on restart.
-		log.Info("ImportChain: committing imported state", "block", lastInsertedBlock.NumberU64(), "root", lastInsertedBlock.Root())
-		if err := chain.AcceptImportedState(lastInsertedBlock); err != nil {
-			return false, fmt.Errorf("failed to commit imported state: %v", err)
-		}
-		log.Info("ImportChain: state committed successfully")
-
-		// Ensure txpool resets to the imported head so pending/executable sets are
-		// recomputed from the new canonical state.
-		if txPool := api.eth.TxPool(); txPool != nil {
-			if err := txPool.Sync(); err != nil {
-				log.Warn("ImportChain: txpool sync failed", "err", err)
-			} else {
-				log.Info("ImportChain: txpool sync completed")
+		// Final state commit
+		finalHeight := lastInsertedBlock.NumberU64()
+		if finalHeight > lastCommitHeight {
+			log.Info("ImportChain: final state commit", "block", finalHeight)
+			if err := chain.ForceCommitState(lastInsertedBlock); err != nil {
+				return false, fmt.Errorf("failed to commit final state: %v", err)
 			}
 		}
 
-		// CRITICAL: Call the post-import callback to update the VM layer's acceptedBlockDB.
-		// Without this, ReadLastAccepted() returns genesis hash on restart because
-		// acceptedBlockDB is not updated by the admin API import path.
-		//
-		// Run asynchronously to avoid deadlock: SetLastAcceptedBlockDirect holds chainmu.Lock(),
-		// and PostImportCallback may contend with P-chain/Info API locks. By returning success
-		// immediately after state commit and letting the callback complete in background,
-		// we prevent cross-chain mutex contention that causes API timeouts.
-		go func() {
-			if err := api.eth.CallPostImportCallback(lastInsertedBlock.Hash(), lastInsertedBlock.NumberU64()); err != nil {
-				log.Error("PostImportCallback failed", "error", err)
-				return
-			}
-			log.Info("ImportChain: post-import callback completed asynchronously")
-		}()
+		// Update VM layer via callback
+		if err := api.eth.CallPostImportCallback(lastInsertedBlock.Hash(), finalHeight); err != nil {
+			log.Warn("ImportChain: post-import callback failed", "error", err)
+		}
 
-		log.Info("ImportChain: completed", "lastBlock", lastInsertedBlock.NumberU64(), "total", index)
-	} else {
-		log.Info("ImportChain: no blocks imported", "total", index)
+		log.Info("ImportChain: completed", "blocks", index, "height", finalHeight)
 	}
 
 	return true, nil

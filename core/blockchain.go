@@ -1167,6 +1167,20 @@ func (bc *BlockChain) AcceptImportedState(block *types.Block) error {
 	return nil
 }
 
+// ForceCommitState commits the state trie for the given block directly to disk.
+// This bypasses the state manager's commit interval logic (cappedMemoryTrieWriter
+// only commits at commitInterval boundaries via modulo, which would miss most
+// commits during import). Used during block import to periodically persist state
+// so the node can safely restart without "required historical state unavailable" errors.
+func (bc *BlockChain) ForceCommitState(block *types.Block) error {
+	return bc.triedb.Commit(block.Root(), true)
+}
+
+// CommitInterval returns the configured commit interval for the blockchain.
+func (bc *BlockChain) CommitInterval() uint64 {
+	return bc.cacheConfig.CommitInterval
+}
+
 // EnsureGenesisState ensures that the genesis block state is accessible.
 // This is needed before importing blocks because the import validation
 // requires parent state to be accessible.
