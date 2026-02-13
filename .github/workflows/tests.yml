@@ -18,6 +18,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Checkout vm dependency
+        uses: actions/checkout@v5
+        with:
+          repository: luxfi/vm
+          path: ../vm
+          token: ${{ secrets.GITHUB_TOKEN }}
       - run: ./scripts/lint_allowed_eth_imports.sh
         shell: bash
       - uses: actions/setup-go@v6
@@ -48,6 +54,12 @@ jobs:
         os: [macos-latest, ubuntu-22.04, ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v5
+      - name: Checkout vm dependency
+        uses: actions/checkout@v5
+        with:
+          repository: luxfi/vm
+          path: ../vm
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25.5"
