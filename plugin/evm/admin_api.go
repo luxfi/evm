@@ -12,10 +12,10 @@ import (
 	"strings"
 
 	"github.com/luxfi/evm/core"
-	"github.com/luxfi/evm/eth"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/rlp"
+	"github.com/luxfi/ids"
 	log "github.com/luxfi/log"
 	"github.com/luxfi/metric/profiler"
 )
@@ -44,7 +44,8 @@ type ImportChainResult struct {
 	Message        string `json:"message,omitempty"`
 }
 
-// ImportChain imports a blockchain from a local file
+// ImportChain imports a blockchain from a local file.
+// State is committed periodically during import for restart-safety.
 // RPC: admin_importChain
 func (api *AdminAPI) ImportChain(ctx context.Context, file string) (*ImportChainResult, error) {
 	log.Info("admin_importChain called", "file", file)
@@ -61,39 +62,34 @@ func (api *AdminAPI) ImportChain(ctx context.Context, file string) (*ImportChain
 		return nil, fmt.Errorf("blockchain not initialized")
 	}
 
-	// Get chain state before import
-	currentBlock := chain.CurrentBlock()
-	genesisHash := chain.Genesis().Hash().Hex()
-	beforeNum := currentBlock.Number.Uint64()
+	beforeNum := chain.CurrentBlock().Number.Uint64()
 
-	// Import the chain from file
-	totalImported, err := importBlocksFromFile(chain, api.vm.eth, file)
+	// Import blocks with periodic state commits for restart-safety
+	totalImported, lastHash, lastHeight, err := importBlocksFromFile(chain, file)
 	if err != nil {
-		return nil, fmt.Errorf("import failed after %d blocks: %w", totalImported, err)
+		return nil, fmt.Errorf("import failed: %w", err)
 	}
 
-	// Get chain state after import
-	afterBlock := chain.CurrentBlock()
-	afterNum := afterBlock.Number.Uint64()
-
-	// Check if any blocks were actually imported
-	if totalImported == 0 {
-		return nil, fmt.Errorf("no blocks imported (before=%d, after=%d, genesis=%s)", beforeNum, afterNum, genesisHash)
+	// Update the VM layer's acceptedBlockDB so ReadLastAccepted returns
+	// the correct hash on restart. This is done synchronously since we
+	// hold vmLock (no chainmu contention).
+	var blkID ids.ID
+	copy(blkID[:], lastHash[:])
+	if err := api.vm.acceptedBlockDB.Put(lastAcceptedKey, blkID[:]); err != nil {
+		return nil, fmt.Errorf("failed to update acceptedBlockDB: %w", err)
 	}
-
-	if afterNum == beforeNum {
-		return nil, fmt.Errorf("block height unchanged after import: %d blocks parsed but height still %d", totalImported, afterNum)
+	if err := api.vm.versiondb.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit versiondb: %w", err)
 	}
+	log.Info("admin_importChain: acceptedBlockDB updated", "hash", lastHash.Hex(), "height", lastHeight)
 
-	result := &ImportChainResult{
+	return &ImportChainResult{
 		Success:        true,
 		BlocksImported: totalImported,
 		HeightBefore:   beforeNum,
-		HeightAfter:    afterNum,
-		Message:        fmt.Sprintf("imported %d blocks, height %d -> %d", totalImported, beforeNum, afterNum),
-	}
-	log.Info("admin_importChain: completed", "imported", totalImported, "height", afterNum)
-	return result, nil
+		HeightAfter:    lastHeight,
+		Message:        fmt.Sprintf("imported %d blocks, height %d -> %d", totalImported, beforeNum, lastHeight),
+	}, nil
 }
 
 // ExportChain exports a blockchain to a local file
@@ -214,18 +210,25 @@ func (api *AdminAPI) GetVMConfig(ctx context.Context) (interface{}, error) {
 	return &api.vm.config, nil
 }
 
-// importBlocksFromFile imports blocks from an RLP-encoded file
-func importBlocksFromFile(chain *core.BlockChain, eth *eth.Ethereum, file string) (int, error) {
+// importBlocksFromFile imports blocks from an RLP-encoded file.
+// It commits state to disk every CommitInterval blocks to ensure restart-safety.
+// Returns (blocksImported, lastBlockHash, lastBlockHeight, error).
+func importBlocksFromFile(chain *core.BlockChain, file string) (int, common.Hash, uint64, error) {
+	// Ensure genesis state is accessible before import
+	if err := chain.EnsureGenesisState(); err != nil {
+		return 0, common.Hash{}, 0, fmt.Errorf("failed to ensure genesis state: %w", err)
+	}
+
 	in, err := os.Open(file)
 	if err != nil {
-		return 0, fmt.Errorf("failed to open file: %w", err)
+		return 0, common.Hash{}, 0, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer in.Close()
 
 	var reader io.Reader = in
 	if strings.HasSuffix(file, ".gz") {
 		if reader, err = gzip.NewReader(reader); err != nil {
-			return 0, fmt.Errorf("failed to create gzip reader: %w", err)
+			return 0, common.Hash{}, 0, fmt.Errorf("failed to create gzip reader: %w", err)
 		}
 	}
 
@@ -234,7 +237,8 @@ func importBlocksFromFile(chain *core.BlockChain, eth *eth.Ethereum, file string
 	totalParsed := 0
 	totalImported := 0
 	skippedGenesis := false
-	var finalBlock *types.Block
+	commitInterval := chain.CommitInterval()
+	var lastCommitHeight uint64
 
 	for batch := 0; ; batch++ {
 		// Load a batch of blocks from the input file
@@ -243,9 +247,8 @@ func importBlocksFromFile(chain *core.BlockChain, eth *eth.Ethereum, file string
 			if err := stream.Decode(block); err == io.EOF {
 				break
 			} else if err != nil {
-				return totalImported, fmt.Errorf("block %d: failed to parse: %w", totalParsed, err)
+				return totalImported, common.Hash{}, 0, fmt.Errorf("block %d: failed to parse: %w", totalParsed, err)
 			}
-			// ignore the genesis block when importing blocks
 			if block.NumberU64() == 0 {
 				skippedGenesis = true
 				continue
@@ -256,71 +259,76 @@ func importBlocksFromFile(chain *core.BlockChain, eth *eth.Ethereum, file string
 
 		if len(blocks) == 0 {
 			if totalParsed == 0 && !skippedGenesis {
-				return 0, fmt.Errorf("no blocks found in file (possibly wrong format or empty)")
+				return 0, common.Hash{}, 0, fmt.Errorf("no blocks found in file")
 			}
 			break
 		}
 
-		// Get first block info for error messages
 		firstBlock := blocks[0]
 		firstNum := firstBlock.NumberU64()
 		parentHash := firstBlock.ParentHash().Hex()
 
-		// Check parent exists (for first block in batch)
+		// Verify parent block exists
 		if firstNum > 0 && !chain.HasBlock(firstBlock.ParentHash(), firstNum-1) {
-			// Check if parent is genesis
 			genesisHash := chain.Genesis().Hash()
 			if firstNum == 1 && firstBlock.ParentHash() != genesisHash {
-				return totalImported, fmt.Errorf("batch %d: block 1 parent mismatch - expected genesis %s, got %s",
+				return totalImported, common.Hash{}, 0, fmt.Errorf("batch %d: block 1 parent mismatch - expected genesis %s, got %s",
 					batch, genesisHash.Hex(), parentHash)
 			}
-			return totalImported, fmt.Errorf("batch %d: parent block missing - firstBlock=%d, parentHash=%s, hasGenesis=%v, skippedGenesis=%v, totalParsed=%d",
-				batch, firstNum, parentHash, chain.HasBlock(genesisHash, 0), skippedGenesis, totalParsed)
+			return totalImported, common.Hash{}, 0, fmt.Errorf("batch %d: parent block missing - firstBlock=%d, parentHash=%s",
+				batch, firstNum, parentHash)
 		}
 
-		// Import the batch
-		log.Info("admin_importChain: inserting batch", "batch", batch, "blocks", len(blocks), "firstNum", firstNum)
+		// Insert blocks
+		log.Info("ImportChain: inserting batch", "batch", batch, "blocks", len(blocks), "firstNum", firstNum)
 		n, err := chain.InsertChain(blocks)
 		if err != nil {
-			return totalImported, fmt.Errorf("batch %d: insert failed after %d of %d blocks - firstBlock=%d, parentHash=%s, error=%w",
-				batch, n, len(blocks), firstNum, parentHash, err)
+			return totalImported, common.Hash{}, 0, fmt.Errorf("batch %d: insert failed after %d blocks: %w", batch, n, err)
 		}
-		log.Info("admin_importChain: InsertChain completed", "batch", batch, "inserted", n)
 
-		// Set the last accepted block directly to make blocks queryable via RPC.
 		lastInsertedBlock := blocks[n-1]
+		currentHeight := lastInsertedBlock.NumberU64()
+
+		// Update last accepted so RPC can query imported blocks
 		if err := chain.SetLastAcceptedBlockDirect(lastInsertedBlock); err != nil {
-			return totalImported, fmt.Errorf("batch %d: failed to set last accepted block: %w", batch, err)
+			return totalImported, common.Hash{}, 0, fmt.Errorf("batch %d: failed to set last accepted: %w", batch, err)
 		}
-		log.Info("admin_importChain: blocks finalized", "batch", batch, "count", n, "lastAccepted", lastInsertedBlock.NumberU64())
+
+		// Periodically commit state trie to disk to ensure restart-safety.
+		// Without this, all trie nodes accumulate in memory and are lost on crash,
+		// causing "required historical state unavailable (reexec=8192)" on restart.
+		if currentHeight-lastCommitHeight >= commitInterval {
+			log.Info("ImportChain: committing state", "block", currentHeight)
+			if err := chain.ForceCommitState(lastInsertedBlock); err != nil {
+				return totalImported, common.Hash{}, 0, fmt.Errorf("failed to commit state at block %d: %w", currentHeight, err)
+			}
+			lastCommitHeight = currentHeight
+		}
 
 		totalImported += n
+		log.Info("ImportChain: batch done", "batch", batch, "imported", n, "total", totalImported, "height", currentHeight)
 		blocks = blocks[:0]
-
-		// Track final block for post-import callback
-		finalBlock = lastInsertedBlock
 	}
 
 	if totalImported == 0 {
-		return 0, fmt.Errorf("no blocks imported (parsed=%d)", totalParsed)
+		return 0, common.Hash{}, 0, fmt.Errorf("no blocks imported (parsed=%d)", totalParsed)
 	}
 
-	// CRITICAL: Call PostImportCallback to update acceptedBlockDB for persistence across restarts.
-	// Without this, the VM's lastAcceptedKey won't be updated, causing blocks to be lost on restart.
-	//
-	// Run asynchronously to avoid deadlock: SetLastAcceptedBlockDirect holds chainmu.Lock(),
-	// and PostImportCallback may contend with P-chain/Info API locks. By returning success
-	// immediately after state commit and letting the callback complete in background,
-	// we prevent cross-chain mutex contention that causes API timeouts.
-	if finalBlock != nil {
-		go func(hash common.Hash, height uint64) {
-			if err := eth.CallPostImportCallback(hash, height); err != nil {
-				log.Error("PostImportCallback failed", "error", err)
-				return
-			}
-			log.Info("admin_importChain: post-import callback completed asynchronously", "height", height)
-		}(finalBlock.Hash(), finalBlock.NumberU64())
+	// Final state commit to ensure the last blocks are persisted
+	finalBlock := chain.CurrentBlock()
+	finalHeight := finalBlock.Number.Uint64()
+	finalHash := finalBlock.Hash()
+	if finalHeight > lastCommitHeight {
+		log.Info("ImportChain: final state commit", "block", finalHeight)
+		finalFullBlock := chain.GetBlock(finalHash, finalHeight)
+		if finalFullBlock == nil {
+			return totalImported, common.Hash{}, 0, fmt.Errorf("final block %d not found after import", finalHeight)
+		}
+		if err := chain.ForceCommitState(finalFullBlock); err != nil {
+			return totalImported, common.Hash{}, 0, fmt.Errorf("failed to commit final state at block %d: %w", finalHeight, err)
+		}
 	}
 
-	return totalImported, nil
+	log.Info("ImportChain: completed", "imported", totalImported, "height", finalHeight)
+	return totalImported, finalHash, finalHeight, nil
 }

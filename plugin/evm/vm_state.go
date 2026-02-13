@@ -3,25 +3,20 @@
 
 package evm
 
-// VMState represents the lifecycle state of the VM.
-// Must match github.com/luxfi/vm State values:
-//   - Unknown = 0
-//   - Starting = 1
-//   - Syncing = 2
-//   - Bootstrapping = 3
-//   - Ready = 4
-//   - Degraded = 5
-//   - Stopping = 6
-//   - Stopped = 7
-type VMState uint8
+import "github.com/luxfi/vm"
 
+// VMState is the canonical VM lifecycle state from github.com/luxfi/vm.
+type VMState = vm.State
+
+// Re-export canonical state constants from github.com/luxfi/vm.
+// One and only one definition — these are aliases, not copies.
 const (
-	VMUnknown      VMState = iota // 0 - matches vm.Unknown
-	VMStarting                    // 1 - matches vm.Starting
-	VMStateSyncing                // 2 - matches vm.Syncing
-	VMBootstrapping               // 3 - matches vm.Bootstrapping
-	VMNormalOp                    // 4 - matches vm.Ready
-	VMDegraded                    // 5 - matches vm.Degraded
-	VMStopping                    // 6 - matches vm.Stopping
-	VMStopped                     // 7 - matches vm.Stopped
+	VMUnknown      = vm.Unknown      // 0
+	VMStarting     = vm.Starting     // 1
+	VMStateSyncing = vm.Syncing      // 2
+	VMBootstrapping = vm.Bootstrapping // 3
+	VMNormalOp     = vm.Ready        // 4
+	VMDegraded     = vm.Degraded     // 5
+	VMStopping     = vm.Stopping     // 6
+	VMStopped      = vm.Stopped      // 7
 )
