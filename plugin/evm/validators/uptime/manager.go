@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/validators/uptime"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/math/set"
 	"github.com/luxfi/timer/mockable"
+	"github.com/luxfi/validators/uptime"
 )
 
 // nodeUptime tracks uptime information for a single node
