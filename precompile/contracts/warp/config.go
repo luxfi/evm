@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"sort"
 
-	consensuscontext "github.com/luxfi/runtime"
-	validators "github.com/luxfi/validators"
 	"github.com/luxfi/constants"
 	evmconsensus "github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/precompile/precompileconfig"
@@ -20,6 +18,8 @@ import (
 	"github.com/luxfi/ids"
 	log "github.com/luxfi/log"
 	"github.com/luxfi/math"
+	consensuscontext "github.com/luxfi/runtime"
+	validators "github.com/luxfi/validators"
 	"github.com/luxfi/warp"
 	"github.com/luxfi/warp/payload"
 )
