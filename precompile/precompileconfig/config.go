@@ -7,9 +7,9 @@ package precompileconfig
 import (
 	"context"
 
-	"github.com/luxfi/vm/chain"
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/geth/common"
+	"github.com/luxfi/vm/chain"
 	"github.com/luxfi/warp"
 )
 
