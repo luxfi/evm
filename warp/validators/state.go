@@ -6,9 +6,9 @@ package validators
 import (
 	"context"
 
-	validators "github.com/luxfi/validators"
 	"github.com/luxfi/constants"
 	"github.com/luxfi/ids"
+	validators "github.com/luxfi/validators"
 )
 
 var _ validators.State = (*State)(nil)

@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/validators/uptime"
 	stateinterfaces "github.com/luxfi/evm/plugin/evm/validators/state/interfaces"
 	"github.com/luxfi/ids"
+	"github.com/luxfi/validators/uptime"
 )
 
 type ValidatorReader interface {
