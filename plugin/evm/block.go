@@ -23,8 +23,8 @@ import (
 	"github.com/luxfi/geth/core/types"
 
 	"github.com/luxfi/consensus/core/choices"
-	block "github.com/luxfi/vm/chain"
 	"github.com/luxfi/ids"
+	block "github.com/luxfi/vm/chain"
 )
 
 var (

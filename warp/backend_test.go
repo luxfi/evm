@@ -23,8 +23,8 @@ import (
 var (
 	networkID           uint32 = 54321
 	sourceChainID              = ids.GenerateTestID()
-	testSourceAddress          []byte
-	testPayload                = []byte("test")
+	testSourceAddress   []byte
+	testPayload         = []byte("test")
 	testUnsignedMessage *warp.UnsignedMessage
 )
 

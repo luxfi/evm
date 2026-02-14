@@ -7,10 +7,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/luxfi/ids"
 	"github.com/luxfi/runtime"
 	validators "github.com/luxfi/validators"
 	"github.com/luxfi/validators/validatorstest"
-	"github.com/luxfi/ids"
 )
 
 // EVMTestChainID is a evm specific chain ID for testing

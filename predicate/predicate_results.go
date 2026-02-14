@@ -9,10 +9,10 @@ import (
 
 	"github.com/luxfi/codec"
 	"github.com/luxfi/codec/linearcodec"
+	"github.com/luxfi/codec/wrappers"
 	"github.com/luxfi/constants"
 	"github.com/luxfi/evm/plugin/evm/upgrade/feewindow"
 	"github.com/luxfi/geth/common"
-	"github.com/luxfi/codec/wrappers"
 )
 
 const (

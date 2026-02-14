@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/luxfi/codec/wrappers"
 	"github.com/luxfi/evm/plugin/evm/customrawdb"
 	syncclient "github.com/luxfi/evm/sync/client"
 	"github.com/luxfi/evm/utils"
@@ -18,7 +19,6 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/trie"
 	log "github.com/luxfi/log"
-	"github.com/luxfi/codec/wrappers"
 )
 
 var (

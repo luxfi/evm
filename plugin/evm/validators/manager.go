@@ -9,15 +9,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/runtime"
-	luxvalidators "github.com/luxfi/validators"
 	"github.com/luxfi/database"
 	validators "github.com/luxfi/evm/plugin/evm/validators/state"
 	stateinterfaces "github.com/luxfi/evm/plugin/evm/validators/state/interfaces"
 	"github.com/luxfi/evm/plugin/evm/validators/uptime"
 	uptimeinterfaces "github.com/luxfi/evm/plugin/evm/validators/uptime/interfaces"
 	"github.com/luxfi/ids"
+	"github.com/luxfi/runtime"
 	"github.com/luxfi/timer/mockable"
+	luxvalidators "github.com/luxfi/validators"
 
 	log "github.com/luxfi/log"
 )

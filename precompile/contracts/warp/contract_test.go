@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/runtime"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/precompile/contract"
 	"github.com/luxfi/evm/precompile/precompiletest"
@@ -18,6 +17,7 @@ import (
 	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/math/set"
+	"github.com/luxfi/runtime"
 	agoUtils "github.com/luxfi/utils"
 	"github.com/luxfi/warp"
 	"github.com/luxfi/warp/payload"

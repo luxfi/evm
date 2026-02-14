@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"github.com/holiman/uint256"
+	"github.com/luxfi/codec/wrappers"
 	"github.com/luxfi/evm/utils/utilstest"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/geth/trie/trienode"
 	"github.com/luxfi/geth/triedb"
-	"github.com/luxfi/codec/wrappers"
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"

@@ -6,11 +6,11 @@ package core
 import (
 	"testing"
 
-	"github.com/luxfi/vm/chain"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/vm/chain"
 	"github.com/stretchr/testify/require"
 )
 

@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"time"
 
-	consensuscontext "github.com/luxfi/runtime"
 	"github.com/luxfi/constants"
 	luxdatabase "github.com/luxfi/database"
 	"github.com/luxfi/database/factory"
@@ -24,6 +23,7 @@ import (
 	"github.com/luxfi/ids"
 	log "github.com/luxfi/log"
 	metrics "github.com/luxfi/metric"
+	consensuscontext "github.com/luxfi/runtime"
 )
 
 const (

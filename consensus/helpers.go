@@ -6,9 +6,9 @@ package consensus
 import (
 	"context"
 
-	consensuscontext "github.com/luxfi/runtime"
 	"github.com/luxfi/crypto/bls"
 	"github.com/luxfi/ids"
+	consensuscontext "github.com/luxfi/runtime"
 )
 
 // Context keys for consensus-related values
