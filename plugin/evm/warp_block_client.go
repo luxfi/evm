@@ -6,10 +6,10 @@ package evm
 import (
 	"context"
 
-	nodeblock "github.com/luxfi/vm/chain"
 	"github.com/luxfi/database"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/ids"
+	nodeblock "github.com/luxfi/vm/chain"
 )
 
 // warpBlockClient wraps VM to provide the warp.BlockClient interface
