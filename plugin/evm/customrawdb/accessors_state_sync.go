@@ -6,11 +6,11 @@ package customrawdb
 import (
 	"encoding/binary"
 
+	"github.com/luxfi/codec/wrappers"
 	"github.com/luxfi/geth/common"
 	ethrawdb "github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/ethdb"
 	log "github.com/luxfi/log"
-	"github.com/luxfi/codec/wrappers"
 )
 
 // ReadSyncRoot reads the root corresponding to the main trie of an in-progress

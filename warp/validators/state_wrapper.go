@@ -6,9 +6,9 @@ package validators
 import (
 	"context"
 
+	"github.com/luxfi/ids"
 	consensuscontext "github.com/luxfi/runtime"
 	validators "github.com/luxfi/validators"
-	"github.com/luxfi/ids"
 )
 
 // ConsensusStateWrapper wraps consensuscontext.ValidatorState to implement validators.State
