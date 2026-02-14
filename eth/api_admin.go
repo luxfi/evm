@@ -38,8 +38,8 @@ import (
 
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/types"
-	log "github.com/luxfi/log"
 	"github.com/luxfi/geth/rlp"
+	log "github.com/luxfi/log"
 )
 
 // AdminAPI is the collection of Ethereum full node related APIs for node

@@ -11,12 +11,12 @@ type VMState = vm.State
 // Re-export canonical state constants from github.com/luxfi/vm.
 // One and only one definition — these are aliases, not copies.
 const (
-	VMUnknown      = vm.Unknown      // 0
-	VMStarting     = vm.Starting     // 1
-	VMStateSyncing = vm.Syncing      // 2
+	VMUnknown       = vm.Unknown       // 0
+	VMStarting      = vm.Starting      // 1
+	VMStateSyncing  = vm.Syncing       // 2
 	VMBootstrapping = vm.Bootstrapping // 3
-	VMNormalOp     = vm.Ready        // 4
-	VMDegraded     = vm.Degraded     // 5
-	VMStopping     = vm.Stopping     // 6
-	VMStopped      = vm.Stopped      // 7
+	VMNormalOp      = vm.Ready         // 4
+	VMDegraded      = vm.Degraded      // 5
+	VMStopping      = vm.Stopping      // 6
+	VMStopped       = vm.Stopped       // 7
 )
