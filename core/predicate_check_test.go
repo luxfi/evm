@@ -32,7 +32,7 @@ func TestCheckPredicate(t *testing.T) {
 	addr3 := common.HexToAddress("0xcc")
 	addr4 := common.HexToAddress("0xdd")
 	predicateContext := &precompileconfig.PredicateContext{
-		ProposerVMBlockCtx: &block.Context{
+		ProposerVMBlockCtx: &chain.Context{
 			PChainHeight: 10,
 		},
 	}
