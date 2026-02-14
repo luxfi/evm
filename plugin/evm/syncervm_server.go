@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	block "github.com/luxfi/vm/chain"
 	"github.com/luxfi/database"
+	block "github.com/luxfi/vm/chain"
 
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/plugin/evm/message"

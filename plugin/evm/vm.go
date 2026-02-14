@@ -83,16 +83,16 @@ import (
 
 	"github.com/luxfi/codec"
 	"github.com/luxfi/consensus/engine/chain/block"
-	"github.com/luxfi/runtime"
-	nodeblock "github.com/luxfi/vm/chain"
 	consensusmockable "github.com/luxfi/consensus/utils/timer/mockable"
 	"github.com/luxfi/database/versiondb"
+	"github.com/luxfi/filesystem/perms"
 	"github.com/luxfi/ids"
-	p2pversion "github.com/luxfi/version"
+	"github.com/luxfi/metric/profiler"
+	"github.com/luxfi/runtime"
 	nodemockable "github.com/luxfi/timer/mockable"
 	"github.com/luxfi/upgrade"
-	"github.com/luxfi/filesystem/perms"
-	"github.com/luxfi/metric/profiler"
+	p2pversion "github.com/luxfi/version"
+	nodeblock "github.com/luxfi/vm/chain"
 	nodeChain "github.com/luxfi/vm/components/chain"
 
 	luxJSON "github.com/luxfi/codec/jsonrpc"
@@ -194,8 +194,8 @@ var legacyApiNames = map[string]string{
 // warp.Signer is used directly from luxfi/warp - no adapters needed.
 
 type VM struct {
-	ctx     context.Context    // stdlib context for cancellation
-	runtime *runtime.Runtime   // chain wiring (IDs, validators, etc.)
+	ctx     context.Context  // stdlib context for cancellation
+	runtime *runtime.Runtime // chain wiring (IDs, validators, etc.)
 	// contextLock is used to coordinate global VM operations.
 	// This can be used safely instead of context.Context.Lock which is deprecated and should not be used in rpcchainvm.
 	vmLock sync.RWMutex
