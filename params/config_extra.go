@@ -14,6 +14,7 @@ import (
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/geth/common"
+	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/upgrade"
 )
 
@@ -134,6 +135,15 @@ func SetEthUpgrades(c *ChainConfig) error {
 
 	if etna := extra.EtnaTimestamp; etna != nil && *etna < unscheduledActivation {
 		c.CancunTime = utils.NewUint64(*etna)
+		// Cancun requires BlobScheduleConfig for CalcExcessBlobGas in block building.
+		// Without this, latestBlobConfig() returns nil causing a nil pointer panic.
+		if c.BlobScheduleConfig == nil {
+			c.BlobScheduleConfig = &ethparams.BlobScheduleConfig{
+				Cancun: ethparams.DefaultCancunBlobConfig,
+			}
+		} else if c.BlobScheduleConfig.Cancun == nil {
+			c.BlobScheduleConfig.Cancun = ethparams.DefaultCancunBlobConfig
+		}
 	}
 	return nil
 }
