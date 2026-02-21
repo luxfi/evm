@@ -209,7 +209,7 @@ github.com/luxfi/crypto v1.17.40 h1:+hDkGKuzYPac2vpbenFN+gKcPvFv3fXQ4ZAEHYDDt/Y=
 github.com/luxfi/crypto v1.17.40/go.mod h1:yz/86mgfby+aaf9hsHg8KIhHENueDsZpI9nnV+G4nW8=
 github.com/luxfi/database v1.17.43 h1:AuW2IDc/nofuqfdspqCn0P6FsP6uBcx8RMgJr2bDRU8=
 github.com/luxfi/database v1.17.43/go.mod h1:87bOpi6u0WAiHzBxPyxS/+pN1LJGqOY7QkyEZcI+7Kk=
-github.com/luxfi/fhe v1.7.6-0.20260106060801-28e308e4c2f8 h1:6il58xNX7pWP77PQBcUsNXI59q0HiTLcg5ieaqlwFb0=
+github.com/luxfi/fhe v1.7.6-0.20260106060801-28e308e4c2f8 h1:k1Ync/ofoyR+g89rWprIl2xosZTE4mCbq2CIfzd1+14=
 github.com/luxfi/fhe v1.7.6-0.20260106060801-28e308e4c2f8/go.mod h1:SVO5KV3GKMW5U0XeQSV4x7fryNWHsCjyhhhAoIPCpG8=
 github.com/luxfi/filesystem v0.0.1 h1:VZ6xMFKaAPBW/ddlMsDnI2G0VU1lV5rYaVcW5d+KwEY=
 github.com/luxfi/filesystem v0.0.1/go.mod h1:OQVSU6XNwqrr1AI+MqkID2taHUclx7NYmmr3svgttec=
@@ -265,6 +265,8 @@ github.com/luxfi/validators v1.0.0 h1:zE1HJM1lfvC+v1Lalg+MUgkKBGFWnwTfOOmXraiNnp
 github.com/luxfi/validators v1.0.0/go.mod h1:QGppjtI/gqprbplWc10J+4OIK8UYWpv+53mfH2aKhy4=
 github.com/luxfi/version v1.0.1 h1:T/1KYWEMmsrNQk7pN7PFPAwh/7XbeX7cFAKLBqI37Sk=
 github.com/luxfi/version v1.0.1/go.mod h1:Y5fPkQ2DB0XRBCxgSPXp4ISzL1/jptKnmFknShRJCyg=
+github.com/luxfi/vm v1.0.38 h1:wAZeHbmmTW37D57QzkF96kXOFLRJ9o2fv4qZq2QB5+Y=
+github.com/luxfi/vm v1.0.38/go.mod h1:agP1h8ArU+XnkItga0pS3xGSYhaqgsx1AzyaFAszo2I=
 github.com/luxfi/warp v1.18.5 h1:yXFCT+lnvzJHs8nVvfUCQ9wNvhtgbDGaXJkJeiwgKf4=
 github.com/luxfi/warp v1.18.5/go.mod h1:SFyC529HDvbP/TWRAdYQSyJUliMa5JKFRtBrTLEElp4=
 github.com/luxfi/zapdb/v4 v4.9.2 h1:QZnuFesQM9SMxOmB+U4WGmd7AGa8DXGIqAEbveO5jXA=
