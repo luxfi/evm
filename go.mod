@@ -40,7 +40,7 @@ require (
 	github.com/luxfi/utils v1.1.4
 	github.com/luxfi/validators v1.0.0
 	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.0.33
+	github.com/luxfi/vm v1.0.38
 	github.com/luxfi/warp v1.18.5
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
@@ -196,5 +196,3 @@ exclude (
 	github.com/luxfi/precompiles v0.1.10
 	github.com/luxfi/precompiles v0.1.11
 )
-
-replace github.com/luxfi/vm => ../vm
