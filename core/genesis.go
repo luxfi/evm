@@ -177,35 +177,57 @@ func SetupGenesisBlock(
 	if header != nil && header.Root != types.EmptyRootHash {
 		// Check if the root exists in the database
 		if _, err := triedb.NodeReader(header.Root); err != nil {
-			// State root doesn't exist, need to recommit genesis
-			log.Info("Genesis state not found, recommitting", "root", header.Root.Hex(), "err", err)
+			// Genesis state root is not accessible. This can happen for two reasons:
+			//
+			// 1. Fresh chain with external ancient store: genesis block exists but
+			//    state was never committed. Recommit is needed and safe.
+			//
+			// 2. Established chain after RLP import or long operation: genesis state
+			//    root has been pruned by pathdb (which only maintains recent state).
+			//    Recommitting would PANIC because pathdb's layer tree doesn't contain
+			//    the EmptyRootHash needed as a parent layer for genesis state creation.
+			//
+			// We distinguish these cases by checking if the chain has progressed
+			// past genesis (block 1+ exists). If so, genesis state pruning is
+			// expected and safe to skip.
+			block1Hash := rawdb.ReadCanonicalHash(db, 1)
+			if (block1Hash != common.Hash{}) {
+				// Chain has blocks beyond genesis - genesis state was pruned by pathdb.
+				// This is expected behavior after admin_importChain or normal operation.
+				// The current head state is what matters, not the genesis state.
+				log.Info("Genesis state pruned (expected for established chain)",
+					"genesisRoot", header.Root.Hex(),
+					"block1", block1Hash.Hex())
+			} else {
+				// Chain hasn't progressed past genesis - recommit is needed
+				log.Info("Genesis state not found, recommitting", "root", header.Root.Hex(), "err", err)
 
-			if genesis.Config == nil {
-				return nil, common.Hash{}, errGenesisNoConfig
-			}
-
-			// Recommit genesis - this will write the state trie
-			block, err := genesis.Commit(db, triedb)
-			if err != nil {
-				return genesis.Config, common.Hash{}, fmt.Errorf("failed to recommit genesis: %w", err)
-			}
-
-			// Verify state is now accessible
-			if _, verifyErr := triedb.NodeReader(header.Root); verifyErr != nil {
-				log.Warn("Genesis state still not accessible after recommit",
-					"expected_root", header.Root.Hex(),
-					"computed_root", block.Root().Hex())
-				// State was written but with different root - this is an alloc mismatch
-				if header.Root != block.Root() {
-					return genesis.Config, stored, fmt.Errorf(
-						"genesis alloc mismatch: expected stateRoot %s but got %s (alloc differs from original genesis)",
-						header.Root.Hex(), block.Root().Hex())
+				if genesis.Config == nil {
+					return nil, common.Hash{}, errGenesisNoConfig
 				}
-				return genesis.Config, stored, fmt.Errorf("genesis state not accessible after recommit: %w", verifyErr)
-			}
 
-			log.Info("Successfully recommitted genesis state", "root", header.Root.Hex())
-			return genesis.Config, stored, nil
+				// Recommit genesis - this will write the state trie
+				block, err := genesis.Commit(db, triedb)
+				if err != nil {
+					return genesis.Config, common.Hash{}, fmt.Errorf("failed to recommit genesis: %w", err)
+				}
+
+				// Verify state is now accessible
+				if _, verifyErr := triedb.NodeReader(header.Root); verifyErr != nil {
+					log.Warn("Genesis state still not accessible after recommit",
+						"expected_root", header.Root.Hex(),
+						"computed_root", block.Root().Hex())
+					if header.Root != block.Root() {
+						return genesis.Config, stored, fmt.Errorf(
+							"genesis alloc mismatch: expected stateRoot %s but got %s (alloc differs from original genesis)",
+							header.Root.Hex(), block.Root().Hex())
+					}
+					return genesis.Config, stored, fmt.Errorf("genesis state not accessible after recommit: %w", verifyErr)
+				}
+
+				log.Info("Successfully recommitted genesis state", "root", header.Root.Hex())
+				return genesis.Config, stored, nil
+			}
 		}
 	}
 	// Check whether the genesis block is already written.
