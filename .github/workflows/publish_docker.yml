@@ -15,6 +15,7 @@ jobs:
     uses: hanzoai/.github/.github/workflows/docker-build.yml@main
     with:
       image: ghcr.io/luxfi/evm
-
+      build-args: |
+        LUXD_NODE_IMAGE=ghcr.io/luxfi/node:latest
       runner-amd64: lux-build
     secrets: inherit
