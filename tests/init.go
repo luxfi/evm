@@ -265,7 +265,7 @@ func GetRepoRootPath(suffix string) string {
 	// target path (e.g. [repo root]./tests/warp) and getting the repo
 	// root will require stripping the target path suffix.
 	//
-	// TODO(marun) Avoid relying on the current working directory to find test
+	// NOTE:marun) Avoid relying on the current working directory to find test
 	// dependencies by embedding data where possible (e.g. for genesis) and
 	// explicitly configuring paths for execution.
 	cwd, err := os.Getwd()
