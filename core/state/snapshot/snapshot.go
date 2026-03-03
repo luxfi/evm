@@ -455,7 +455,7 @@ func (t *Tree) Flatten(blockHash common.Hash) error {
 	}
 
 	diff.lock.Lock()
-	// Invoke the hook if it's registered. Ugly hack.
+	// Invoke the onFlatten hook if registered (used for test synchronization).
 	if t.onFlatten != nil {
 		t.onFlatten()
 	}
@@ -489,7 +489,7 @@ func (t *Tree) Flatten(blockHash common.Hash) error {
 		}
 	}
 
-	// TODO add tracking of children to the snapshots to reduce overhead here.
+	// Children tracking is not maintained; rebuild the parent->children map on demand.
 	children := make(map[common.Hash][]common.Hash)
 	for blockHash, snap := range t.blockLayers {
 		if diff, ok := snap.(*diffLayer); ok {

@@ -98,15 +98,14 @@ type worker struct {
 	chain       *core.BlockChain
 
 	// Feeds
-	// TODO remove since this will never be written to
-	pendingLogsFeed event.Feed
+	pendingLogsFeed event.Feed // unused but retained for interface compatibility
 
 	// Subscriptions
-	mux        *event.TypeMux // TODO replace
+	mux        *event.TypeMux
 	mu         sync.RWMutex   // The lock used to protect the coinbase and extra fields
 	coinbase   common.Address
 	clock      *mockable.Clock // Allows us mock the clock for testing
-	beaconRoot *common.Hash    // TODO: set to empty hash, retained for upstream compatibility and future use
+	beaconRoot *common.Hash    // Retained for upstream compatibility; set to nil (unused by Lux)
 }
 
 func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, clock *mockable.Clock) *worker {
