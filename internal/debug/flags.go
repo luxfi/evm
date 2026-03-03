@@ -231,8 +231,7 @@ func Setup(ctx *cli.Context) error {
 		output = terminalOutput
 	}
 
-	// For now, just use terminal handler with the configured output
-	// TODO: Add support for different log formats when the logging library is updated
+	// Terminal handler is the only format supported by the current logging library.
 	useColor := (isatty.IsTerminal(os.Stderr.Fd()) || isatty.IsCygwinTerminal(os.Stderr.Fd())) && os.Getenv("TERM") != "dumb"
 	if useColor {
 		terminalOutput = colorable.NewColorableStderr()
