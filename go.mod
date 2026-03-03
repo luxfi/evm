@@ -201,6 +201,4 @@ exclude (
 	github.com/luxfi/precompiles v0.1.11
 )
 
-replace github.com/luxfi/geth => ../geth
 
-replace github.com/luxfi/gpu => ../gpu
