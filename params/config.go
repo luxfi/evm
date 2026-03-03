@@ -93,8 +93,7 @@ var (
 			MuirGlacierBlock:    big.NewInt(0),
 			BerlinBlock:         big.NewInt(0),
 			LondonBlock:         big.NewInt(0),
-			// TODO: Once upgrade API is stable, restore network-specific upgrade times
-			// For now, use InitiallyActiveTime for test networks
+			// Test networks activate all upgrades at genesis via InitiallyActiveTime.
 			ShanghaiTime: utils.TimeToNewUint64(InitiallyActiveTime),
 			CancunTime:   utils.TimeToNewUint64(InitiallyActiveTime),
 			BlobScheduleConfig: &ethparams.BlobScheduleConfig{

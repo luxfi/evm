@@ -183,8 +183,7 @@ func (api *FilterAPI) NewPendingTransactions(ctx context.Context, fullTx *bool) 
 		for {
 			select {
 			case txs := <-txs:
-				// To keep the original behaviour, send a single tx hash in one notification.
-				// TODO(rjl493456442) Send a batch of tx hashes in one notification
+				// Sends one notification per tx to preserve legacy client behavior.
 				latest := api.sys.backend.CurrentHeader()
 				for _, tx := range txs {
 					if fullTx != nil && *fullTx {
@@ -224,8 +223,7 @@ func (api *FilterAPI) NewAcceptedTransactions(ctx context.Context, fullTx *bool)
 		for {
 			select {
 			case txs := <-txs:
-				// To keep the original behaviour, send a single tx hash in one notification.
-				// TODO(rjl493456442) Send a batch of tx hashes in one notification
+				// Sends one notification per tx to preserve legacy client behavior.
 				latest := api.sys.backend.LastAcceptedBlock().Header()
 				for _, tx := range txs {
 					if fullTx != nil && *fullTx {

@@ -41,7 +41,7 @@ type Config struct {
 // DefaultConfig contains the default configurations for the transaction pool.
 var DefaultConfig = Config{
 	Datadir:   "blobpool",
-	Datacap:   10 * 1024 * 1024 * 1024 / 4, // TODO(karalabe): /4 handicap for rollout, gradually bump back up to 10GB
+	Datacap:   10 * 1024 * 1024 * 1024 / 4, // 2.5GB cap (conservative for initial rollout)
 	PriceBump: 100,                         // either have patience or be aggressive, no mushy ground
 }
 
