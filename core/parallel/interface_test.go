@@ -78,3 +78,48 @@ func TestInterfaceCompliance(t *testing.T) {
 	var _ BlockExecutor = DefaultExecutor()
 	var _ GPUAccelerator = DefaultGPU()
 }
+
+// TestFallbackGPUBatchEcrecoverReturnsNil verifies the CPU fallback returns
+// nil for all inputs (signaling "not handled").
+func TestFallbackGPUBatchEcrecoverReturnsNil(t *testing.T) {
+	gpu := fallbackGPU{}
+
+	// Non-nil but empty
+	result, err := gpu.BatchEcrecover([]*types.Transaction{})
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if result != nil {
+		t.Fatal("fallback GPU should return nil for empty input")
+	}
+
+	// Nil
+	result, err = gpu.BatchEcrecover(nil)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if result != nil {
+		t.Fatal("fallback GPU should return nil for nil input")
+	}
+}
+
+// TestFallbackGPUNotAvailable verifies the fallback reports unavailable.
+func TestFallbackGPUNotAvailable(t *testing.T) {
+	gpu := fallbackGPU{}
+	if gpu.Available() {
+		t.Fatal("fallback GPU must report not available")
+	}
+}
+
+// TestFallbackExecutorReturnsNilNil verifies the fallback executor
+// always returns (nil, nil) for any input.
+func TestFallbackExecutorReturnsNilNil(t *testing.T) {
+	exec := fallbackExecutor{}
+	receipts, err := exec.ExecuteBlock(nil, nil, nil, nil, vm.Config{})
+	if err != nil {
+		t.Fatalf("expected nil error, got: %v", err)
+	}
+	if receipts != nil {
+		t.Fatal("expected nil receipts from fallback executor")
+	}
+}
