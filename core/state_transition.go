@@ -483,13 +483,8 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		return nil, err
 	}
 
-	if tracer := st.evm.Config.Tracer; tracer != nil {
-		// TODO: Update to use OnTxStart/OnTxEnd with proper parameters
-		// tracer.OnTxStart(vmContext, tx, from)
-		// defer func() {
-		//     tracer.OnTxEnd(receipt, err)
-		// }()
-	}
+	// Tracer hooks OnTxStart/OnTxEnd are not yet wired; the tracing.Hooks
+	// API needs a full Transaction and receipt which are not available here.
 
 	var (
 		msg              = st.msg
