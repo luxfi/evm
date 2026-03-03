@@ -1,9 +1,37 @@
+# VCS and CI
+.git
 .ci
 .github
 .gitignore
-.golangci.yml
+
+# IDE
 .idea
 .vscode
 
-LICENSE
+# Linting and config
+.golangci.yml
+.goreleaser.yml
+.lux-golangci.yml
+.markdownlint.json
+.envrc
+license_header*.yml
+Taskfile.yml
+compatibility.json
+
+# Documentation
 *.md
+docs
+
+# Docker (avoid recursive context)
+Dockerfile
+
+# Test directories
+tests
+
+# Contracts (Solidity - not used in Go build)
+contracts
+
+# License files
+LICENSE
+COPYING*
+AUTHORS
