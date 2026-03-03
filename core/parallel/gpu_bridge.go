@@ -1,7 +1,7 @@
 // Copyright (C) 2025-2026, Lux Industries Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-//go:build cgo && darwin
+//go:build cgo && darwin && !nogpu
 
 // Bridge that connects the EVM parallel interface to the lux/gpu package.
 // Build with: CGO_ENABLED=1 go build -tags parallel,gpu
