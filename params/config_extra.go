@@ -21,8 +21,9 @@ import (
 const (
 	maxJSONLen = 64 * 1024 * 1024 // 64MB
 
-	// TODO: Value to pass to geth's Rules by default where the appropriate
-	// context is not available in the lux code. (similar to context.TODO())
+	// IsMergeTODO is the default merge flag passed to geth's Rules when the
+	// calling context does not have an explicit merge status. Lux treats
+	// all chains as post-merge. (Analogous to context.TODO().)
 	IsMergeTODO = true
 )
 
@@ -89,9 +90,9 @@ func (r RulesExtra) IsPrecompileEnabled(addr common.Address) bool {
 // SetEthUpgrades enables Ethereum network upgrades using the same time as
 // the Lux network upgrade that enables them.
 //
-// TODO: Prior to Cancun, Lux upgrades are referenced inline in the
-// code in place of their Ethereum counterparts. The original Ethereum names
-// should be restored for maintainability.
+// Prior to Cancun, Lux upgrades are referenced inline in place of their
+// Ethereum counterparts. The original Ethereum fork names should be restored
+// for long-term maintainability.
 func SetEthUpgrades(c *ChainConfig) error {
 	if c.HomesteadBlock == nil {
 		c.HomesteadBlock = big.NewInt(0)
@@ -199,8 +200,9 @@ type ChainConfigWithUpgradesJSON struct {
 // MarshalJSON implements json.Marshaler. This is a workaround for the fact that
 // the embedded ChainConfig struct has a MarshalJSON method, which prevents
 // the default JSON marshalling from working for UpgradeConfig.
-// TODO: consider removing this method by allowing external tag for the embedded
-// ChainConfig struct.
+// This custom MarshalJSON exists because the embedded ChainConfig has its own
+// MarshalJSON which shadows UpgradeConfig. An external JSON tag on the embedded
+// struct would remove the need for this override.
 func (cu *ChainConfigWithUpgradesJSON) MarshalJSON() ([]byte, error) {
 	// First get the extras
 	extra := GetExtra(&cu.ChainConfig)
@@ -298,9 +300,7 @@ func ToWithUpgradesJSON(c *ChainConfig) *ChainConfigWithUpgradesJSON {
 }
 
 func SetNetworkUpgradeDefaults(c *ChainConfig) {
-	// TODO: NetworkUpgrades field not available in current context.Context
-	// GetExtra(c).NetworkUpgrades.SetDefaults(GetExtra(c).ConsensusCtx.NetworkUpgrades)
-	// For now, set empty defaults with empty upgrade config
+	// NetworkUpgrades are not available via the consensus context; use empty defaults.
 	emptyUpgradeConfig := upgrade.Config{}
 	GetExtra(c).SetDefaults(emptyUpgradeConfig)
 }

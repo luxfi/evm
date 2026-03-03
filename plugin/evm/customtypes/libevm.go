@@ -10,12 +10,8 @@ import (
 	"github.com/luxfi/geth/rlp"
 )
 
-// TODO: RegisterExtras not available in current geth version
-// var extras = ethtypes.RegisterExtras[
-// 	HeaderExtra, *HeaderExtra,
-// 	ethtypes.NOOPBlockBodyHooks, *ethtypes.NOOPBlockBodyHooks,
-// 	noopStateAccountExtras,
-// ]()
+// ethtypes.RegisterExtras is not available in the current luxfi/geth version;
+// header extras are managed via the mock wrapper below.
 
 // Mock extras struct for compatibility with libevm-style API
 type mockExtras struct {

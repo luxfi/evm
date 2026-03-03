@@ -85,12 +85,10 @@ func packTopic(rule interface{}) (common.Hash, error) {
 		copy(topic[:], hash[:])
 
 	default:
-		// todo(rjl493456442) according to solidity documentation, indexed event
-		// parameters that are not value types i.e. arrays and structs are not
-		// stored directly but instead a keccak256-hash of an encoding is stored.
-		//
-		// We only convert strings and bytes to hash, still need to deal with
-		// array(both fixed-size and dynamic-size) and struct.
+		// Per Solidity spec, indexed event parameters that are not value types
+		// (arrays, structs) are stored as keccak256 of their ABI encoding.
+		// Currently only strings and bytes are converted; arrays and structs
+		// fall through to reflection-based handling below.
 
 		// Attempt to generate the topic from funky types
 		val := reflect.ValueOf(rule)

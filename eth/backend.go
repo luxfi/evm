@@ -211,7 +211,7 @@ func New(
 	// If the context is not set, avoid a panic. Only necessary during firewood use.
 	chainDataDir := ""
 	if ctx := params.GetExtra(config.Genesis.Config).ConsensusCtx; ctx != nil {
-		// TODO: Fix GetChainDataDir with new consensus interface
+		// Consensus context does not expose GetChainDataDir; use a default sub-path.
 		chainDataDir = filepath.Join(chainDataDir, "chain")
 	}
 
@@ -447,7 +447,6 @@ func (s *Ethereum) Start() {
 
 // Stop implements node.Lifecycle, terminating all internal goroutines used by the
 // Ethereum protocol.
-// FIXME remove error from type if this will never return an error
 func (s *Ethereum) Stop() error {
 	_ = s.bloomIndexer.Close()
 	close(s.closeBloomHandler)

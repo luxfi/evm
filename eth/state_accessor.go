@@ -79,8 +79,7 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 		if preferDisk {
 			// Create an ephemeral trie.Database for isolating the live one. Otherwise
 			// the internal junks created by tracing will be persisted into the disk.
-			// TODO(rjl493456442), clean cache is disabled to prevent memory leak,
-			// please re-enable it for better performance.
+			// Clean cache is disabled to prevent memory leak in long-running traces.
 			database = state.NewDatabaseWithConfig(eth.chainDb, triedb.HashDefaults)
 			if statedb, err = state.New(block.Root(), database, nil); err == nil {
 				log.Info("Found disk backend for state trie", "root", block.Root(), "number", block.Number())
@@ -196,9 +195,8 @@ func (eth *Ethereum) pathState(block *types.Block) (*state.StateDB, func(), erro
 	if err == nil {
 		return statedb, noopReleaser, nil
 	}
-	// TODO historic state is not supported in path-based scheme.
-	// Fully archive node in pbss will be implemented by relying
-	// on state history, but needs more work on top.
+	// Historic state is not yet supported in the path-based scheme.
+	// Full archive support requires state history replay.
 	return nil, nil, errors.New("historical state not available in path scheme yet")
 }
 

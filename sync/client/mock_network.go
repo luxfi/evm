@@ -15,7 +15,6 @@ import (
 
 var _ network.SyncedNetworkClient = (*mockNetwork)(nil)
 
-// TODO replace with gomock library
 type mockNetwork struct {
 	// captured request data
 	numCalls         uint
