@@ -214,26 +214,13 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 	if diff := new(big.Int).Sub(header.Number, parent.Number); diff.Cmp(big.NewInt(1)) != 0 {
 		return consensus.ErrInvalidNumber
 	}
-	// Verify the existence / non-existence of excessBlobGas
-	// NOTE: Lux networks do NOT use Ethereum beacon chain.
-	// ParentBeaconRoot is ALWAYS optional and must be nil or empty if present.
-	cancun := chain.Config().IsCancun(header.Number, header.Time)
-	if !cancun {
-		switch {
-		case header.ExcessBlobGas != nil:
-			return fmt.Errorf("invalid excessBlobGas: have %d, expected nil", *header.ExcessBlobGas)
-		case header.BlobGasUsed != nil:
-			return fmt.Errorf("invalid blobGasUsed: have %d, expected nil", *header.BlobGasUsed)
-		case header.ParentBeaconRoot != nil:
-			return fmt.Errorf("invalid parentBeaconRoot, have %#x, expected nil", *header.ParentBeaconRoot)
-		}
-	} else {
-		// Lux does NOT use Ethereum beacon chain or blob transactions
-		// Skip all Cancun-specific validation for historic block imports
-		// Only reject if blob gas was actually used (which shouldn't happen on Lux)
-		if header.BlobGasUsed != nil && *header.BlobGasUsed > 0 {
-			return fmt.Errorf("blobs not enabled on lux networks: used %d blob gas, expected 0", *header.BlobGasUsed)
-		}
+	// Verify excessBlobGas / blobGasUsed / parentBeaconRoot
+	// NOTE: Lux networks do NOT use Ethereum beacon chain or blob transactions.
+	// Allow ExcessBlobGas=0 and BlobGasUsed=0 regardless of Cancun activation,
+	// since Lux EVM blocks may include these zero-value fields.
+	// Only reject if blob gas was actually USED (non-zero), which should never happen.
+	if header.BlobGasUsed != nil && *header.BlobGasUsed > 0 {
+		return fmt.Errorf("blobs not enabled on lux networks: used %d blob gas, expected 0", *header.BlobGasUsed)
 	}
 	return nil
 }
