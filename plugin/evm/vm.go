@@ -1771,10 +1771,9 @@ func (vm *VM) readLastAccepted() (common.Hash, uint64, error) {
 	lastAcceptedBytes, lastAcceptedErr := vm.acceptedBlockDB.Get(lastAcceptedKey)
 	switch {
 	case lastAcceptedErr == database.ErrNotFound:
-		// If there is nothing in the database, return the genesis block hash and height
 		return vm.genesisHash, 0, nil
 	case lastAcceptedErr != nil:
-		return common.Hash{}, 0, fmt.Errorf("failed to get last accepted block ID due to: %w", lastAcceptedErr)
+		return common.Hash{}, 0, fmt.Errorf("failed to get last accepted block ID: %w", lastAcceptedErr)
 	case len(lastAcceptedBytes) != common.HashLength:
 		return common.Hash{}, 0, fmt.Errorf("last accepted bytes should have been length %d, but found %d", common.HashLength, len(lastAcceptedBytes))
 	default:

@@ -64,24 +64,26 @@ func (api *AdminAPI) ImportChain(ctx context.Context, file string) (*ImportChain
 
 	beforeNum := chain.CurrentBlock().Number.Uint64()
 
-	// Import blocks with periodic state commits for restart-safety
-	totalImported, lastHash, lastHeight, err := importBlocksFromFile(chain, file)
+	// Import blocks with periodic state commits. acceptedBlockDB is updated
+	// atomically with each state commit so there's no crash window where
+	// state is persisted but acceptedBlockDB is stale.
+	persistAccepted := func(hash common.Hash, height uint64) error {
+		var blkID ids.ID
+		copy(blkID[:], hash[:])
+		if err := api.vm.acceptedBlockDB.Put(lastAcceptedKey, blkID[:]); err != nil {
+			return fmt.Errorf("failed to update acceptedBlockDB: %w", err)
+		}
+		if err := api.vm.versiondb.Commit(); err != nil {
+			return fmt.Errorf("failed to commit versiondb: %w", err)
+		}
+		return nil
+	}
+
+	totalImported, lastHash, lastHeight, err := importBlocksFromFile(chain, file, persistAccepted)
 	if err != nil {
 		return nil, fmt.Errorf("import failed: %w", err)
 	}
-
-	// Update the VM layer's acceptedBlockDB so ReadLastAccepted returns
-	// the correct hash on restart. This is done synchronously since we
-	// hold vmLock (no chainmu contention).
-	var blkID ids.ID
-	copy(blkID[:], lastHash[:])
-	if err := api.vm.acceptedBlockDB.Put(lastAcceptedKey, blkID[:]); err != nil {
-		return nil, fmt.Errorf("failed to update acceptedBlockDB: %w", err)
-	}
-	if err := api.vm.versiondb.Commit(); err != nil {
-		return nil, fmt.Errorf("failed to commit versiondb: %w", err)
-	}
-	log.Info("admin_importChain: acceptedBlockDB updated", "hash", lastHash.Hex(), "height", lastHeight)
+	log.Info("admin_importChain: complete", "hash", lastHash.Hex(), "height", lastHeight)
 
 	return &ImportChainResult{
 		Success:        true,
@@ -212,8 +214,10 @@ func (api *AdminAPI) GetVMConfig(ctx context.Context) (interface{}, error) {
 
 // importBlocksFromFile imports blocks from an RLP-encoded file.
 // It commits state to disk every CommitInterval blocks to ensure restart-safety.
+// afterCommit is called after each state commit with the latest block hash and height,
+// allowing the caller to persist metadata (e.g. acceptedBlockDB) atomically with state.
 // Returns (blocksImported, lastBlockHash, lastBlockHeight, error).
-func importBlocksFromFile(chain *core.BlockChain, file string) (int, common.Hash, uint64, error) {
+func importBlocksFromFile(chain *core.BlockChain, file string, afterCommit func(common.Hash, uint64) error) (int, common.Hash, uint64, error) {
 	// Ensure genesis state is accessible before import
 	if err := chain.EnsureGenesisState(); err != nil {
 		return 0, common.Hash{}, 0, fmt.Errorf("failed to ensure genesis state: %w", err)
@@ -240,6 +244,13 @@ func importBlocksFromFile(chain *core.BlockChain, file string) (int, common.Hash
 	commitInterval := chain.CommitInterval()
 	var lastCommitHeight uint64
 
+	// Skip blocks already in the canonical chain (resume after crash/restart).
+	// The current head has committed state; blocks at or below it are already imported.
+	currentHead := chain.CurrentBlock().Number.Uint64()
+	if currentHead > 0 {
+		log.Info("ImportChain: resuming from current head", "head", currentHead)
+	}
+
 	for batch := 0; ; batch++ {
 		// Load a batch of blocks from the input file
 		for len(blocks) < cap(blocks) {
@@ -251,6 +262,10 @@ func importBlocksFromFile(chain *core.BlockChain, file string) (int, common.Hash
 			}
 			if block.NumberU64() == 0 {
 				skippedGenesis = true
+				continue
+			}
+			// Skip blocks already in the canonical chain
+			if block.NumberU64() <= currentHead {
 				continue
 			}
 			blocks = append(blocks, block)
@@ -302,6 +317,11 @@ func importBlocksFromFile(chain *core.BlockChain, file string) (int, common.Hash
 			if err := chain.ForceCommitState(lastInsertedBlock); err != nil {
 				return totalImported, common.Hash{}, 0, fmt.Errorf("failed to commit state at block %d: %w", currentHeight, err)
 			}
+			if afterCommit != nil {
+				if err := afterCommit(lastInsertedBlock.Hash(), currentHeight); err != nil {
+					return totalImported, common.Hash{}, 0, fmt.Errorf("afterCommit failed at block %d: %w", currentHeight, err)
+				}
+			}
 			lastCommitHeight = currentHeight
 		}
 
@@ -326,6 +346,11 @@ func importBlocksFromFile(chain *core.BlockChain, file string) (int, common.Hash
 		}
 		if err := chain.ForceCommitState(finalFullBlock); err != nil {
 			return totalImported, common.Hash{}, 0, fmt.Errorf("failed to commit final state at block %d: %w", finalHeight, err)
+		}
+		if afterCommit != nil {
+			if err := afterCommit(finalHash, finalHeight); err != nil {
+				return totalImported, common.Hash{}, 0, fmt.Errorf("afterCommit failed at final block %d: %w", finalHeight, err)
+			}
 		}
 	}
 

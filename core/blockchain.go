@@ -643,7 +643,13 @@ func (bc *BlockChain) startAcceptor() {
 		if err := bc.flattenSnapshot(func() error {
 			return bc.stateManager.AcceptTrie(next)
 		}, next.Hash()); err != nil {
-			log.Crit("unable to flatten snapshot from acceptor", "blockHash", next.Hash(), "err", err)
+			// "not supported" means the triedb backend (e.g. pathdb) doesn't implement Cap().
+			// This is non-fatal during fast-follow sync — log a warning and continue.
+			if strings.Contains(err.Error(), "not supported") {
+				log.Warn("snapshot flatten not supported by backend, skipping", "blockHash", next.Hash(), "err", err)
+			} else {
+				log.Crit("unable to flatten snapshot from acceptor", "blockHash", next.Hash(), "err", err)
+			}
 		}
 
 		// Ensure [hc.acceptedNumberCache] and [acceptedLogsCache] have latest content
@@ -1802,7 +1808,11 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 	}
 
 	// Delete any canonical number assignments above the new head
+	// Use chunked batches to avoid BadgerDB ErrTxnTooBig when many blocks are present
+	// (e.g., after RLP import of large chains).
+	const indexBatchSize = 1000
 	indexesBatch := bc.db.NewBatch()
+	batchCount := 0
 
 	// Use the height of [newHead] to determine which canonical hashes to remove
 	// in case the new chain is shorter than the old chain, in which case
@@ -1814,9 +1824,19 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 			break
 		}
 		rawdb.DeleteCanonicalHash(indexesBatch, i)
+		batchCount++
+		if batchCount >= indexBatchSize {
+			if err := indexesBatch.Write(); err != nil {
+				log.Crit("Failed to delete useless indexes", "err", err)
+			}
+			indexesBatch = bc.db.NewBatch()
+			batchCount = 0
+		}
 	}
-	if err := indexesBatch.Write(); err != nil {
-		log.Crit("Failed to delete useless indexes", "err", err)
+	if batchCount > 0 {
+		if err := indexesBatch.Write(); err != nil {
+			log.Crit("Failed to delete useless indexes", "err", err)
+		}
 	}
 
 	// Send out events for logs from the old canon chain, and 'reborn'
