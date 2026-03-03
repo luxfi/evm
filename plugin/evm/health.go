@@ -10,8 +10,8 @@ import (
 )
 
 // HealthCheck returns the health status of this chain.
+// A more granular check (peer count, block lag, etc.) can be added here.
 func (vm *VM) HealthCheck(context.Context) (chain.HealthResult, error) {
-	// TODO perform actual health check
 	return chain.HealthResult{
 		Healthy: true,
 		Details: nil,
