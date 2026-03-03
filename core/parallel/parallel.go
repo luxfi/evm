@@ -1,19 +1,16 @@
 // Copyright (C) 2025-2026, Lux Industries Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-//go:build parallel
-
-// When built with -tags parallel, this file provides the real Block-STM
-// executor and GPU accelerator by linking against github.com/luxfi/evmgpu.
+// Package parallel defines interfaces for optional parallel block execution
+// and GPU acceleration in the Lux EVM.
 //
-// The evmgpu package must implement:
-//   - parallel.RegisterExecutor(BlockExecutor)
-//   - parallel.RegisterGPU(GPUAccelerator)
+// No build tags required. GPU acceleration is auto-detected at init time:
+//   - darwin + CGo: Metal GPU via gpu_bridge.go
+//   - linux + CGo + CUDA: NVIDIA GPU (future)
+//   - otherwise: CPU sequential (zero overhead)
 //
-// via init() in its own bridge package, or this file can construct them
-// directly. For now we use a registration pattern so evmgpu controls its
-// own initialization.
-
+// The registration pattern allows platform-specific init() functions
+// to register GPU backends without import cycles.
 package parallel
 
 import (
@@ -33,7 +30,6 @@ var (
 )
 
 // RegisterExecutor sets the parallel block executor.
-// Called by evmgpu's init() when linked with -tags parallel.
 func RegisterExecutor(e BlockExecutor) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -41,7 +37,6 @@ func RegisterExecutor(e BlockExecutor) {
 }
 
 // RegisterGPU sets the GPU accelerator.
-// Called by evmgpu's init() when linked with -tags parallel,gpu.
 func RegisterGPU(g GPUAccelerator) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -70,8 +65,7 @@ func DefaultGPU() GPUAccelerator {
 	return fallbackGPU{}
 }
 
-// fallbackExecutor is used when -tags parallel is set but no executor
-// was registered (e.g., evmgpu not linked). Falls through to sequential.
+// fallbackExecutor falls through to sequential execution.
 type fallbackExecutor struct{}
 
 func (fallbackExecutor) ExecuteBlock(
@@ -84,7 +78,7 @@ func (fallbackExecutor) ExecuteBlock(
 	return nil, nil
 }
 
-// fallbackGPU is used when -tags parallel is set but no GPU was registered.
+// fallbackGPU is the no-op GPU accelerator.
 type fallbackGPU struct{}
 
 func (fallbackGPU) Available() bool { return false }
