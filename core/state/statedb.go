@@ -82,13 +82,8 @@ func (wp *workerPool) Done() {
 	wp.Wait()
 }
 
-// TODO: PrefetcherOption and WithWorkerPools seem to be removed from geth
-// func WithConcurrentWorkers(prefetchers int) ethstate.PrefetcherOption {
-// 	pool := &workerPool{
-// 		BoundedWorkers: utils.NewBoundedWorkers(prefetchers),
-// 	}
-// 	return ethstate.WithWorkerPools(func() ethstate.WorkerPool { return pool })
-// }
+// Concurrent prefetcher worker pools are not exposed by the current luxfi/geth
+// StateDB API; the workerPool wrapper above is used only via StateDB.Done.
 
 // GetState retrieves a value from the given account's storage trie.
 func (s *StateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
