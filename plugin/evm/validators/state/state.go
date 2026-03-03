@@ -190,7 +190,7 @@ func (s *state) DeleteValidator(vID ids.ID) error {
 
 // WriteState writes the updated state to the disk
 func (s *state) WriteState() error {
-	// TODO: consider adding batch size
+	// Batch size is unbounded; acceptable because the validator set is small.
 	batch := s.db.NewBatch()
 	for vID, updateStatus := range s.updatedData {
 		switch updateStatus {

@@ -50,7 +50,8 @@ type limboBlob struct {
 // blobs until they are finalized. The purpose is to support small reorgs, which
 // would require pulling back up old blobs (which aren't part of the chain).
 //
-// TODO(karalabe): Currently updating the inclusion block of a blob needs a full db rewrite. Can we do without?
+// Updating the inclusion block of a blob currently requires a full db rewrite
+// because billy does not support in-place updates.
 type limbo struct {
 	store billy.Database // Persistent data store for limboed blobs
 
