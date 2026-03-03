@@ -24,6 +24,7 @@ require (
 	github.com/luxfi/filesystem v0.0.1
 	github.com/luxfi/geth v1.16.77
 	github.com/luxfi/go-bip39 v1.1.2
+	github.com/luxfi/gpu v0.30.0
 	github.com/luxfi/ids v1.2.9
 	github.com/luxfi/log v1.4.1
 	github.com/luxfi/math v1.2.4
@@ -85,7 +86,6 @@ require (
 	github.com/luxfi/concurrent v0.0.3 // indirect
 	github.com/luxfi/container v0.0.4 // indirect
 	github.com/luxfi/fhe v1.7.6 // indirect
-	github.com/luxfi/gpu v0.30.0 // indirect
 	github.com/luxfi/lattice/v7 v7.0.0 // indirect
 	github.com/luxfi/node v1.23.4 // indirect
 	github.com/luxfi/protocol v0.0.2 // indirect
@@ -200,5 +200,3 @@ exclude (
 	github.com/luxfi/precompiles v0.1.10
 	github.com/luxfi/precompiles v0.1.11
 )
-
-
