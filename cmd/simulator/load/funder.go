@@ -27,7 +27,7 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 		return nil, fmt.Errorf("insufficient number of keys %d < %d", len(keys), numKeys)
 	}
 	fundedKeys := make([]*key.Key, 0, numKeys)
-	// TODO: clean up fund distribution.
+	// NOTE: clean up fund distribution.
 	needFundsKeys := make([]*key.Key, 0)
 	needFundsAddrs := make([]common.Address, 0)
 
