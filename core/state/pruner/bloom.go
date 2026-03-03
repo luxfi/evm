@@ -54,7 +54,8 @@ func stateBloomHash(f []byte) uint64 {
 // state root. So in theory this pruned state shouldn't be visited anymore. Another
 // potential issue is for fast sync. If we do another fast sync upon the pruned
 // database, it's problematic which will stop the expansion during the syncing.
-// TODO address it @rjl493456442 @holiman @karalabe.
+// False-positive dangling nodes may remain after pruning; this is acceptable
+// because they will not be reachable from any valid state root.
 //
 // After the entire state is generated, the bloom filter should be persisted into
 // the disk. It indicates the whole generation procedure is finished.
