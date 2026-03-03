@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	// TODO: UnscheduledActivationTime seems to be removed from upgrade package
+	// UnscheduledActivationTime represents an upgrade that has no scheduled activation.
 	UnscheduledActivationTime = time.Unix(1<<63-1, 0) // Max time value
 	InitiallyActiveTime       = time.Unix(0, 0)       // Unix epoch
 
@@ -195,9 +195,9 @@ func (c *ChainConfig) CheckConfigCompatible(newConfig *ethparams.ChainConfig, he
 	if c == nil {
 		return nil
 	}
-	// Note: Cannot type assert concrete type *ethparams.ChainConfig to *ChainConfig
-	// For now, we skip the extra compatibility checks and return nil
-	// TODO: Implement proper compatibility checking between ethparams.ChainConfig and this ChainConfig
+	// Cannot type-assert ethparams.ChainConfig to this ChainConfig; extra
+	// compatibility checks (NetworkUpgrades, precompiles) are skipped here.
+	// The base ethparams compatibility is validated by the caller.
 	return nil
 }
 

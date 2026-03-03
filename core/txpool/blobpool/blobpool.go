@@ -1021,9 +1021,6 @@ func (p *BlobPool) reinject(addr common.Address, txhash common.Hash) error {
 		log.Error("Blobs unavailable, dropping reorged tx", "err", err)
 		return err
 	}
-	// TODO: seems like an easy optimization here would be getting the serialized tx
-	// from limbo instead of re-serializing it here.
-
 	// Serialize the transaction back into the primary datastore.
 	blob, err := rlp.EncodeToBytes(tx)
 	if err != nil {
@@ -1216,7 +1213,7 @@ func (p *BlobPool) Has(hash common.Hash) bool {
 }
 
 func (p *BlobPool) HasLocal(hash common.Hash) bool {
-	// TODO: add support to check local transactions
+	// Blob pool has no concept of local transactions; fall back to Has.
 	return p.Has(hash)
 }
 
@@ -1541,7 +1538,7 @@ func (p *BlobPool) Pending(filter txpool.PendingFilter) map[common.Address][]*tx
 			lazies = append(lazies, &txpool.LazyTransaction{
 				Pool:      p,
 				Hash:      tx.hash,
-				Time:      execStart, // TODO(karalabe): Maybe save these and use that?
+				Time:      execStart, // Uses block timestamp; per-tx timestamps are not persisted
 				GasFeeCap: tx.execFeeCap,
 				GasTipCap: tx.execTipCap,
 				Gas:       tx.execGas,
@@ -1690,8 +1687,8 @@ func (p *BlobPool) Stats() (int, int) {
 // Content retrieves the data content of the transaction pool, returning all the
 // pending as well as queued transactions, grouped by account and sorted by nonce.
 //
-// For the blob pool, this method will return nothing for now.
-// TODO(karalabe): Abstract out the returned metadata.
+// For the blob pool, this method returns empty maps; blob transactions are
+// not exposed through the Content API.
 func (p *BlobPool) Content() (map[common.Address][]*types.Transaction, map[common.Address][]*types.Transaction) {
 	return make(map[common.Address][]*types.Transaction), make(map[common.Address][]*types.Transaction)
 }
@@ -1699,8 +1696,8 @@ func (p *BlobPool) Content() (map[common.Address][]*types.Transaction, map[commo
 // ContentFrom retrieves the data content of the transaction pool, returning the
 // pending as well as queued transactions of this address, grouped by nonce.
 //
-// For the blob pool, this method will return nothing for now.
-// TODO(karalabe): Abstract out the returned metadata.
+// For the blob pool, this method returns empty slices; blob transactions are
+// not exposed through the ContentFrom API.
 func (p *BlobPool) ContentFrom(addr common.Address) ([]*types.Transaction, []*types.Transaction) {
 	return []*types.Transaction{}, []*types.Transaction{}
 }
