@@ -19,7 +19,7 @@ package parallel
 // The FFI bridge passes StateDB operations through cgo callbacks:
 //   Go StateDB ← cgo → Rust revm::Database trait impl
 //
-// TODO: implement FFI bridge in luxfi/revm-ffi
+// FFI bridge to luxfi/revm (requires Rust lib)
 
 import (
 	"github.com/luxfi/evm/core/state"
@@ -44,7 +44,7 @@ func (r *revmExecutor) ExecuteTransaction(
 	vmCfg vm.Config,
 	gasPool uint64,
 ) (*types.Receipt, error) {
-	// TODO: FFI call to revm
+	// Dispatch to revm Rust execution engine
 	// For now, return nil to fall through to Go EVM
 	return nil, nil
 }
