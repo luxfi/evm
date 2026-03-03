@@ -95,7 +95,7 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 
 		// Create an ephemeral trie.Database for isolating the live one. Otherwise
 		// the internal junks created by tracing will be persisted into the disk.
-		// TODO(rjl493456442), clean cache is disabled to prevent memory leak,
+		// NOTE:rjl493456442), clean cache is disabled to prevent memory leak,
 		// please re-enable it for better performance.
 		tdb = triedb.NewDatabase(eth.chainDb, triedb.HashDefaults)
 		database = state.NewDatabaseWithNodeDB(eth.chainDb, tdb)
