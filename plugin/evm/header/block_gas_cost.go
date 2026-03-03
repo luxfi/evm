@@ -36,7 +36,7 @@ func BlockGasCost(
 	step := feeConfig.BlockGasCostStep.Uint64()
 	// Treat an invalid parent/current time combination as 0 elapsed time.
 	//
-	// TODO: Does it even make sense to handle this? The timestamp should be
+	// NOTE: Does it even make sense to handle this? The timestamp should be
 	// verified to ensure this never happens.
 	var timeElapsed uint64
 	if parent.Time <= timestamp {

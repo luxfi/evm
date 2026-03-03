@@ -264,7 +264,7 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 		}
 		predicateResults.SetTxResults(tx.Hash(), results)
 	}
-	// TODO: document required gas constraints to ensure marshalling predicate results does not error
+	// NOTE: document required gas constraints to ensure marshalling predicate results does not error
 	predicateResultsBytes, err := predicateResults.Bytes()
 	if err != nil {
 		return fmt.Errorf("failed to marshal predicate results: %w", err)
