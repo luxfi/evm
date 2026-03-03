@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # ============= Setting up base Stage ================
 # LUXD_NODE_IMAGE needs to identify an existing node image and should include the tag
 # This value is not intended to be used but silences a warning
@@ -16,7 +17,9 @@ ENV GONOSUMDB=github.com/luxfi/*
 ENV GONOPROXY=github.com/luxfi/*
 ENV GOFLAGS=-mod=mod
 # Download lux dependencies using go mod
-RUN go mod download && go mod tidy
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    go mod download && go mod tidy
 
 # Copy the code into the container
 COPY . .
@@ -46,7 +49,9 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ "$BUILDPLATFORM" != "linux/arm
 ARG EVM_COMMIT
 ARG CURRENT_BRANCH
 
-RUN . ./build_env.sh && \
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    . ./build_env.sh && \
   echo "{CC=$CC, TARGETPLATFORM=$TARGETPLATFORM, BUILDPLATFORM=$BUILDPLATFORM}" && \
   export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) && \
   export CURRENT_BRANCH=$CURRENT_BRANCH && \
