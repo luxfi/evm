@@ -28,7 +28,7 @@ func (db ethDbWrapper) Stat() (string, error) { return "", errors.New("stat not 
 func (db ethDbWrapper) NewBatch() ethdb.Batch { return &wrappedBatch{db.Database.NewBatch()} }
 
 // NewBatchWithSize implements ethdb.Database
-// TODO: propagate size through luxd Database interface
+// NOTE: propagate size through luxd Database interface
 func (db ethDbWrapper) NewBatchWithSize(size int) ethdb.Batch {
 	return &wrappedBatch{db.Database.NewBatch()}
 }
