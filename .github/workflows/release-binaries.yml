@@ -2,119 +2,67 @@ name: Release Binaries
 
 on:
   push:
-    tags:
-      - 'v*'
-  workflow_call:
+    tags: ['v*']
 
-env:
-  GOPRIVATE: github.com/luxfi/*
-  GONOSUMDB: github.com/luxfi/*
+permissions:
+  contents: write
 
 jobs:
   create-release:
-    runs-on: ubuntu-latest
+    runs-on: lux-amd64
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      upload_url: ${{ steps.release.outputs.upload_url }}
     steps:
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - uses: actions/create-release@v1
+        id: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
           draft: false
           prerelease: false
 
-  release-linux-amd64:
+  build:
     needs: create-release
-    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runner: lux-amd64
+          - os: linux
+            arch: arm64
+            runner: lux-arm64
+          - os: darwin
+            arch: amd64
+            runner: macos-13
+          - os: darwin
+            arch: arm64
+            runner: macos-14
+    runs-on: ${{ matrix.runner }}
+    env:
+      GONOSUMCHECK: '*'
+      GONOSUMDB: '*'
+      GOPRIVATE: 'github.com/luxfi/*'
+      GOPROXY: direct
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.26.1'
+          go-version: '1.26'
       - name: Build
         run: |
-          CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" GOOS=linux GOARCH=amd64 go build -v -ldflags "-X github.com/luxfi/evm/plugin/evm.Version=${{ github.ref_name }}" -o evm ./plugin
-          tar -czf evm-linux-amd64.tar.gz evm
-      - name: Upload Release Asset
+          CGO_ENABLED=1 CGO_CFLAGS="-O2 -D__BLST_PORTABLE__" \
+            go build -trimpath -ldflags="-s -w -X github.com/luxfi/evm/plugin/evm.Version=${{ github.ref_name }}" \
+            -o evm ./plugin
+          tar -czf evm-${{ matrix.os }}-${{ matrix.arch }}.tar.gz evm
+      - name: Upload
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./evm-linux-amd64.tar.gz
-          asset_name: evm-linux-amd64.tar.gz
-          asset_content_type: application/gzip
-
-  release-linux-arm64:
-    needs: create-release
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.26.1'
-      - name: Set up arm64 cross compiler
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install gcc-aarch64-linux-gnu
-      - name: Build
-        run: |
-          CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" GOOS=linux GOARCH=arm64 go build -v -ldflags "-X github.com/luxfi/evm/plugin/evm.Version=${{ github.ref_name }}" -o evm ./plugin
-          tar -czf evm-linux-arm64.tar.gz evm
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./evm-linux-arm64.tar.gz
-          asset_name: evm-linux-arm64.tar.gz
-          asset_content_type: application/gzip
-
-  release-darwin-amd64:
-    needs: create-release
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.26.1'
-      - name: Build
-        run: |
-          CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" GOOS=darwin GOARCH=amd64 go build -v -ldflags "-X github.com/luxfi/evm/plugin/evm.Version=${{ github.ref_name }}" -o evm ./plugin
-          tar -czf evm-darwin-amd64.tar.gz evm
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./evm-darwin-amd64.tar.gz
-          asset_name: evm-darwin-amd64.tar.gz
-          asset_content_type: application/gzip
-
-  release-darwin-arm64:
-    needs: create-release
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.26.1'
-      - name: Build
-        run: |
-          CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" GOOS=darwin GOARCH=arm64 go build -v -ldflags "-X github.com/luxfi/evm/plugin/evm.Version=${{ github.ref_name }}" -o evm ./plugin
-          tar -czf evm-darwin-arm64.tar.gz evm
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./evm-darwin-arm64.tar.gz
-          asset_name: evm-darwin-arm64.tar.gz
+          asset_path: evm-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
+          asset_name: evm-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
           asset_content_type: application/gzip
