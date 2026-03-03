@@ -145,7 +145,7 @@ func (c *Config) Accept(acceptCtx *precompileconfig.AcceptContext, blockHash com
 // 1. Base cost of the message
 // 2. Size of the message
 // 3. Number of signers
-// 4. TODO: Lookup of the validator set
+// 4. Lookup of the validator set
 //
 // If the payload of the warp message fails parsing, return a non-nil error invalidating the transaction.
 func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
