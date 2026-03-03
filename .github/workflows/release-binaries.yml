@@ -32,15 +32,6 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
-      - name: Checkout vm dependency
-        uses: actions/checkout@v5
-        with:
-          repository: luxfi/vm
-          path: vm-dep
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Link vm dependency
-        run: ln -s $GITHUB_WORKSPACE/vm-dep ../vm
-        shell: bash
       - uses: actions/setup-go@v6
         with:
           go-version: '1.26.1'
@@ -63,15 +54,6 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
-      - name: Checkout vm dependency
-        uses: actions/checkout@v5
-        with:
-          repository: luxfi/vm
-          path: vm-dep
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Link vm dependency
-        run: ln -s $GITHUB_WORKSPACE/vm-dep ../vm
-        shell: bash
       - uses: actions/setup-go@v6
         with:
           go-version: '1.26.1'
@@ -98,15 +80,6 @@ jobs:
     runs-on: macos-13
     steps:
       - uses: actions/checkout@v5
-      - name: Checkout vm dependency
-        uses: actions/checkout@v5
-        with:
-          repository: luxfi/vm
-          path: vm-dep
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Link vm dependency
-        run: ln -s $GITHUB_WORKSPACE/vm-dep ../vm
-        shell: bash
       - uses: actions/setup-go@v6
         with:
           go-version: '1.26.1'
@@ -129,15 +102,6 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v5
-      - name: Checkout vm dependency
-        uses: actions/checkout@v5
-        with:
-          repository: luxfi/vm
-          path: vm-dep
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Link vm dependency
-        run: ln -s $GITHUB_WORKSPACE/vm-dep ../vm
-        shell: bash
       - uses: actions/setup-go@v6
         with:
           go-version: '1.26.1'
