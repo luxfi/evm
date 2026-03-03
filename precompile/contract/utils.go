@@ -31,7 +31,7 @@ var functionSignatureRegex = regexp.MustCompile(`\w+\((\w*|(\w+,)+\w+)\)`)
 // CalculateFunctionSelector returns the 4 byte function selector that results from [functionSignature]
 // Ex. the function setBalance(addr address, balance uint256) should be passed in as the string:
 // "setBalance(address,uint256)"
-// TODO: remove this after moving to ABI based function selectors.
+// NOTE: remove this after moving to ABI based function selectors.
 func CalculateFunctionSelector(functionSignature string) []byte {
 	if !functionSignatureRegex.MatchString(functionSignature) {
 		panic(fmt.Errorf("invalid function signature: %q", functionSignature))

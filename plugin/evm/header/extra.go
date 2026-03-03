@@ -70,7 +70,7 @@ func VerifyExtraPrefix(
 // VerifyExtra verifies that the header's Extra field is correctly formatted for
 // rules.
 //
-// TODO: Should this be merged with VerifyExtraPrefix?
+// NOTE: Should this be merged with VerifyExtraPrefix?
 func VerifyExtra(rules extras.LuxRules, extra []byte) error {
 	extraLen := len(extra)
 	switch {

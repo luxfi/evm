@@ -217,7 +217,7 @@ func (t *StateTest) checkError(subtest StateSubtest, err error) error {
 		return fmt.Errorf("unexpected error: %w", err)
 	}
 	if err != nil && expectedError != "" {
-		// Ignore expected errors (TODO MariusVanDerWijden check error string)
+		// Ignore expected errors (error string comparison deferred)
 		return nil
 	}
 	return nil

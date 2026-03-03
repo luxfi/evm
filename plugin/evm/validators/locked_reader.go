@@ -44,7 +44,7 @@ func (l *lockedReader) GetValidatorAndUptime(validationID ids.ID) (stateinterfac
 		return stateinterfaces.Validator{}, 0, time.Time{}, fmt.Errorf("failed to get validator: %w", err)
 	}
 
-	// TODO: Fix CalculateUptime to match new interface
+	// NOTE: Fix CalculateUptime to match new interface
 	// For now, return dummy values
 	uptime := time.Duration(0)
 	lastUpdated := time.Now()

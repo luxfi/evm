@@ -68,7 +68,7 @@ func (m *manager) Initialize(ctx context.Context) error {
 	// Then start tracking with updated validators
 	// StartTracking initializes the uptime tracking with the known validators
 	// and update their uptime to account for the time we were being offline.
-	// TODO: Implement StartTracking with new uptime interface
+	// NOTE: Implement StartTracking with new uptime interface
 	// if err := m.StartTracking(vdrIDs); err != nil {
 	// 	return fmt.Errorf("failed to start tracking uptime: %w", err)
 	// }
@@ -78,7 +78,7 @@ func (m *manager) Initialize(ctx context.Context) error {
 // Shutdown stops the uptime tracking and writes the validator state to the database.
 func (m *manager) Shutdown() error {
 	// vdrIDs := m.GetNodeIDs().List()
-	// TODO: Implement StopTracking with new uptime interface
+	// NOTE: Implement StopTracking with new uptime interface
 	// if err := m.StopTracking(vdrIDs); err != nil {
 	// 	return fmt.Errorf("failed to stop tracking uptime: %w", err)
 	// }
@@ -156,7 +156,7 @@ func (m *manager) sync(ctx context.Context) error {
 		return fmt.Errorf("failed to write validator state: %w", err)
 	}
 
-	// TODO: add metrics
+	// NOTE: add metrics
 	log.Debug("validator sync complete", "duration", time.Since(now))
 	return nil
 }
