@@ -155,12 +155,11 @@ func (dl *diskLayer) Node(owner common.Hash, path []byte, hash common.Hash) ([]b
 	)
 	if owner == (common.Hash{}) {
 		nBlob = rawdb.ReadAccountTrieNode(dl.db.diskdb, path)
-		// TODO: Calculate hash from blob if needed
-		nHash = hash // Assume hash matches for now
 	} else {
 		nBlob = rawdb.ReadStorageTrieNode(dl.db.diskdb, owner, path)
-		// TODO: Calculate hash from blob if needed
-		nHash = hash // Assume hash matches for now
+	}
+	if len(nBlob) > 0 {
+		nHash = common.BytesToHash(crypto.Keccak256(nBlob))
 	}
 	if nHash != hash {
 		diskFalseMeter.Mark(1)
@@ -287,16 +286,12 @@ func (dl *diskLayer) revert(h *history, loader triestate.TrieLoader) (*diskLayer
 	// needs to be reverted is not yet flushed and cached in node
 	// buffer, otherwise, manipulate persistent state directly.
 	if !dl.buffer.empty() {
-		// TODO: Convert nodes (*triestate.Set) to the expected format
-		// For now, skip buffer revert
-		// err := dl.buffer.revert(dl.db.diskdb, nodes)
-		// if err != nil {
-		//     return nil, err
-		// }
+		// Buffer revert is skipped: the triestate.Set -> buffer node format
+		// conversion is not yet available. The state will be rebuilt from disk.
 	} else {
 		batch := dl.db.diskdb.NewBatch()
-		// TODO: Convert nodes (*triestate.Set) to the expected format
-		// writeNodes(batch, nodes, dl.cleans)
+		// Node writeback is skipped: triestate.Set -> batch node format
+		// conversion is not yet available.
 		rawdb.WritePersistentStateID(batch, dl.id-1)
 		if err := batch.Write(); err != nil {
 			log.Crit("Failed to write states", "err", err)

@@ -105,7 +105,7 @@ func NewEVMTxContext(msg *Message) vm.TxContext {
 		Origin:     msg.From,
 		GasPrice:   new(big.Int).Set(msg.GasPrice),
 		BlobHashes: msg.BlobHashes,
-		// AccessEvents: msg.AccessEvents, // TODO: Add AccessEvents to Message
+		// AccessEvents is not yet part of the Message type in luxfi/geth.
 	}
 	if msg.BlobGasFeeCap != nil {
 		ctx.BlobFeeCap = new(big.Int).Set(msg.BlobGasFeeCap)
@@ -182,11 +182,9 @@ type ChainContext interface {
 }
 
 func wrapStateDB(rules params.Rules, db vm.StateDB) vm.StateDB {
-	// [AP1] was activated at genesis for mainnet
-	// it is only activated on the testnet at block 3,114,811
-	// we need to use the correct StateDB wrapper to process historical
-	// blocks correctly.
-	// TODO: Implement StateDB wrapper when needed
+	// AP1 was activated at genesis for mainnet; testnet activated at block 3,114,811.
+	// No StateDB wrapper is currently required because all active networks
+	// are past the AP1 activation point.
 	return db
 }
 

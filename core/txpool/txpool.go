@@ -39,7 +39,7 @@ import (
 	"github.com/luxfi/geth/event"
 	log "github.com/luxfi/log"
 
-	// "github.com/luxfi/metric" // TODO: Add metrics support
+	// Metrics support via luxfi/metric is not yet integrated.
 	"github.com/luxfi/evm/core"
 )
 
@@ -157,11 +157,6 @@ func (p *TxPool) reserver(id int, subpool SubPool) AddressReserver {
 				return ErrAlreadyReserved
 			}
 			p.reservations[addr] = subpool
-			// TODO: Add metrics support for luxfi/metric
-			// if metrics.Enabled {
-			// 	m := fmt.Sprintf("%s/%d", reservationsGaugeName, id)
-			// 	metrics.GetOrRegisterGauge(m, nil).Inc(1)
-			// }
 			return nil
 		}
 		// Ensure subpools only attempt to unreserve their own owned addresses,
@@ -175,11 +170,6 @@ func (p *TxPool) reserver(id int, subpool SubPool) AddressReserver {
 			return errors.New("address not owned")
 		}
 		delete(p.reservations, addr)
-		// TODO: Add metrics support for luxfi/metric
-		// if metrics.Enabled {
-		// 	m := fmt.Sprintf("%s/%d", reservationsGaugeName, id)
-		// 	metrics.GetOrRegisterGauge(m, nil).Dec(1)
-		// }
 		return nil
 	}
 }
