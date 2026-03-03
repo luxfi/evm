@@ -199,14 +199,29 @@ func SetupGenesisBlock(
 					"genesisRoot", header.Root.Hex(),
 					"block1", block1Hash.Hex())
 			} else {
-				// Chain hasn't progressed past genesis - recommit is needed
-				log.Info("Genesis state not found, recommitting", "root", header.Root.Hex(), "err", err)
+				// Chain hasn't progressed past genesis - recommit may be needed.
+				// For PathDB: genesis.Commit() panics if EmptyRootHash is not a parent layer
+				// in the PathDB layer tree. This only happens when PathDB has already committed
+				// blocks beyond genesis (post-import-crash: AcceptorTip > genesis hash).
+				// For fresh PathDB (AcceptorTip empty or at genesis), EmptyRootHash IS the
+				// disk layer and recommit is safe.
+				if triedb.Scheme() == rawdb.PathScheme {
+					acceptorTip, _ := customrawdb.ReadAcceptorTip(db)
+					if acceptorTip != (common.Hash{}) && acceptorTip != stored {
+						log.Warn("Genesis state not accessible with PathDB - skipping recommit (post-import-crash recovery)",
+							"root", header.Root.Hex(), "acceptorTip", acceptorTip.Hex())
+						return genesis.Config, stored, nil
+					}
+					// Fresh PathDB: EmptyRootHash is the disk layer, recommit is safe
+				}
 
 				if genesis.Config == nil {
 					return nil, common.Hash{}, errGenesisNoConfig
 				}
 
-				// Recommit genesis - this will write the state trie
+				log.Info("Genesis state not found, recommitting", "root", header.Root.Hex(), "err", err)
+
+				// Recommit genesis state trie to database
 				block, err := genesis.Commit(db, triedb)
 				if err != nil {
 					return genesis.Config, common.Hash{}, fmt.Errorf("failed to recommit genesis: %w", err)
