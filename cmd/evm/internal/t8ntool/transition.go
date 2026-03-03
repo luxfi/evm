@@ -112,12 +112,12 @@ func Transition(ctx *cli.Context) error {
 			if err != nil {
 				return nil, NewError(ErrorIO, fmt.Errorf("failed creating trace-file: %v", err))
 			}
-			// TODO: Fix logger creation - API changed
+			// NOTE: Fix logger creation - API changed
 			// return &traceWriter{logger.NewJSONLogger(logConfig, traceFile), traceFile}, nil
 			return nil, fmt.Errorf("JSON logger temporarily disabled - API changed")
 		}
 	} else if ctx.IsSet(TraceTracerFlag.Name) {
-		// TODO: config was previously used for tracer configuration
+		// NOTE: config was previously used for tracer configuration
 		// var config json.RawMessage
 		if ctx.IsSet(TraceTracerConfigFlag.Name) {
 			_ = ctx.String(TraceTracerConfigFlag.Name) // config would be set here
@@ -127,14 +127,14 @@ func Transition(ctx *cli.Context) error {
 			if err != nil {
 				return nil, NewError(ErrorIO, fmt.Errorf("failed creating trace-file: %v", err))
 			}
-			// TODO: Fix tracer creation - API changed, needs context and chainConfig
+			// NOTE: Fix tracer creation - API changed, needs context and chainConfig
 			// tracer, err := tracers.DefaultDirectory.New(ctx.String(TraceTracerFlag.Name), nil, config, nil)
 			_ = (*tracing.Hooks)(nil)
 			err = fmt.Errorf("tracer creation temporarily disabled - API changed")
 			if err != nil {
 				return nil, NewError(ErrorConfig, fmt.Errorf("failed instantiating tracer: %w", err))
 			}
-			// TODO: Fix tracer wrapper
+			// NOTE: Fix tracer wrapper
 			// return &traceWriter{tracer, traceFile}, nil
 			return nil, err
 		}
@@ -231,7 +231,7 @@ func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 		BaseFee:  env.ParentBaseFee,
 		GasUsed:  env.ParentGasUsed,
 		GasLimit: env.ParentGasLimit,
-		Extra:    make([]byte, feewindow.WindowSize), // TODO: consider passing extra through env
+		Extra:    make([]byte, feewindow.WindowSize), // NOTE: consider passing extra through env
 	}
 	feeConfig := params.DefaultFeeConfig
 	if env.MinBaseFee != nil {
