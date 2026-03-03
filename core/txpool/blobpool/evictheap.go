@@ -86,7 +86,7 @@ func (h *evictHeap) reinit(basefee *uint256.Int, blobfee *uint256.Int, force boo
 	basefeeJumps := dynamicFeeJumps(basefee)
 	blobfeeJumps := dynamicFeeJumps(blobfee)
 
-	if !force && math.Abs(h.basefeeJumps-basefeeJumps) < 0.01 && math.Abs(h.blobfeeJumps-blobfeeJumps) < 0.01 { // TODO(karalabe): 0.01 enough, maybe should be smaller? Maybe this optimization is moot?
+	if !force && math.Abs(h.basefeeJumps-basefeeJumps) < 0.01 && math.Abs(h.blobfeeJumps-blobfeeJumps) < 0.01 {
 		return
 	}
 	// One or both of the dynamic fees jumped, resort the pool

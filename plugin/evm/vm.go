@@ -333,8 +333,7 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	}
 	vm.chainAlias = alias
 
-	// Create a logger since consensus Context doesn't have Log field
-	// TODO: Integrate with proper logging from consensus package
+	// Create a logger since consensus Context doesn't expose a Log field.
 	contextLogger := log.New()
 	logWriter := newLoggerWriter(contextLogger)
 	evmLogger, err := log.InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, logWriter)
@@ -1007,7 +1006,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		skipResume:           vm.config.StateSyncSkipResume,
 		stateSyncMinBlocks:   vm.config.StateSyncMinBlocks,
 		stateSyncRequestSize: vm.config.StateSyncRequestSize,
-		lastAcceptedHeight:   lastAcceptedHeight, // TODO clean up how this is passed around
+		lastAcceptedHeight:   lastAcceptedHeight,
 		chaindb:              vm.chaindb,
 		metadataDB:           vm.metadataDB,
 		acceptedBlockDB:      vm.acceptedBlockDB,
@@ -1449,12 +1448,8 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nod
 	// Verify is called on a non-wrapped block here, such that this
 	// does not add [blk] to the processing blocks map in ChainState.
 	//
-	// TODO cache verification since Verify() will be called by the
-	// consensus engine as well.
-	//
-	// Note: this is only called when building a new block, so caching
-	// verification will only be a significant optimization for nodes
-	// that produce a large number of blocks.
+	// Verification is repeated by the consensus engine; caching the result
+	// would only benefit high-throughput block producers.
 	// We call verify without writes here to avoid generating a reference
 	// to the blk state root in the triedb when we are going to call verify
 	// again from the consensus engine with writes enabled.
@@ -1861,10 +1856,7 @@ func (vm *VM) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
 	vm.vmLock.Lock()
 	defer vm.vmLock.Unlock()
 
-	// TODO: Fix Disconnect with new validator manager interface
-	// if err := vm.validatorsManager.Disconnect(nodeID); err != nil {
-	// 	return fmt.Errorf("uptime manager failed to disconnect node %s: %w", nodeID, err)
-	// }
+	// Validator manager does not yet expose a Disconnect method.
 
 	return vm.Network.Disconnected(ctx, nodeID)
 }
@@ -1893,7 +1885,8 @@ func (vm *VM) StateSyncEnabled(ctx context.Context) (bool, error) {
 
 // GetOngoingSyncStateSummary implements the StateSyncableVM interface
 func (vm *VM) GetOngoingSyncStateSummary(ctx context.Context) (nodeblock.StateSummary, error) {
-	// TODO: Implement ongoing sync support
+	// Ongoing sync resumption is not implemented; return ErrNotFound to
+	// signal that no in-progress summary exists.
 	return nil, database.ErrNotFound
 }
 

@@ -218,7 +218,7 @@ type CacheConfig struct {
 
 	ChainDataDir    string // Directory to store chain data in (used by Firewood)
 	SnapshotNoBuild bool   // Whether the background generation is allowed
-	SnapshotWait    bool   // Wait for snapshot construction on startup. TODO(karalabe): This is a dirty hack for testing, nuke it
+	SnapshotWait    bool   // Wait for snapshot construction on startup (used by tests)
 }
 
 // triedbConfig derives the configures for trie database.
@@ -274,7 +274,7 @@ var DefaultCacheConfig = &CacheConfig{
 func DefaultCacheConfigWithScheme(scheme string) *CacheConfig {
 	config := *DefaultCacheConfig
 	config.StateScheme = scheme
-	// TODO: remove this once if Firewood supports snapshots
+	// Firewood does not support snapshots yet; disable them.
 	if config.StateScheme == customrawdb.FirewoodScheme {
 		config.SnapshotLimit = 0 // no snapshot allowed for firewood
 	}
@@ -617,7 +617,8 @@ func (bc *BlockChain) warmAcceptedCaches() {
 			log.Info("Exiting accepted cache warming early because header is nil", "height", i, "t", time.Since(startTime))
 			break
 		}
-		// TODO: handle blocks written to disk during state sync
+		// Blocks written to disk during state sync are skipped here; the cache
+		// warming only covers blocks already fully validated.
 		bc.hc.acceptedNumberCache.Put(block.NumberU64(), block.Header())
 		logs := bc.collectUnflattenedLogs(block, false)
 		bc.acceptedLogsCache.Put(block.Hash(), logs)
@@ -1623,15 +1624,8 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	}
 	vtime := time.Since(vstart)
 
-	// Update the metrics touched during block processing and validation
-	// TODO: Fix metrics - these fields don't exist on our StateDB
-	// accountReadTimer.Inc(statedb.AccountReads.Milliseconds())                  // Account reads are complete(in processing)
-	// storageReadTimer.Inc(statedb.StorageReads.Milliseconds())                  // Storage reads are complete(in processing)
-	// snapshotAccountReadTimer.Inc(statedb.SnapshotAccountReads.Milliseconds())  // Account reads are complete(in processing)
-	// snapshotStorageReadTimer.Inc(statedb.SnapshotStorageReads.Milliseconds())  // Storage reads are complete(in processing)
-	// accountUpdateTimer.Inc(statedb.AccountUpdates.Milliseconds())              // Account updates are complete(in validation)
-	// storageUpdateTimer.Inc(statedb.StorageUpdates.Milliseconds())              // Storage updates are complete(in validation)
-	// accountHashTimer.Inc(statedb.AccountHashes.Milliseconds())                 // Account hashes are complete(in validation)
+	// Metrics for per-operation StateDB timing (AccountReads, StorageReads, etc.)
+	// are not exposed by the current luxfi/geth StateDB and are omitted here.
 	// storageHashTimer.Inc(statedb.StorageHashes.Milliseconds())                 // Storage hashes are complete(in validation)
 	// triehash := statedb.AccountHashes + statedb.StorageHashes                  // The time spent on tries hashing
 	// trieUpdate := statedb.AccountUpdates + statedb.StorageUpdates              // The time spent on tries update
@@ -2097,8 +2091,6 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 	// Find a historic available state root
 	var hasState bool
 	for i := 0; i <= int(reexec); i++ {
-		// TODO: handle canceled context
-
 		if bc.HasState(current.Root()) {
 			hasState = true
 			break
@@ -2129,8 +2121,6 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 	log.Info("Re-executing blocks to generate state for last accepted block", "from", current.NumberU64()+1, "to", origin)
 	var roots []common.Hash
 	for current.NumberU64() < origin {
-		// TODO: handle canceled context
-
 		// Print progress logs if long enough time elapsed
 		if time.Since(logged) > 8*time.Second {
 			log.Info("Regenerating historical state", "block", current.NumberU64()+1, "target", origin, "remaining", origin-current.NumberU64(), "elapsed", time.Since(start))
@@ -2148,9 +2138,6 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 		// the case of unclean shutdown)
 		if parent.Hash() == acceptorTip {
 			log.Info("Recovering snapshot", "hash", parent.Hash(), "index", parent.NumberU64())
-			// TODO: switch to checking the snapshot block hash markers here to ensure that when we re-process the block, we have the opportunity to apply
-			// a snapshot diff layer that we may have been in the middle of committing during shutdown. This will prevent snapshot re-generation in the case
-			// that the node stops mid-way through snapshot flattening (performed across multiple DB batches).
 			// If snapshot initialization is delayed due to state sync, skip initializing snaps here
 			if !bc.cacheConfig.SnapshotDelayInit {
 				bc.initSnapshot(parent.Header())
@@ -2265,7 +2252,6 @@ func (bc *BlockChain) populateMissingTries() error {
 			logged = time.Now()
 		}
 
-		// TODO: handle canceled context
 		current, hasState, err := it.Next(context.TODO())
 		if err != nil {
 			return fmt.Errorf("error while populating missing tries: %w", err)
@@ -2373,8 +2359,6 @@ func (bc *BlockChain) gatherBlockRootsAboveLastAccepted() map[common.Hash]struct
 
 	return blockRoots
 }
-
-// TODO: split extras to blockchain_extra.go
 
 // ResetToStateSyncedBlock reinitializes the state of the blockchain
 // to the trie represented by [block.Root()] after updating

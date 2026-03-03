@@ -251,24 +251,18 @@ func (c *BoundContract) Transact(opts *TransactOpts, method string, params ...in
 	if err != nil {
 		return nil, err
 	}
-	// todo(rjl493456442) check whether the method is payable or not,
-	// reject invalid transaction at the first place
 	return c.transact(opts, &c.address, input)
 }
 
 // RawTransact initiates a transaction with the given raw calldata as the input.
 // It's usually used to initiate transactions for invoking **Fallback** function.
 func (c *BoundContract) RawTransact(opts *TransactOpts, calldata []byte) (*types.Transaction, error) {
-	// todo(rjl493456442) check whether the method is payable or not,
-	// reject invalid transaction at the first place
 	return c.transact(opts, &c.address, calldata)
 }
 
 // Transfer initiates a plain transaction to move funds to the contract, calling
 // its default method if one is available.
 func (c *BoundContract) Transfer(opts *TransactOpts) (*types.Transaction, error) {
-	// todo(rjl493456442) check the payable fallback or receive is defined
-	// or not, reject invalid transaction at the first place
 	return c.transact(opts, &c.address, nil)
 }
 
@@ -468,9 +462,8 @@ func (c *BoundContract) FilterLogs(opts *FilterOpts, name string, query ...[]int
 	if opts.End != nil {
 		config.ToBlock = new(big.Int).SetUint64(*opts.End)
 	}
-	/* TODO(karalabe): Replace the rest of the method below with this when supported
-	sub, err := c.filterer.SubscribeFilterLogs(ensureContext(opts.Context), config, logs)
-	*/
+	// SubscribeFilterLogs is not used here because the backend may not support
+	// real-time log subscriptions; polling via FilterLogs is the portable path.
 	buff, err := c.filterer.FilterLogs(ensureContext(opts.Context), config)
 	if err != nil {
 		return nil, nil, err

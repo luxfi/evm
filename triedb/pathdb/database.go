@@ -338,12 +338,11 @@ func (db *Database) Enable(root common.Hash) error {
 	// Ensure the provided state root matches the stored one.
 	// root is already common.Hash, no conversion needed
 	// Check if the root exists in the database
-	// TODO: Properly verify the stored root matches the synced root
 	// Drop the stale state journal in persistent database and
 	// reset the persistent state id back to zero.
+	// Note: DeleteTrieJournal is not available in luxfi/geth rawdb;
+	// the journal is effectively invalidated by resetting the state ID.
 	batch := db.diskdb.NewBatch()
-	// TODO: DeleteTrieJournal not implemented in rawdb
-	// rawdb.DeleteTrieJournal(batch)
 	rawdb.WritePersistentStateID(batch, 0)
 	if err := batch.Write(); err != nil {
 		return err

@@ -18,8 +18,8 @@ import (
 // InspectDatabase traverses the entire database and checks the size
 // of all different categories of data.
 func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
-	// For now, just delegate to the standard rawdb.InspectDatabase
-	// TODO: Add custom statistics tracking for evm-specific data
+	// Delegates to the standard rawdb.InspectDatabase; EVM-specific
+	// statistics (BlockGasCost keys, etc.) are not broken out separately.
 	return rawdb.InspectDatabase(db, keyPrefix, keyStart)
 }
 

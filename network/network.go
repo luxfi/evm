@@ -221,9 +221,10 @@ func (n *Network) Gossip(msg []byte) error {
 	return n.sender.SendGossip(ctx, p2p.SendConfig{NodeIDs: nodeIDs}, msg)
 }
 
-// TrackBandwidth records bandwidth usage for a peer
+// TrackBandwidth records bandwidth usage for a peer.
+// Bandwidth metrics are not yet instrumented; this is a no-op placeholder
+// required by the network interface.
 func (n *Network) TrackBandwidth(nodeID ids.NodeID, bandwidth float64) {
-	// TODO: Implement bandwidth tracking metrics
 }
 
 // AppResponse handles an incoming response

@@ -22,7 +22,6 @@ var (
 	mockBlockParser EthBlockParser = &testBlockParser{}
 )
 
-// TODO replace with gomock library
 type MockClient struct {
 	codec          codec.Manager
 	leafsHandler   *handlers.LeafsRequestHandler
@@ -121,7 +120,7 @@ func (ml *MockClient) GetBlocks(ctx context.Context, blockHash common.Hash, heig
 		return nil, err
 	}
 
-	client := &client{blockParser: mockBlockParser} // Hack to avoid duplicate code
+	client := &client{blockParser: mockBlockParser} // Reuse client.parseBlocks for mock response decoding
 	blocksRes, numBlocks, err := client.parseBlocks(ml.codec, request, response)
 	if err != nil {
 		return nil, err

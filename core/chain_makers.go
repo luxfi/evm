@@ -112,8 +112,7 @@ func (b *BlockGen) SetParentBeaconRoot(root common.Hash) {
 	b.header.ParentBeaconRoot = &root
 	blockContext := NewEVMBlockContext(b.header, b.cm, &b.header.Coinbase)
 	vmConfig := vm.Config{}
-	// TODO: StatefulPrecompileHook disabled - type not available in luxfi/geth
-	// vmConfig.StatefulPrecompileHook = NewStatefulPrecompileHook(b.cm.config, nil, b.cm.ConsensusContext())
+	// StatefulPrecompileHook is not yet exposed by luxfi/geth.
 	vmenv := vm.NewEVM(blockContext, b.statedb, b.cm.config, vmConfig)
 	ProcessBeaconBlockRoot(root, vmenv, b.statedb)
 }

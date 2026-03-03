@@ -43,16 +43,10 @@ func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, req *client.GetC
 			return fmt.Errorf("couldn't find validator with validation ID %s", vID)
 		}
 
-		// TODO: Fix IsConnected with new validator manager interface
-		isConnected := false // api.vm.validatorsManager.IsConnected(validator.NodeID)
-
-		// TODO: Fix CalculateUptime with new validator manager interface
+		// Validator manager does not yet expose IsConnected/CalculateUptime.
+		isConnected := false
 		upDuration := time.Duration(0)
-		_ = time.Now() // lastUpdated
-		// upDuration, lastUpdated, err := api.vm.validatorsManager.CalculateUptime(validator.NodeID)
-		// if err != nil {
-		// 	return err
-		// }
+		_ = time.Now()
 		var uptimeFloat float64
 		startTime := time.Unix(int64(validator.StartTimestamp), 0)
 		bestPossibleUpDuration := time.Since(startTime)

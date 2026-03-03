@@ -82,7 +82,7 @@ func (s *BlockChainAPI) GetBadBlocks(ctx context.Context) ([]*BadBlockArgs, erro
 			blockJSON map[string]interface{}
 		)
 		if rlpBytes, err := rlp.EncodeToBytes(block); err != nil {
-			blockRlp = err.Error() // Hacky, but hey, it works
+			blockRlp = err.Error() // Surface encoding error as the RLP string
 		} else {
 			blockRlp = fmt.Sprintf("%#x", rlpBytes)
 		}

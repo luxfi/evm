@@ -620,8 +620,7 @@ func (h *handler) handleCall(cp *callProc, msg *jsonrpcMessage) *jsonrpcMessage 
 			successfulRequestGauge.Inc(1)
 		}
 		rpcServingTimer.UpdateSince(start)
-		// TODO: Add expensive metrics support
-		// updateServeTimeHistogram(msg.Method, answer.Error == nil, time.Since(start))
+		// Per-method serve time histograms are not yet instrumented.
 	}
 
 	return answer
