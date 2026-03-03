@@ -257,6 +257,17 @@ func SetupGenesisBlock(
 	// We can't recreate the exact hash without the original state, so we trust the stored genesis
 	// Get the existing chain configuration.
 	newcfg := genesis.Config
+	if newcfg.CancunTime != nil {
+		if newcfg.BlobScheduleConfig == nil {
+			newcfg.BlobScheduleConfig = &ethparams.BlobScheduleConfig{
+				Cancun: ethparams.DefaultCancunBlobConfig,
+			}
+		} else if newcfg.BlobScheduleConfig.Cancun == nil {
+			newcfg.BlobScheduleConfig.Cancun = ethparams.DefaultCancunBlobConfig
+		} else if newcfg.BlobScheduleConfig.Cancun.UpdateFraction == 0 {
+			newcfg.BlobScheduleConfig.Cancun.UpdateFraction = ethparams.DefaultCancunBlobConfig.UpdateFraction
+		}
+	}
 	if err := newcfg.CheckConfigForkOrder(); err != nil {
 		return newcfg, common.Hash{}, err
 	}
@@ -479,6 +490,18 @@ func (g *Genesis) Commit(db ethdb.Database, triedb *triedb.Database) (*types.Blo
 	config := g.Config
 	if config == nil {
 		return nil, errGenesisNoConfig
+	}
+	// Default BlobScheduleConfig for chains that predate blob support.
+	if config.CancunTime != nil {
+		if config.BlobScheduleConfig == nil {
+			config.BlobScheduleConfig = &ethparams.BlobScheduleConfig{
+				Cancun: ethparams.DefaultCancunBlobConfig,
+			}
+		} else if config.BlobScheduleConfig.Cancun == nil {
+			config.BlobScheduleConfig.Cancun = ethparams.DefaultCancunBlobConfig
+		} else if config.BlobScheduleConfig.Cancun.UpdateFraction == 0 {
+			config.BlobScheduleConfig.Cancun.UpdateFraction = ethparams.DefaultCancunBlobConfig.UpdateFraction
+		}
 	}
 	if err := config.CheckConfigForkOrder(); err != nil {
 		return nil, err
