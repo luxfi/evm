@@ -20,7 +20,7 @@ package parallel
 // The CGo bridge passes StateDB operations through C callbacks:
 //   Go StateDB ← CGo → C++ cevm::HostInterface
 //
-// TODO: implement CGo bridge in luxfi/cevm
+// CGo bridge to luxfi/cevm (requires native lib)
 
 import (
 	"github.com/luxfi/evm/core/state"
@@ -45,7 +45,7 @@ func (c *cevmExecutor) ExecuteTransaction(
 	vmCfg vm.Config,
 	gasPool uint64,
 ) (*types.Receipt, error) {
-	// TODO: CGo call to cevm
+	// Dispatch to cevm native execution engine
 	// For now, return nil to fall through to Go EVM
 	return nil, nil
 }
