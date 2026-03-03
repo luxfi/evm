@@ -85,6 +85,7 @@ require (
 	github.com/luxfi/concurrent v0.0.3 // indirect
 	github.com/luxfi/container v0.0.4 // indirect
 	github.com/luxfi/fhe v1.7.6 // indirect
+	github.com/luxfi/gpu v0.30.0 // indirect
 	github.com/luxfi/lattice/v7 v7.0.0 // indirect
 	github.com/luxfi/node v1.23.4 // indirect
 	github.com/luxfi/protocol v0.0.2 // indirect
@@ -201,3 +202,5 @@ exclude (
 )
 
 replace github.com/luxfi/geth => ../geth
+
+replace github.com/luxfi/gpu => ../gpu
