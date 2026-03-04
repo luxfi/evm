@@ -31,7 +31,7 @@ require (
 	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.5.0
 	github.com/luxfi/p2p v1.19.2-zap
-	github.com/luxfi/precompile v0.4.6
+	github.com/luxfi/precompile v0.4.7
 	github.com/luxfi/runtime v1.0.1
 	github.com/luxfi/sys v0.0.0-20260110090042-50187ec5ffd8
 	github.com/luxfi/timer v1.0.2
@@ -71,6 +71,8 @@ require (
 	github.com/cockroachdb/pebble v1.1.5 // indirect
 	github.com/cockroachdb/redact v1.1.6 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20250429170803-42689b6311bb // indirect
+	github.com/cronokirby/saferith v0.33.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/getsentry/sentry-go v0.40.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/renameio/v2 v2.0.2 // indirect
@@ -88,12 +90,14 @@ require (
 	github.com/luxfi/node v1.23.4 // indirect
 	github.com/luxfi/protocol v0.0.2 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
+	github.com/luxfi/threshold v1.5.1 // indirect
 	github.com/luxfi/zapdb/v4 v4.9.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
 )
 
 require (
