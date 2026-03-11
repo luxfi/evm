@@ -42,6 +42,7 @@ import (
 	// ZK Proofs (0x0900-0x09FF)
 	// ============================================
 	_ "github.com/luxfi/precompile/kzg4844" // KZG commitments (EIP-4844)
+	_ "github.com/luxfi/precompile/zk"      // ZK proof verification (Groth16, PLONK, Halo2)
 
 	// ============================================
 	// Curves (0x0A00-0x0AFF)
@@ -62,6 +63,16 @@ import (
 	// Graph/Query Layer (0x0500-0x05FF)
 	// ============================================
 	_ "github.com/luxfi/precompile/graph" // GraphQL query interface
+
+	// ============================================
+	// Hashing (0x0504)
+	// ============================================
+	_ "github.com/luxfi/precompile/blake3" // Blake3 hash function
+
+	// ============================================
+	// Dead Address Routing
+	// ============================================
+	_ "github.com/luxfi/precompile/dead" // Dead/burn address handlers (0x0, 0xdead)
 )
 
 // LP-ALIGNED ADDRESSING (LP-9015):
