@@ -185,8 +185,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/leanovate/gopter v0.2.11 h1:vRjThO1EKPb/1NsDXuDrzldR28RLkBflWYcU9CvzWu4=
 github.com/leanovate/gopter v0.2.11/go.mod h1:aK3tzZP/C+p1m3SPRE4SYZFGP7jjkuSI4f7Xvpt0S9c=
-github.com/luxfi/accel v1.0.1 h1:JtkOS5tSjdrVRGDHiuXxR6AIBaiSN1NpQc4FobgSl5w=
-github.com/luxfi/accel v1.0.1/go.mod h1:j5NCg8eKiQwhbRuJqa5G1oozcKp8HxJWMnrNA/CocWk=
+github.com/luxfi/accel v1.0.5 h1:VP+vkXzD+XauIGbjCgDRciTwMeBzMG4GlmySyQoWHME=
+github.com/luxfi/accel v1.0.5/go.mod h1:ohc1P+dcSt/3h+2rHJ3sikoMjMUN8V9sLUOTiC9CA2c=
 github.com/luxfi/api v1.0.1 h1:xPxqmEMyAJ15sneyeiTHU87p5UYs8GOhQpKB/a9TUk8=
 github.com/luxfi/api v1.0.1/go.mod h1:N2Ymyqo3SoB6/DmPXRV6W377k2qNqZujSP/B8fbIB9U=
 github.com/luxfi/atomic v1.0.0 h1:xUV60MuzRvXngaQ1sM0yVC2v4TRoLlUGkkH7M9PS4yw=
@@ -265,8 +265,8 @@ github.com/luxfi/validators v1.0.0 h1:zE1HJM1lfvC+v1Lalg+MUgkKBGFWnwTfOOmXraiNnp
 github.com/luxfi/validators v1.0.0/go.mod h1:QGppjtI/gqprbplWc10J+4OIK8UYWpv+53mfH2aKhy4=
 github.com/luxfi/version v1.0.1 h1:T/1KYWEMmsrNQk7pN7PFPAwh/7XbeX7cFAKLBqI37Sk=
 github.com/luxfi/version v1.0.1/go.mod h1:Y5fPkQ2DB0XRBCxgSPXp4ISzL1/jptKnmFknShRJCyg=
-github.com/luxfi/vm v1.0.38 h1:wAZeHbmmTW37D57QzkF96kXOFLRJ9o2fv4qZq2QB5+Y=
-github.com/luxfi/vm v1.0.38/go.mod h1:agP1h8ArU+XnkItga0pS3xGSYhaqgsx1AzyaFAszo2I=
+github.com/luxfi/vm v1.0.39 h1:ezFfYWSZUvOsP4Pia0jPLk3TgMekMCL56Xm1Q7xffyg=
+github.com/luxfi/vm v1.0.39/go.mod h1:FlNv/++TwEKzBLKZlZ7zZb2O5ZuFSG6d/MjaroJGDfY=
 github.com/luxfi/warp v1.18.5 h1:yXFCT+lnvzJHs8nVvfUCQ9wNvhtgbDGaXJkJeiwgKf4=
 github.com/luxfi/warp v1.18.5/go.mod h1:SFyC529HDvbP/TWRAdYQSyJUliMa5JKFRtBrTLEElp4=
 github.com/luxfi/zapdb/v4 v4.9.2 h1:QZnuFesQM9SMxOmB+U4WGmd7AGa8DXGIqAEbveO5jXA=
