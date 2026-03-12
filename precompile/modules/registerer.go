@@ -68,6 +68,17 @@ func RegisterModule(stm Module) error {
 		return fmt.Errorf("address %s not in a reserved range", address)
 	}
 
+	return registerModuleInternal(stm, address, key)
+}
+
+// RegisterBridgedModule registers a module bridged from the external precompile
+// registry. It skips the reserved address range check because external precompiles
+// use their own address scheme (LP-aligned, burn addresses, etc.).
+func RegisterBridgedModule(stm Module) error {
+	return registerModuleInternal(stm, stm.Address, stm.ConfigKey)
+}
+
+func registerModuleInternal(stm Module, address common.Address, key string) error {
 	for _, registeredModule := range registeredModules {
 		if registeredModule.ConfigKey == key {
 			return fmt.Errorf("name %s already used by a stateful precompile", key)
