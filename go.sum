@@ -191,8 +191,8 @@ github.com/leanovate/gopter v0.2.11 h1:vRjThO1EKPb/1NsDXuDrzldR28RLkBflWYcU9CvzW
 github.com/leanovate/gopter v0.2.11/go.mod h1:aK3tzZP/C+p1m3SPRE4SYZFGP7jjkuSI4f7Xvpt0S9c=
 github.com/luxfi/accel v1.0.7 h1:ksHieAp50umwqxqgyHk9WiOmXM54kia3IEDb5H7FsM8=
 github.com/luxfi/accel v1.0.7/go.mod h1:iZD3oxffiMEIT/KvzD8bgwC/cBn4AYlMW3QJpbRa4RE=
-github.com/luxfi/api v1.0.1 h1:xPxqmEMyAJ15sneyeiTHU87p5UYs8GOhQpKB/a9TUk8=
-github.com/luxfi/api v1.0.1/go.mod h1:N2Ymyqo3SoB6/DmPXRV6W377k2qNqZujSP/B8fbIB9U=
+github.com/luxfi/api v1.0.4 h1:5altGkSSk3zIsGzK/NPhRQe/It5QMHrAPgBVg2TMkK4=
+github.com/luxfi/api v1.0.4/go.mod h1:Znr2A+SDJBCZ7ofxeq0MswHI0gk0cJsIYJLcu3tT8JY=
 github.com/luxfi/atomic v1.0.0 h1:xUV60MuzRvXngaQ1sM0yVC2v4TRoLlUGkkH7M9PS4yw=
 github.com/luxfi/atomic v1.0.0/go.mod h1:0G2mTlQ6TXWHICUHrUUPu1/qAiIyR4gSZ2tva9ci/bI=
 github.com/luxfi/cache v1.2.1 h1:kAzOS55/hmYeNKR+0HAKv4ma48Y6JjkI8UQeqdZ8bfI=
@@ -271,8 +271,8 @@ github.com/luxfi/validators v1.0.0 h1:zE1HJM1lfvC+v1Lalg+MUgkKBGFWnwTfOOmXraiNnp
 github.com/luxfi/validators v1.0.0/go.mod h1:QGppjtI/gqprbplWc10J+4OIK8UYWpv+53mfH2aKhy4=
 github.com/luxfi/version v1.0.1 h1:T/1KYWEMmsrNQk7pN7PFPAwh/7XbeX7cFAKLBqI37Sk=
 github.com/luxfi/version v1.0.1/go.mod h1:Y5fPkQ2DB0XRBCxgSPXp4ISzL1/jptKnmFknShRJCyg=
-github.com/luxfi/vm v1.0.39 h1:ezFfYWSZUvOsP4Pia0jPLk3TgMekMCL56Xm1Q7xffyg=
-github.com/luxfi/vm v1.0.39/go.mod h1:FlNv/++TwEKzBLKZlZ7zZb2O5ZuFSG6d/MjaroJGDfY=
+github.com/luxfi/vm v1.0.40 h1:kA0V/9p1VdC88EjgbljWb8t+fl9qz5bCyF3IxnV20yg=
+github.com/luxfi/vm v1.0.40/go.mod h1:Y5WUKhT76PR6HnbUykHBWI2f5sjssrm5BL6/o7b6IfQ=
 github.com/luxfi/warp v1.18.5 h1:yXFCT+lnvzJHs8nVvfUCQ9wNvhtgbDGaXJkJeiwgKf4=
 github.com/luxfi/warp v1.18.5/go.mod h1:SFyC529HDvbP/TWRAdYQSyJUliMa5JKFRtBrTLEElp4=
 github.com/luxfi/zapdb/v4 v4.9.3 h1:KV1DrbZqtZsZvrWyPw5D8WHR0DxzqW2jHjqx6obxgoM=
