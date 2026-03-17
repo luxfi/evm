@@ -40,7 +40,7 @@ require (
 	github.com/luxfi/utils v1.1.4
 	github.com/luxfi/validators v1.0.0
 	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.0.39
+	github.com/luxfi/vm v1.0.40
 	github.com/luxfi/warp v1.18.5
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
@@ -80,7 +80,7 @@ require (
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/luxfi/accel v1.0.7 // indirect
-	github.com/luxfi/api v1.0.1 // indirect
+	github.com/luxfi/api v1.0.4 // indirect
 	github.com/luxfi/atomic v1.0.0 // indirect
 	github.com/luxfi/compress v0.0.5 // indirect
 	github.com/luxfi/concurrent v0.0.3 // indirect
