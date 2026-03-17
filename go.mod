@@ -31,7 +31,7 @@ require (
 	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.5.0
 	github.com/luxfi/p2p v1.19.2-zap
-	github.com/luxfi/precompile v0.4.9
+	github.com/luxfi/precompile v0.4.10
 	github.com/luxfi/runtime v1.0.1
 	github.com/luxfi/sys v0.0.0-20260110090042-50187ec5ffd8
 	github.com/luxfi/timer v1.0.2
@@ -85,12 +85,12 @@ require (
 	github.com/luxfi/compress v0.0.5 // indirect
 	github.com/luxfi/concurrent v0.0.3 // indirect
 	github.com/luxfi/container v0.0.4 // indirect
-	github.com/luxfi/fhe v1.7.6-0.20260106060801-28e308e4c2f8 // indirect
+	github.com/luxfi/fhe v1.7.6 // indirect
 	github.com/luxfi/lattice/v7 v7.0.0 // indirect
 	github.com/luxfi/node v1.23.4 // indirect
 	github.com/luxfi/protocol v0.0.2 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
-	github.com/luxfi/threshold v1.5.1 // indirect
+	github.com/luxfi/threshold v1.5.5 // indirect
 	github.com/luxfi/zapdb/v4 v4.9.2 // indirect
 	github.com/onsi/gomega v1.39.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
