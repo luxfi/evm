@@ -17,10 +17,10 @@ require (
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.2.1
 	github.com/luxfi/codec v1.1.4
-	github.com/luxfi/consensus v1.22.69
+	github.com/luxfi/consensus v1.22.70
 	github.com/luxfi/constants v1.4.4
-	github.com/luxfi/crypto v1.17.43
-	github.com/luxfi/database v1.17.43
+	github.com/luxfi/crypto v1.17.44
+	github.com/luxfi/database v1.17.44
 	github.com/luxfi/filesystem v0.0.1
 	github.com/luxfi/geth v1.16.77
 	github.com/luxfi/go-bip39 v1.1.2
@@ -91,7 +91,6 @@ require (
 	github.com/luxfi/resource v0.0.1 // indirect
 	github.com/luxfi/threshold v1.5.5 // indirect
 	github.com/luxfi/zapdb/v4 v4.9.3 // indirect
-	github.com/onsi/gomega v1.39.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
