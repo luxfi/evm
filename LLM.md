@@ -80,6 +80,29 @@ LP-aligned addresses (P=2 for PQ/Identity family):
 - **SLH-DSA** (FIPS 205) - Hash-based signatures - `0x12203`
 - **ML-KEM** (FIPS 203) - Key encapsulation - `0x12201`
 
+## EVM Upgrade Defaults (2026-03-29)
+
+All EVM network upgrades are enabled at genesis (timestamp 0) by default:
+- **EVMTimestamp** = 0 (always)
+- **DurangoTimestamp** = 0 (Shanghai: PUSH0, warm coinbase)
+- **EtnaTimestamp** = 0 (Cancun: MCOPY, TSTORE, TLOAD, BLOBHASH, BLOBBASEFEE)
+- **FortunaTimestamp** = 0
+- **GraniteTimestamp** = 0
+
+`EVMDefaultChainConfig` also sets `ShanghaiTime` and `CancunTime` at 0 with
+`BlobScheduleConfig` so geth's jump table selects the full Cancun instruction set.
+
+The mapping: Durango -> Shanghai, Etna -> Cancun. These are set in `SetEthUpgrades()`.
+
+**Stateful precompiles** (nativeminter, feemanager, etc.) are NOT enabled in the
+default config because they require explicit permission configuration (admin
+addresses). Call `SetAllGenesisPrecompiles()` on the extras config to enable them.
+
+**Genesis precompile activation**: `ApplyPrecompileActivations` now runs at genesis
+(parentTimestamp=nil). Previously it returned early, preventing genesis precompile
+state from being written. The fix ensures deterministic genesis because precompile
+configs are part of the chain config.
+
 ## Key Implementation Details
 
 ### Context Management
