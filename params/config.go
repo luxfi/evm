@@ -48,9 +48,8 @@ var (
 )
 
 var (
-	// EVMDefaultChainConfig is the default configuration with all EVM
-	// upgrades (Shanghai, Cancun, etc.) active from genesis so that
-	// every opcode (PUSH0, MCOPY, TSTORE, TLOAD, etc.) is available.
+	// EVMDefaultConfig is the default configuration
+	// without any network upgrades.
 	EVMDefaultChainConfig = WithExtra(
 		&ChainConfig{
 			ChainID: DefaultChainID,
@@ -66,15 +65,6 @@ var (
 			MuirGlacierBlock:    big.NewInt(0),
 			BerlinBlock:         big.NewInt(0),
 			LondonBlock:         big.NewInt(0),
-			ShanghaiTime:        utils.TimeToNewUint64(InitiallyActiveTime),
-			CancunTime:          utils.TimeToNewUint64(InitiallyActiveTime),
-			BlobScheduleConfig: &ethparams.BlobScheduleConfig{
-				Cancun: &ethparams.BlobConfig{
-					Target:         3,
-					Max:            6,
-					UpdateFraction: 3338477,
-				},
-			},
 		},
 		extras.EVMDefaultChainConfig,
 	)
