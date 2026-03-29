@@ -95,30 +95,32 @@ func (n *NetworkUpgrades) forkOrder() []fork {
 }
 
 // SetDefaults sets the default values for the network upgrades.
-// Only nil timestamps are overridden with defaults. An explicit value of 0
-// means "active at genesis" and is preserved.
+// This overrides deactivating the network upgrade by providing a timestamp of nil value.
 func (n *NetworkUpgrades) SetDefaults(agoUpgrades upgrade.Config) {
 	defaults := GetNetworkUpgrades(agoUpgrades)
-	if n.EVMTimestamp == nil {
+	// If the network upgrade is not set, set it to the default value.
+	// If the network upgrade is set to 0, we also treat it as nil and set it default.
+	// This is because in prior versions, upgrades were not modifiable and were directly set to their default values.
+	// Most of the tools and configurations just provide these as 0, so it is safer to treat 0 as nil and set to default
+	// to prevent premature activations of the network upgrades for live networks.
+	if n.EVMTimestamp == nil || *n.EVMTimestamp == 0 {
 		n.EVMTimestamp = defaults.EVMTimestamp
 	}
-	if n.DurangoTimestamp == nil {
+	if n.DurangoTimestamp == nil || *n.DurangoTimestamp == 0 {
 		n.DurangoTimestamp = defaults.DurangoTimestamp
 	}
-	if n.EtnaTimestamp == nil {
+	if n.EtnaTimestamp == nil || *n.EtnaTimestamp == 0 {
 		n.EtnaTimestamp = defaults.EtnaTimestamp
 	}
-	if n.FortunaTimestamp == nil {
+	if n.FortunaTimestamp == nil || *n.FortunaTimestamp == 0 {
 		n.FortunaTimestamp = defaults.FortunaTimestamp
-	}
-	if n.GraniteTimestamp == nil {
-		n.GraniteTimestamp = defaults.GraniteTimestamp
 	}
 }
 
 // verifyNetworkUpgrades checks that the network upgrades are well formed.
 func (n *NetworkUpgrades) verifyNetworkUpgrades(agoUpgrades upgrade.Config) error {
 	defaults := GetNetworkUpgrades(agoUpgrades)
+	maxTimestamp := uint64(time.Unix(1<<63-1, 0).Unix())
 
 	// EVMTimestamp must not be nil
 	if n.EVMTimestamp == nil {
@@ -136,9 +138,10 @@ func (n *NetworkUpgrades) verifyNetworkUpgrades(agoUpgrades upgrade.Config) erro
 	if n.DurangoTimestamp == nil {
 		return fmt.Errorf("Durango fork block timestamp is invalid: %w", errCannotBeNil)
 	}
+	// Verify Durango timestamp against default
 	if defaults.DurangoTimestamp != nil {
-		// If the default activates at genesis, the config must also activate at genesis.
 		if *defaults.DurangoTimestamp == 0 && *n.DurangoTimestamp != 0 {
+			// Durango is already activated at genesis in default, must be 0
 			return fmt.Errorf("Durango fork block timestamp is invalid: cannot be changed from genesis activation (0) to %d", *n.DurangoTimestamp)
 		}
 		if err := verifyWithDefault(n.DurangoTimestamp, defaults.DurangoTimestamp); err != nil {
@@ -146,9 +149,9 @@ func (n *NetworkUpgrades) verifyNetworkUpgrades(agoUpgrades upgrade.Config) erro
 		}
 	}
 
-	// EtnaTimestamp — when the default is set (non-nil), the config must
-	// also set it and must not be earlier than the default.
-	if defaults.EtnaTimestamp != nil {
+	// EtnaTimestamp - allow any value if unscheduled (at max time)
+	if defaults.EtnaTimestamp != nil && *defaults.EtnaTimestamp < maxTimestamp {
+		// EtnaTimestamp is scheduled, must not be nil
 		if n.EtnaTimestamp == nil {
 			return fmt.Errorf("Etna fork block timestamp is invalid: %w", errCannotBeNil)
 		}
@@ -156,22 +159,17 @@ func (n *NetworkUpgrades) verifyNetworkUpgrades(agoUpgrades upgrade.Config) erro
 			return fmt.Errorf("Etna fork block timestamp is invalid: %w", err)
 		}
 	}
+	// If unscheduled, allow any value including nil
 
-	// FortunaTimestamp — same rule: if default is set, config must match.
-	if defaults.FortunaTimestamp != nil {
-		if n.FortunaTimestamp == nil {
-			return fmt.Errorf("Fortuna fork block timestamp is invalid: %w", errCannotBeNil)
-		}
+	// FortunaTimestamp is optional, allow nil even if default is set
+	if n.FortunaTimestamp != nil && defaults.FortunaTimestamp != nil && *defaults.FortunaTimestamp < maxTimestamp {
 		if err := verifyWithDefault(n.FortunaTimestamp, defaults.FortunaTimestamp); err != nil {
 			return fmt.Errorf("Fortuna fork block timestamp is invalid: %w", err)
 		}
 	}
 
-	// GraniteTimestamp — same rule.
-	if defaults.GraniteTimestamp != nil {
-		if n.GraniteTimestamp == nil {
-			return fmt.Errorf("Granite fork block timestamp is invalid: %w", errCannotBeNil)
-		}
+	// GraniteTimestamp is optional
+	if n.GraniteTimestamp != nil && defaults.GraniteTimestamp != nil && *defaults.GraniteTimestamp < maxTimestamp {
 		if err := verifyWithDefault(n.GraniteTimestamp, defaults.GraniteTimestamp); err != nil {
 			return fmt.Errorf("Granite fork block timestamp is invalid: %w", err)
 		}
@@ -313,17 +311,14 @@ func GetNetworkUpgrades(agoUpgrade upgrade.Config) NetworkUpgrades {
 	return result
 }
 
-// GetDefaultNetworkUpgrades returns default network upgrades.
-// All upgrades are enabled at genesis (timestamp 0) so that every chain
-// running the Lux EVM has the full opcode set (PUSH0, MCOPY, TSTORE,
-// TLOAD, BLOBHASH, BLOBBASEFEE, etc.) available from block 0.
+// GetDefaultNetworkUpgrades returns default network upgrades
 func GetDefaultNetworkUpgrades() NetworkUpgrades {
 	return NetworkUpgrades{
 		EVMTimestamp:     utils.NewUint64(0),
-		DurangoTimestamp: utils.NewUint64(0),
-		EtnaTimestamp:    utils.NewUint64(0),
-		FortunaTimestamp: utils.NewUint64(0),
-		GraniteTimestamp: utils.NewUint64(0),
+		DurangoTimestamp: utils.NewUint64(0), // Already activated
+		EtnaTimestamp:    nil,                // Not scheduled
+		FortunaTimestamp: nil,                // Not scheduled
+		GraniteTimestamp: nil,                // Not scheduled
 	}
 }
 
