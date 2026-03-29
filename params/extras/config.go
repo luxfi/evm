@@ -56,12 +56,8 @@ var (
 	}
 
 	EVMDefaultChainConfig = &ChainConfig{
-		FeeConfig:       DefaultFeeConfig,
-		NetworkUpgrades: GetDefaultNetworkUpgrades(),
-		// GenesisPrecompiles is empty by default. Chains that want all
-		// stateful precompiles active at genesis should call
-		// SetAllGenesisPrecompiles() on their extras config after module
-		// init() has run.
+		FeeConfig:          DefaultFeeConfig,
+		NetworkUpgrades:    GetDefaultNetworkUpgrades(), // TODO: upgrade.GetConfig seems to be removed
 		GenesisPrecompiles: Precompiles{},
 	}
 
