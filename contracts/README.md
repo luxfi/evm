@@ -72,7 +72,7 @@ Alternatively, you can copy and paste the `local` network configuration to creat
       "url": "http://127.0.0.1:9650/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc",
       "chainId": 33333,
       "accounts": [
-        "0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027",
+        "derive from MNEMONIC index 0 or set TREASURY_PRIVATE_KEY env var",
         "0x7b4198529994b0dc604278c99d153cfd069d594753d471171a1d102a10438e07",
         "0x15614556be13730e9e8d6eacc1603143e7b96987429df8726384c2ec4502ef6e",
         "0x31b571bf6894a248831ff937bb49f7754509fe93bbd2517c9c73c4144c0e97dc",
