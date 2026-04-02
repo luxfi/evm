@@ -169,10 +169,13 @@ type AutominingConfig struct {
 }
 
 // startAutomining starts the automining loop that builds and accepts blocks
-// immediately when there are pending transactions.
+// immediately when there are pending transactions. After each block, it
+// drains any remaining pending transactions by building additional blocks
+// until the pool is empty. This ensures rapid multi-tx deploys (e.g., forge
+// script broadcasting 17 contract creations) all get mined promptly.
 func (b *blockBuilder) startAutomining(config AutominingConfig) {
 	// Subscribe to transaction pool events
-	txSubmitChan := make(chan core.NewTxsEvent)
+	txSubmitChan := make(chan core.NewTxsEvent, 256)
 	b.txPool.SubscribeTransactions(txSubmitChan, true)
 
 	b.shutdownWg.Add(1)
@@ -190,9 +193,38 @@ func (b *blockBuilder) startAutomining(config AutominingConfig) {
 		for {
 			select {
 			case <-txSubmitChan:
-				// Small delay to batch transactions
+				// Small delay to batch initial burst of transactions
 				time.Sleep(config.Interval)
-				b.automineBlock(config)
+
+				// Drain any buffered tx events so we don't re-trigger
+				drained := 0
+			drain:
+				for {
+					select {
+					case <-txSubmitChan:
+						drained++
+					default:
+						break drain
+					}
+				}
+				if drained > 0 {
+					log.Info("Automining: drained buffered tx events", "count", drained)
+				}
+
+				// Build blocks until no more pending transactions
+				for {
+					b.automineBlock(config)
+
+					// Check if there are still pending txs
+					pending := b.txPool.PendingSize(txpool.PendingFilter{})
+					if pending == 0 {
+						break
+					}
+					log.Info("Automining: pending txs remain, building another block", "pending", pending)
+					// Brief pause between blocks to let state settle
+					time.Sleep(10 * time.Millisecond)
+				}
+
 			case <-b.shutdownChan:
 				log.Info("Automining stopped")
 				return
