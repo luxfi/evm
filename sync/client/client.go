@@ -25,7 +25,6 @@ import (
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/ethdb"
-	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/geth/trie"
 	log "github.com/luxfi/log"
 )
@@ -266,7 +265,7 @@ func parseCode(codec codec.Manager, req message.Request, data []byte) (interface
 
 	totalBytes := 0
 	for i, code := range response.Data {
-		if len(code) > ethparams.MaxCodeSize {
+		if len(code) > 65536 {
 			return nil, 0, fmt.Errorf("%w: (hash %s) (size %d)", errMaxCodeSizeExceeded, codeRequest.Hashes[i], len(code))
 		}
 
