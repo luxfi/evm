@@ -647,18 +647,21 @@ func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte,
 		g.Config = params.EVMDefaultChainConfig
 	}
 
-	// Ensure Cancun is active from genesis for Lux chains
-	if g.Config.CancunTime == nil {
+	// Ensure all EVM upgrades are active from genesis for Lux chains.
+	// Shanghai: PUSH0
+	// Cancun: MCOPY, TSTORE, TLOAD, BLOBHASH
+	{
 		zero := uint64(0)
-		g.Config.CancunTime = &zero
-		log.Info("CancunTime was nil, setting to 0 (active from genesis)")
+		if g.Config.ShanghaiTime == nil {
+			g.Config.ShanghaiTime = &zero
+			debugLog("ShanghaiTime was nil, forced to 0")
+		}
+		if g.Config.CancunTime == nil {
+			g.Config.CancunTime = &zero
+			debugLog("CancunTime was nil, forced to 0")
+		}
+		debugLog("EVM forks: shanghaiTime=%v cancunTime=%v", *g.Config.ShanghaiTime, *g.Config.CancunTime)
 	}
-	if g.Config.ShanghaiTime == nil {
-		zero := uint64(0)
-		g.Config.ShanghaiTime = &zero
-		log.Info("ShanghaiTime was nil, setting to 0 (active from genesis)")
-	}
-	log.Info("Chain config EVM forks", "cancunTime", g.Config.CancunTime, "shanghaiTime", g.Config.ShanghaiTime)
 
 	// Populate the Lux config extras.
 	configExtra := params.GetExtra(g.Config)
