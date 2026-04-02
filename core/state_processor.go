@@ -30,6 +30,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"os"
 	"math/big"
 
 	"github.com/luxfi/crypto"
@@ -97,6 +98,13 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 	// Get rules for predicate storage slot computation
 	rules := p.config.Rules(header.Number, params.IsMergeTODO, header.Time)
 	rulesExtra := params.GetRulesExtra(rules)
+
+	// Debug: log EVM fork activation status
+	if f, err := os.OpenFile("/tmp/evm-debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+		fmt.Fprintf(f, "[STATE-PROCESSOR] block=%v time=%v IsCancun=%v IsShanghai=%v CancunTime=%v\n",
+			header.Number, header.Time, rules.IsCancun, rules.IsShanghai, p.config.CancunTime)
+		f.Close()
+	}
 
 	// Parse predicate results from block header extra data
 	var predicateResults *predicate.Results
