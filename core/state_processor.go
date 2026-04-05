@@ -30,11 +30,11 @@ package core
 import (
 	"context"
 	"fmt"
-	"os"
 	"math/big"
 
 	"github.com/luxfi/crypto"
 	"github.com/luxfi/evm/consensus"
+	"github.com/luxfi/evm/core/parallel"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/params/extras"
@@ -99,13 +99,6 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 	rules := p.config.Rules(header.Number, params.IsMergeTODO, header.Time)
 	rulesExtra := params.GetRulesExtra(rules)
 
-	// Debug: log EVM fork activation status
-	if f, err := os.OpenFile("/tmp/evm-debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
-		fmt.Fprintf(f, "[STATE-PROCESSOR] block=%v time=%v IsCancun=%v IsShanghai=%v CancunTime=%v\n",
-			header.Number, header.Time, rules.IsCancun, rules.IsShanghai, p.config.CancunTime)
-		f.Close()
-	}
-
 	// Parse predicate results from block header extra data
 	var predicateResults *predicate.Results
 	if rulesExtra.PredicatersExist {
@@ -121,14 +114,37 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 	// cfg.StatefulPrecompileHook = NewStatefulPrecompileHookFull(p.config, nil, p.bc.ConsensusContext(), nil, predicateResults)
 	_ = predicateResults // Suppress unused warning until StatefulPrecompileHook is re-enabled
 	vmenv := vm.NewEVM(context, statedb, p.config, cfg)
-	// Debug: Check if statedb is nil
-	if statedb == nil {
-		log.Error("StateDB is nil in Process!")
-	}
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
-	// Iterate over and process the individual transactions
+
+	// Parallel execution path: when built with -tags parallel and a
+	// BlockExecutor is registered (e.g., from evmgpu), try parallel
+	// execution first. Falls through to sequential on (nil, nil) return.
+	if parallelReceipts, parallelErr := parallel.DefaultExecutor().ExecuteBlock(
+		p.config, header, block.Transactions(), statedb, cfg,
+	); parallelReceipts != nil || parallelErr != nil {
+		if parallelErr != nil {
+			log.Debug("parallel execution failed, falling through to sequential", "block", header.Number, "err", parallelErr)
+		} else {
+			// Parallel succeeded -- collect logs, finalize, and return.
+			parallelLogs := make([]*types.Log, 0)
+			var totalGas uint64
+			for _, r := range parallelReceipts {
+				if r != nil {
+					parallelLogs = append(parallelLogs, r.Logs...)
+					totalGas = r.CumulativeGasUsed
+				}
+			}
+			if err := p.engine.Finalize(p.bc, block, parent, statedb, parallelReceipts); err != nil {
+				log.Debug("parallel execution finalize failed, falling through to sequential", "block", header.Number, "err", err)
+			} else {
+				return parallelReceipts, parallelLogs, totalGas, nil
+			}
+		}
+	}
+
+	// Sequential execution path (default, or fallback from parallel).
 	for i, tx := range block.Transactions() {
 		msg, err := TransactionToMessage(tx, signer, header.BaseFee)
 		if err != nil {
