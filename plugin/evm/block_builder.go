@@ -15,9 +15,10 @@ import (
 )
 
 const (
-	// Minimum amount of time to wait after building a block before attempting to build a block
-	// a second time without changing the contents of the mempool.
-	minBlockBuildingRetryDelay = 500 * time.Millisecond
+	// Minimum delay between blocks when mempool content hasn't changed.
+	// When mempool HAS new txs, blocks are built immediately (no delay).
+	// This only throttles repeated builds of identical mempool state.
+	minBlockBuildingRetryDelay = 1 * time.Millisecond
 )
 
 type blockBuilder struct {
