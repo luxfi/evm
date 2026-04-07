@@ -45,11 +45,11 @@ const (
 	GoEVM EVMBackend = "gevm"
 
 	// RustEVM uses revm (Rust EVM) via FFI for execution.
-	// Faster single-threaded execution, native Block-STM support.
+	// Native Block-STM parallel execution, memory-safe.
 	RustEVM EVMBackend = "revm"
 
-	// CppEVM uses evmone (C++ EVM) via CGo for execution.
-	// Fastest single-threaded interpreter, native GPU compute support.
+	// CppEVM is the Lux C++ EVM via CGo.
+	// Fastest single-threaded interpreter, SIMD opcodes, GPU kernel dispatch.
 	CppEVM EVMBackend = "cevm"
 
 	// AutoEVM selects the best available backend at runtime.
