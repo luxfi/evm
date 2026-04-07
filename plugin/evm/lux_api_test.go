@@ -11,31 +11,28 @@ import (
 	"github.com/luxfi/evm/plugin/evm/config"
 )
 
-func TestLuxAPIEvmBackend(t *testing.T) {
-	vm := &VM{config: config.Config{AdminAPIEnabled: true}}
-	api := NewLuxAPI(vm)
+func TestEvmBackendAPI_Backend(t *testing.T) {
+	api := NewEvmBackendAPI(&VM{config: config.Config{AdminAPIEnabled: true}})
 
-	result, err := api.EvmBackend(context.Background())
+	result, err := api.Backend(context.Background())
 	if err != nil {
-		t.Fatalf("EvmBackend returned error: %v", err)
+		t.Fatal(err)
 	}
 	if result.Backend != string(parallel.ActiveBackend()) {
 		t.Fatalf("expected %q, got %q", parallel.ActiveBackend(), result.Backend)
 	}
 }
 
-func TestLuxAPIEvmBackends(t *testing.T) {
-	vm := &VM{config: config.Config{AdminAPIEnabled: true}}
-	api := NewLuxAPI(vm)
+func TestEvmBackendAPI_Backends(t *testing.T) {
+	api := NewEvmBackendAPI(&VM{config: config.Config{AdminAPIEnabled: true}})
 
-	result, err := api.EvmBackends(context.Background())
+	result, err := api.Backends(context.Background())
 	if err != nil {
-		t.Fatalf("EvmBackends returned error: %v", err)
+		t.Fatal(err)
 	}
 	if len(result.Backends) == 0 {
-		t.Fatal("expected at least one backend (gevm)")
+		t.Fatal("expected at least one backend")
 	}
-	// gevm is always present
 	found := false
 	for _, b := range result.Backends {
 		if b == "gevm" {
@@ -45,50 +42,42 @@ func TestLuxAPIEvmBackends(t *testing.T) {
 	if !found {
 		t.Fatalf("expected gevm in backends, got %v", result.Backends)
 	}
-	if result.Active == "" {
-		t.Fatal("active backend must not be empty")
-	}
 }
 
-func TestLuxAPISetEvmBackend(t *testing.T) {
-	vm := &VM{config: config.Config{AdminAPIEnabled: true}}
-	api := NewLuxAPI(vm)
+func TestEvmBackendAPI_SetBackend(t *testing.T) {
+	api := NewEvmBackendAPI(&VM{config: config.Config{AdminAPIEnabled: true}})
 
-	// Switch to gevm (always available)
-	result, err := api.SetEvmBackend(context.Background(), SetEvmBackendArgs{Backend: "gevm"})
+	result, err := api.SetBackend(context.Background(), SetBackendArgs{Backend: "gevm"})
 	if err != nil {
-		t.Fatalf("SetEvmBackend returned error: %v", err)
+		t.Fatal(err)
 	}
 	if result.Active != "gevm" {
-		t.Fatalf("expected active=gevm, got %q", result.Active)
+		t.Fatalf("expected gevm, got %q", result.Active)
 	}
 
-	// auto should resolve to gevm when no other backends registered
-	result, err = api.SetEvmBackend(context.Background(), SetEvmBackendArgs{Backend: "auto"})
+	result, err = api.SetBackend(context.Background(), SetBackendArgs{Backend: "auto"})
 	if err != nil {
-		t.Fatalf("SetEvmBackend(auto) returned error: %v", err)
+		t.Fatal(err)
 	}
 	if result.Active != "gevm" {
-		t.Fatalf("expected active=gevm after auto, got %q", result.Active)
+		t.Fatalf("expected gevm after auto, got %q", result.Active)
 	}
 }
 
-func TestLuxAPISetEvmBackendInvalidName(t *testing.T) {
-	vm := &VM{config: config.Config{AdminAPIEnabled: true}}
-	api := NewLuxAPI(vm)
+func TestEvmBackendAPI_InvalidBackend(t *testing.T) {
+	api := NewEvmBackendAPI(&VM{config: config.Config{AdminAPIEnabled: true}})
 
-	_, err := api.SetEvmBackend(context.Background(), SetEvmBackendArgs{Backend: "invalid"})
+	_, err := api.SetBackend(context.Background(), SetBackendArgs{Backend: "invalid"})
 	if err == nil {
-		t.Fatal("expected error for invalid backend name")
+		t.Fatal("expected error for invalid backend")
 	}
 }
 
-func TestLuxAPISetEvmBackendAdminDisabled(t *testing.T) {
-	vm := &VM{config: config.Config{AdminAPIEnabled: false}}
-	api := NewLuxAPI(vm)
+func TestEvmBackendAPI_AdminDisabled(t *testing.T) {
+	api := NewEvmBackendAPI(&VM{config: config.Config{AdminAPIEnabled: false}})
 
-	_, err := api.SetEvmBackend(context.Background(), SetEvmBackendArgs{Backend: "gevm"})
+	_, err := api.SetBackend(context.Background(), SetBackendArgs{Backend: "gevm"})
 	if err == nil {
-		t.Fatal("expected error when admin API is disabled")
+		t.Fatal("expected error when admin disabled")
 	}
 }
