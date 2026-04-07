@@ -1656,6 +1656,12 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		log.Info("CreateHandlers validators API handler created successfully")
 	}
 
+	// Register lux namespace (lux_evmBackend, lux_evmBackends, lux_setEvmBackend)
+	if err := handler.RegisterName("lux", NewLuxAPI(vm)); err != nil {
+		return nil, fmt.Errorf("failed to register lux API: %w", err)
+	}
+	enabledAPIs = append(enabledAPIs, "lux")
+
 	if vm.config.WarpAPIEnabled {
 		warpSDKClient := vm.Network.NewClient(luxwarp.SignatureHandlerID)
 		signatureAggregator := luxwarp.NewSignatureAggregator(log.Noop(), warpSDKClient)
