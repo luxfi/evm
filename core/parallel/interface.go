@@ -37,6 +37,59 @@ type BlockExecutor interface {
 	) ([]*types.Receipt, error)
 }
 
+// EVMBackend identifies which EVM implementation to use.
+type EVMBackend string
+
+const (
+	// GoEVM is the default Go EVM from luxfi/geth (geth interpreter).
+	GoEVM EVMBackend = "gevm"
+
+	// RustEVM uses revm (Rust EVM) via FFI for execution.
+	// Faster single-threaded execution, native Block-STM support.
+	RustEVM EVMBackend = "revm"
+
+	// CppEVM uses evmone (C++ EVM) via CGo for execution.
+	// Fastest single-threaded interpreter, native GPU compute support.
+	CppEVM EVMBackend = "cevm"
+
+	// AutoEVM selects the best available backend at runtime.
+	AutoEVM EVMBackend = "auto"
+)
+
+// TransactionExecutor processes a single transaction against a state.
+// This is the per-tx abstraction point for swappable EVM backends.
+//
+// Backends implement this to replace the default Go EVM interpreter:
+//   - GoEVM: delegates to geth's vm.EVM.Call()/Create() (default)
+//   - RustEVM: calls revm via FFI (faster single-thread, native Block-STM)
+//   - CppEVM: calls evmone via CGo (fastest interpreter, GPU offload)
+//
+// The StateDB interface is the bridge — all backends read/write state
+// through the same Go StateDB, ensuring consensus compatibility.
+type TransactionExecutor interface {
+	// Backend returns which EVM implementation this executor uses.
+	Backend() EVMBackend
+
+	// ExecuteTransaction runs a single transaction against the state.
+	// Returns the execution result or error.
+	ExecuteTransaction(
+		config *ethparams.ChainConfig,
+		header *types.Header,
+		tx *types.Transaction,
+		statedb *state.StateDB,
+		vmCfg vm.Config,
+		gasPool uint64,
+	) (*types.Receipt, error)
+
+	// SupportsParallel returns true if this backend can execute
+	// transactions in parallel (e.g., Block-STM in revm, GPU in cevm).
+	SupportsParallel() bool
+
+	// SupportsGPU returns true if this backend can offload computation
+	// to GPU (e.g., evmone with CUDA/Metal kernel dispatch).
+	SupportsGPU() bool
+}
+
 // GPUAccelerator provides optional GPU-offloaded crypto operations.
 // The default implementation returns Available() == false.
 type GPUAccelerator interface {
