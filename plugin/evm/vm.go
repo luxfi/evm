@@ -1656,9 +1656,9 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		log.Info("CreateHandlers validators API handler created successfully")
 	}
 
-	// Register lux namespace (lux_evmBackend, lux_evmBackends, lux_setEvmBackend)
-	if err := handler.RegisterName("lux", NewLuxAPI(vm)); err != nil {
-		return nil, fmt.Errorf("failed to register lux API: %w", err)
+	// Register evm namespace (evm_backend, evm_backends, evm_setBackend)
+	if err := handler.RegisterName("evm", NewEvmBackendAPI(vm)); err != nil {
+		return nil, fmt.Errorf("failed to register evm backend API: %w", err)
 	}
 	enabledAPIs = append(enabledAPIs, "lux")
 
