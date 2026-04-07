@@ -5,16 +5,16 @@
 
 package parallel
 
-// cevm backend — C++ EVM (Lux CEVM) via CGo.
+// cevm backend — Lux C++ EVM via CGo.
 //
 // Build with: go build -tags cevm
 //
 // Requires: libcevm.a (compiled from luxfi/cevm)
 //
 // Features:
-//   - Fastest single-threaded EVM interpreter (~3x vs Go EVM)
+//   - Fastest EVM interpreter (~3-5x vs Go EVM, fastest of any backend)
+//   - SIMD-optimized opcode execution (AVX2/NEON)
 //   - Native GPU kernel dispatch (CUDA/Metal) for batch operations
-//   - SIMD-optimized opcode execution
 //   - Parallel block execution via Block-STM with GPU acceleration
 //
 // The CGo bridge passes StateDB operations through C callbacks:
