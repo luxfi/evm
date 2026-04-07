@@ -12,9 +12,9 @@ package parallel
 // Requires: librustc_revm.a (compiled from luxfi/revm)
 //
 // Features:
-//   - Faster single-threaded execution than Go EVM (~2x)
-//   - Native Block-STM parallel execution
+//   - Native Block-STM parallel execution (primary advantage)
 //   - Rust memory safety guarantees
+//   - Good single-threaded performance (~1.5x vs Go EVM)
 //
 // The FFI bridge passes StateDB operations through cgo callbacks:
 //   Go StateDB ← cgo → Rust revm::Database trait impl
