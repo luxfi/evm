@@ -11,79 +11,73 @@ import (
 	log "github.com/luxfi/log"
 )
 
-// LuxAPI exposes Lux-specific RPC methods under the "lux" namespace.
-// Read methods are always available; write methods require admin API enabled.
+// EvmBackendAPI exposes EVM backend switching via RPC.
+// Generic — works on any chain that embeds this EVM.
 //
-// RPC methods:
-//   - lux_evmBackend     — returns the active EVM backend name
-//   - lux_evmBackends    — returns all available backend names
-//   - lux_setEvmBackend  — switches the active backend (admin-only)
-type LuxAPI struct {
+// RPC methods (namespace "evm"):
+//   - evm_backend      — returns the active EVM backend name
+//   - evm_backends     — returns all available backend names
+//   - evm_setBackend   — switches the active backend (admin-only)
+type EvmBackendAPI struct {
 	vm *VM
 }
 
-// NewLuxAPI creates a new LuxAPI instance.
-func NewLuxAPI(vm *VM) *LuxAPI {
-	return &LuxAPI{vm: vm}
+func NewEvmBackendAPI(vm *VM) *EvmBackendAPI {
+	return &EvmBackendAPI{vm: vm}
 }
 
-// EvmBackendResult is the response for lux_evmBackend.
-type EvmBackendResult struct {
+type BackendResult struct {
 	Backend string `json:"backend"`
 }
 
-// EvmBackendsResult is the response for lux_evmBackends.
-type EvmBackendsResult struct {
+type BackendsResult struct {
 	Backends []string `json:"backends"`
 	Active   string   `json:"active"`
 }
 
-// SetEvmBackendArgs is the argument for lux_setEvmBackend.
-type SetEvmBackendArgs struct {
+type SetBackendArgs struct {
 	Backend string `json:"backend"`
 }
 
-// SetEvmBackendResult is the response for lux_setEvmBackend.
-type SetEvmBackendResult struct {
+type SetBackendResult struct {
 	Previous string `json:"previous"`
 	Active   string `json:"active"`
 }
 
-// EvmBackend returns the currently active EVM backend.
-// RPC: lux_evmBackend
-func (api *LuxAPI) EvmBackend(_ context.Context) (*EvmBackendResult, error) {
-	return &EvmBackendResult{
+// Backend returns the currently active EVM backend.
+// RPC: evm_backend
+func (api *EvmBackendAPI) Backend(_ context.Context) (*BackendResult, error) {
+	return &BackendResult{
 		Backend: string(parallel.ActiveBackend()),
 	}, nil
 }
 
-// EvmBackends returns all available EVM backends and the active one.
-// RPC: lux_evmBackends
-func (api *LuxAPI) EvmBackends(_ context.Context) (*EvmBackendsResult, error) {
+// Backends returns all available EVM backends and the active one.
+// RPC: evm_backends
+func (api *EvmBackendAPI) Backends(_ context.Context) (*BackendsResult, error) {
 	available := parallel.AvailableBackends()
 	names := make([]string, len(available))
 	for i, b := range available {
 		names[i] = string(b)
 	}
-	return &EvmBackendsResult{
+	return &BackendsResult{
 		Backends: names,
 		Active:   string(parallel.ActiveBackend()),
 	}, nil
 }
 
-// SetEvmBackend switches the active EVM backend at runtime.
-// Only valid backend names are accepted: "gevm", "revm", "cevm", "auto".
-// Requires admin API to be enabled.
-// RPC: lux_setEvmBackend
-func (api *LuxAPI) SetEvmBackend(_ context.Context, args SetEvmBackendArgs) (*SetEvmBackendResult, error) {
+// SetBackend switches the active EVM backend at runtime.
+// Valid: "gevm", "revm", "cevm", "auto".
+// Requires admin API enabled.
+// RPC: evm_setBackend
+func (api *EvmBackendAPI) SetBackend(_ context.Context, args SetBackendArgs) (*SetBackendResult, error) {
 	if !api.vm.config.AdminAPIEnabled {
-		return nil, fmt.Errorf("admin API is disabled; lux_setEvmBackend requires admin access")
+		return nil, fmt.Errorf("admin API disabled; evm_setBackend requires admin access")
 	}
 
 	requested := parallel.EVMBackend(args.Backend)
 	switch requested {
 	case parallel.GoEVM, parallel.RustEVM, parallel.CppEVM, parallel.AutoEVM:
-		// valid
 	default:
 		return nil, fmt.Errorf("unknown backend %q; valid: gevm, revm, cevm, auto", args.Backend)
 	}
@@ -92,9 +86,9 @@ func (api *LuxAPI) SetEvmBackend(_ context.Context, args SetEvmBackendArgs) (*Se
 	parallel.SetBackend(requested)
 	active := parallel.ActiveBackend()
 
-	log.Info("lux_setEvmBackend", "previous", string(previous), "requested", args.Backend, "active", string(active))
+	log.Info("evm_setBackend", "previous", string(previous), "requested", args.Backend, "active", string(active))
 
-	return &SetEvmBackendResult{
+	return &SetBackendResult{
 		Previous: string(previous),
 		Active:   string(active),
 	}, nil
