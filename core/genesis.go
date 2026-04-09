@@ -257,9 +257,15 @@ func SetupGenesisBlock(
 	// We can't recreate the exact hash without the original state, so we trust the stored genesis
 	// Get the existing chain configuration.
 	newcfg := genesis.Config
-	if newcfg.BlobScheduleConfig == nil && newcfg.CancunTime != nil {
-		newcfg.BlobScheduleConfig = &ethparams.BlobScheduleConfig{
-			Cancun: ethparams.DefaultCancunBlobConfig,
+	if newcfg.CancunTime != nil {
+		if newcfg.BlobScheduleConfig == nil {
+			newcfg.BlobScheduleConfig = &ethparams.BlobScheduleConfig{
+				Cancun: ethparams.DefaultCancunBlobConfig,
+			}
+		} else if newcfg.BlobScheduleConfig.Cancun == nil {
+			newcfg.BlobScheduleConfig.Cancun = ethparams.DefaultCancunBlobConfig
+		} else if newcfg.BlobScheduleConfig.Cancun.UpdateFraction == 0 {
+			newcfg.BlobScheduleConfig.Cancun.UpdateFraction = ethparams.DefaultCancunBlobConfig.UpdateFraction
 		}
 	}
 	if err := newcfg.CheckConfigForkOrder(); err != nil {
@@ -485,11 +491,16 @@ func (g *Genesis) Commit(db ethdb.Database, triedb *triedb.Database) (*types.Blo
 	if config == nil {
 		return nil, errGenesisNoConfig
 	}
-	// Default BlobScheduleConfig for Lux L2 chains that predate blob support.
-	// Without this, geth rejects genesis configs missing blobSchedule entries.
-	if config.BlobScheduleConfig == nil && config.CancunTime != nil {
-		config.BlobScheduleConfig = &ethparams.BlobScheduleConfig{
-			Cancun: ethparams.DefaultCancunBlobConfig,
+	// Default BlobScheduleConfig for chains that predate blob support.
+	if config.CancunTime != nil {
+		if config.BlobScheduleConfig == nil {
+			config.BlobScheduleConfig = &ethparams.BlobScheduleConfig{
+				Cancun: ethparams.DefaultCancunBlobConfig,
+			}
+		} else if config.BlobScheduleConfig.Cancun == nil {
+			config.BlobScheduleConfig.Cancun = ethparams.DefaultCancunBlobConfig
+		} else if config.BlobScheduleConfig.Cancun.UpdateFraction == 0 {
+			config.BlobScheduleConfig.Cancun.UpdateFraction = ethparams.DefaultCancunBlobConfig.UpdateFraction
 		}
 	}
 	if err := config.CheckConfigForkOrder(); err != nil {
