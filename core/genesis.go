@@ -257,6 +257,11 @@ func SetupGenesisBlock(
 	// We can't recreate the exact hash without the original state, so we trust the stored genesis
 	// Get the existing chain configuration.
 	newcfg := genesis.Config
+	if newcfg.BlobScheduleConfig == nil && newcfg.CancunTime != nil {
+		newcfg.BlobScheduleConfig = &ethparams.BlobScheduleConfig{
+			Cancun: ethparams.DefaultCancunBlobConfig,
+		}
+	}
 	if err := newcfg.CheckConfigForkOrder(); err != nil {
 		return newcfg, common.Hash{}, err
 	}
@@ -479,6 +484,13 @@ func (g *Genesis) Commit(db ethdb.Database, triedb *triedb.Database) (*types.Blo
 	config := g.Config
 	if config == nil {
 		return nil, errGenesisNoConfig
+	}
+	// Default BlobScheduleConfig for Lux L2 chains that predate blob support.
+	// Without this, geth rejects genesis configs missing blobSchedule entries.
+	if config.BlobScheduleConfig == nil && config.CancunTime != nil {
+		config.BlobScheduleConfig = &ethparams.BlobScheduleConfig{
+			Cancun: ethparams.DefaultCancunBlobConfig,
+		}
 	}
 	if err := config.CheckConfigForkOrder(); err != nil {
 		return nil, err
