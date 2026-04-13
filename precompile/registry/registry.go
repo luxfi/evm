@@ -26,10 +26,10 @@ import (
 	// ============================================
 	// Privacy/Encryption (0x0700-0x07FF)
 	// ============================================
-	_ "github.com/luxfi/precompile/ecies" // Elliptic Curve Integrated Encryption
-	_ "github.com/luxfi/precompile/fhe"   // Fully Homomorphic Encryption
-	_ "github.com/luxfi/precompile/hpke"  // Hybrid Public Key Encryption
-	_ "github.com/luxfi/precompile/ring"  // Ring signatures (anonymity)
+	// REMOVED: ecies -- secret keys in calldata are public on-chain
+	_ "github.com/luxfi/precompile/fhe"  // Fully Homomorphic Encryption
+	_ "github.com/luxfi/precompile/hpke" // HPKE seal (public-key encrypt only)
+	_ "github.com/luxfi/precompile/ring" // Ring signature verify only
 
 	// ============================================
 	// Threshold Signatures (0x0800-0x08FF)
