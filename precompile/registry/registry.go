@@ -28,8 +28,12 @@ import (
 	// ============================================
 	// REMOVED: ecies -- secret keys in calldata are public on-chain
 	_ "github.com/luxfi/precompile/anchor" // On-chain checkpoint anchoring (LP-7200)
-	_ "github.com/luxfi/precompile/fhe"    // Fully Homomorphic Encryption
-	_ "github.com/luxfi/precompile/hpke"   // HPKE seal (public-key encrypt only)
+	// FHE is gated behind the `fhe` build tag because luxfi/precompile@v0.5.11
+	// fhe_ops.go calls fhe.NewKeyGeneratorFromSeed which does not exist in any
+	// released luxfi/fhe (latest v1.7.9 has only NewKeyGenerator). Re-enable by
+	// shipping a corrected luxfi/precompile (or a luxfi/fhe with the seeded API)
+	// and removing the build tag below. See registry_fhe.go.
+	_ "github.com/luxfi/precompile/hpke" // HPKE seal (public-key encrypt only)
 	_ "github.com/luxfi/precompile/ring"   // Ring signature verify only
 
 	// ============================================
