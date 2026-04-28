@@ -19,7 +19,7 @@ require (
 	github.com/luxfi/codec v1.1.4
 	github.com/luxfi/consensus v1.22.70
 	github.com/luxfi/constants v1.4.7
-	github.com/luxfi/crypto v1.17.45
+	github.com/luxfi/crypto v1.18.1
 	github.com/luxfi/database v1.18.1
 	github.com/luxfi/filesystem v0.0.1
 	github.com/luxfi/geth v1.16.86-0.20260413014255-3e903c3d2e06
@@ -32,7 +32,7 @@ require (
 	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.5.1
 	github.com/luxfi/p2p v1.19.2
-	github.com/luxfi/precompile v0.5.10
+	github.com/luxfi/precompile v0.5.11
 	github.com/luxfi/runtime v1.0.1
 	github.com/luxfi/sys v0.0.0-20260110090042-50187ec5ffd8
 	github.com/luxfi/timer v1.0.2
