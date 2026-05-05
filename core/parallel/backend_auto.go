@@ -22,43 +22,41 @@ func init() {
 	selectedOnce.Do(detectBackend)
 }
 
-// detectBackend probes for GPU availability and selects the best backend.
+// detectBackend selects the parallel-EVM backend.
 //
-// Priority:
-//  1. GPU Metal (darwin + CGo + Metal device present)
-//  2. GPU CUDA (linux + CGo + NVIDIA device present)
-//  3. CPU Parallel (Block-STM multi-core)
+// LP-108 (2026-05-04): collapsed to GoEVM only. The previous code
+// auto-selected CppEVM when a GPU was detected, but the
+// cevmExecutor.ExecuteTransaction body returned `nil, nil` (always
+// fell through to Go EVM regardless of selection). That was a
+// pretense, not an acceleration path.
 //
-// This runs exactly once at process startup. No user flag required.
+// CppEVM and RustEVM are kept behind their respective build tags
+// (`//go:build cevm` / `//go:build revm`) so the registrations are
+// only present when those backends are wired through the cgo
+// bridge and the parity gate against Go EVM is met. Until then,
+// auto-detect returns Go EVM honestly.
+//
+// To re-enable CppEVM auto-selection: complete the cevm bridge in
+// backend_cevm.go::ExecuteTransaction and add a parity test against
+// the Go EVM Block-STM path.
 func detectBackend() {
-	gpu := DefaultGPU()
-	if gpu.Available() {
+	selectedResult = GoEVM
+	if gpu := DefaultGPU(); gpu.Available() {
 		switch runtime.GOOS {
 		case "darwin":
-			selectedResult = CppEVM
-			selectedGPUName = "Metal"
+			selectedGPUName = "Metal (detected; cevm dispatch wiring pending — runs Go EVM)"
 		case "linux":
-			selectedResult = CppEVM
-			selectedGPUName = "CUDA"
+			selectedGPUName = "CUDA (detected; cevm dispatch wiring pending — runs Go EVM)"
 		default:
-			selectedResult = CppEVM
-			selectedGPUName = "GPU"
+			selectedGPUName = "GPU (detected; cevm dispatch wiring pending — runs Go EVM)"
 		}
-		log.Info("parallel backend: GPU detected",
-			"backend", selectedResult,
-			"gpu", selectedGPUName,
-			"os", runtime.GOOS,
-			"arch", runtime.GOARCH,
-		)
-		return
+	} else {
+		selectedGPUName = "none"
 	}
-
-	// CPU parallel (Block-STM across all cores).
-	selectedResult = GoEVM
-	selectedGPUName = "none"
-	log.Info("parallel backend: CPU parallel (no GPU)",
+	log.Info("parallel backend: Go EVM (Block-STM across all cores)",
 		"backend", selectedResult,
 		"cores", runtime.NumCPU(),
+		"gpu_status", selectedGPUName,
 	)
 }
 
