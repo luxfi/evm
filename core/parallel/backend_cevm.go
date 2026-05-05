@@ -9,7 +9,7 @@ package parallel
 //
 // Build with: go build -tags cevm
 //
-// Requires: libcevm.a (compiled from luxfi/cevm)
+// Requires: libcevm.a (compiled from luxfi/chains/evm/cevm)
 //
 // Features:
 //   - Fastest EVM interpreter (~3-5x vs Go EVM, fastest of any backend)
@@ -20,7 +20,7 @@ package parallel
 // The CGo bridge passes StateDB operations through C callbacks:
 //   Go StateDB ← CGo → C++ cevm::HostInterface
 //
-// CGo bridge to luxfi/cevm (requires native lib)
+// CGo bridge to luxfi/chains/evm/cevm (requires native lib)
 
 import (
 	"github.com/luxfi/evm/core/state"
@@ -37,6 +37,23 @@ type cevmExecutor struct{}
 
 func (c *cevmExecutor) Backend() EVMBackend { return CppEVM }
 
+// ExecuteTransaction dispatches a single tx to the cevm native engine.
+//
+// LP-108 (2026-05-04): the per-tx → batched-block adapter is not
+// wired. The cgo bridge at github.com/luxfi/chains/evm/cevm exposes
+// ExecuteBlock([]Transaction) — a block-batch interface — but
+// TransactionExecutor is per-tx. To complete the wiring requires:
+//   * an accumulator that buffers per-tx work and submits at block close
+//   * receipt reconstruction from the BlockResult ordered output
+//   * EIP-2929 warm-set seeding from the StateDB
+//   * parity test against Go EVM Block-STM
+//
+// Until that adapter lands, ExecuteTransaction returns (nil, nil)
+// — the documented "this backend declines; use Go EVM" contract that
+// the parallel framework expects (see DefaultTransactionExecutor in
+// parallel.go). This is the honest answer; the registration exists so
+// the build-tag gating works, but cevm only executes once the adapter
+// is in place AND the parity gate passes.
 func (c *cevmExecutor) ExecuteTransaction(
 	config *ethparams.ChainConfig,
 	header *types.Header,
@@ -45,10 +62,14 @@ func (c *cevmExecutor) ExecuteTransaction(
 	vmCfg vm.Config,
 	gasPool uint64,
 ) (*types.Receipt, error) {
-	// Dispatch to cevm native execution engine
-	// For now, return nil to fall through to Go EVM
 	return nil, nil
 }
 
+// SupportsParallel reports backend capability. The C++ EVM has
+// Block-STM kernels (Metal + CUDA, see luxcpp/cevm/lib/evm/gpu/),
+// so the answer is true once the adapter in ExecuteTransaction is wired.
 func (c *cevmExecutor) SupportsParallel() bool { return true }
-func (c *cevmExecutor) SupportsGPU() bool      { return true }
+
+// SupportsGPU reports whether the cevm path can dispatch to GPU.
+// True once the adapter is wired.
+func (c *cevmExecutor) SupportsGPU() bool { return true }
