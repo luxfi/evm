@@ -36,6 +36,12 @@ type revmExecutor struct{}
 
 func (r *revmExecutor) Backend() EVMBackend { return RustEVM }
 
+// ExecuteTransaction dispatches to revm.
+//
+// LP-108 (2026-05-04): same gap as cevm — the FFI bridge to revm
+// is not wired. Until the adapter lands and a parity test passes,
+// returns (nil, nil) — the documented "decline" contract that the
+// parallel framework expects (see parallel.go DefaultTransactionExecutor).
 func (r *revmExecutor) ExecuteTransaction(
 	config *ethparams.ChainConfig,
 	header *types.Header,
@@ -44,8 +50,6 @@ func (r *revmExecutor) ExecuteTransaction(
 	vmCfg vm.Config,
 	gasPool uint64,
 ) (*types.Receipt, error) {
-	// Dispatch to revm Rust execution engine
-	// For now, return nil to fall through to Go EVM
 	return nil, nil
 }
 
