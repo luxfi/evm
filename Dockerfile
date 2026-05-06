@@ -62,6 +62,6 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM $LUXD_NODE_IMAGE AS execution
 
 # Copy the evm binary into the correct location in the container
-ARG VM_ID=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+ARG VM_ID=mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6
 ENV LUXD_PLUGIN_DIR="/luxd/build/plugins"
 COPY --from=builder /build/build/evm $LUXD_PLUGIN_DIR/$VM_ID
