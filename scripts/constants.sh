@@ -10,8 +10,8 @@ GOPATH="$(go env GOPATH)"
 DEFAULT_PLUGIN_DIR="${HOME}/.lux/plugins"
 DEFAULT_VM_NAME="evm"
 # Canonical Lux EVM VM ID = CB58(ids.ID{'e','v','m'}) per luxfi/constants.EVMID.
-# Single ID for both C-Chain and EVM-based subnets. The legacy `srEXiWaH…`
-# (upstream Subnet-EVM) is NOT used in Lux.
+# Single ID for both C-Chain and EVM-based L2 chains. The legacy `srEXiWaH…`
+# (legacy upstream brand) is NOT used in Lux.
 DEFAULT_VM_ID="mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6"
 
 # Lux docker hub
