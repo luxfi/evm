@@ -9,7 +9,10 @@ set -euo pipefail
 GOPATH="$(go env GOPATH)"
 DEFAULT_PLUGIN_DIR="${HOME}/.lux/plugins"
 DEFAULT_VM_NAME="evm"
-DEFAULT_VM_ID="srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
+# Canonical Lux EVM VM ID = CB58(ids.ID{'e','v','m'}) per luxfi/constants.EVMID.
+# Single ID for both C-Chain and EVM-based subnets. The legacy `srEXiWaH…`
+# (upstream Subnet-EVM) is NOT used in Lux.
+DEFAULT_VM_ID="mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6"
 
 # Lux docker hub
 # luxfi/node - defaults to local as to avoid unintentional pushes
