@@ -1,7 +1,7 @@
 # LLM.md - Lux EVM Module
 
 ## Project Overview
-Lux EVM (formerly EVM) is the Ethereum Virtual Machine implementation for Lux subnets. This module provides EVM compatibility for the Lux network.
+Lux EVM (formerly EVM) is the Ethereum Virtual Machine implementation for Lux L2 chains. This module provides EVM compatibility for the Lux network.
 
 ## CRITICAL VERSION REQUIREMENTS
 **ALWAYS use these Lux-specific versions:**
@@ -172,7 +172,7 @@ go test ./...   # Will work after build issues are resolved
 
 ## Important Notes
 - This module is actively being migrated from evm
-- Maintains backwards compatibility with existing Lux subnets
+- Maintains backwards compatibility with existing Lux L2 chains
 - Uses single validator POA for development (k=1 consensus)
 - Major refactoring needed to reconcile ID type differences between packages
 
