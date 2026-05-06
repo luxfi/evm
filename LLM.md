@@ -1396,4 +1396,60 @@ The remaining network startup failures (optional chains K, G, Z, T, B, A, Q) are
 
 ---
 
-*Last Updated: 2026-01-29*
+## Pluggable Backends + Auto-Import
+
+### Backend selection (build tags)
+
+| Build | Backend | Notes |
+|-------|---------|-------|
+| `go build ./plugin` | Go EVM (Block-STM) | Default. Pure Go. |
+| `-tags gpu` | Go EVM + Metal GPU bridge | `core/parallel/gpu_bridge.go`. Requires working `luxfi/gpu` module. Currently broken upstream — MLX bindings (`mlx_zeros`, `mlx_from_slice_int64`, `mlx_floor`, `mlx_full`, etc.) are stubs in `~/work/luxcpp/mlx-c-api/mlx_c_api.c` returning NULL with mismatched signatures. Don't use until upstream lands real MLX impls. |
+| `-tags cevm` | C++ EVM via cgo | `core/parallel/backend_cevm.go`. Real GPU path — links `~/work/luxcpp/cevm/build-phase5b/lib/{libevm,libevm-gpu-state,libevm-metal-hosts,libevm-kernel-metal}`. Requires `bash chains/evm/cevm/fetch-luxcpp.sh` to populate libs. |
+| `-tags revm` | Rust EVM via FFI | `core/parallel/backend_revm.go`. Requires `librustc_revm.a` from `luxfi/revm`. |
+
+`gpu_bridge.go:4` build tag is `cgo && darwin && gpu` (opt-in).
+
+### `--import-chain-data` plumbing
+
+luxd's `--import-chain-data=<path.rlp>` flag now flows through to the EVM plugin:
+
+1. `node/config/config.go:2012-2028` config bridge injects the path into
+   `nodeConfig.ChainConfigs["C"].Config` JSON map.
+2. EVM plugin reads `vm.config.ImportChainData` (declared in
+   `plugin/evm/config/config.go`, JSON key `import-chain-data`).
+3. After `initializeChain()` in `plugin/evm/vm.go::Initialize()`, if
+   `ImportChainData != ""`, calls `importBlocksFromFile(chain, path,
+   persistAccepted)` from `plugin/evm/admin_api.go:220`. Same code path as
+   `admin_importChain` RPC.
+4. Batches of 2,500 blocks. State trie committed every `CommitInterval`
+   (default 4,096) blocks; `acceptedBlockDB` updated atomically with each commit.
+
+Canonical mainnet hashes/state root and required precompiles live in
+`~/work/lux/genesis/LLM.md` "Canonical Requirements" — single source of truth.
+
+### Build commands
+
+```bash
+cd ~/work/lux/evm
+
+# Default Go EVM (used for production C-Chain plugin)
+GOWORK=off go build -o /tmp/evm-plugin ./plugin/
+
+# C++ EVM (real GPU)
+GOWORK=off go build -tags cevm -o /tmp/evm-cevm ./plugin/
+
+# Install at canonical VM ID (CB58 of ids.ID{'e','v','m'} per luxfi/constants.EVMID)
+cp /tmp/evm-plugin ~/work/lux/node/build/plugins/mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6
+codesign --force --sign - ~/work/lux/node/build/plugins/mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6
+```
+
+### Known upstream gaps
+
+- `luxfi/gpu@v0.30.0` MLX C bindings unimplemented — stubs in
+  `~/work/luxcpp/mlx-c-api/mlx_c_api.c`. Don't use `-tags gpu` until landed.
+- `luxfi/accel@v1.0.7` API drift — `accel.VMSession`, `NewVMSession`,
+  `WithPriority`, `PriorityHigh` undefined. Blocks `chains/keyvm` and likely
+  other chains/*vm. Independent of EVM stack.
+- `luxfi/coreth` is DEPRECATED per `coreth/DEPRECATED.md` — use this repo
+  (`luxfi/evm`) for all new C-Chain + subnet EVM work.
+
