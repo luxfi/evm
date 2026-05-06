@@ -1007,7 +1007,7 @@ Setting `cancunTime: null` in genesis doesn't help because the EVM code still ch
 
 ### Key Principle
 
-**Lux networks are NOT Ethereum.** We use our own consensus (Snow/POA) and don't need Ethereum's beacon chain validators or blob transaction support.
+**Lux networks are NOT Ethereum.** We use our own consensus (Quasar/POA) and don't need Ethereum's beacon chain validators or blob transaction support.
 
 ### Testing Verification
 
