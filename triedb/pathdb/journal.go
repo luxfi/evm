@@ -124,10 +124,33 @@ func (db *Database) loadJournal(diskRoot common.Hash) (layer, error) {
 }
 
 // loadLayers loads a pre-existing state layer backed by a key-value store.
+//
+// Fresh-DB invariant: when no persistent account-trie node exists yet
+// (`ReadAccountTrieNode` returns nil), the disk layer's root MUST be
+// `types.EmptyRootHash` — the canonical RLP-of-empty-trie hash that
+// `core.Genesis.toBlock` uses as the parent when committing genesis.
+//
+// The previous implementation computed `Keccak256Hash(nil)` for an
+// empty DB, producing `0xc5d2…a470` which is the keccak of zero bytes,
+// NOT the empty-trie root (`0x56e81f…b421`). Genesis-commit then looked
+// up `EmptyRootHash` as the parent in the layer tree, found nothing,
+// and panicked with "triedb parent layer missing". That single hash
+// mismatch broke every fresh-launched chain on this fork.
+//
+// Fix: short-circuit to `EmptyRootHash` when there is no persistent
+// state, matching go-ethereum upstream and the contract that
+// `genesis.toBlock` + `layertree.add` rely on.
 func (db *Database) loadLayers() layer {
 	// Retrieve the root node of persistent state.
 	data := rawdb.ReadAccountTrieNode(db.diskdb, nil)
-	root := types.TrieRootHash(crypto.Keccak256Hash(data))
+	var root common.Hash
+	if len(data) == 0 {
+		// Fresh DB — no persistent state yet. The empty-trie root is the
+		// only value `core.Genesis.toBlock` will accept as a parent.
+		root = types.EmptyRootHash
+	} else {
+		root = types.TrieRootHash(crypto.Keccak256Hash(data))
+	}
 
 	// Load the layers by resolving the journal
 	head, err := db.loadJournal(root)
