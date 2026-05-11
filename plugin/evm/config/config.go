@@ -98,6 +98,11 @@ type Config struct {
 	// Airdrop
 	AirdropFile string `json:"airdrop"`
 
+	// ImportChainData is the path to an RLP-encoded blockchain export to import after
+	// the chain is initialized. If empty, no import is performed. Mirrors the
+	// admin_importChain RPC but runs at startup. Used by luxd's --import-chain-data flag.
+	ImportChainData string `json:"import-chain-data"`
+
 	// GenesisAllocFile is a path to a JSON file containing additional genesis allocations.
 	// This allows bypassing P-chain transaction size limits for large genesis states.
 	// The file should contain a JSON object with address-to-account mappings.
@@ -265,6 +270,20 @@ type Config struct {
 
 	// Database Scheme
 	StateScheme string `json:"state-scheme"`
+
+	// LuxStrictPQ activates the chain-wide strict-PQ posture inside the
+	// EVM precompile layer. When true, the ecrecover precompile at 0x01
+	// refuses every input with ErrClassicalAuthForbidden (gas is still
+	// charged per EIP-150). Default false preserves classical-compat
+	// semantics — required for legacy chains and the Lux-Permissive
+	// profile.
+	//
+	// The node populates this from its resolved
+	// consensusconfig.ChainSecurityProfile (F102 close-out) so the C-
+	// chain plugin process inherits the chain-wide posture without
+	// re-resolving genesis. One way only: install once at chain
+	// bootstrap inside VM.Initialize, never per-tx.
+	LuxStrictPQ bool `json:"lux-strict-pq,omitempty"`
 }
 
 // TxPoolConfig contains the transaction pool config to be passed
