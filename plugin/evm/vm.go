@@ -345,17 +345,21 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 
 	log.Info("Initializing Chain EVM VM", "Version", Version, "geth version", params.VersionWithMeta, "Config", vm.config)
 
-	// F102 close-out — install the chain-wide strict-PQ posture into the
-	// EVM precompile layer. Once installed, the ecrecover precompile at
-	// 0x01 returns ErrClassicalAuthForbidden under strict-PQ (gas is
-	// still charged per EIP-150). Default (config false) preserves
-	// classical-compat semantics for legacy chains and the Lux-Permissive
-	// profile.
-	if vm.config.LuxStrictPQ {
-		gethvm.SetActiveSecurityProfile(&gethvm.LuxSecurityProfile{
-			ForbidECDSAContractAuth: true,
-		})
-		log.Info("EVM strict-PQ active: ecrecover (0x01) refuses classical contract-auth")
+	// F102 close-out — install the chain-wide PQ posture into the EVM
+	// precompile layer. PQ mode is binary: a chain is PQ or it isn't.
+	// Strict-PQ refuses every classical primitive at the precompile
+	// boundary: ecrecover/p256verify, sha256/ripemd160/blake2F,
+	// alt_bn128/BLS12-381 pairings, and EIP-4844 KZG point evaluation.
+	// Gas is still charged per EIP-150 so the refusal isn't observable
+	// via gas timing.
+	//
+	// One concept, one way: SetPQProfile installs the projection; refuse()
+	// is the gate every classical precompile calls. nil projection means
+	// classical EVM semantics. config.PQ=false (default) preserves classical
+	// semantics for legacy chains and the permissive profile.
+	if vm.config.PQ {
+		gethvm.SetPQProfile(gethvm.AllForbidden())
+		log.Info("EVM PQ mode active: classical precompiles (ecrecover, sha256/ripemd/blake2F, alt_bn128, BLS12-381, KZG) refuse")
 	}
 
 	if deprecateMsg != "" {
