@@ -46,6 +46,7 @@ import (
 	"github.com/luxfi/evm/plugin/evm/validators/interfaces"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/types"
+	gethvm "github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/geth/triedb/hashdb"
@@ -344,6 +345,19 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 
 	log.Info("Initializing Chain EVM VM", "Version", Version, "geth version", params.VersionWithMeta, "Config", vm.config)
 
+	// F102 close-out — install the chain-wide strict-PQ posture into the
+	// EVM precompile layer. Once installed, the ecrecover precompile at
+	// 0x01 returns ErrClassicalAuthForbidden under strict-PQ (gas is
+	// still charged per EIP-150). Default (config false) preserves
+	// classical-compat semantics for legacy chains and the Lux-Permissive
+	// profile.
+	if vm.config.LuxStrictPQ {
+		gethvm.SetActiveSecurityProfile(&gethvm.LuxSecurityProfile{
+			ForbidECDSAContractAuth: true,
+		})
+		log.Info("EVM strict-PQ active: ecrecover (0x01) refuses classical contract-auth")
+	}
+
 	if deprecateMsg != "" {
 		log.Warn("Deprecation Warning", "msg", deprecateMsg)
 	}
@@ -374,6 +388,7 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	}
 
 	debugLog("Calling parseGenesis with genesisAllocFile=%q, upgradeBytes len=%d", vm.config.GenesisAllocFile, len(upgradeBytes))
+	fmt.Fprintf(os.Stderr, "[GENESIS-BYTES-DEBUG] len=%d first500=%s\n", len(genesisBytes), string(genesisBytes[:min(500, len(genesisBytes))]))
 	if len(upgradeBytes) > 0 {
 		debugLog("upgradeBytes content: %s", string(upgradeBytes))
 	}
@@ -580,6 +595,30 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	}
 	debugLog("Chain initialized successfully")
 
+	// Auto-import RLP chain data if configured. Runs the same logic as admin_importChain
+	// but at startup, allowing luxd's --import-chain-data flag to drive bulk historical
+	// imports without requiring the RPC server to be up first.
+	if vm.config.ImportChainData != "" {
+		log.Info("Auto-importing chain data at startup", "path", vm.config.ImportChainData)
+		chain := vm.eth.BlockChain()
+		persistAccepted := func(hash common.Hash, height uint64) error {
+			var blkID ids.ID
+			copy(blkID[:], hash[:])
+			if err := vm.acceptedBlockDB.Put(lastAcceptedKey, blkID[:]); err != nil {
+				return fmt.Errorf("failed to update acceptedBlockDB: %w", err)
+			}
+			if err := vm.versiondb.Commit(); err != nil {
+				return fmt.Errorf("failed to commit versiondb: %w", err)
+			}
+			return nil
+		}
+		imported, lastHash, lastHeight, err := importBlocksFromFile(chain, vm.config.ImportChainData, persistAccepted)
+		if err != nil {
+			return fmt.Errorf("startup import failed: %w", err)
+		}
+		log.Info("Startup import complete", "blocks", imported, "lastHash", lastHash.Hex(), "height", lastHeight)
+	}
+
 	// Start continuous profiler in a goroutine with recovery
 	go func() {
 		defer func() {
@@ -660,6 +699,9 @@ func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte,
 			debugLog("CancunTime was nil, forced to 0")
 		}
 		debugLog("EVM forks: shanghaiTime=%v cancunTime=%v", *g.Config.ShanghaiTime, *g.Config.CancunTime)
+		fmt.Fprintf(os.Stderr, "[EVM-FORK-DEBUG] genesisTimestamp=%v shanghaiTime=%v cancunTime=%v isShanghaiAtGenesis=%v\n",
+			g.Timestamp, *g.Config.ShanghaiTime, *g.Config.CancunTime,
+			g.Config.IsShanghai(big.NewInt(0), g.Timestamp))
 	}
 
 	// Populate the Lux config extras.
@@ -737,8 +779,10 @@ func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte,
 			}
 			if val, ok := configData["durangoTimestamp"]; ok {
 				log.Info("DEBUG: Found durangoTimestamp in genesis", "val", val, "type", fmt.Sprintf("%T", val))
+				fmt.Fprintf(os.Stderr, "[DURANGO-DEBUG] val=%v type=%T\n", val, val)
 				if ts, ok := val.(float64); ok {
 					log.Info("DEBUG: Setting DurangoTimestamp from float64", "ts", ts, "uint64", uint64(ts))
+					fmt.Fprintf(os.Stderr, "[DURANGO-DEBUG] setting durango=%d\n", uint64(ts))
 					configExtra.DurangoTimestamp = utils.NewUint64(uint64(ts))
 				} else {
 					log.Info("DEBUG: durangoTimestamp is not float64")
