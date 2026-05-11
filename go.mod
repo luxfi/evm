@@ -17,12 +17,12 @@ require (
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.2.1
 	github.com/luxfi/codec v1.1.4
-	github.com/luxfi/consensus v1.22.70
+	github.com/luxfi/consensus v1.22.84
 	github.com/luxfi/constants v1.4.7
 	github.com/luxfi/crypto v1.18.1
 	github.com/luxfi/database v1.18.1
 	github.com/luxfi/filesystem v0.0.1
-	github.com/luxfi/geth v1.16.86-0.20260413014255-3e903c3d2e06
+	github.com/luxfi/geth v1.16.88
 	github.com/luxfi/go-bip39 v1.1.2
 	github.com/luxfi/gpu v0.30.0
 	github.com/luxfi/ids v1.2.9
@@ -32,7 +32,7 @@ require (
 	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.5.1
 	github.com/luxfi/p2p v1.19.2
-	github.com/luxfi/precompile v0.5.12
+	github.com/luxfi/precompile v0.5.14
 	github.com/luxfi/runtime v1.0.1
 	github.com/luxfi/sys v0.0.0-20260110090042-50187ec5ffd8
 	github.com/luxfi/timer v1.0.2
@@ -82,7 +82,7 @@ require (
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/luxfi/accel v1.0.7 // indirect
+	github.com/luxfi/accel v1.0.8 // indirect
 	github.com/luxfi/age v1.4.0 // indirect
 	github.com/luxfi/api v1.0.4 // indirect
 	github.com/luxfi/atomic v1.0.0 // indirect
