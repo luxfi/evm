@@ -6,7 +6,9 @@ package params
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
+	"os"
 	"sync"
 
 	"github.com/luxfi/evm/params/extras"
@@ -131,6 +133,8 @@ func SetEthUpgrades(c *ChainConfig) error {
 	extra := GetExtra(c)
 	// We only mark Eth upgrades as enabled if we have marked them as scheduled.
 	if durango := extra.DurangoTimestamp; durango != nil && *durango < unscheduledActivation {
+		fmt.Fprintf(os.Stderr, "[SET-ETH-UPGRADES] setting ShanghaiTime to durango=%d (was %v)\n",
+			*durango, c.ShanghaiTime)
 		c.ShanghaiTime = utils.NewUint64(*durango)
 	}
 
