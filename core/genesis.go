@@ -435,8 +435,16 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 			}
 		}
 
-		// EIP-4895: Set empty withdrawals hash for Shanghai
-		if conf.IsShanghai(num, g.Timestamp) {
+		// EIP-4895: Set empty withdrawals hash for Shanghai.
+		//
+		// Lux genesis predates Shanghai/withdrawals: the canonical mainnet
+		// genesis hash (chain ID 96369 = 0x3f4fa2a0…) was produced with the
+		// 16-field header format (no WithdrawalsHash). Forks like Durango
+		// (which alias to Shanghai for EVM-fork bookkeeping) may activate
+		// at genesis timestamp, but the genesis BLOCK itself must remain
+		// in pre-withdrawals format to preserve hash continuity. Only
+		// post-genesis blocks (Number > 0) get a WithdrawalsHash here.
+		if num.Sign() != 0 && conf.IsShanghai(num, g.Timestamp) {
 			head.WithdrawalsHash = &types.EmptyWithdrawalsHash
 			withdrawals = make([]*types.Withdrawal, 0)
 		}
