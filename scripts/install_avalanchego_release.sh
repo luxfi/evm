@@ -121,4 +121,4 @@ cp "${BUILD_DIR}"/luxd "${LUXD_PATH}"
 
 echo "Installed Luxd release ${LUX_VERSION}"
 echo "Luxd Path: ${LUXD_PATH}"
-echo "Plugin Dir: ${DEFAULT_PLUGIN_DIR}"
+echo "Plugin Dir: ${LUX_PLUGIN_DIR}"

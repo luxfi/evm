@@ -68,7 +68,7 @@ else
   DOCKER_CMD="${DOCKER_CMD} --load"
 fi
 
-VM_ID=${VM_ID:-"${DEFAULT_VM_ID}"}
+VM_ID=${VM_ID:-"${EVM_VMID}"}
 
 # Default to the release image. Will need to be overridden when testing against unreleased versions.
 LUXD_NODE_IMAGE="${LUXD_NODE_IMAGE:-${LUXD_IMAGE_NAME}:${LUX_VERSION}}"
