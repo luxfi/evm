@@ -56,9 +56,20 @@ var (
 type ValidationOptions struct {
 	Config *params.ChainConfig // Chain configuration to selectively validate based on current fork rules
 
-	Accept  uint8    // Bitmap of transaction types that should be accepted for the calling pool
+	Accept  uint8    // Bitmap of CLASSICAL transaction types (0x00..0x07) accepted by the pool
 	MaxSize uint64   // Maximum size of a transaction that the caller can meaningfully handle
 	MinTip  *big.Int // Minimum gas tip needed to allow a transaction into the caller pool
+
+	// AcceptMLDSA toggles admission of strict-PQ MLDSATxType (0x42)
+	// transactions. The bitmap above is a uint8 and can't hold a slot
+	// for the 0x42 type byte (the high-byte design was deliberate so
+	// the scheme tag matches NodeIDSchemeMLDSA65 in luxfi/ids; the
+	// downside is the legacy bitmap doesn't fit it).
+	//
+	// Strict-PQ Liquid chains set AcceptMLDSA=true and Accept=0 —
+	// every classical tx type is refused at the pool boundary,
+	// only MLDSATxType lands in the mempool.
+	AcceptMLDSA bool
 }
 
 // ValidateTransaction is a helper method to check whether a transaction is valid
@@ -68,9 +79,19 @@ type ValidationOptions struct {
 // This check is public to allow different transaction pools to check the basic
 // rules without duplicating code and running the risk of missed updates.
 func ValidateTransaction(tx *types.Transaction, head *types.Header, signer types.Signer, opts *ValidationOptions) error {
-	// Ensure transactions not implemented by the calling pool are rejected
-	if opts.Accept&(1<<tx.Type()) == 0 {
-		return fmt.Errorf("%w: tx type %v not supported by this pool", core.ErrTxTypeNotSupported, tx.Type())
+	// Strict-PQ admission. MLDSATxType (0x42) doesn't fit the
+	// legacy uint8 bitmap, so it has its own boolean toggle. The
+	// classical-vs-PQ dispatch happens here BEFORE any other
+	// validation: a strict-PQ pool with AcceptMLDSA=true and
+	// Accept=0 refuses every classical type at this single line.
+	if tx.Type() == types.MLDSATxType {
+		if !opts.AcceptMLDSA {
+			return fmt.Errorf("%w: tx type 0x%02x (MLDSA) not supported by this pool",
+				core.ErrTxTypeNotSupported, tx.Type())
+		}
+	} else if opts.Accept&(1<<tx.Type()) == 0 {
+		return fmt.Errorf("%w: tx type %v not supported by this pool",
+			core.ErrTxTypeNotSupported, tx.Type())
 	}
 	// Before performing any expensive validations, sanity check that the tx is
 	// smaller than the maximum limit the pool can meaningfully handle
