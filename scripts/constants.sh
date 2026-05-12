@@ -7,12 +7,15 @@ set -euo pipefail
 
 # Set the PATHS
 GOPATH="$(go env GOPATH)"
-DEFAULT_PLUGIN_DIR="${HOME}/.lux/plugins"
-DEFAULT_VM_NAME="evm"
-# Canonical Lux EVM VM ID = CB58(ids.ID{'e','v','m'}) per luxfi/constants.EVMID.
-# Single ID for both C-Chain and EVM-based L2 chains. The legacy `srEXiWaH…`
-# (legacy upstream brand) is NOT used in Lux.
-DEFAULT_VM_ID="mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6"
+
+# Default install dir for luxd plugins. Overridable.
+LUX_PLUGIN_DIR="${LUX_PLUGIN_DIR:-${HOME}/.lux/plugins}"
+
+# Canonical EVM VM ID — derived from luxfi/constants.EVMID (Go source of truth),
+# not a hardcoded base58 string. Cached per shell invocation.
+if [[ -z "${EVM_VMID:-}" ]]; then
+    EVM_VMID="$(cd "${EVM_PATH:-$(dirname "${BASH_SOURCE[0]}")/..}" && go run ./cmd/vmid)"
+fi
 
 # Lux docker hub
 # luxfi/node - defaults to local as to avoid unintentional pushes
