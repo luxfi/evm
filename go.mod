@@ -22,7 +22,7 @@ require (
 	github.com/luxfi/crypto v1.18.1
 	github.com/luxfi/database v1.18.1
 	github.com/luxfi/filesystem v0.0.1
-	github.com/luxfi/geth v1.16.90
+	github.com/luxfi/geth v1.16.91
 	github.com/luxfi/go-bip39 v1.1.2
 	github.com/luxfi/gpu v1.0.1
 	github.com/luxfi/ids v1.2.9
@@ -92,7 +92,7 @@ require (
 	github.com/luxfi/fhe v1.8.0 // indirect
 	github.com/luxfi/lattice/v7 v7.0.0 // indirect
 	github.com/luxfi/node v1.23.4 // indirect
-	github.com/luxfi/pq v0.0.0-20260511232911-de15d6ce2f0f // indirect
+	github.com/luxfi/pq v1.0.1-0.20260512064747-3d4c9414e15e // indirect
 	github.com/luxfi/protocol v0.0.2 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
 	github.com/luxfi/threshold v1.5.5 // indirect
