@@ -49,7 +49,6 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/prque"
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/event"
 	"github.com/luxfi/geth/metrics"
 	log "github.com/luxfi/log"
@@ -675,18 +674,22 @@ func (pool *LegacyPool) local() map[common.Address]types.Transactions {
 // This check is meant as an early check which only needs to be performed once,
 // and does not require the pool mutex to be held.
 func (pool *LegacyPool) validateTxBasics(tx *types.Transaction, local bool) error {
-	// Strict-PQ admission. When the EVM has a non-nil ActivePQProfile
-	// (set by vm.Initialize when chain config.PQ==true), the chain
-	// is strict-PQ — refuse every classical tx type at the pool
-	// boundary and accept only MLDSATxType (0x42). The PQProfile
-	// gate inside the EVM precompile layer covers contract-internal
-	// classical primitives; this gate covers the tx-submission
+	// Strict-PQ admission. The PQ profile lives on the per-chain
+	// ChainConfig (params.ChainConfig.PQ, populated by vm.Initialize
+	// when the chain's plugin config has "pq":true) — NOT on a
+	// process-global atomic. Multi-chain hosts (strict-PQ +
+	// permissive in one process) get the right gate per pool
+	// because the profile is the chain's own field.
+	//
+	// The PQProfile gate inside the EVM precompile layer covers
+	// contract-internal classical primitives via the same
+	// ChainConfig.PQ field; this gate covers the tx-submission
 	// boundary so a classical-signed tx is never even mined.
 	var (
 		acceptClassical uint8
 		acceptMLDSA     bool
 	)
-	if vm.ActivePQProfile() != nil {
+	if pool.chainconfig.PQ != nil {
 		// Strict-PQ: nothing classical accepted, MLDSATxType only.
 		acceptMLDSA = true
 	} else {
