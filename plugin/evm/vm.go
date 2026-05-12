@@ -345,20 +345,22 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 
 	log.Info("Initializing Chain EVM VM", "Version", Version, "geth version", params.VersionWithMeta, "Config", vm.config)
 
-	// F102 close-out — install the chain-wide PQ posture into the EVM
-	// precompile layer. PQ mode is binary: a chain is PQ or it isn't.
-	// Strict-PQ refuses every classical primitive at the precompile
-	// boundary: ecrecover/p256verify, sha256/ripemd160/blake2F,
-	// alt_bn128/BLS12-381 pairings, and EIP-4844 KZG point evaluation.
-	// Gas is still charged per EIP-150 so the refusal isn't observable
-	// via gas timing.
+	// F102 close-out — install the chain-scoped PQ posture on the chain
+	// config. PQ mode is binary: a chain is PQ or it isn't. Strict-PQ
+	// refuses every classical primitive at the precompile boundary:
+	// ecrecover/p256verify, sha256/ripemd160/blake2F, alt_bn128/BLS12-381
+	// pairings, and EIP-4844 KZG point evaluation. Gas is still charged
+	// per EIP-150 so the refusal isn't observable via gas timing.
 	//
-	// One concept, one way: SetPQProfile installs the projection; refuse()
-	// is the gate every classical precompile calls. nil projection means
-	// classical EVM semantics. config.PQ=false (default) preserves classical
-	// semantics for legacy chains and the permissive profile.
+	// One concept, one way: ChainConfig.PQ holds the profile;
+	// (*EVM).runPrecompile reads it via chainConfig.PQ.RefuseUnder(op)
+	// before dispatching each precompile. nil profile (the default)
+	// preserves classical EVM semantics — every legacy chain runs
+	// unchanged. Multi-chain hosts (strict-PQ + permissive in one
+	// process) get the right gate per EVM instance because the profile
+	// lives on each chain's config, not on a process-global atomic.
 	if vm.config.PQ {
-		gethvm.SetPQProfile(gethvm.AllForbidden())
+		vm.chainConfig.PQ = gethvm.AllForbidden()
 		log.Info("EVM PQ mode active: classical precompiles (ecrecover, sha256/ripemd/blake2F, alt_bn128, BLS12-381, KZG) refuse")
 	}
 
@@ -402,6 +404,17 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 		return err
 	}
 	debugLog("parseGenesis succeeded: chainID=%v alloc=%d accounts", g.Config.ChainID, len(g.Alloc))
+
+	// When config.PQ is set, pin strict-PQ from genesis on the extras config so
+	// stateful precompiles that call contract.RefuseUnderStrictPQ refuse
+	// classical primitives. The geth-layer gate above (SetPQProfile) covers
+	// 0x01..0x09 standard precompiles; this covers Lux stateful precompiles
+	// (KZG, Groth16, PLONK, fflonk, Halo2, BN254-Pedersen, BabyJubJub,
+	// Pallas/Vesta, BLS12-381 modules, etc.) via the same posture.
+	if vm.config.PQ {
+		zero := uint64(0)
+		params.GetExtra(g.Config).StrictPQTimestamp = &zero
+	}
 
 	vm.syntacticBlockValidator = NewBlockValidator()
 	debugLog("Creating ethConfig")
