@@ -17,5 +17,5 @@ jobs:
       image: ghcr.io/luxfi/evm
       build-args: |
         LUXD_NODE_IMAGE=ghcr.io/luxfi/node:latest
-      runner-amd64: hanzo-build-linux-amd64
+      runner-amd64: lux-build-linux-amd64
     secrets: inherit
