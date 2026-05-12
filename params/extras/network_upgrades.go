@@ -54,6 +54,12 @@ type NetworkUpgrades struct {
 	FortunaTimestamp *uint64 `json:"fortunaTimestamp,omitempty"`
 	// Granite is a placeholder for the next upgrade.
 	GraniteTimestamp *uint64 `json:"graniteTimestamp,omitempty"`
+	// StrictPQTimestamp pins the chain to a strict post-quantum profile from
+	// the given timestamp onward. When active, classical pairing-based and
+	// discrete-log precompiles refuse to execute via contract.RefuseUnderStrictPQ.
+	// nil = never activates (classical-permissive, the default for non-Lux
+	// chains that integrate Lux precompiles). 0 = active from genesis.
+	StrictPQTimestamp *uint64 `json:"strictPQTimestamp,omitempty"`
 }
 
 func (n *NetworkUpgrades) Equal(other *NetworkUpgrades) bool {
@@ -201,6 +207,9 @@ func (n *NetworkUpgrades) Override(o *NetworkUpgrades) {
 	if o.GraniteTimestamp != nil {
 		n.GraniteTimestamp = o.GraniteTimestamp
 	}
+	if o.StrictPQTimestamp != nil {
+		n.StrictPQTimestamp = o.StrictPQTimestamp
+	}
 }
 
 // IsEVM returns whether [time] represents a block
@@ -231,6 +240,14 @@ func (n *NetworkUpgrades) IsFortuna(time uint64) bool {
 // with a timestamp after the Granite upgrade time.
 func (n *NetworkUpgrades) IsGranite(time uint64) bool {
 	return isTimestampForked(n.GraniteTimestamp, time)
+}
+
+// IsStrictPQ returns whether [time] represents a block at or after the
+// strict-PQ activation timestamp. nil StrictPQTimestamp means the chain
+// is classical-permissive (the default for non-Lux chains that integrate
+// Lux precompiles).
+func (n *NetworkUpgrades) IsStrictPQ(time uint64) bool {
+	return isTimestampForked(n.StrictPQTimestamp, time)
 }
 
 func (n *NetworkUpgrades) Description() string {
