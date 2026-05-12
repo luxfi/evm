@@ -54,7 +54,7 @@ echo "Generating compose configuration"
 gen_antithesis_compose_config "${IMAGE_TAG}" "${EVM_PATH}/tests/antithesis/gencomposeconfig" \
                               "${EVM_PATH}/build/antithesis" \
                               "LUXD_PATH=${LUXD_CLONE_PATH}/build/luxd \
-                              LUXD_PLUGIN_DIR=${DEFAULT_PLUGIN_DIR}"
+                              LUXD_PLUGIN_DIR=${LUX_PLUGIN_DIR}"
 
 build_antithesis_images "${GO_VERSION}" "${IMAGE_PREFIX}" "antithesis-evm" "${IMAGE_TAG}" \
                         "${LUXD_IMAGE_TAG}" "${EVM_PATH}/tests/antithesis/Dockerfile" \

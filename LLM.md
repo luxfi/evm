@@ -1432,16 +1432,21 @@ Canonical mainnet hashes/state root and required precompiles live in
 ```bash
 cd ~/work/lux/evm
 
-# Default Go EVM (used for production C-Chain plugin)
-GOWORK=off go build -o /tmp/evm-plugin ./plugin/
+# Default: builds and installs the plugin at the canonical path
+# (~/.lux/plugins/<EVMID> where EVMID = CB58(ids.ID{'e','v','m'}) per luxfi/constants.EVMID).
+# Handles codesign on darwin in one shot. No hardcoded plugin paths, no aliases.
+./scripts/build.sh
 
-# C++ EVM (real GPU)
-GOWORK=off go build -tags cevm -o /tmp/evm-cevm ./plugin/
-
-# Install at canonical VM ID (CB58 of ids.ID{'e','v','m'} per luxfi/constants.EVMID)
-cp /tmp/evm-plugin ~/work/lux/node/build/plugins/mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6
-codesign --force --sign - ~/work/lux/node/build/plugins/mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6
+# Variants (build, then have luxd point its --plugin-dir at the chosen build):
+./scripts/build.sh /tmp/evm-default            # plain Go EVM (default)
+GOFLAGS='-tags cevm' ./scripts/build.sh /tmp/evm-cevm   # C++ backend (real GPU)
+GOFLAGS='-tags revm' ./scripts/build.sh /tmp/evm-revm   # Rust REVM backend
 ```
+
+The plugin filename is the binary's location: luxd's chain manager looks up
+`<plugin-dir>/<VMID>` and `constants.EVMID = ids.ID{'e','v','m'}` (CB58 =
+`mgj786NP…`) is the canonical primary-network C-Chain ID. Same ID is used
+for every EVM-based L2 chain in Lux. No second filename, no aliases.
 
 ### Known upstream gaps
 
