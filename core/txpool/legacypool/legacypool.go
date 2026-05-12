@@ -49,6 +49,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/common/prque"
 	"github.com/luxfi/geth/core/types"
+	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/event"
 	"github.com/luxfi/geth/metrics"
 	log "github.com/luxfi/log"
@@ -674,14 +675,37 @@ func (pool *LegacyPool) local() map[common.Address]types.Transactions {
 // This check is meant as an early check which only needs to be performed once,
 // and does not require the pool mutex to be held.
 func (pool *LegacyPool) validateTxBasics(tx *types.Transaction, local bool) error {
-	opts := &txpool.ValidationOptions{
-		Config: pool.chainconfig,
-		Accept: 0 |
+	// Strict-PQ admission. When the EVM has a non-nil ActivePQProfile
+	// (set by vm.Initialize when chain config.PQ==true), the chain
+	// is strict-PQ — refuse every classical tx type at the pool
+	// boundary and accept only MLDSATxType (0x42). The PQProfile
+	// gate inside the EVM precompile layer covers contract-internal
+	// classical primitives; this gate covers the tx-submission
+	// boundary so a classical-signed tx is never even mined.
+	var (
+		acceptClassical uint8
+		acceptMLDSA     bool
+	)
+	if vm.ActivePQProfile() != nil {
+		// Strict-PQ: nothing classical accepted, MLDSATxType only.
+		acceptMLDSA = true
+	} else {
+		acceptClassical = 0 |
 			1<<types.LegacyTxType |
 			1<<types.AccessListTxType |
-			1<<types.DynamicFeeTxType,
-		MaxSize: txMaxSize,
-		MinTip:  pool.gasTip.Load().ToBig(),
+			1<<types.DynamicFeeTxType
+		// MLDSATxType is also admitted on permissive chains during
+		// a migration window — clients that want to dual-sign or
+		// proactively migrate to ML-DSA-65 can submit before the
+		// chain flips to strict-PQ.
+		acceptMLDSA = true
+	}
+	opts := &txpool.ValidationOptions{
+		Config:      pool.chainconfig,
+		Accept:      acceptClassical,
+		AcceptMLDSA: acceptMLDSA,
+		MaxSize:     txMaxSize,
+		MinTip:      pool.gasTip.Load().ToBig(),
 	}
 	if local {
 		opts.MinTip = new(big.Int)
