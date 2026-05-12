@@ -55,7 +55,7 @@ build_and_test() {
   done
 }
 
-VM_ID="${VM_ID:-${DEFAULT_VM_ID}}"
+VM_ID="${VM_ID:-${EVM_VMID}}"
 
 echo "checking build of single-arch image"
 build_and_test "evm_luxd" "${VM_ID}" false "luxd"
