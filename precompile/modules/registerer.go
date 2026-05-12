@@ -42,6 +42,13 @@ var (
 			Start: common.HexToAddress("0x0000000000000000000000000000000000010000"),
 			End:   common.HexToAddress("0x000000000000000000000000000000000001ffff"),
 		},
+		// Legacy coreth-compatible precompile range: 0x0200000000000000000000000000000000000000 - 0x02000000000000000000000000000000000000ff
+		// Required for canonical mainnet (chain ID 96369) genesis hash compatibility:
+		// historical warp precompile lives at 0x0200000000000000000000000000000000000005.
+		{
+			Start: common.HexToAddress("0x0200000000000000000000000000000000000000"),
+			End:   common.HexToAddress("0x02000000000000000000000000000000000000ff"),
+		},
 	}
 )
 
