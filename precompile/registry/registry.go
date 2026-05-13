@@ -35,9 +35,10 @@ import (
 	// ============================================
 	// Threshold Signatures (0x0800-0x08FF)
 	// ============================================
-	_ "github.com/luxfi/precompile/cggmp21"  // CGGMP21 threshold ECDSA
-	_ "github.com/luxfi/precompile/frost"    // FROST threshold Schnorr
-	_ "github.com/luxfi/precompile/corona" // Threshold lattice (post-quantum)
+	_ "github.com/luxfi/precompile/cggmp21" // CGGMP21 threshold ECDSA
+	_ "github.com/luxfi/precompile/frost"   // FROST threshold Schnorr
+	_ "github.com/luxfi/precompile/corona"  // 0x012206 Corona (Ring-LWE threshold, FIPS-equivalent)
+	_ "github.com/luxfi/precompile/pulsar"  // 0x012204 Pulsar (Module-LWE threshold FIPS 204)
 
 	// ============================================
 	// ZK Proofs (0x0900-0x09FF)
