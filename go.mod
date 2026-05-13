@@ -19,7 +19,7 @@ require (
 	github.com/luxfi/codec v1.1.4
 	github.com/luxfi/consensus v1.22.84
 	github.com/luxfi/constants v1.4.7
-	github.com/luxfi/crypto v1.18.1
+	github.com/luxfi/crypto v1.19.0
 	github.com/luxfi/database v1.18.1
 	github.com/luxfi/filesystem v0.0.1
 	github.com/luxfi/geth v1.16.91
