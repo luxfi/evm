@@ -27,12 +27,13 @@ require (
 	github.com/luxfi/gpu v1.0.1
 	github.com/luxfi/ids v1.2.9
 	github.com/luxfi/log v1.4.1
-	github.com/luxfi/math v1.2.4
+	github.com/luxfi/math v1.4.0
 	github.com/luxfi/math/big v0.1.0
 	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.5.1
 	github.com/luxfi/p2p v1.19.2
-	github.com/luxfi/precompile v0.5.16
+	github.com/luxfi/pq v1.0.1-0.20260512064747-3d4c9414e15e
+	github.com/luxfi/precompile v0.5.17
 	github.com/luxfi/runtime v1.0.1
 	github.com/luxfi/sys v0.0.0-20260110090042-50187ec5ffd8
 	github.com/luxfi/timer v1.0.2
@@ -89,10 +90,11 @@ require (
 	github.com/luxfi/compress v0.0.5 // indirect
 	github.com/luxfi/concurrent v0.0.3 // indirect
 	github.com/luxfi/container v0.0.4 // indirect
+	github.com/luxfi/corona v0.3.1 // indirect
+	github.com/luxfi/crypto/ipa v1.2.4 // indirect
 	github.com/luxfi/fhe v1.8.0 // indirect
-	github.com/luxfi/lattice/v7 v7.0.0 // indirect
+	github.com/luxfi/lattice/v7 v7.1.0 // indirect
 	github.com/luxfi/node v1.23.4 // indirect
-	github.com/luxfi/pq v1.0.1-0.20260512064747-3d4c9414e15e // indirect
 	github.com/luxfi/protocol v0.0.2 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
 	github.com/luxfi/threshold v1.5.5 // indirect
@@ -123,7 +125,6 @@ require (
 	github.com/consensys/gnark-crypto v0.20.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/crate-crypto/go-eth-kzg v1.5.0 // indirect
-	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
 	github.com/crate-crypto/go-kzg-4844 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.4.0 // indirect
@@ -133,7 +134,6 @@ require (
 	github.com/emicklei/dot v1.11.0 // indirect
 	github.com/ethereum/c-kzg-4844/v2 v2.1.7 // indirect
 	github.com/ethereum/go-bigmodexpfix v0.0.0-20250911101455-f9e208c548ab // indirect
-	github.com/ethereum/go-verkle v0.2.2 // indirect
 	github.com/ferranbt/fastssz v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61 // indirect
@@ -156,12 +156,11 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/luxfi/formatting v1.0.1
 	github.com/luxfi/mock v0.1.1 // indirect
-	github.com/luxfi/corona v0.2.0 // indirect
 	github.com/luxfi/sampler v1.0.0 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/pointerstructure v1.2.1 // indirect
-	github.com/montanaflynn/stats v0.8.2 // indirect
+	github.com/montanaflynn/stats v0.9.0 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
