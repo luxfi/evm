@@ -123,7 +123,7 @@ func verifyBlockDecode(t *testing.T, block *types.Block, blockNum int) {
 
 // TestRLPImportLuxMainnetSample tests a small sample of Lux C-chain blocks
 func TestRLPImportLuxMainnetSample(t *testing.T) {
-	rlpPath := os.Getenv("LUX_RLP_PATH")
+	rlpPath := os.Getenv("RLP_PATH")
 	if rlpPath == "" {
 		rlpPath = "/Users/z/work/lux/state/rlp/lux-mainnet/lux-mainnet-96369.rlp"
 	}
