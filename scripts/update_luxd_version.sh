@@ -21,7 +21,7 @@ if [[ -n "${VERSION}" ]]; then
   go mod tidy
 fi
 
-# Discover LUX_VERSION
+# Discover LUXD_VERSION
 . "$EVM_PATH"/scripts/constants.sh
 
 # The full SHA is required for versioning custom actions.
@@ -33,11 +33,11 @@ else
   echo "No GITHUB_TOKEN found, using unauthenticated requests"
 fi
 
-GIT_COMMIT=$("${CURL_ARGS[@]}" "https://api.github.com/repos/luxfi/node/commits/${LUX_VERSION}")
-FULL_LUX_VERSION="$(grep -m1 '"sha":' <<< "${GIT_COMMIT}" | cut -d'"' -f4)"
+GIT_COMMIT=$("${CURL_ARGS[@]}" "https://api.github.com/repos/luxfi/node/commits/${LUXD_VERSION}")
+FULL_LUXD_VERSION="$(grep -m1 '"sha":' <<< "${GIT_COMMIT}" | cut -d'"' -f4)"
 
 # Ensure the custom action version matches the lux version
 WORKFLOW_PATH=".github/workflows/tests.yml"
 CUSTOM_ACTION="luxfi/node/.github/actions/run-monitored-tmpnet-cmd"
-echo "Ensuring Node version ${FULL_LUX_VERSION} for ${CUSTOM_ACTION} custom action in ${WORKFLOW_PATH} "
-sed -i.bak "s|\(uses: ${CUSTOM_ACTION}\)@.*|\1@${FULL_LUX_VERSION}|g" "${WORKFLOW_PATH}" && rm -f "${WORKFLOW_PATH}.bak"
+echo "Ensuring Node version ${FULL_LUXD_VERSION} for ${CUSTOM_ACTION} custom action in ${WORKFLOW_PATH} "
+sed -i.bak "s|\(uses: ${CUSTOM_ACTION}\)@.*|\1@${FULL_LUXD_VERSION}|g" "${WORKFLOW_PATH}" && rm -f "${WORKFLOW_PATH}.bak"
