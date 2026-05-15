@@ -71,10 +71,10 @@ fi
 VM_ID=${VM_ID:-"${EVM_VMID}"}
 
 # Default to the release image. Will need to be overridden when testing against unreleased versions.
-LUXD_NODE_IMAGE="${LUXD_NODE_IMAGE:-${LUXD_IMAGE_NAME}:${LUX_VERSION}}"
+LUXD_NODE_IMAGE="${LUXD_NODE_IMAGE:-${LUXD_IMAGE_NAME}:${LUXD_VERSION}}"
 
 # Build the luxd image if it cannot be pulled. This will usually be due to
-# LUX_VERSION being not yet merged since the image is published post-merge.
+# LUXD_VERSION being not yet merged since the image is published post-merge.
 if ! docker pull "${LUXD_NODE_IMAGE}"; then
   # Build a multi-arch luxd image if the evm image build is multi-arch
   BUILD_MULTI_ARCH="$([[ "$PLATFORMS" =~ , ]] && echo 1 || echo "")"
@@ -89,19 +89,19 @@ if ! docker pull "${LUXD_NODE_IMAGE}"; then
     exit 1
   fi
 
-  LUXD_NODE_IMAGE="${LUXD_LOCAL_IMAGE_NAME}:${LUX_VERSION}"
+  LUXD_NODE_IMAGE="${LUXD_LOCAL_IMAGE_NAME}:${LUXD_VERSION}"
   echo "Building ${LUXD_NODE_IMAGE} locally"
 
   # shellcheck source=/dev/null
   source "${EVM_PATH}"/scripts/lib_luxd_clone.sh
-  clone_luxd "${LUX_VERSION}"
+  clone_luxd "${LUXD_VERSION}"
   SKIP_BUILD_RACE=1 \
     DOCKER_IMAGE="${LUXD_LOCAL_IMAGE_NAME}" \
     BUILD_MULTI_ARCH="${BUILD_MULTI_ARCH}" \
     "${LUXD_CLONE_PATH}"/scripts/build_image.sh
 fi
 
-echo "Building Docker Image: $IMAGE_NAME:$BUILD_IMAGE_ID based of Luxd@$LUX_VERSION"
+echo "Building Docker Image: $IMAGE_NAME:$BUILD_IMAGE_ID based of Luxd@$LUXD_VERSION"
 ${DOCKER_CMD} -t "$IMAGE_NAME:$BUILD_IMAGE_ID" -t "$IMAGE_NAME:${DOCKERHUB_TAG}" \
   "$EVM_PATH" -f "$EVM_PATH/Dockerfile" \
   --build-arg LUXD_NODE_IMAGE="$LUXD_NODE_IMAGE" \
