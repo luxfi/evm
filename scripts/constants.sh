@@ -9,7 +9,7 @@ set -euo pipefail
 GOPATH="$(go env GOPATH)"
 
 # Default install dir for luxd plugins. Overridable.
-LUX_PLUGIN_DIR="${LUX_PLUGIN_DIR:-${HOME}/.lux/plugins}"
+PLUGIN_DIR="${PLUGIN_DIR:-${HOME}/.lux/plugins}"
 
 # Canonical EVM VM ID — derived from luxfi/constants.EVMID (Go source of truth),
 # not a hardcoded base58 string. Cached per shell invocation.
@@ -41,28 +41,28 @@ else
 fi
 
 # Don't export them as they're used in the context of other calls
-if [[ -z ${LUX_VERSION:-} ]]; then
+if [[ -z ${LUXD_VERSION:-} ]]; then
   # Get module details from go.mod - try node first, then luxd
   MODULE_DETAILS="$(go list -m "github.com/luxfi/node" 2>/dev/null || go list -m "github.com/luxfi/luxd" 2>/dev/null || echo "")"
 
-  LUX_VERSION="$(echo "${MODULE_DETAILS}" | awk '{print $2}')"
+  LUXD_VERSION="$(echo "${MODULE_DETAILS}" | awk '{print $2}')"
 
   # Check if the version matches the pattern where the last part is the module hash
   # v*YYYYMMDDHHMMSS-abcdef123456
   #
   # If not, the value is assumed to represent a tag
-  if [[ "${LUX_VERSION}" =~ ^v.*[0-9]{14}-[0-9a-f]{12}$ ]]; then
-    MODULE_HASH="$(echo "${LUX_VERSION}" | grep -Eo '[0-9a-f]{12}$')"
+  if [[ "${LUXD_VERSION}" =~ ^v.*[0-9]{14}-[0-9a-f]{12}$ ]]; then
+    MODULE_HASH="$(echo "${LUXD_VERSION}" | grep -Eo '[0-9a-f]{12}$')"
 
     # The first 8 chars of the hash is used as the tag of luxd images
-    LUX_VERSION="${MODULE_HASH::8}"
+    LUXD_VERSION="${MODULE_HASH::8}"
   fi
 fi
 
 # Shared between ./scripts/build_docker_image.sh and ./scripts/tests.build_docker_image.sh
-DOCKERHUB_TAG="${EVM_COMMIT::8}_${LUX_VERSION}"
+DOCKERHUB_TAG="${EVM_COMMIT::8}_${LUXD_VERSION}"
 # WARNING: this will use the most recent commit even if there are un-committed changes present
-BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${CURRENT_BRANCH}_${LUX_VERSION}"}
+BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${CURRENT_BRANCH}_${LUXD_VERSION}"}
 
 echo "Using branch: ${CURRENT_BRANCH}"
 
