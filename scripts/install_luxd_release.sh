@@ -11,9 +11,8 @@ EVM_PATH=$(
 # Load the constants
 source "$EVM_PATH"/scripts/constants.sh
 
-# Set LUXD_VERSION from LUX_VERSION if not already set
-# Remove leading 'v' if present to avoid double 'v' in URLs
-LUXD_VERSION=${LUXD_VERSION:-${LUX_VERSION#v}}
+# Strip leading 'v' if present to avoid double 'v' in URLs
+LUXD_VERSION="${LUXD_VERSION#v}"
 
 ############################
 # download luxd/avalanchego

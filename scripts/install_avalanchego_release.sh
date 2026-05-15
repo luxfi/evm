@@ -19,15 +19,15 @@ LUXD_BUILD_PATH=${LUXD_BUILD_PATH:-${BASEDIR}/luxd}
 
 mkdir -p "${BASEDIR}"
 
-LUXD_DOWNLOAD_URL=https://github.com/luxfi/luxd/releases/download/${LUX_VERSION}/luxd-linux-${GOARCH}-${LUX_VERSION}.tar.gz
-LUXD_DOWNLOAD_PATH=${BASEDIR}/luxd-linux-${GOARCH}-${LUX_VERSION}.tar.gz
+LUXD_DOWNLOAD_URL=https://github.com/luxfi/luxd/releases/download/${LUXD_VERSION}/luxd-linux-${GOARCH}-${LUXD_VERSION}.tar.gz
+LUXD_DOWNLOAD_PATH=${BASEDIR}/luxd-linux-${GOARCH}-${LUXD_VERSION}.tar.gz
 
 if [[ ${GOOS} == "darwin" ]]; then
-  LUXD_DOWNLOAD_URL=https://github.com/luxfi/luxd/releases/download/${LUX_VERSION}/luxd-macos-${LUX_VERSION}.zip
-  LUXD_DOWNLOAD_PATH=${BASEDIR}/luxd-macos-${LUX_VERSION}.zip
+  LUXD_DOWNLOAD_URL=https://github.com/luxfi/luxd/releases/download/${LUXD_VERSION}/luxd-macos-${LUXD_VERSION}.zip
+  LUXD_DOWNLOAD_PATH=${BASEDIR}/luxd-macos-${LUXD_VERSION}.zip
 fi
 
-BUILD_DIR=${LUXD_BUILD_PATH}-${LUX_VERSION}
+BUILD_DIR=${LUXD_BUILD_PATH}-${LUXD_VERSION}
 
 extract_archive() {
   mkdir -p "${BUILD_DIR}"
@@ -44,7 +44,7 @@ extract_archive() {
 # first check if we already have the archive
 if [[ -f ${LUXD_DOWNLOAD_PATH} ]]; then
   # if the download path already exists, extract and exit
-  echo "found luxd ${LUX_VERSION} at ${LUXD_DOWNLOAD_PATH}"
+  echo "found luxd ${LUXD_VERSION} at ${LUXD_DOWNLOAD_PATH}"
 
   extract_archive
 else
@@ -73,24 +73,24 @@ else
 
     git fetch
 
-    echo "checking out ${LUX_VERSION}"
+    echo "checking out ${LUXD_VERSION}"
 
     set +e
     # try to checkout the branch
-    git checkout origin/"${LUX_VERSION}" >/dev/null 2>&1
+    git checkout origin/"${LUXD_VERSION}" >/dev/null 2>&1
     CHECKOUT_STATUS=$?
     set -e
 
     # if it's not a branch, try to checkout the commit
     if [[ $CHECKOUT_STATUS -ne 0 ]]; then
       set +e
-      git checkout "${LUX_VERSION}" >/dev/null 2>&1
+      git checkout "${LUXD_VERSION}" >/dev/null 2>&1
       CHECKOUT_STATUS=$?
       set -e
 
       if [[ $CHECKOUT_STATUS -ne 0 ]]; then
         echo
-        echo "'${LUX_VERSION}' is not a valid release tag, commit hash, or branch name"
+        echo "'${LUXD_VERSION}' is not a valid release tag, commit hash, or branch name"
         exit 1
       fi
     fi
@@ -119,6 +119,6 @@ mkdir -p "${LUXD_BUILD_PATH}"
 
 cp "${BUILD_DIR}"/luxd "${LUXD_PATH}"
 
-echo "Installed Luxd release ${LUX_VERSION}"
+echo "Installed Luxd release ${LUXD_VERSION}"
 echo "Luxd Path: ${LUXD_PATH}"
-echo "Plugin Dir: ${LUX_PLUGIN_DIR}"
+echo "Plugin Dir: ${PLUGIN_DIR}"
