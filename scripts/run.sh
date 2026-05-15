@@ -18,7 +18,7 @@ source "$EVM_PATH"/scripts/constants.sh
 # Set up lux binary path and assume build directory is set
 LUXD_BUILD_PATH=${LUXD_BUILD_PATH:-"$GOPATH/src/github.com/luxfi/luxd/build"}
 LUXD_PATH=${LUXD_PATH:-"$LUXD_BUILD_PATH/luxd"}
-LUXD_PLUGIN_DIR=${LUXD_PLUGIN_DIR:-"$LUX_PLUGIN_DIR"}
+LUXD_PLUGIN_DIR=${LUXD_PLUGIN_DIR:-"$PLUGIN_DIR"}
 DATA_DIR=${DATA_DIR:-/tmp/evm-start-node/$(date "+%Y-%m-%d%:%H:%M:%S")}
 
 mkdir -p "$DATA_DIR"
