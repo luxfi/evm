@@ -4,7 +4,7 @@
 #
 #   ./scripts/build.sh                     # → build/evm
 #   ./scripts/build.sh /custom/path        # → /custom/path
-#   INSTALL=1 ./scripts/build.sh           # also installs to $LUX_PLUGIN_DIR/<vmid>
+#   INSTALL=1 ./scripts/build.sh           # also installs to $PLUGIN_DIR/<vmid>
 #
 # The VM ID for the install path is derived at runtime from luxfi/constants.EVMID
 # via cmd/vmid — no base58 strings are hardcoded in shell.
@@ -30,10 +30,10 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
 fi
 
 if [[ "${INSTALL:-}" == "1" ]]; then
-    mkdir -p "$LUX_PLUGIN_DIR"
-    install -m 0755 "$BINARY_PATH" "$LUX_PLUGIN_DIR/$EVM_VMID"
+    mkdir -p "$PLUGIN_DIR"
+    install -m 0755 "$BINARY_PATH" "$PLUGIN_DIR/$EVM_VMID"
     if [[ "$(uname -s)" == "Darwin" ]]; then
-        codesign --force --sign - "$LUX_PLUGIN_DIR/$EVM_VMID" >/dev/null 2>&1 || true
+        codesign --force --sign - "$PLUGIN_DIR/$EVM_VMID" >/dev/null 2>&1 || true
     fi
-    echo "Installed $LUX_PLUGIN_DIR/$EVM_VMID"
+    echo "Installed $PLUGIN_DIR/$EVM_VMID"
 fi
