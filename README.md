@@ -119,3 +119,12 @@ There are two options when using the Lux-CLI:
 ## Releasing
 
 You can refer to the [`docs/releasing/README.md`](docs/releasing/README.md) file for the release process.
+
+## Plugin Runtime Env Vars
+
+The EVM plugin reads its rpcchainvm handshake address and transport from the
+unprefixed env var names that current `luxd` (v1.26+) sets: `VM_RUNTIME_ENGINE_ADDR`
+and `VM_TRANSPORT`. This matches the canonical names defined in
+`luxfi/vm/rpc/runtime/runtime.go`. Earlier builds of this plugin
+(via `luxfi/vm` ≤ v1.1.0) read `LUX_VM_RUNTIME_ENGINE_ADDR`/`LUX_VM_TRANSPORT`,
+which are no longer recognized.
