@@ -238,8 +238,8 @@ github.com/luxfi/lattice/v7 v7.1.0 h1:mr3HvN6olNTS2LT/xAW/JBhTqfvpsGmsopDMeR7BSJ
 github.com/luxfi/lattice/v7 v7.1.0/go.mod h1:IaaUN+3ysnBG4BA8ILRYG0j80+qtYDP4C5lkaDb2pDE=
 github.com/luxfi/log v1.4.1 h1:rIfFRodb9jrD/w7KayaUk0Oc+37PaQQdKEEMJCjR8gw=
 github.com/luxfi/log v1.4.1/go.mod h1:64IE3xRMJcpkQwnPUfJw3pDj7wU0kRS7BZ9wM7R72jk=
-github.com/luxfi/math v1.4.0 h1:/sb7Grw3hfO+5INWAWdB95jTvCeXg8fSQxsxDzcFtd4=
-github.com/luxfi/math v1.4.0/go.mod h1:iW0FOCC8qF2mPE+MakG780CAHA83848lb1L04thA1Pg=
+github.com/luxfi/math v1.4.1 h1:1t9bCCsEqnl9yIKrShlbs80DBKyYTWdnzkVfBqEeO7Q=
+github.com/luxfi/math v1.4.1/go.mod h1:QvbRxauQyE1w4lvbcLSe6c8yeJz2Zj1Bq1rayGgs2tA=
 github.com/luxfi/math/big v0.1.0 h1:Vz4c0RsZVPdIKPsHPgAJChH/R3p15WHRUz7LkLf+NIQ=
 github.com/luxfi/math/big v0.1.0/go.mod h1:BuxSu22RbO93xBLk5Eam5nldFponoJ73xDFz4uJ3Huk=
 github.com/luxfi/math/safe v0.0.1 h1:GfSBINV9mOFgHzd32JbgfHSLhlNn0BwnP43rteYEosc=

@@ -27,7 +27,7 @@ require (
 	github.com/luxfi/gpu v1.0.1
 	github.com/luxfi/ids v1.2.9
 	github.com/luxfi/log v1.4.1
-	github.com/luxfi/math v1.4.0
+	github.com/luxfi/math v1.4.1
 	github.com/luxfi/math/big v0.1.0
 	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.5.1
