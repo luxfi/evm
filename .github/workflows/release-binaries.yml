@@ -55,9 +55,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26'
-      - name: Install cross-compiler (linux/arm64)
-        if: matrix.os == 'linux' && matrix.arch == 'arm64'
-        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+      # linux/arm64 cross toolchain (gcc-aarch64-linux-gnu) is baked into
+      # ghcr.io/hanzoai/runner:0.1.1, which is the image hanzo-build-linux-amd64
+      # ARC pool runs. No inline install needed.
       - name: Build
         run: |
           export GOOS=${{ matrix.os }}
