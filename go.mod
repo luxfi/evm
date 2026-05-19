@@ -95,7 +95,7 @@ require (
 	github.com/luxfi/fhe v1.8.0 // indirect
 	github.com/luxfi/lattice/v7 v7.1.0 // indirect
 	github.com/luxfi/node v1.23.4 // indirect
-	github.com/luxfi/protocol v0.0.2 // indirect
+	github.com/luxfi/proto v1.0.0 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
 	github.com/luxfi/threshold v1.5.5 // indirect
 	github.com/luxfi/zapdb v1.8.0 // indirect
@@ -210,3 +210,4 @@ exclude (
 	github.com/luxfi/precompiles v0.1.10
 	github.com/luxfi/precompiles v0.1.11
 )
+
