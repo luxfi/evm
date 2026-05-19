@@ -53,7 +53,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-22.04, ubuntu-latest, windows-latest]
+        # `macos-latest` resolves to GH-hosted arm64 macos (forbidden);
+        # pin to `macos-13` (amd64).
+        os: [macos-13, ubuntu-22.04, ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
