@@ -26,20 +26,24 @@ jobs:
   build:
     needs: create-release
     strategy:
+      fail-fast: false
       matrix:
+        # No GH-hosted arm runners. linux/arm64 cross-compiles on
+        # hanzo-build-linux-amd64 (with aarch64-linux-gnu-gcc for CGO).
+        # darwin cross-compiles via clang -arch on macos-13.
         include:
           - os: linux
             arch: amd64
             runner: hanzo-build-linux-amd64
           - os: linux
             arch: arm64
-            runner: ubuntu-24.04-arm
+            runner: hanzo-build-linux-amd64
           - os: darwin
             arch: amd64
             runner: macos-13
           - os: darwin
             arch: arm64
-            runner: macos-14
+            runner: macos-13
     runs-on: ${{ matrix.runner }}
     env:
       GONOSUMCHECK: '*'
@@ -51,10 +55,28 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26'
+      - name: Install cross-compiler (linux/arm64)
+        if: matrix.os == 'linux' && matrix.arch == 'arm64'
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
       - name: Build
         run: |
-          CGO_ENABLED=1 CGO_CFLAGS="-O2 -D__BLST_PORTABLE__" \
-            go build -trimpath -ldflags="-s -w -X github.com/luxfi/evm/plugin/evm.Version=${{ github.ref_name }}" \
+          export GOOS=${{ matrix.os }}
+          export GOARCH=${{ matrix.arch }}
+          export CGO_ENABLED=1
+          export CGO_CFLAGS="-O2 -D__BLST_PORTABLE__"
+          if [ "${{ matrix.os }}" = "linux" ] && [ "${{ matrix.arch }}" = "arm64" ]; then
+            export CC=aarch64-linux-gnu-gcc
+          fi
+          if [ "${{ matrix.os }}" = "darwin" ] && [ "${{ matrix.arch }}" = "arm64" ]; then
+            # macos-13 clang ships Apple Silicon target; use -arch arm64.
+            export CC="clang -arch arm64"
+            export CXX="clang++ -arch arm64"
+          fi
+          if [ "${{ matrix.os }}" = "darwin" ] && [ "${{ matrix.arch }}" = "amd64" ]; then
+            export CC="clang -arch x86_64"
+            export CXX="clang++ -arch x86_64"
+          fi
+          go build -trimpath -ldflags="-s -w -X github.com/luxfi/evm/plugin/evm.Version=${{ github.ref_name }}" \
             -o evm ./plugin
           tar -czf evm-${{ matrix.os }}-${{ matrix.arch }}.tar.gz evm
       - name: Upload
