@@ -160,15 +160,10 @@ var (
 	errShuttingDownVM                = errors.New("shutting down VM")
 )
 
-// Package-level debug logging function
+// Package-level debug logging — routes through the canonical luxfi/log
+// logger at Debug level. No more /tmp/evm-debug.log sidecar.
 func debugLog(msg string, args ...interface{}) {
-	f, err := os.OpenFile("/tmp/evm-debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-	fmt.Fprintf(f, "[EVM-DEBUG] "+msg+"\n", args...)
-	f.Sync()
+	log.Debug(fmt.Sprintf(msg, args...))
 }
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
