@@ -18,7 +18,7 @@ import (
 func TestRLPImportZooMainnet(t *testing.T) {
 	rlpPath := os.Getenv("ZOO_RLP_PATH")
 	if rlpPath == "" {
-		rlpPath = "/Users/z/work/lux/state/rlp/zoo-mainnet/zoo-mainnet-200200.rlp"
+		rlpPath = os.ExpandEnv("$HOME/work/lux/state/rlp/zoo-mainnet/zoo-mainnet-200200.rlp")
 	}
 
 	// Check if file exists
@@ -125,7 +125,7 @@ func verifyBlockDecode(t *testing.T, block *types.Block, blockNum int) {
 func TestRLPImportLuxMainnetSample(t *testing.T) {
 	rlpPath := os.Getenv("RLP_PATH")
 	if rlpPath == "" {
-		rlpPath = "/Users/z/work/lux/state/rlp/lux-mainnet/lux-mainnet-96369.rlp"
+		rlpPath = os.ExpandEnv("$HOME/work/lux/state/rlp/lux-mainnet/lux-mainnet-96369.rlp")
 	}
 
 	// Check if file exists
