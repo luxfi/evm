@@ -17,8 +17,8 @@ import (
 // TestLuxGenesisFromJSON builds the genesis block from cchain.json and compares
 // hash + RLP bytes to the genesis recovered from the canonical RLP file.
 func TestLuxGenesisFromJSON(t *testing.T) {
-	cchainPath := "/Users/z/work/lux/genesis/configs/mainnet/cchain.json"
-	rlpPath := "/Users/z/work/lux/state/rlp/lux-mainnet/lux-mainnet-96369.rlp"
+	cchainPath := os.ExpandEnv("$HOME/work/lux/genesis/configs/mainnet/cchain.json")
+	rlpPath := os.ExpandEnv("$HOME/work/lux/state/rlp/lux-mainnet/lux-mainnet-96369.rlp")
 
 	for _, p := range []string{cchainPath, rlpPath} {
 		if _, err := os.Stat(p); os.IsNotExist(err) {
