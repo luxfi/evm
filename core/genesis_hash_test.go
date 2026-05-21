@@ -29,7 +29,7 @@ var (
 // TestLuxGenesisHashFromRLP verifies that the Lux C-chain genesis block
 // can be decoded from RLP and maintains the correct hash.
 func TestLuxGenesisHashFromRLP(t *testing.T) {
-	rlpPath := "/Users/z/work/lux/state/rlp/lux-mainnet/lux-mainnet-96369.rlp"
+	rlpPath := os.ExpandEnv("$HOME/work/lux/state/rlp/lux-mainnet/lux-mainnet-96369.rlp")
 
 	if _, err := os.Stat(rlpPath); os.IsNotExist(err) {
 		t.Skipf("Lux RLP file not found at %s, skipping test", rlpPath)
@@ -76,7 +76,7 @@ func TestLuxGenesisHashFromRLP(t *testing.T) {
 // TestZooGenesisHashFromRLP verifies that the Zoo genesis block
 // can be decoded from RLP and maintains the correct hash.
 func TestZooGenesisHashFromRLP(t *testing.T) {
-	rlpPath := "/Users/z/work/lux/state/rlp/zoo-mainnet/zoo-mainnet-200200.rlp"
+	rlpPath := os.ExpandEnv("$HOME/work/lux/state/rlp/zoo-mainnet/zoo-mainnet-200200.rlp")
 
 	if _, err := os.Stat(rlpPath); os.IsNotExist(err) {
 		t.Skipf("Zoo RLP file not found at %s, skipping test", rlpPath)
@@ -129,7 +129,7 @@ func TestZooGenesisHashFromRLP(t *testing.T) {
 // TestBlockHashPreservationAfterDecode verifies that blocks maintain
 // their hashes after decode, re-encode, and re-decode cycles.
 func TestBlockHashPreservationAfterDecode(t *testing.T) {
-	rlpPath := "/Users/z/work/lux/state/rlp/zoo-mainnet/zoo-mainnet-200200.rlp"
+	rlpPath := os.ExpandEnv("$HOME/work/lux/state/rlp/zoo-mainnet/zoo-mainnet-200200.rlp")
 
 	if _, err := os.Stat(rlpPath); os.IsNotExist(err) {
 		t.Skipf("Zoo RLP file not found at %s, skipping test", rlpPath)
@@ -180,7 +180,7 @@ func TestBlockHashPreservationAfterDecode(t *testing.T) {
 // TestStateRootChainThroughZooBlocks verifies that state roots form a valid chain
 // and are properly preserved through decode operations.
 func TestStateRootChainThroughZooBlocks(t *testing.T) {
-	rlpPath := "/Users/z/work/lux/state/rlp/zoo-mainnet/zoo-mainnet-200200.rlp"
+	rlpPath := os.ExpandEnv("$HOME/work/lux/state/rlp/zoo-mainnet/zoo-mainnet-200200.rlp")
 
 	if _, err := os.Stat(rlpPath); os.IsNotExist(err) {
 		t.Skipf("Zoo RLP file not found at %s, skipping test", rlpPath)
@@ -277,7 +277,7 @@ func TestStateRootChainThroughZooBlocks(t *testing.T) {
 
 // TestStateRootRoundtripZoo verifies state roots survive encode/decode cycles
 func TestStateRootRoundtripZoo(t *testing.T) {
-	rlpPath := "/Users/z/work/lux/state/rlp/zoo-mainnet/zoo-mainnet-200200.rlp"
+	rlpPath := os.ExpandEnv("$HOME/work/lux/state/rlp/zoo-mainnet/zoo-mainnet-200200.rlp")
 
 	if _, err := os.Stat(rlpPath); os.IsNotExist(err) {
 		t.Skipf("Zoo RLP file not found at %s, skipping test", rlpPath)
@@ -335,7 +335,7 @@ func TestStateRootRoundtripZoo(t *testing.T) {
 
 // TestStateRootChainThroughLuxBlocks verifies state roots through Lux C-chain blocks
 func TestStateRootChainThroughLuxBlocks(t *testing.T) {
-	rlpPath := "/Users/z/work/lux/state/rlp/lux-mainnet/lux-mainnet-96369.rlp"
+	rlpPath := os.ExpandEnv("$HOME/work/lux/state/rlp/lux-mainnet/lux-mainnet-96369.rlp")
 
 	if _, err := os.Stat(rlpPath); os.IsNotExist(err) {
 		t.Skipf("Lux RLP file not found at %s, skipping test", rlpPath)
