@@ -80,6 +80,31 @@ import (
 	// Dead Address Routing
 	// ============================================
 	_ "github.com/luxfi/precompile/dead" // Dead/burn address handlers (0x0, 0xdead)
+
+	// ============================================
+	// Quasar Edition rollout — net-new precompiles activated at
+	// blockTimestamp 1766708400 per ~/work/lux/genesis/configs/mainnet/upgrade.json.
+	// Each must be side-effect imported here so its init() registers the
+	// configKey with modules.RegisteredModules before luxd parses
+	// upgrade.json — without this the parser rejects the activation with
+	// "unknown precompile config".
+	// ============================================
+	_ "github.com/luxfi/precompile/attestation"  // attestationConfig
+	_ "github.com/luxfi/precompile/babyjubjub"   // babyjubjubConfig
+	_ "github.com/luxfi/precompile/bls12381"     // bls12381{G1,G2}{Add,Mul,MSM}Config + bls12381PairingConfig
+	_ "github.com/luxfi/precompile/bridge"       // bridgeRegistrarConfig
+	_ "github.com/luxfi/precompile/compute"      // computeMarketConfig
+	_ "github.com/luxfi/precompile/curve25519"   // curve25519Config
+	_ "github.com/luxfi/precompile/ed25519"      // ed25519Config
+	_ "github.com/luxfi/precompile/math"         // fixedPointMathConfig
+	_ "github.com/luxfi/precompile/pasta"        // pastaConfig
+	_ "github.com/luxfi/precompile/pedersen"     // pedersenConfig
+	_ "github.com/luxfi/precompile/poseidon"     // poseidonConfig
+	_ "github.com/luxfi/precompile/sr25519"      // sr25519Verify
+	_ "github.com/luxfi/precompile/stableswap"   // stableSwapConfig
+	_ "github.com/luxfi/precompile/vrf"          // vrfConfig
+	_ "github.com/luxfi/precompile/x25519"       // x25519Config
+	_ "github.com/luxfi/precompile/xwing"        // xwingConfig
 )
 
 // LP-ALIGNED ADDRESSING (LP-9015):
