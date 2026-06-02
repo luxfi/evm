@@ -94,6 +94,19 @@ type Genesis struct {
 	BaseFee       *big.Int    `json:"baseFeePerGas"` // EIP-1559
 	ExcessBlobGas *uint64     `json:"excessBlobGas"` // EIP-4844
 	BlobGasUsed   *uint64     `json:"blobGasUsed"`   // EIP-4844
+
+	// SkipPostMergeFields disables adding Shanghai/Cancun/Prague header
+	// fields (WithdrawalsHash, ParentBeaconRoot, ExcessBlobGas,
+	// BlobGasUsed, RequestsHash) to the genesis block, regardless of
+	// whether the corresponding forks are active at genesis time.
+	//
+	// Lux mainnet's canonical C-Chain genesis hash (0x3f4fa2a0…) was
+	// produced with the 16-field pre-Shanghai header format. The chain
+	// activates Cancun at genesis time (cancunTime=0) for EVM bytecode
+	// (MCOPY etc.) but the genesis BLOCK itself must stay in the legacy
+	// header shape to preserve hash continuity with historic RLP
+	// exports. Mirrors the SkipPostMergeFields flag in luxfi/geth core.
+	SkipPostMergeFields bool `json:"skipPostMergeFields,omitempty"`
 }
 
 // field type overrides for gencodec
@@ -444,23 +457,33 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 		// at genesis timestamp, but the genesis BLOCK itself must remain
 		// in pre-withdrawals format to preserve hash continuity. Only
 		// post-genesis blocks (Number > 0) get a WithdrawalsHash here.
-		if num.Sign() != 0 && conf.IsShanghai(num, g.Timestamp) {
-			head.WithdrawalsHash = &types.EmptyWithdrawalsHash
-			withdrawals = make([]*types.Withdrawal, 0)
-		}
-		if conf.IsCancun(num, g.Timestamp) {
-			// EIP-4788: The parentBeaconBlockRoot of the genesis block is always
-			// the zero hash. This is because the genesis block does not have a parent
-			// by definition.
-			head.ParentBeaconRoot = new(common.Hash)
-			// EIP-4844 fields
-			head.ExcessBlobGas = g.ExcessBlobGas
-			head.BlobGasUsed = g.BlobGasUsed
-			if head.ExcessBlobGas == nil {
-				head.ExcessBlobGas = new(uint64)
+		//
+		// SkipPostMergeFields is the explicit operator opt-out for ALL
+		// post-merge header fields (mirrors luxfi/geth core.Genesis). When
+		// set, neither WithdrawalsHash, ParentBeaconRoot, ExcessBlobGas
+		// nor BlobGasUsed are populated, regardless of fork activation
+		// time. This is the canonical path for replaying historic RLP
+		// exports whose block-0 hash was produced before any post-merge
+		// fork existed (e.g. lux-mainnet-96369.rlp → 0x3f4fa2a0…).
+		if !g.SkipPostMergeFields {
+			if num.Sign() != 0 && conf.IsShanghai(num, g.Timestamp) {
+				head.WithdrawalsHash = &types.EmptyWithdrawalsHash
+				withdrawals = make([]*types.Withdrawal, 0)
 			}
-			if head.BlobGasUsed == nil {
-				head.BlobGasUsed = new(uint64)
+			if conf.IsCancun(num, g.Timestamp) {
+				// EIP-4788: The parentBeaconBlockRoot of the genesis block is always
+				// the zero hash. This is because the genesis block does not have a parent
+				// by definition.
+				head.ParentBeaconRoot = new(common.Hash)
+				// EIP-4844 fields
+				head.ExcessBlobGas = g.ExcessBlobGas
+				head.BlobGasUsed = g.BlobGasUsed
+				if head.ExcessBlobGas == nil {
+					head.ExcessBlobGas = new(uint64)
+				}
+				if head.BlobGasUsed == nil {
+					head.BlobGasUsed = new(uint64)
+				}
 			}
 		}
 	}
