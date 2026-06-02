@@ -166,6 +166,36 @@ func debugLog(msg string, args ...interface{}) {
 	log.Debug(fmt.Sprintf(msg, args...))
 }
 
+// resolveStateScheme normalises the operator-supplied state scheme into the
+// concrete scheme this VM will run with, refusing schemes it does not support.
+//
+// History (lux-mainnet 2026-06-02): when the operator does not pick a scheme,
+// geth's rawdb.ParseStateScheme (called via customrawdb.ParseStateSchemeExt
+// from eth/backend.go) silently returns "path" for any database with no
+// previously-stored scheme — which is the case for every freshly-created L2
+// EVM chain. That collided with this VM's hard refusal of path mode, but only
+// AFTER chain creation had already plumbed pathdb into the genesis-commit
+// path. The chain then panicked with:
+//
+//	panic in eth.New: unable to commit genesis block to statedb:
+//	  triedb parent [0x56e81f17…] layer missing
+//
+// taking down hanzo/zoo/spc/pars L2s. The fix is to lock the default to
+// HashScheme HERE — before backend.go can inherit the upstream "path"
+// default — so the VM-level refusal is enforced and chain creation succeeds.
+func resolveStateScheme(provided string) (string, error) {
+	switch provided {
+	case rawdb.PathScheme:
+		return "", errors.New("Path state scheme is not supported. Please use HashDB state scheme instead")
+	case "":
+		// No scheme requested → use HashScheme. Do not rely on geth's empty-DB
+		// default, which is path-by-default and breaks fresh L2 chain creation.
+		return rawdb.HashScheme, nil
+	default:
+		return provided, nil
+	}
+}
+
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
 // used in attachEthService for backward configuration compatibility.
 var legacyApiNames = map[string]string{
@@ -449,30 +479,11 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	vm.ethConfig.StateHistory = vm.config.StateHistory
 	vm.ethConfig.TransactionHistory = vm.config.TransactionHistory
 	vm.ethConfig.SkipTxIndexing = vm.config.SkipTxIndexing
-	vm.ethConfig.StateScheme = vm.config.StateScheme
-
-	// if vm.ethConfig.StateScheme == customrawdb.FirewoodScheme {
-	// 	log.Warn("Firewood state scheme is enabled")
-	// 	log.Warn("This is untested in production, use at your own risk")
-	// 	// Firewood only supports pruning for now.
-	// 	if !vm.config.Pruning {
-	// 		return errors.New("Pruning must be enabled for Firewood")
-	// 	}
-	// 	// Firewood does not support iterators, so the snapshot cannot be constructed
-	// 	if vm.config.SnapshotCache > 0 {
-	// 		return errors.New("Snapshot cache must be disabled for Firewood")
-	// 	}
-	// 	if vm.config.OfflinePruning {
-	// 		return errors.New("Offline pruning is not supported for Firewood")
-	// 	}
-	// 	if vm.config.StateSyncEnabled {
-	// 		return errors.New("State sync is not yet supported for Firewood")
-	// 	}
-	// }
-	if vm.ethConfig.StateScheme == rawdb.PathScheme {
-		log.Error("Path state scheme is not supported. Please use HashDB state scheme instead")
-		return errors.New("Path state scheme is not supported")
+	resolvedScheme, err := resolveStateScheme(vm.config.StateScheme)
+	if err != nil {
+		return err
 	}
+	vm.ethConfig.StateScheme = resolvedScheme
 
 	// Create directory for offline pruning
 	if len(vm.ethConfig.OfflinePruningDataDirectory) != 0 {
