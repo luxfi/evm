@@ -340,24 +340,6 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 
 	log.Info("Initializing Chain EVM VM", "Version", Version, "geth version", params.VersionWithMeta, "Config", vm.config)
 
-	// F102 close-out — install the chain-scoped PQ posture on the chain
-	// config. PQ mode is binary: a chain is PQ or it isn't. Strict-PQ
-	// refuses every classical primitive at the precompile boundary:
-	// ecrecover/p256verify, sha256/ripemd160/blake2F, alt_bn128/BLS12-381
-	// pairings, and EIP-4844 KZG point evaluation. Gas is still charged
-	// per EIP-150 so the refusal isn't observable via gas timing.
-	//
-	// One concept, one way: ChainConfig.PQ holds the profile;
-	// (*EVM).runPrecompile reads it via chainConfig.PQ.RefuseUnder(op)
-	// before dispatching each precompile. nil profile (the default)
-	// preserves classical EVM semantics — every legacy chain runs
-	// unchanged. Multi-chain hosts (strict-PQ + permissive in one
-	// process) get the right gate per EVM instance because the profile
-	// lives on each chain's config, not on a process-global atomic.
-	if vm.config.PQ {
-		vm.chainConfig.PQ = gethvm.AllForbidden()
-		log.Info("EVM PQ mode active: classical precompiles (ecrecover, sha256/ripemd/blake2F, alt_bn128, BLS12-381, KZG) refuse")
-	}
 
 	if deprecateMsg != "" {
 		log.Warn("Deprecation Warning", "msg", deprecateMsg)
@@ -511,6 +493,14 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	}
 
 	vm.chainConfig = g.Config
+
+	// F102 close-out — PQ gate. chainConfig is now non-nil.
+	// One concept, one place: ChainConfig.PQ holds the profile;
+	// (*EVM).runPrecompile reads it via chainConfig.PQ.RefuseUnder(op).
+	if vm.config.PQ {
+		vm.chainConfig.PQ = gethvm.AllForbidden()
+		log.Info("EVM PQ mode active: classical precompiles refuse")
+	}
 
 	// create genesisHash after applying upgradeBytes in case
 	// upgradeBytes modifies genesis.
