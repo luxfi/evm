@@ -1,10 +1,10 @@
 // Copyright (C) 2025-2026, Lux Industries Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-//go:build cgo && darwin && gpu
+//go:build cgo && darwin
 
 // Bridge that connects the EVM parallel interface to the lux/gpu package.
-// Build with: CGO_ENABLED=1 go build -tags parallel,gpu
+// Build with: CGO_ENABLED=1 go build -tags parallel
 //
 // This eliminates the signature recovery bottleneck:
 //   CPU ecrecover: 1613ms for 47K sigs (87% of block time)

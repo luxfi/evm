@@ -67,6 +67,7 @@ require (
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	filippo.io/hpke v0.4.0 // indirect
+	github.com/ChainSafe/go-schnorrkel v1.1.0 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/StephenButtolph/canoto v0.17.3 // indirect
 	github.com/cockroachdb/errors v1.12.0 // indirect
@@ -75,6 +76,7 @@ require (
 	github.com/cockroachdb/pebble v1.1.5 // indirect
 	github.com/cockroachdb/redact v1.1.8 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20250429170803-42689b6311bb // indirect
+	github.com/cosmos/go-bip39 v1.0.0 // indirect
 	github.com/cronokirby/saferith v0.33.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
@@ -90,6 +92,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/luxfi/accel v1.1.0 // indirect
 	github.com/luxfi/age v1.5.0 // indirect
+	github.com/luxfi/ai v0.1.0 // indirect
 	github.com/luxfi/api v1.0.12 // indirect
 	github.com/luxfi/atomic v1.0.0 // indirect
 	github.com/luxfi/bft v0.1.5 // indirect
