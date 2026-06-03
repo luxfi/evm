@@ -93,7 +93,11 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Run short tests
-      continue-on-error: true
+      # continue-on-error removed 2026-06-02 (#114 Red round-2 vector V19) —
+      # CGO_ENABLED=0 dodges the duplicate _randombytes symbol collision
+      # from luxfi/accel cgo deps, but test FAILURES in that mode must
+      # still gate CI. Without this, the e2e regression-proof tests in
+      # params/extras_e2e_test/ (Red round-2 V12) could silently regress.
       env:
         CGO_ENABLED: '0'
       run: |
