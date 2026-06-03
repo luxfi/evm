@@ -17,7 +17,9 @@ This chain implements the Ethereum Virtual Machine and supports Solidity smart c
 
 ## Building
 
-The Subnet EVM runs in a separate process from the main Luxd process and communicates with it over a local gRPC connection.
+The Subnet EVM runs in a separate process from the main Luxd process and
+communicates with it over a local ZAP-native connection (LP-186 wire schema,
+no protobuf, no gRPC).
 
 ### Luxd Compatibility
 
