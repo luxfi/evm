@@ -75,7 +75,7 @@ var (
 		c.NetworkUpgrades = NetworkUpgrades{
 			EVMTimestamp:     utils.TimeToNewUint64(UnscheduledActivationTime),
 			DurangoTimestamp: utils.TimeToNewUint64(UnscheduledActivationTime),
-			EtnaTimestamp:    utils.TimeToNewUint64(UnscheduledActivationTime),
+			QuasarTimestamp:  utils.TimeToNewUint64(UnscheduledActivationTime),
 			FortunaTimestamp: utils.TimeToNewUint64(UnscheduledActivationTime),
 		}
 	})
@@ -84,7 +84,7 @@ var (
 		c.NetworkUpgrades = NetworkUpgrades{
 			EVMTimestamp:     utils.NewUint64(0),
 			DurangoTimestamp: utils.TimeToNewUint64(UnscheduledActivationTime),
-			EtnaTimestamp:    utils.TimeToNewUint64(UnscheduledActivationTime),
+			QuasarTimestamp:  utils.TimeToNewUint64(UnscheduledActivationTime),
 			FortunaTimestamp: utils.TimeToNewUint64(UnscheduledActivationTime),
 		}
 	})
@@ -93,16 +93,16 @@ var (
 		c.NetworkUpgrades = NetworkUpgrades{
 			EVMTimestamp:     utils.NewUint64(0),
 			DurangoTimestamp: utils.TimeToNewUint64(InitiallyActiveTime),
-			EtnaTimestamp:    utils.TimeToNewUint64(UnscheduledActivationTime),
+			QuasarTimestamp:  utils.TimeToNewUint64(UnscheduledActivationTime),
 			FortunaTimestamp: utils.TimeToNewUint64(UnscheduledActivationTime),
 		}
 	})
 
-	TestEtnaChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
+	TestQuasarChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
 		c.NetworkUpgrades = NetworkUpgrades{
 			EVMTimestamp:     utils.NewUint64(0),
 			DurangoTimestamp: utils.TimeToNewUint64(InitiallyActiveTime),
-			EtnaTimestamp:    utils.TimeToNewUint64(InitiallyActiveTime),
+			QuasarTimestamp:  utils.TimeToNewUint64(InitiallyActiveTime),
 			FortunaTimestamp: utils.TimeToNewUint64(UnscheduledActivationTime),
 		}
 	})
@@ -111,7 +111,7 @@ var (
 		c.NetworkUpgrades = NetworkUpgrades{
 			EVMTimestamp:     utils.NewUint64(0),
 			DurangoTimestamp: utils.TimeToNewUint64(InitiallyActiveTime),
-			EtnaTimestamp:    utils.TimeToNewUint64(InitiallyActiveTime),
+			QuasarTimestamp:  utils.TimeToNewUint64(InitiallyActiveTime),
 			FortunaTimestamp: utils.TimeToNewUint64(InitiallyActiveTime),
 		}
 	})
@@ -120,7 +120,7 @@ var (
 		c.NetworkUpgrades = NetworkUpgrades{
 			EVMTimestamp:     utils.NewUint64(0),
 			DurangoTimestamp: utils.TimeToNewUint64(InitiallyActiveTime),
-			EtnaTimestamp:    utils.TimeToNewUint64(InitiallyActiveTime),
+			QuasarTimestamp:  utils.TimeToNewUint64(InitiallyActiveTime),
 			FortunaTimestamp: utils.TimeToNewUint64(InitiallyActiveTime),
 			GraniteTimestamp: utils.TimeToNewUint64(InitiallyActiveTime),
 		}

@@ -71,8 +71,8 @@ func fundAddressByGenesis(addrs []common.Address) (string, error) {
 			if extra.DurangoTimestamp != nil {
 				configMap["durangoTimestamp"] = *extra.DurangoTimestamp
 			}
-			if extra.EtnaTimestamp != nil {
-				configMap["etnaTimestamp"] = *extra.EtnaTimestamp
+			if extra.QuasarTimestamp != nil {
+				configMap["quasarTimestamp"] = *extra.QuasarTimestamp
 			}
 			if extra.FortunaTimestamp != nil {
 				configMap["fortunaTimestamp"] = *extra.FortunaTimestamp
