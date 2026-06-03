@@ -471,6 +471,21 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 				withdrawals = make([]*types.Withdrawal, 0)
 			}
 			if conf.IsCancun(num, g.Timestamp) {
+				// Cancun implies Shanghai: a Cancun header MUST carry a
+				// WithdrawalsHash because the RLP codec reads it positionally
+				// before the Cancun fields below. The `num.Sign() != 0` guard
+				// above omits it at genesis, yielding an undecodable header
+				// ("rlp: input string too short for common.Hash, decoding into
+				// ...WithdrawalsHash") — which makes NewHeaderChain fabricate a
+				// fake genesis header and the chain produce zero blocks. Set it
+				// here so the genesis header round-trips. Chains that must keep a
+				// pre-withdrawals genesis hash opt out entirely via SkipPostMergeFields.
+				if head.WithdrawalsHash == nil {
+					head.WithdrawalsHash = &types.EmptyWithdrawalsHash
+					if withdrawals == nil {
+						withdrawals = make([]*types.Withdrawal, 0)
+					}
+				}
 				// EIP-4788: The parentBeaconBlockRoot of the genesis block is always
 				// the zero hash. This is because the genesis block does not have a parent
 				// by definition.
@@ -563,10 +578,6 @@ func (g *Genesis) Commit(db ethdb.Database, triedb *triedb.Database) (*types.Blo
 
 	// Write chain config
 	customrawdb.WriteChainConfig(db, hash, config)
-
-	// Verify the block can be read back - remove debug code later
-	// canonHash := rawdb.ReadCanonicalHash(db, 0)
-	// log.Info("After write check", "canonical_hash", canonHash, "block_hash", block.Hash(), "match", canonHash == block.Hash())
 
 	return block, nil
 }
