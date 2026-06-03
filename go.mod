@@ -42,7 +42,7 @@ require (
 	github.com/luxfi/utils v1.1.4
 	github.com/luxfi/validators v1.2.0
 	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.1.5
+	github.com/luxfi/vm v1.1.6
 	github.com/luxfi/warp v1.18.6
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
@@ -100,7 +100,7 @@ require (
 	github.com/luxfi/crypto/ipa v1.2.4 // indirect
 	github.com/luxfi/fhe v1.8.2 // indirect
 	github.com/luxfi/lattice/v7 v7.1.0 // indirect
-	github.com/luxfi/protocol v0.0.5 // indirect
+	github.com/luxfi/proto v1.0.0 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
 	github.com/luxfi/threshold v1.8.0 // indirect
 	github.com/luxfi/zapdb v1.10.0 // indirect
