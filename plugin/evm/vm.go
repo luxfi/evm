@@ -4,6 +4,7 @@
 package evm
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -870,10 +871,18 @@ func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte,
 	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
 	// Initializing the chain will verify upgradeBytes are compatible with existing values.
 	// This should be called before g.Verify().
+	//
+	// DisallowUnknownFields is mandatory: upgrade keys (e.g. quasarTimestamp) are
+	// wire-identified by name. A typo or stale alias (e.g. etnaTimestamp) silently
+	// becomes a zero-value field with default encoding/json — muting forks. The
+	// strict decoder forces parse-time failure so renames surface during config
+	// roll, not at activation.
 	if len(upgradeBytes) > 0 {
 		log.Info("DEBUG: Parsing upgrade bytes", "len", len(upgradeBytes), "content", string(upgradeBytes))
 		var upgradeConfig extras.UpgradeConfig
-		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
+		dec := json.NewDecoder(bytes.NewReader(upgradeBytes))
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&upgradeConfig); err != nil {
 			log.Error("DEBUG: Failed to parse upgrade bytes", "error", err)
 			return nil, fmt.Errorf("failed to parse upgrade bytes: %w", err)
 		}
