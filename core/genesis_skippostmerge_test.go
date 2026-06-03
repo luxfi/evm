@@ -63,7 +63,7 @@ func TestSkipPostMergeFieldsGenesisHash(t *testing.T) {
     "shanghaiTime": 0,
     "terminalTotalDifficulty": 0,
     "durangoTimestamp": 0,
-    "etnaTimestamp": 0,
+    "quasarTimestamp": 0,
     "fortunaTimestamp": 0,
     "graniteTimestamp": 0
   },
@@ -143,7 +143,7 @@ func TestPostMergeFieldsActiveWhenFlagFalse(t *testing.T) {
     "shanghaiTime": 0,
     "terminalTotalDifficulty": 0,
     "durangoTimestamp": 0,
-    "etnaTimestamp": 0,
+    "quasarTimestamp": 0,
     "fortunaTimestamp": 0,
     "graniteTimestamp": 0
   },
