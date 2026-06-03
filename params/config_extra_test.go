@@ -57,7 +57,7 @@ func TestSetEthUpgrades(t *testing.T) {
 		// 	},
 		// },
 		// {
-		// 	fork: upgradetest.Etna,
+		// 	fork: upgradetest.Quasar,
 		// 	expected: &ChainConfig{
 		// 		HomesteadBlock:      genesisBlock,
 		// 		EIP150Block:         genesisBlock,
