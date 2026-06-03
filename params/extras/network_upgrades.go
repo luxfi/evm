@@ -48,8 +48,8 @@ type NetworkUpgrades struct {
 	// and Lux Warp Messaging.
 	// Note: EIP-4895 is excluded since withdrawals are not relevant to the Lux C-Chain or Chains running the EVM.
 	DurangoTimestamp *uint64 `json:"durangoTimestamp,omitempty"`
-	// Placeholder for EtnaTimestamp
-	EtnaTimestamp *uint64 `json:"etnaTimestamp,omitempty"`
+	// Placeholder for QuasarTimestamp
+	QuasarTimestamp *uint64 `json:"quasarTimestamp,omitempty"`
 	// Fortuna has no effect on EVM by itself, but is included for completeness.
 	FortunaTimestamp *uint64 `json:"fortunaTimestamp,omitempty"`
 	// Granite is a placeholder for the next upgrade.
@@ -73,8 +73,8 @@ func (n *NetworkUpgrades) checkNetworkUpgradesCompatible(newcfg *NetworkUpgrades
 	if isForkTimestampIncompatible(n.DurangoTimestamp, newcfg.DurangoTimestamp, time) {
 		return newTimestampCompatError("Durango fork block timestamp", n.DurangoTimestamp, newcfg.DurangoTimestamp)
 	}
-	if isForkTimestampIncompatible(n.EtnaTimestamp, newcfg.EtnaTimestamp, time) {
-		return newTimestampCompatError("Etna fork block timestamp", n.EtnaTimestamp, newcfg.EtnaTimestamp)
+	if isForkTimestampIncompatible(n.QuasarTimestamp, newcfg.QuasarTimestamp, time) {
+		return newTimestampCompatError("Quasar fork block timestamp", n.QuasarTimestamp, newcfg.QuasarTimestamp)
 	}
 	// Fortuna is optional, so allow nil values even after the fork time
 	// Only check incompatibility if both values are non-nil
@@ -94,7 +94,7 @@ func (n *NetworkUpgrades) forkOrder() []fork {
 	return []fork{
 		{name: "evmTimestamp", timestamp: n.EVMTimestamp},
 		{name: "durangoTimestamp", timestamp: n.DurangoTimestamp},
-		{name: "etnaTimestamp", timestamp: n.EtnaTimestamp},
+		{name: "quasarTimestamp", timestamp: n.QuasarTimestamp},
 		{name: "fortunaTimestamp", timestamp: n.FortunaTimestamp, optional: true},
 		{name: "graniteTimestamp", timestamp: n.GraniteTimestamp},
 	}
@@ -111,8 +111,8 @@ func (n *NetworkUpgrades) SetDefaults(agoUpgrades upgrade.Config) {
 	if n.DurangoTimestamp == nil {
 		n.DurangoTimestamp = defaults.DurangoTimestamp
 	}
-	if n.EtnaTimestamp == nil {
-		n.EtnaTimestamp = defaults.EtnaTimestamp
+	if n.QuasarTimestamp == nil {
+		n.QuasarTimestamp = defaults.QuasarTimestamp
 	}
 	if n.FortunaTimestamp == nil {
 		n.FortunaTimestamp = defaults.FortunaTimestamp
@@ -152,14 +152,14 @@ func (n *NetworkUpgrades) verifyNetworkUpgrades(agoUpgrades upgrade.Config) erro
 		}
 	}
 
-	// EtnaTimestamp — when the default is set (non-nil), the config must
+	// QuasarTimestamp — when the default is set (non-nil), the config must
 	// also set it and must not be earlier than the default.
-	if defaults.EtnaTimestamp != nil {
-		if n.EtnaTimestamp == nil {
-			return fmt.Errorf("Etna fork block timestamp is invalid: %w", errCannotBeNil)
+	if defaults.QuasarTimestamp != nil {
+		if n.QuasarTimestamp == nil {
+			return fmt.Errorf("Quasar fork block timestamp is invalid: %w", errCannotBeNil)
 		}
-		if err := verifyWithDefault(n.EtnaTimestamp, defaults.EtnaTimestamp); err != nil {
-			return fmt.Errorf("Etna fork block timestamp is invalid: %w", err)
+		if err := verifyWithDefault(n.QuasarTimestamp, defaults.QuasarTimestamp); err != nil {
+			return fmt.Errorf("Quasar fork block timestamp is invalid: %w", err)
 		}
 	}
 
@@ -198,8 +198,8 @@ func (n *NetworkUpgrades) Override(o *NetworkUpgrades) {
 	if o.DurangoTimestamp != nil {
 		n.DurangoTimestamp = o.DurangoTimestamp
 	}
-	if o.EtnaTimestamp != nil {
-		n.EtnaTimestamp = o.EtnaTimestamp
+	if o.QuasarTimestamp != nil {
+		n.QuasarTimestamp = o.QuasarTimestamp
 	}
 	if o.FortunaTimestamp != nil {
 		n.FortunaTimestamp = o.FortunaTimestamp
@@ -224,10 +224,10 @@ func (n NetworkUpgrades) IsDurango(time uint64) bool {
 	return isTimestampForked(n.DurangoTimestamp, time)
 }
 
-// IsEtna returns whether [time] represents a block
-// with a timestamp after the Etna upgrade time.
-func (n NetworkUpgrades) IsEtna(time uint64) bool {
-	return isTimestampForked(n.EtnaTimestamp, time)
+// IsQuasar returns whether [time] represents a block
+// with a timestamp after the Quasar Edition upgrade time.
+func (n NetworkUpgrades) IsQuasar(time uint64) bool {
+	return isTimestampForked(n.QuasarTimestamp, time)
 }
 
 // IsFortuna returns whether [time] represents a block
@@ -254,7 +254,7 @@ func (n *NetworkUpgrades) Description() string {
 	var banner string
 	banner += fmt.Sprintf(" - EVM Timestamp:          @%-10v (https://github.com/luxfi/node/releases/tag/v1.10.0)\n", ptrToString(n.EVMTimestamp))
 	banner += fmt.Sprintf(" - Durango Timestamp:            @%-10v (https://github.com/luxfi/node/releases/tag/v1.11.0)\n", ptrToString(n.DurangoTimestamp))
-	banner += fmt.Sprintf(" - Etna Timestamp:               @%-10v (https://github.com/luxfi/node/releases/tag/v1.12.0)\n", ptrToString(n.EtnaTimestamp))
+	banner += fmt.Sprintf(" - Quasar Timestamp:             @%-10v (https://github.com/luxfi/node/releases/tag/v1.12.0)\n", ptrToString(n.QuasarTimestamp))
 	banner += fmt.Sprintf(" - Fortuna Timestamp:            @%-10v (https://github.com/luxfi/node/releases/tag/v1.13.0)\n", ptrToString(n.FortunaTimestamp))
 	banner += fmt.Sprintf(" - Granite Timestamp:            @%-10v (https://github.com/luxfi/node/releases/tag/v1.14.0)\n", ptrToString(n.GraniteTimestamp))
 	return banner
@@ -263,7 +263,7 @@ func (n *NetworkUpgrades) Description() string {
 type LuxRules struct {
 	IsEVM     bool
 	IsDurango bool
-	IsEtna    bool
+	IsQuasar  bool
 	IsFortuna bool
 	IsGranite bool
 }
@@ -272,7 +272,7 @@ func (n *NetworkUpgrades) GetLuxRules(time uint64) LuxRules {
 	return LuxRules{
 		IsEVM:     n.IsEVM(time),
 		IsDurango: n.IsDurango(time),
-		IsEtna:    n.IsEtna(time),
+		IsQuasar:  n.IsQuasar(time),
 		IsFortuna: n.IsFortuna(time),
 		IsGranite: n.IsGranite(time),
 	}
@@ -318,8 +318,8 @@ func GetNetworkUpgrades(agoUpgrade upgrade.Config) NetworkUpgrades {
 	// Check DurangoTime
 	result.DurangoTimestamp = toEVMTimestamp(agoUpgrade.DurangoTime)
 
-	// Check EtnaTime
-	result.EtnaTimestamp = toEVMTimestamp(agoUpgrade.EtnaTime)
+	// Check QuasarTime
+	result.QuasarTimestamp = toEVMTimestamp(agoUpgrade.QuasarTime)
 
 	// Check FortunaTime
 	result.FortunaTimestamp = toEVMTimestamp(agoUpgrade.FortunaTime)
@@ -338,7 +338,7 @@ func GetDefaultNetworkUpgrades() NetworkUpgrades {
 	return NetworkUpgrades{
 		EVMTimestamp:     utils.NewUint64(0),
 		DurangoTimestamp: utils.NewUint64(0),
-		EtnaTimestamp:    utils.NewUint64(0),
+		QuasarTimestamp:  utils.NewUint64(0),
 		FortunaTimestamp: utils.NewUint64(0),
 		GraniteTimestamp: utils.NewUint64(0),
 	}

@@ -220,6 +220,8 @@ github.com/luxfi/consensus v1.24.0 h1:vyBPYPeZbbZutUCMxKBW7Ief9+8OZB7cu3MfNc87xY
 github.com/luxfi/consensus v1.24.0/go.mod h1:eFknd+fzTmGEa/FzxgoL6unccnHGVxxOrZUZdReWII0=
 github.com/luxfi/constants v1.5.7 h1:a1tCMdxd+pClPMIPOaI9vcYGNy6cQIc2rubac2Trc0k=
 github.com/luxfi/constants v1.5.7/go.mod h1:z+Wc7skybZAA+xuBWNcmtv402S/BFqixL+FiSQXPg8U=
+github.com/luxfi/constants v1.5.8-0.20260603055356-93c2c2ceb9ca h1:N2lM2gMJ2Hk5yZ6GqURWtg6nIVtodsjqMe+MGNiuCNw=
+github.com/luxfi/constants v1.5.8-0.20260603055356-93c2c2ceb9ca/go.mod h1:z+Wc7skybZAA+xuBWNcmtv402S/BFqixL+FiSQXPg8U=
 github.com/luxfi/container v0.0.4 h1:BXhF82WyfqVP5mjlNcr7tP0Fcnvl0Ap1rkiu+rq5XuM=
 github.com/luxfi/container v0.0.4/go.mod h1:Z3SpmMF5d4t77MM0nHYXURpn+EMVaeu1fhbd/3BGaek=
 github.com/luxfi/corona v0.4.1 h1:DGMdZMrENl6vmJf9CgiQMD8c5ORSTMymL0z9KgcZstk=
@@ -284,6 +286,8 @@ github.com/luxfi/trace v0.1.4 h1:ttCRyXGwWuz232se+lIUqhWHBoTuvPLhHH/hLWyqtaM=
 github.com/luxfi/trace v0.1.4/go.mod h1:Az7HWh+PCuPftXjQu+ssjv51nKauaFu+q2un7bmZYBA=
 github.com/luxfi/upgrade v1.0.0 h1:mM6YXvU8VzoclA7IdtuE5bmnMuFquYxjKUUW84LJz54=
 github.com/luxfi/upgrade v1.0.0/go.mod h1:DZF7dO4erhUEKf907B2e65k4/vGkCPkUngpvIEUS3eI=
+github.com/luxfi/upgrade v1.0.1-0.20260603055252-f51810805436 h1:0VTZNA1+rXh9Tr0OpGmkwg+mYC6xgLv+XymMlZvLH/E=
+github.com/luxfi/upgrade v1.0.1-0.20260603055252-f51810805436/go.mod h1:zBBG2VkZmWLr6u6DxzI/4DSFYjHizHrr7MqCDZkMSJc=
 github.com/luxfi/utils v1.1.4 h1:8OY0jXCkpp6OotN1Y++6DATJkvtEwzq2k0p56imJlAk=
 github.com/luxfi/utils v1.1.4/go.mod h1:c3yz1RjzrB+cs5GZm+q1T3/2cCKElO9vxm9yRRtgSEM=
 github.com/luxfi/validators v1.2.0 h1:VygpiBqBAdGrfkb7xzE2yrVmnXaqE+hm8FLWdGXO7G8=

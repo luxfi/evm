@@ -172,7 +172,7 @@ var (
 		extras.TestDurangoChainConfig,
 	)
 
-	TestEtnaChainConfig = WithExtra(
+	TestQuasarChainConfig = WithExtra(
 		&ChainConfig{
 			ChainID:             big.NewInt(1337),
 			HomesteadBlock:      big.NewInt(0),
@@ -196,7 +196,7 @@ var (
 				},
 			},
 		},
-		extras.TestEtnaChainConfig,
+		extras.TestQuasarChainConfig,
 	)
 
 	TestFortunaChainConfig = WithExtra(

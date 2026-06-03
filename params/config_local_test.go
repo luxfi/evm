@@ -12,7 +12,7 @@ func TestLocalNetworkChainID(t *testing.T) {
 		"TestPreEVMChainConfig":  TestPreEVMChainConfig,
 		"TestEVMChainConfig":     TestEVMChainConfig,
 		"TestDurangoChainConfig": TestDurangoChainConfig,
-		"TestEtnaChainConfig":    TestEtnaChainConfig,
+		"TestQuasarChainConfig":  TestQuasarChainConfig,
 		"TestFortunaChainConfig": TestFortunaChainConfig,
 		"TestGraniteChainConfig": TestGraniteChainConfig,
 	}
