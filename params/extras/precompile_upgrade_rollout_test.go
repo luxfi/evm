@@ -36,7 +36,7 @@ import (
 const luxMainnetLiveUpgradeJSON = `{
   "networkUpgradeOverrides": {
     "durangoTimestamp": 0,
-    "etnaTimestamp": 0,
+    "quasarTimestamp": 0,
     "fortunaTimestamp": 0,
     "graniteTimestamp": 0
   },

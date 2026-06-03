@@ -134,8 +134,8 @@ var (
 				if extra.DurangoTimestamp != nil {
 					configMap["durangoTimestamp"] = *extra.DurangoTimestamp
 				}
-				if extra.EtnaTimestamp != nil {
-					configMap["etnaTimestamp"] = *extra.EtnaTimestamp
+				if extra.QuasarTimestamp != nil {
+					configMap["quasarTimestamp"] = *extra.QuasarTimestamp
 				}
 				if extra.FortunaTimestamp != nil {
 					configMap["fortunaTimestamp"] = *extra.FortunaTimestamp
@@ -190,8 +190,8 @@ var (
 				if extra.DurangoTimestamp != nil {
 					configMap["durangoTimestamp"] = *extra.DurangoTimestamp
 				}
-				if extra.EtnaTimestamp != nil {
-					configMap["etnaTimestamp"] = *extra.EtnaTimestamp
+				if extra.QuasarTimestamp != nil {
+					configMap["quasarTimestamp"] = *extra.QuasarTimestamp
 				}
 				if extra.FortunaTimestamp != nil {
 					configMap["fortunaTimestamp"] = *extra.FortunaTimestamp
@@ -249,7 +249,7 @@ var (
 	// forkToChainConfig maps a fork name to a chain config
 	forkToChainConfig = map[string]*params.ChainConfig{
 		"Durango": params.TestDurangoChainConfig,
-		"Etna":    params.TestEtnaChainConfig,
+		"Quasar":    params.TestQuasarChainConfig,
 		"Granite": params.TestGraniteChainConfig,
 		"Latest":  params.TestGraniteChainConfig,
 	}
@@ -3777,8 +3777,8 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	var genesisMap map[string]interface{}
 	require.NoError(t, json.Unmarshal([]byte(genesisJSON), &genesisMap))
 	configMap := genesisMap["config"].(map[string]interface{})
-	// Set EtnaTimestamp to the block's timestamp to trigger the compatibility check error
-	configMap["etnaTimestamp"] = blk.Timestamp().Unix()
+	// Set QuasarTimestamp to the block's timestamp to trigger the compatibility check error
+	configMap["quasarTimestamp"] = blk.Timestamp().Unix()
 	// Ensure DurangoTimestamp is set (required for validation)
 	if _, ok := configMap["durangoTimestamp"]; !ok {
 		configMap["durangoTimestamp"] = uint64(0)
@@ -3842,20 +3842,20 @@ func TestParentBeaconRootBlock(t *testing.T) {
 		},
 		{
 			name:          "non-empty parent beacon root in E-Upgrade (Cancun)",
-			genesisJSON:   toGenesisJSON(forkToChainConfig["Etna"]),
+			genesisJSON:   toGenesisJSON(forkToChainConfig["Quasar"]),
 			beaconRoot:    &common.Hash{0x01},
 			expectedError: true,
 			errString:     "expected empty hash",
 		},
 		{
 			name:          "empty parent beacon root in E-Upgrade (Cancun)",
-			genesisJSON:   toGenesisJSON(forkToChainConfig["Etna"]),
+			genesisJSON:   toGenesisJSON(forkToChainConfig["Quasar"]),
 			beaconRoot:    &common.Hash{},
 			expectedError: false,
 		},
 		{
 			name:          "nil parent beacon root in E-Upgrade (Cancun)",
-			genesisJSON:   toGenesisJSON(forkToChainConfig["Etna"]),
+			genesisJSON:   toGenesisJSON(forkToChainConfig["Quasar"]),
 			beaconRoot:    nil,
 			expectedError: true,
 			errString:     "header is missing parentBeaconRoot",
