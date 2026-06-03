@@ -33,7 +33,7 @@ require (
 	github.com/luxfi/metric v1.5.5
 	github.com/luxfi/p2p v1.21.0
 	github.com/luxfi/pq v1.0.3
-	github.com/luxfi/precompile v0.5.27
+	github.com/luxfi/precompile v0.5.35
 	github.com/luxfi/runtime v1.0.1
 	github.com/luxfi/sys v0.0.0-20260110090042-50187ec5ffd8
 	github.com/luxfi/timer v1.0.2
