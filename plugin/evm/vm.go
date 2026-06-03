@@ -805,9 +805,9 @@ func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte,
 				log.Info("DEBUG: durangoTimestamp NOT found in genesis config, defaulting to 0")
 				configExtra.DurangoTimestamp = utils.NewUint64(0)
 			}
-			if val, ok := configData["etnaTimestamp"]; ok {
+			if val, ok := configData["quasarTimestamp"]; ok {
 				if ts, ok := val.(float64); ok {
-					configExtra.EtnaTimestamp = utils.NewUint64(uint64(ts))
+					configExtra.QuasarTimestamp = utils.NewUint64(uint64(ts))
 				}
 			}
 			if val, ok := configData["fortunaTimestamp"]; ok {
