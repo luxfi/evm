@@ -12,13 +12,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// getTestFujiUpgrades returns a test network upgrades config with EtnaTimestamp set
+// getTestFujiUpgrades returns a test network upgrades config with QuasarTimestamp set
 // This is used for testing upgrade compatibility scenarios
 func getTestFujiUpgrades() NetworkUpgrades {
 	return NetworkUpgrades{
 		EVMTimestamp:     utils.NewUint64(0),
 		DurangoTimestamp: utils.NewUint64(0),
-		EtnaTimestamp:    utils.NewUint64(100), // Set for testing
+		QuasarTimestamp:    utils.NewUint64(100), // Set for testing
 		FortunaTimestamp: utils.NewUint64(1000),
 		GraniteTimestamp: nil,
 	}
@@ -188,10 +188,10 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 			}(),
 			upgrades2: func() *NetworkUpgrades {
 				upgrades := getTestFujiUpgrades()
-				upgrades.EtnaTimestamp = nil
+				upgrades.QuasarTimestamp = nil
 				return &upgrades
 			}(),
-			time:  500, // Time past Etna (100), so setting Etna to nil is incompatible
+			time:  500, // Time past Quasar (100), so setting Quasar to nil is incompatible
 			valid: false,
 		},
 		{
@@ -233,7 +233,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			upgrades: &NetworkUpgrades{
 				EVMTimestamp:     utils.NewUint64(0),
 				DurangoTimestamp: utils.NewUint64(0), // Must be 0 since default is 0
-				EtnaTimestamp:    utils.NewUint64(0), // Must be 0 for Latest
+				QuasarTimestamp:    utils.NewUint64(0), // Must be 0 for Latest
 				FortunaTimestamp: utils.NewUint64(0), // Must be 0 for Latest
 				GraniteTimestamp: utils.NewUint64(0), // Must be 0 for Latest
 			},
@@ -286,21 +286,21 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			valid:        false,
 		},
 		{
-			name: "Valid_Etna_nil_when_unscheduled",
+			name: "Valid_Quasar_nil_when_unscheduled",
 			upgrades: &NetworkUpgrades{
 				EVMTimestamp:     utils.NewUint64(0),
 				DurangoTimestamp: utils.NewUint64(0), // Genesis
-				EtnaTimestamp:    nil,                // Valid when Etna is unscheduled
+				QuasarTimestamp:  nil,                // Valid when Quasar is unscheduled
 			},
-			luxdUpgrades: getTestMainnetConfig(), // Durango is active, Etna is not
+			luxdUpgrades: getTestMainnetConfig(), // Durango is active, Quasar is not
 			valid:        true,
 		},
 		{
-			name: "Invalid_Etna_before_Durango",
+			name: "Invalid_Quasar_before_Durango",
 			upgrades: &NetworkUpgrades{
 				EVMTimestamp:     utils.NewUint64(0),
 				DurangoTimestamp: utils.NewUint64(100),
-				EtnaTimestamp:    utils.NewUint64(99),
+				QuasarTimestamp:    utils.NewUint64(99),
 			},
 			luxdUpgrades: getTestMainnetConfig(),
 			valid:        false,
@@ -310,7 +310,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			upgrades: &NetworkUpgrades{
 				EVMTimestamp:     utils.NewUint64(0),
 				DurangoTimestamp: utils.NewUint64(0),   // Genesis
-				EtnaTimestamp:    utils.NewUint64(500), // Test timestamp
+				QuasarTimestamp:    utils.NewUint64(500), // Test timestamp
 				FortunaTimestamp: nil,
 			},
 			luxdUpgrades: getTestFujiConfig(),
