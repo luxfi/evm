@@ -1195,8 +1195,8 @@ func overrideConfig(original *params.ChainConfig, override *params.ChainConfig) 
 		params.GetExtra(copy).DurangoTimestamp = timestamp
 		canon = false
 	}
-	if timestamp := overrideExtra.EtnaTimestamp; timestamp != nil {
-		params.GetExtra(copy).EtnaTimestamp = timestamp
+	if timestamp := overrideExtra.QuasarTimestamp; timestamp != nil {
+		params.GetExtra(copy).QuasarTimestamp = timestamp
 		canon = false
 	}
 	if timestamp := overrideExtra.FortunaTimestamp; timestamp != nil {
