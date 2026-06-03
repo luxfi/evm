@@ -36,7 +36,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var DefaultEtnaTime = uint64(0) // Use genesis time as default
+var DefaultQuasarTime = uint64(0) // Use genesis time as default
 
 // getEthBlockFromConsensusBlock safely extracts the Ethereum block from a consensus block interface
 func getEthBlockFromConsensusBlock(t *testing.T, blk consensusInterfaces.Block) *types.Block {
@@ -399,20 +399,20 @@ func TestVMEupgradeActivatesCancun(t *testing.T) {
 		check       func(*testing.T, *VM) // function to check the VM state
 	}{
 		{
-			name:        "Etna activates Cancun",
+			name:        "Quasar activates Cancun",
 			genesisJSON: toGenesisJSON(forkToChainConfig["Latest"]),
 			check: func(t *testing.T, vm *VM) {
-				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultQuasarTime))
 			},
 		},
 		{
-			name:        "Later Etna activates Cancun",
-			// Use "Etna" fork (not "Latest") to avoid Fortuna/Granite fork conflicts
-			genesisJSON: toGenesisJSON(forkToChainConfig["Etna"]),
+			name:        "Later Quasar activates Cancun",
+			// Use "Quasar" fork (not "Latest") to avoid Fortuna/Granite fork conflicts
+			genesisJSON: toGenesisJSON(forkToChainConfig["Quasar"]),
 			upgradeJSON: func() string {
 				upgrade := &extras.UpgradeConfig{
 					NetworkUpgradeOverrides: &extras.NetworkUpgrades{
-						EtnaTimestamp: utils.NewUint64(DefaultEtnaTime + 2),
+						QuasarTimestamp: utils.NewUint64(DefaultQuasarTime + 2),
 					},
 				}
 				b, err := json.Marshal(upgrade)
@@ -420,18 +420,18 @@ func TestVMEupgradeActivatesCancun(t *testing.T) {
 				return string(b)
 			}(),
 			check: func(t *testing.T, vm *VM) {
-				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime))
-				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime+2))
+				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultQuasarTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultQuasarTime+2))
 			},
 		},
 		{
-			name:        "Changed Etna changes Cancun",
-			// Use "Etna" fork (not "Latest") to avoid Fortuna/Granite fork conflicts
-			genesisJSON: toGenesisJSON(forkToChainConfig["Etna"]),
+			name:        "Changed Quasar changes Cancun",
+			// Use "Quasar" fork (not "Latest") to avoid Fortuna/Granite fork conflicts
+			genesisJSON: toGenesisJSON(forkToChainConfig["Quasar"]),
 			upgradeJSON: func() string {
 				upgrade := &extras.UpgradeConfig{
 					NetworkUpgradeOverrides: &extras.NetworkUpgrades{
-						EtnaTimestamp: utils.NewUint64(DefaultEtnaTime + 2),
+						QuasarTimestamp: utils.NewUint64(DefaultQuasarTime + 2),
 					},
 				}
 				b, err := json.Marshal(upgrade)
@@ -439,8 +439,8 @@ func TestVMEupgradeActivatesCancun(t *testing.T) {
 				return string(b)
 			}(),
 			check: func(t *testing.T, vm *VM) {
-				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime))
-				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime+2))
+				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultQuasarTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultQuasarTime+2))
 			},
 		},
 	}
