@@ -224,8 +224,8 @@ github.com/luxfi/container v0.0.4 h1:BXhF82WyfqVP5mjlNcr7tP0Fcnvl0Ap1rkiu+rq5XuM
 github.com/luxfi/container v0.0.4/go.mod h1:Z3SpmMF5d4t77MM0nHYXURpn+EMVaeu1fhbd/3BGaek=
 github.com/luxfi/corona v0.7.5 h1:XqcnsKaiP/EyDJzmDhziS+kDhX34TsVQiXTM8PvRROg=
 github.com/luxfi/corona v0.7.5/go.mod h1:4aD7+ZqnlZ2aVuU/DBQ5aspIagv5ux45LW2sJ4+siY8=
-github.com/luxfi/crypto v1.19.15 h1:Tf+iPRXv08Rlj9k7iNtYy0e1tJWIgRcY0pTR4rQax6w=
-github.com/luxfi/crypto v1.19.15/go.mod h1:INjdZtke85k8hX/QAmTMAY8bbZ4gzGZQLqURg3xf6Gk=
+github.com/luxfi/crypto v1.19.17 h1:l2LLu7UFyICtJVfraLDLRi+lFGiDXKHSL18M9/m1gsQ=
+github.com/luxfi/crypto v1.19.17/go.mod h1:INjdZtke85k8hX/QAmTMAY8bbZ4gzGZQLqURg3xf6Gk=
 github.com/luxfi/crypto/ipa v1.2.4 h1:6xfwhI9/HrcDkF3Ti5/NxsNQIWbwYDJmRSNIHRQ/xfU=
 github.com/luxfi/crypto/ipa v1.2.4/go.mod h1:43J6f6rcfUMrZt4cQectMOZb6Ps+fAEj8ZTPC3Kk+gE=
 github.com/luxfi/database v1.19.0 h1:sySH5eS8ihJtyc+yb0LgTignGwJ9H4W9bv+nboCuIm0=
