@@ -35,7 +35,7 @@ require (
 	github.com/luxfi/pq v1.0.3
 	github.com/luxfi/precompile v0.5.35
 	github.com/luxfi/runtime v1.1.0
-	github.com/luxfi/sys v0.0.0-20260110090042-50187ec5ffd8
+	github.com/luxfi/sys v0.1.0
 	github.com/luxfi/timer v1.0.2
 	github.com/luxfi/trace v0.1.4
 	github.com/luxfi/upgrade v1.0.1-0.20260603055252-f51810805436
