@@ -6,7 +6,7 @@ exclude github.com/luxfi/geth v1.16.1
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/deckarep/golang-set/v2 v2.8.0
+	github.com/deckarep/golang-set/v2 v2.9.0
 	github.com/fjl/gencodec v0.1.1
 	github.com/gorilla/rpc v1.2.1
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
@@ -117,6 +117,7 @@ require (
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/tinylib/msgp v1.6.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
+	go.mongodb.org/mongo-driver v1.17.4 // indirect
 )
 
 require (
