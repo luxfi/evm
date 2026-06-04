@@ -17,7 +17,7 @@ require (
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.2.1
 	github.com/luxfi/codec v1.1.4
-	github.com/luxfi/consensus v1.25.0
+	github.com/luxfi/consensus v1.25.14
 	github.com/luxfi/constants v1.5.8-0.20260603055356-93c2c2ceb9ca
 	github.com/luxfi/crypto v1.19.17
 	github.com/luxfi/database v1.19.0
@@ -77,7 +77,7 @@ require (
 	github.com/cockroachdb/tokenbucket v0.0.0-20250429170803-42689b6311bb // indirect
 	github.com/cosmos/go-bip39 v1.0.0 // indirect
 	github.com/cronokirby/saferith v0.33.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.9.1 // indirect
 	github.com/getsentry/sentry-go v0.44.1 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -96,13 +96,13 @@ require (
 	github.com/luxfi/compress v0.0.5 // indirect
 	github.com/luxfi/concurrent v0.0.3 // indirect
 	github.com/luxfi/container v0.0.4 // indirect
-	github.com/luxfi/corona v0.7.5 // indirect
+	github.com/luxfi/corona v0.7.6 // indirect
 	github.com/luxfi/crypto/ipa v1.2.4 // indirect
 	github.com/luxfi/fhe v1.8.2 // indirect
-	github.com/luxfi/lattice/v7 v7.1.0 // indirect
+	github.com/luxfi/lattice/v7 v7.1.4 // indirect
 	github.com/luxfi/proto v1.0.0 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
-	github.com/luxfi/threshold v1.8.0 // indirect
+	github.com/luxfi/threshold v1.9.4 // indirect
 	github.com/luxfi/zapdb v1.10.0 // indirect
 	github.com/mimoo/StrobeGo v0.0.0-20220103164710-9a04d6ca976b // indirect
 	github.com/minio/crc64nvme v1.1.1 // indirect
