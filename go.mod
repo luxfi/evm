@@ -30,7 +30,7 @@ require (
 	github.com/luxfi/math v1.4.1
 	github.com/luxfi/math/big v0.1.0
 	github.com/luxfi/math/safe v0.0.1
-	github.com/luxfi/metric v1.5.7
+	github.com/luxfi/metric v1.5.8
 	github.com/luxfi/p2p v1.21.0
 	github.com/luxfi/pq v1.0.3
 	github.com/luxfi/precompile v0.5.35
@@ -69,6 +69,7 @@ require (
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/ChainSafe/go-schnorrkel v1.1.0 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
+	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cockroachdb/errors v1.12.0 // indirect
 	github.com/cockroachdb/fifo v0.0.0-20240816210425-c5d0cb0b6fc0 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506 // indirect
@@ -82,6 +83,7 @@ require (
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/renameio/v2 v2.0.2 // indirect
+	github.com/grandcat/zeroconf v1.0.0 // indirect
 	github.com/gtank/merlin v0.1.1 // indirect
 	github.com/gtank/ristretto255 v0.2.0 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
@@ -100,10 +102,13 @@ require (
 	github.com/luxfi/crypto/ipa v1.2.4 // indirect
 	github.com/luxfi/fhe v1.8.2 // indirect
 	github.com/luxfi/lattice/v7 v7.1.4 // indirect
+	github.com/luxfi/mdns v0.1.0 // indirect
 	github.com/luxfi/proto v1.0.0 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
 	github.com/luxfi/threshold v1.9.4 // indirect
+	github.com/luxfi/zap v0.6.0 // indirect
 	github.com/luxfi/zapdb v1.10.0 // indirect
+	github.com/miekg/dns v1.1.72 // indirect
 	github.com/mimoo/StrobeGo v0.0.0-20220103164710-9a04d6ca976b // indirect
 	github.com/minio/crc64nvme v1.1.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
