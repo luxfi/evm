@@ -43,7 +43,7 @@ require (
 	github.com/luxfi/validators v1.2.0
 	github.com/luxfi/version v1.0.1
 	github.com/luxfi/vm v1.1.7
-	github.com/luxfi/warp v1.18.6
+	github.com/luxfi/warp v1.19.2
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
 	github.com/spf13/cast v1.10.0
