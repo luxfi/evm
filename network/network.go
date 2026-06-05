@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/codec"
 	"github.com/luxfi/ids"
 	log "github.com/luxfi/log"
 	"github.com/luxfi/math/set"
@@ -32,7 +31,7 @@ type Network struct {
 	*p2p.Network
 
 	sender      p2p.Sender
-	codec       codec.Manager
+	codec       any // message.Manager — held opaque to avoid plugin/evm/message → network import cycle
 	maxRequests int64
 	metrics     metric.Registerer
 	log         log.Logger
@@ -51,11 +50,15 @@ type Network struct {
 	closeLock sync.Mutex
 }
 
-// NewNetwork creates a new Network instance
+// NewNetwork creates a new Network instance. The codec argument is the
+// caller's message.Manager (held opaquely as `any` to avoid pulling the
+// plugin/evm/message package into this network leaf — it would cycle).
+// Network never calls into the codec itself; it only stores the handle
+// for AppRequest dispatchers that pull the value out via SetRequestHandler.
 func NewNetwork(
 	ctx context.Context,
 	sender p2p.Sender,
-	codec codec.Manager,
+	codec any,
 	maxOutboundActiveRequests int64,
 	metrics metric.Registerer,
 ) (*Network, error) {
