@@ -6,10 +6,12 @@ package evm
 import (
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/geth/common"
@@ -94,58 +96,323 @@ func (api *AdminAPI) ImportChain(ctx context.Context, file string) (*ImportChain
 	}, nil
 }
 
-// ExportChain exports a blockchain to a local file
+// ExportChainResult is the response shape from admin_exportChain.
+//
+// FirstHash + LastHash let the client verify a previously-written export
+// matches the same chain state (idempotency check) and let the operator
+// store a content-addressable identifier alongside the file.
+//
+// Status is one of: "ok" (exported [first..last] inclusive), "noop"
+// (file already existed with matching hashes), "interrupted" (ctx canceled
+// before [last] reached — Resume reads sentinel and picks up at HighestExported+1).
+type ExportChainResult struct {
+	Success         bool        `json:"success"`
+	Status          string      `json:"status"`
+	BlocksExported  uint64      `json:"blocksExported"`
+	First           uint64      `json:"first"`
+	Last            uint64      `json:"last"`
+	HighestExported uint64      `json:"highestExported"`
+	FirstHash       common.Hash `json:"firstHash"`
+	LastHash        common.Hash `json:"lastHash"`
+	SentinelPath    string      `json:"sentinelPath"`
+	Message         string      `json:"message,omitempty"`
+}
+
+// exportSentinel is the JSON written to <outputFile>.sentinel after every
+// commit-checkpoint and at terminal states. The CLI reads it on subsequent
+// runs to decide noop-success vs resume-from-N.
+type exportSentinel struct {
+	Status          string      `json:"status"` // "in_progress" | "done" | "interrupted"
+	First           uint64      `json:"first"`
+	Last            uint64      `json:"last"` // target last (may exceed HighestExported on interrupt)
+	HighestExported uint64      `json:"highestExported"`
+	FirstHash       common.Hash `json:"firstHash"`
+	LastHash        common.Hash `json:"lastHash"` // hash of HighestExported (not of `Last`)
+	UpdatedAt       time.Time   `json:"updatedAt"`
+}
+
+// exportProgressInterval is how often the sentinel gets rewritten. 1024 was
+// chosen so a 1M-block C-Chain export writes ~1000 sentinel updates — plenty
+// of resume granularity without flooding the disk.
+const exportProgressInterval = 1024
+
+// ExportChain exports a blockchain segment to a local RLP file.
 // RPC: admin_exportChain
-func (api *AdminAPI) ExportChain(ctx context.Context, file string, first, last uint64) (bool, error) {
+//
+// Behavior:
+//   - Streams blocks block-by-block via rlp.Encode (never loads the whole
+//     chain into memory).
+//   - Writes a sentinel file at <file>.sentinel after every
+//     exportProgressInterval blocks and on terminal states.
+//   - Idempotent: if `file` already exists with a valid sentinel whose
+//     {First,Last,FirstHash,LastHash} match the request, returns Status=noop
+//     without re-exporting.
+//   - Interruptable: ctx.Done() flushes the partial file + writes a sentinel
+//     with Status=interrupted, HighestExported set to the last block fully
+//     encoded. The caller can re-invoke with the same args; this implementation
+//     does not yet append (always overwrites) — the CLI is expected to read
+//     the sentinel and decide whether to resume by raising First.
+func (api *AdminAPI) ExportChain(ctx context.Context, file string, first, last uint64) (*ExportChainResult, error) {
 	log.Info("admin_exportChain called", "file", file, "first", first, "last", last)
 
 	api.vm.vmLock.Lock()
 	defer api.vm.vmLock.Unlock()
 
 	if api.vm.eth == nil {
-		return false, fmt.Errorf("ethereum backend not initialized")
+		return nil, fmt.Errorf("ethereum backend not initialized")
 	}
 
 	chain := api.vm.eth.BlockChain()
 	if chain == nil {
-		return false, fmt.Errorf("blockchain not initialized")
+		return nil, fmt.Errorf("blockchain not initialized")
 	}
 
-	// Open output file
+	// Clamp `last` to the current head — the caller may have requested
+	// a future height (the common case from `--to-height latest` translating
+	// to math.MaxUint64).
+	current := chain.CurrentBlock().Number.Uint64()
+	if last > current {
+		last = current
+	}
+	if first > last {
+		return nil, fmt.Errorf("first (%d) > last (%d) — empty range", first, last)
+	}
+
+	// Resolve expected first/last hashes from the live chain so we can
+	// (a) write them into the sentinel and (b) check against an existing
+	// sentinel for the idempotency no-op.
+	firstBlock := chain.GetBlockByNumber(first)
+	if firstBlock == nil {
+		return nil, fmt.Errorf("first block %d not found", first)
+	}
+	lastBlock := chain.GetBlockByNumber(last)
+	if lastBlock == nil {
+		return nil, fmt.Errorf("last block %d not found", last)
+	}
+	expectedFirstHash := firstBlock.Hash()
+	expectedLastHash := lastBlock.Hash()
+
+	sentinelPath := file + ".sentinel"
+
+	// Idempotency: if both the file and a "done" sentinel exist with matching
+	// {first,last,firstHash,lastHash}, return noop-success. This is what makes
+	// admin_exportChain safe to call from a cron Job — repeated invocations
+	// against an already-exported height range are zero-cost.
+	if existing, ok := readSentinel(sentinelPath); ok {
+		if existing.Status == "done" &&
+			existing.First == first && existing.Last == last &&
+			existing.FirstHash == expectedFirstHash &&
+			existing.LastHash == expectedLastHash {
+			if _, err := os.Stat(file); err == nil {
+				log.Info("admin_exportChain: noop (existing matches request)",
+					"file", file, "first", first, "last", last)
+				return &ExportChainResult{
+					Success:         true,
+					Status:          "noop",
+					BlocksExported:  last - first + 1,
+					First:           first,
+					Last:            last,
+					HighestExported: last,
+					FirstHash:       expectedFirstHash,
+					LastHash:        expectedLastHash,
+					SentinelPath:    sentinelPath,
+					Message:         "existing export matches request, no-op",
+				}, nil
+			}
+		}
+	}
+
+	// Open output file (truncate — this is an overwrite, not append).
 	out, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-		return false, fmt.Errorf("failed to open output file: %w", err)
+		return nil, fmt.Errorf("failed to open output file: %w", err)
 	}
 	defer out.Close()
 
-	// Use gzip if file ends with .gz
 	var writer io.Writer = out
+	// Use gzip if file ends with .gz
 	if strings.HasSuffix(file, ".gz") {
 		gzWriter := gzip.NewWriter(out)
 		defer gzWriter.Close()
 		writer = gzWriter
 	}
 
-	// Export blocks
-	current := chain.CurrentBlock().Number.Uint64()
-	if last > current {
-		last = current
-	}
+	// Initialize sentinel as in_progress before the first write so a kill -9
+	// in the loop leaves a readable marker.
+	writeSentinel(sentinelPath, exportSentinel{
+		Status:          "in_progress",
+		First:           first,
+		Last:            last,
+		HighestExported: 0, // zero is a sentinel for "nothing written yet"
+		FirstHash:       expectedFirstHash,
+		LastHash:        common.Hash{},
+		UpdatedAt:       time.Now().UTC(),
+	})
 
-	exported := 0
+	var exported uint64
+	var highestHash common.Hash
 	for i := first; i <= last; i++ {
+		// Cooperative cancellation: every block boundary checks ctx so a
+		// long export (1M+ blocks) can be aborted in <1s. On cancel we
+		// flush gzip + write the "interrupted" sentinel.
+		select {
+		case <-ctx.Done():
+			highest := i - 1
+			if exported == 0 {
+				// No blocks written yet — the file is empty. Still emit
+				// an interrupted sentinel so the operator sees the attempt.
+				writeSentinel(sentinelPath, exportSentinel{
+					Status:          "interrupted",
+					First:           first,
+					Last:            last,
+					HighestExported: 0,
+					FirstHash:       expectedFirstHash,
+					LastHash:        common.Hash{},
+					UpdatedAt:       time.Now().UTC(),
+				})
+				log.Warn("admin_exportChain: canceled before first block written",
+					"file", file, "err", ctx.Err())
+				return &ExportChainResult{
+					Success:         false,
+					Status:          "interrupted",
+					BlocksExported:  0,
+					First:           first,
+					Last:            last,
+					HighestExported: 0,
+					FirstHash:       expectedFirstHash,
+					LastHash:        common.Hash{},
+					SentinelPath:    sentinelPath,
+					Message:         fmt.Sprintf("canceled before first block: %v", ctx.Err()),
+				}, ctx.Err()
+			}
+			writeSentinel(sentinelPath, exportSentinel{
+				Status:          "interrupted",
+				First:           first,
+				Last:            last,
+				HighestExported: highest,
+				FirstHash:       expectedFirstHash,
+				LastHash:        highestHash,
+				UpdatedAt:       time.Now().UTC(),
+			})
+			log.Warn("admin_exportChain: interrupted",
+				"file", file, "highest", highest, "err", ctx.Err())
+			return &ExportChainResult{
+				Success:         false,
+				Status:          "interrupted",
+				BlocksExported:  exported,
+				First:           first,
+				Last:            last,
+				HighestExported: highest,
+				FirstHash:       expectedFirstHash,
+				LastHash:        highestHash,
+				SentinelPath:    sentinelPath,
+				Message:         fmt.Sprintf("interrupted at block %d: %v", highest, ctx.Err()),
+			}, ctx.Err()
+		default:
+		}
+
 		block := chain.GetBlockByNumber(i)
 		if block == nil {
-			return false, fmt.Errorf("block %d not found", i)
+			// Sentinel reflects partial state for diagnostics.
+			writeSentinel(sentinelPath, exportSentinel{
+				Status:          "interrupted",
+				First:           first,
+				Last:            last,
+				HighestExported: i - 1,
+				FirstHash:       expectedFirstHash,
+				LastHash:        highestHash,
+				UpdatedAt:       time.Now().UTC(),
+			})
+			return nil, fmt.Errorf("block %d not found", i)
 		}
 		if err := rlp.Encode(writer, block); err != nil {
-			return false, fmt.Errorf("failed to encode block %d: %w", i, err)
+			writeSentinel(sentinelPath, exportSentinel{
+				Status:          "interrupted",
+				First:           first,
+				Last:            last,
+				HighestExported: i - 1,
+				FirstHash:       expectedFirstHash,
+				LastHash:        highestHash,
+				UpdatedAt:       time.Now().UTC(),
+			})
+			return nil, fmt.Errorf("failed to encode block %d: %w", i, err)
 		}
 		exported++
+		highestHash = block.Hash()
+
+		// Periodic sentinel update so the CLI / operator can poll progress.
+		if exported%exportProgressInterval == 0 {
+			writeSentinel(sentinelPath, exportSentinel{
+				Status:          "in_progress",
+				First:           first,
+				Last:            last,
+				HighestExported: i,
+				FirstHash:       expectedFirstHash,
+				LastHash:        highestHash,
+				UpdatedAt:       time.Now().UTC(),
+			})
+		}
 	}
 
-	log.Info("admin_exportChain: completed", "blocks", exported, "first", first, "last", last)
-	return true, nil
+	// Terminal "done" sentinel — this is the marker the next admin_exportChain
+	// call reads for the idempotency no-op.
+	writeSentinel(sentinelPath, exportSentinel{
+		Status:          "done",
+		First:           first,
+		Last:            last,
+		HighestExported: last,
+		FirstHash:       expectedFirstHash,
+		LastHash:        expectedLastHash,
+		UpdatedAt:       time.Now().UTC(),
+	})
+	log.Info("admin_exportChain: completed",
+		"blocks", exported, "first", first, "last", last,
+		"firstHash", expectedFirstHash.Hex(), "lastHash", expectedLastHash.Hex())
+	return &ExportChainResult{
+		Success:         true,
+		Status:          "ok",
+		BlocksExported:  exported,
+		First:           first,
+		Last:            last,
+		HighestExported: last,
+		FirstHash:       expectedFirstHash,
+		LastHash:        expectedLastHash,
+		SentinelPath:    sentinelPath,
+		Message:         fmt.Sprintf("exported %d blocks [%d..%d]", exported, first, last),
+	}, nil
+}
+
+// readSentinel returns the parsed sentinel and ok=true when the file exists
+// and contains a valid JSON exportSentinel. Returns ok=false on any error so
+// callers fall through to the no-existing-state code path.
+func readSentinel(path string) (exportSentinel, bool) {
+	var s exportSentinel
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return s, false
+	}
+	if err := json.Unmarshal(data, &s); err != nil {
+		return s, false
+	}
+	return s, true
+}
+
+// writeSentinel writes the JSON sentinel atomically (tmp + rename) so a kill
+// during the write never leaves a half-written sentinel file behind.
+func writeSentinel(path string, s exportSentinel) {
+	data, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		log.Warn("admin_exportChain: sentinel marshal failed", "err", err)
+		return
+	}
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0644); err != nil {
+		log.Warn("admin_exportChain: sentinel write failed", "err", err)
+		return
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		log.Warn("admin_exportChain: sentinel rename failed", "err", err)
+	}
 }
 
 // StartCPUProfiler starts a cpu profile writing to the specified file
