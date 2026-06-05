@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/codec"
 	"github.com/luxfi/evm/core/state/snapshot"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/sync/handlers/stats"
@@ -44,12 +43,12 @@ const (
 type LeafsRequestHandler struct {
 	trieDB           *triedb.Database
 	snapshotProvider SnapshotProvider
-	codec            codec.Manager
+	codec            message.Manager
 	stats            stats.LeafsRequestHandlerStats
 	pool             sync.Pool
 }
 
-func NewLeafsRequestHandler(trieDB *triedb.Database, snapshotProvider SnapshotProvider, codec codec.Manager, syncerStats stats.LeafsRequestHandlerStats) *LeafsRequestHandler {
+func NewLeafsRequestHandler(trieDB *triedb.Database, snapshotProvider SnapshotProvider, codec message.Manager, syncerStats stats.LeafsRequestHandlerStats) *LeafsRequestHandler {
 	return &LeafsRequestHandler{
 		trieDB:           trieDB,
 		snapshotProvider: snapshotProvider,

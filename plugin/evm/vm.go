@@ -83,7 +83,6 @@ import (
 
 	luxRPC "github.com/gorilla/rpc/v2"
 
-	"github.com/luxfi/codec"
 	"github.com/luxfi/consensus/engine/chain/block"
 	consensusmockable "github.com/luxfi/consensus/utils/timer/mockable"
 	"github.com/luxfi/database/versiondb"
@@ -97,8 +96,8 @@ import (
 	nodeblock "github.com/luxfi/vm/chain"
 	nodeChain "github.com/luxfi/vm/components/chain"
 
-	luxJSON "github.com/luxfi/codec/jsonrpc"
 	"github.com/luxfi/database"
+	luxJSON "github.com/luxfi/evm/utils/json"
 	luxUtils "github.com/luxfi/utils"
 )
 
@@ -284,7 +283,7 @@ type VM struct {
 	profiler profiler.ContinuousProfiler
 
 	Network      *network.Network
-	networkCodec codec.Manager
+	networkCodec message.Manager
 
 	// Metrics
 	sdkMetrics metric.Registry

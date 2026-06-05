@@ -10,12 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/luxfi/codec"
-	"github.com/luxfi/codec/wrappers"
 	"github.com/luxfi/database"
 	"github.com/luxfi/database/memdb"
 	"github.com/luxfi/evm/plugin/evm/validators/state/interfaces"
 	"github.com/luxfi/ids"
+	"github.com/luxfi/utils/wrappers"
 )
 
 func TestState(t *testing.T) {
@@ -255,7 +254,7 @@ func TestParseValidator(t *testing.T) {
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x0D, 0xBB, 0xA0,
 			},
 			expected:    nil,
-			expectedErr: codec.ErrUnknownVersion,
+			expectedErr: ErrUnknownVersion,
 		},
 		{
 			name: "short byte len",
