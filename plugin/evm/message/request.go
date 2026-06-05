@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/luxfi/codec"
 	"github.com/luxfi/ids"
 )
 
@@ -21,7 +20,16 @@ type Request interface {
 	Handle(ctx context.Context, nodeID ids.NodeID, requestID uint32, handler RequestHandler) ([]byte, error)
 }
 
-// RequestToBytes marshals the given request object into bytes
-func RequestToBytes(codec codec.Manager, request Request) ([]byte, error) {
-	return codec.Marshal(Version, &request)
+// RequestMarshaler is the minimal surface RequestToBytes needs from the
+// package codec. The concrete *manager satisfies it; callers should pass
+// [Codec].
+type RequestMarshaler interface {
+	Marshal(version uint16, source interface{}) ([]byte, error)
+}
+
+// RequestToBytes marshals the given request object into bytes. The
+// `marshaler` argument exists for symmetry with the legacy codec.Manager
+// signature; in-tree callers always pass [Codec].
+func RequestToBytes(marshaler RequestMarshaler, request Request) ([]byte, error) {
+	return marshaler.Marshal(Version, &request)
 }
