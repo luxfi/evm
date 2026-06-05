@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/luxfi/codec/wrappers"
 	safemath "github.com/luxfi/math/safe"
+	"github.com/luxfi/utils/wrappers"
 )
 
 const (
