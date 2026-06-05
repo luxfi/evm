@@ -20,17 +20,39 @@ type Payload interface {
 	initialize(b []byte)
 }
 
-func Parse(bytes []byte) (Payload, error) {
-	var payload Payload
-	if _, err := Codec.Unmarshal(bytes, &payload); err != nil {
+// Parse dispatches on the type discriminator and decodes the matching
+// payload shape. Hand-rolled binary, no codec.Manager.
+func Parse(b []byte) (Payload, error) {
+	typ, err := peekType(b)
+	if err != nil {
 		return nil, err
 	}
-	payload.initialize(bytes)
-	return payload, nil
+	switch typ {
+	case TypeValidatorUptime:
+		v := &ValidatorUptime{}
+		if err := unmarshalValidatorUptime(b, v); err != nil {
+			return nil, err
+		}
+		v.initialize(b)
+		return v, nil
+	default:
+		return nil, fmt.Errorf("%w: unknown type %d", errInvalidType, typ)
+	}
 }
 
+// initialize encodes p to its wire bytes and stores them on p so
+// subsequent Bytes() calls are zero-alloc.
 func initialize(p Payload) error {
-	bytes, err := Codec.Marshal(CodecVersion, &p)
+	var (
+		bytes []byte
+		err   error
+	)
+	switch x := p.(type) {
+	case *ValidatorUptime:
+		bytes, err = marshalValidatorUptime(x)
+	default:
+		return fmt.Errorf("couldn't marshal %T payload: unknown type", p)
+	}
 	if err != nil {
 		return fmt.Errorf("couldn't marshal %T payload: %w", p, err)
 	}
