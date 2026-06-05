@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/luxfi/codec"
 	"github.com/luxfi/evm/plugin/evm/message"
 	"github.com/luxfi/evm/sync/handlers"
 	"github.com/luxfi/geth/common"
@@ -23,7 +22,7 @@ var (
 )
 
 type MockClient struct {
-	codec          codec.Manager
+	codec          message.Manager
 	leafsHandler   *handlers.LeafsRequestHandler
 	leavesReceived int32
 	codesHandler   *handlers.CodeRequestHandler
@@ -42,7 +41,7 @@ type MockClient struct {
 }
 
 func NewMockClient(
-	codec codec.Manager,
+	codec message.Manager,
 	leafHandler *handlers.LeafsRequestHandler,
 	codesHandler *handlers.CodeRequestHandler,
 	blocksHandler *handlers.BlockRequestHandler,
