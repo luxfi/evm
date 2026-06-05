@@ -26,7 +26,7 @@ require (
 	github.com/luxfi/go-bip39 v1.1.2
 	github.com/luxfi/gpu v1.0.1
 	github.com/luxfi/ids v1.2.11
-	github.com/luxfi/log v1.4.1
+	github.com/luxfi/log v1.4.3
 	github.com/luxfi/math v1.4.1
 	github.com/luxfi/math/big v0.1.0
 	github.com/luxfi/math/safe v0.0.1
