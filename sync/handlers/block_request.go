@@ -8,7 +8,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/luxfi/codec"
 	"github.com/luxfi/constants"
 	"github.com/luxfi/ids"
 
@@ -30,10 +29,10 @@ const (
 type BlockRequestHandler struct {
 	stats         stats.BlockRequestHandlerStats
 	blockProvider BlockProvider
-	codec         codec.Manager
+	codec         message.Manager
 }
 
-func NewBlockRequestHandler(blockProvider BlockProvider, codec codec.Manager, handlerStats stats.BlockRequestHandlerStats) *BlockRequestHandler {
+func NewBlockRequestHandler(blockProvider BlockProvider, codec message.Manager, handlerStats stats.BlockRequestHandlerStats) *BlockRequestHandler {
 	return &BlockRequestHandler{
 		blockProvider: blockProvider,
 		codec:         codec,

@@ -7,7 +7,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/luxfi/codec"
 	"github.com/luxfi/ids"
 
 	"github.com/luxfi/evm/plugin/evm/message"
@@ -22,11 +21,11 @@ import (
 // serving requested contract code bytes
 type CodeRequestHandler struct {
 	codeReader ethdb.KeyValueReader
-	codec      codec.Manager
+	codec      message.Manager
 	stats      stats.CodeRequestHandlerStats
 }
 
-func NewCodeRequestHandler(codeReader ethdb.KeyValueReader, codec codec.Manager, stats stats.CodeRequestHandlerStats) *CodeRequestHandler {
+func NewCodeRequestHandler(codeReader ethdb.KeyValueReader, codec message.Manager, stats stats.CodeRequestHandlerStats) *CodeRequestHandler {
 	handler := &CodeRequestHandler{
 		codeReader: codeReader,
 		codec:      codec,
