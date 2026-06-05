@@ -86,8 +86,8 @@ github.com/ethereum/go-bigmodexpfix v0.0.0-20250911101455-f9e208c548ab h1:rvv6MJ
 github.com/ethereum/go-bigmodexpfix v0.0.0-20250911101455-f9e208c548ab/go.mod h1:IuLm4IsPipXKF7CW5Lzf68PIbZ5yl7FFd74l/E0o9A8=
 github.com/ferranbt/fastssz v1.0.0 h1:9EXXYsracSqQRBQiHeaVsG/KQeYblPf40hsQPb9Dzk8=
 github.com/ferranbt/fastssz v1.0.0/go.mod h1:Ea3+oeoRGGLGm5shYAeDgu6PGUlcvQhE2fILyD9+tGg=
-github.com/fjl/gencodec v0.1.1 h1:DhQY29Q6JLXB/GgMqE86NbOEuvckiYcJCbXFu02toms=
-github.com/fjl/gencodec v0.1.1/go.mod h1:chDHL3wKXuBgauP8x3XNZkl5EIAR5SoCTmmmDTZRzmw=
+github.com/fjl/gencodec v0.1.2 h1:nf+MMsmuii5ZQMbS6/xjZoe5LRkN0415FOJOSwmnuW8=
+github.com/fjl/gencodec v0.1.2/go.mod h1:chDHL3wKXuBgauP8x3XNZkl5EIAR5SoCTmmmDTZRzmw=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=

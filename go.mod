@@ -7,7 +7,7 @@ exclude github.com/luxfi/geth v1.16.1
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.9.0
-	github.com/fjl/gencodec v0.1.1
+	github.com/fjl/gencodec v0.1.2
 	github.com/gorilla/rpc v1.2.1
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/hashicorp/go-bexpr v0.1.16
