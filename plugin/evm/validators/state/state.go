@@ -197,11 +197,7 @@ func (s *state) WriteState() error {
 		case updatedStatus:
 			data := s.data[vID]
 
-			dataBytes, err := vdrCodec.Marshal(codecVersion, data)
-			if err != nil {
-				return err
-			}
-			if err := batch.Put(vID[:], dataBytes); err != nil {
+			if err := batch.Put(vID[:], marshalValidatorData(data)); err != nil {
 				return err
 			}
 		case deletedStatus:
@@ -287,14 +283,13 @@ func (s *state) RegisterListener(listener interfaces.StateCallbackListener) {
 	}
 }
 
-// parseValidatorData parses the data from the bytes into given validatorData
+// parseValidatorData parses the data from the bytes into given validatorData.
+// An empty byte slice is treated as a fresh record and leaves data zeroed.
 func parseValidatorData(bytes []byte, data *validatorData) error {
-	if len(bytes) != 0 {
-		if _, err := vdrCodec.Unmarshal(bytes, data); err != nil {
-			return err
-		}
+	if len(bytes) == 0 {
+		return nil
 	}
-	return nil
+	return unmarshalValidatorData(bytes, data)
 }
 
 // Load the state from the disk

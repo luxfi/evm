@@ -22,10 +22,11 @@ import (
 	_ "github.com/luxfi/precompile/mldsa"    // 0x012202 ML-DSA signature verification (FIPS 204)
 	_ "github.com/luxfi/precompile/slhdsa"   // 0x012203 SLH-DSA stateless hash signatures (FIPS 205)
 	// 0x012204 Pulsar (Module-LWE threshold FIPS 204) imported below under Threshold
-	_ "github.com/luxfi/precompile/p3q"      // 0x012205 P3Q strict-PQ STARK verifier
+	_ "github.com/luxfi/precompile/p3q"      // 0x012205 P3Q — LP-218 Post-Quantum Pulsar Proof — Solidity-callable Pulsar verifier
 	// 0x012206 Corona (Ring-LWE threshold) imported below under Threshold
 	_ "github.com/luxfi/precompile/magnetar" // 0x012207 Magnetar (public-DKG MPC threshold SLH-DSA, FIPS 205 byte-equal)
 	_ "github.com/luxfi/precompile/hqc"      // 0x012208 HQC (code-based KEM, family-disjoint backup)
+	_ "github.com/luxfi/precompile/starkfri" // 0x012220 STARK-FRI strict-PQ STARK verifier (formerly misnamed P3Q at 0x012205)
 	_ "github.com/luxfi/precompile/pqcrypto" // Unified PQ crypto operations
 
 	// ============================================
