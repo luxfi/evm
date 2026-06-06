@@ -39,7 +39,7 @@ require (
 	github.com/luxfi/timer v1.0.2
 	github.com/luxfi/trace v0.1.4
 	github.com/luxfi/upgrade v1.0.1-0.20260603055252-f51810805436
-	github.com/luxfi/utils v1.1.4
+	github.com/luxfi/utils v1.1.5
 	github.com/luxfi/validators v1.2.0
 	github.com/luxfi/version v1.0.1
 	github.com/luxfi/vm v1.1.7
