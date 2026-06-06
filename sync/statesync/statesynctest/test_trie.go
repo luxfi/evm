@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/holiman/uint256"
-	"github.com/luxfi/codec/wrappers"
 	"github.com/luxfi/evm/utils/utilstest"
+	"github.com/luxfi/utils/wrappers"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/trie"
 	"github.com/luxfi/geth/trie/trienode"
