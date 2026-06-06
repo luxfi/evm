@@ -294,6 +294,8 @@ github.com/luxfi/upgrade v1.0.1-0.20260603055252-f51810805436 h1:0VTZNA1+rXh9Tr0
 github.com/luxfi/upgrade v1.0.1-0.20260603055252-f51810805436/go.mod h1:zBBG2VkZmWLr6u6DxzI/4DSFYjHizHrr7MqCDZkMSJc=
 github.com/luxfi/utils v1.1.4 h1:8OY0jXCkpp6OotN1Y++6DATJkvtEwzq2k0p56imJlAk=
 github.com/luxfi/utils v1.1.4/go.mod h1:c3yz1RjzrB+cs5GZm+q1T3/2cCKElO9vxm9yRRtgSEM=
+github.com/luxfi/utils v1.1.5 h1:6q85557b7djbZ/OF6S1k5wyGddozWnsoUuhokPHQRvo=
+github.com/luxfi/utils v1.1.5/go.mod h1:T2OCKT1xG9jtKR/gyJQoSkticzrE9WFQ8eohJHGu9Fg=
 github.com/luxfi/validators v1.2.0 h1:VygpiBqBAdGrfkb7xzE2yrVmnXaqE+hm8FLWdGXO7G8=
 github.com/luxfi/validators v1.2.0/go.mod h1:GYLulrNXAan23ZlX7sgWVbVnLpUexeB/m2qr2ymsXok=
 github.com/luxfi/version v1.0.1 h1:T/1KYWEMmsrNQk7pN7PFPAwh/7XbeX7cFAKLBqI37Sk=
