@@ -41,7 +41,7 @@ require (
 	github.com/luxfi/utils v1.1.5
 	github.com/luxfi/validators v1.2.0
 	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.1.11
+	github.com/luxfi/vm v1.2.0
 	github.com/luxfi/warp v1.18.6
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
@@ -167,7 +167,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/luxfi/formatting v1.0.1
 	github.com/luxfi/mock v0.1.1 // indirect
-	github.com/luxfi/sampler v1.0.0 // indirect
+	github.com/luxfi/sampler v1.1.0 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/pointerstructure v1.2.1 // indirect
