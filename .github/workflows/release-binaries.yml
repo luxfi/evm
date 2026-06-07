@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.26'
+          go-version: '1.26.4'
       # linux/arm64 cross toolchain (gcc-aarch64-linux-gnu) is baked into
       # ghcr.io/hanzoai/runner:0.1.1, which is the image hanzo-build-linux-amd64
       # ARC pool runs. No inline install needed.
