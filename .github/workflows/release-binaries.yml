@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   create-release:
-    runs-on: lux-build
+    runs-on: evo
     outputs:
       upload_url: ${{ steps.release.outputs.upload_url }}
     steps:
