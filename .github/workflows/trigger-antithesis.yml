@@ -26,7 +26,7 @@ jobs:
     name: Run Antithesis
     runs-on: ubuntu-latest
     steps:
-      - uses: antithesishq/antithesis-trigger-action@6c0a27302c0a3cd97d87d40bd6704e673abed4bb #v0.9
+      - uses: antithesishq/antithesis-trigger-action@72e1bc49d6a5f66c9b892e2b311844e00d342554 #v0.11
         with:
           notebook_name: lux-evm
           tenant: lux
