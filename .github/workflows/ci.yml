@@ -153,7 +153,7 @@ jobs:
         go build -v -o build/abigen ./cmd/abigen
 
     - name: Upload binary
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: evm-${{ matrix.os }}
         path: build/
@@ -185,7 +185,7 @@ jobs:
           ./... || true
 
     - name: Upload security report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: always()
       with:
         name: security-report
