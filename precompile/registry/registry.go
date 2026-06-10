@@ -60,7 +60,9 @@ import (
 	// ============================================
 	// AI Mining (0x0300-0x03FF)
 	// ============================================
-	_ "github.com/luxfi/precompile/ai" // AI mining rewards, TEE verification
+	_ "github.com/luxfi/precompile/ai"            // AI mining + atomic cross-chain mint (0x0300..00)
+	_ "github.com/luxfi/precompile/modelregistry" // Versioned model-commitment registry (0x0300..02)
+	_ "github.com/luxfi/precompile/inference"     // Deterministic on-chain int8 inference (0x0300..03)
 
 	// ============================================
 	// DEX (LP-9xxx) - QuantumSwap Native DEX
