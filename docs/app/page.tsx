@@ -116,7 +116,7 @@ export default function HomePage() {
               </h3>
               <p className="text-sm text-fd-muted-foreground">
                 Hardware-accelerated cryptography including ML-DSA, FROST, CGGMP21,
-                and post-quantum Ringtail signatures.
+                and post-quantum Corona signatures.
               </p>
             </div>
 
@@ -225,7 +225,7 @@ export default function HomePage() {
                 Post-Quantum Security
               </h3>
               <p className="text-sm text-fd-muted-foreground">
-                Future-proof cryptography with ML-DSA (Dilithium), Ringtail
+                Future-proof cryptography with ML-DSA (Dilithium), Corona
                 lattice signatures, and quantum-safe threshold schemes.
               </p>
             </div>
