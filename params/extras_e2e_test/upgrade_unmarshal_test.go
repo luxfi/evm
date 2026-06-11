@@ -18,9 +18,12 @@
 //	Every key in the canonical upgrade.json must round-trip through
 //	extras.UpgradeConfig.UnmarshalJSON without an "unknown precompile
 //	config" error AND yield a non-nil Timestamp() on the resulting
-//	PrecompileUpgrade.Config. If any key is unregistered (e.g.
-//	kzg4844Config, secp256r1Config, ed25519Config under pinned
-//	luxfi/precompile v0.5.27), this test fails immediately.
+//	PrecompileUpgrade.Config. If any key is unregistered, this test
+//	fails immediately. (Historically kzg4844Config, secp256r1Config and
+//	ed25519Config were the unregistered offenders under pinned
+//	luxfi/precompile v0.5.27; v0.5.38 registers them — the negative
+//	control now uses synthetic sentinel keys, see
+//	TestMainnetUpgradeJSON_RegistryRejectsUnregisteredKey.)
 //
 // This is the regression gate from Red's MEDIUM (vector 9) finding —
 // the JSON-only rollout tests in extras_test would have missed the
@@ -107,51 +110,55 @@ func TestMainnetUpgradeJSON_UnmarshalsAgainstRegistry(t *testing.T) {
 
 // TestMainnetUpgradeJSON_RegistryRejectsUnregisteredKey is the
 // negative-control gate. It synthesizes probe upgrade.json fragments
-// carrying each known-unregistered key from Red's vector 8 (the
-// three EIP precompiles not declared with RegisterModule in pinned
-// luxfi/precompile v0.5.27) and asserts the parser refuses each with
-// the same "unknown precompile config" error class that luxd would
-// emit at boot.
+// carrying keys that are NOT registered with modules.RegisteredModules
+// and asserts the parser refuses each with the same "unknown precompile
+// config" error class that luxd would emit at boot.
 //
-// This double-duty as both the negative control AND the regression
-// proof requested in Red's MEDIUM finding: if a future re-add of
-// these three keys (after a luxfi/precompile bump) ever lands in the
-// canonical without the corresponding RegisterModule landing first,
-// TestMainnetUpgradeJSON_UnmarshalsAgainstRegistry will trip — and
-// THIS test demonstrates the exact "fails when unregistered key
-// present" path so the failure mode is self-documenting.
+// History: the original probes were the three EIP precompiles
+// (kzg4844Config, secp256r1Config, ed25519Config) that pinned
+// luxfi/precompile v0.5.27 shipped WITHOUT RegisterModule — Red's
+// vector-8 CRITICAL. As of luxfi/precompile v0.5.38 those three modules
+// now call modules.RegisterModule in their init() (verify:
+// `grep -rn RegisterModule $(go list -m -f '{{.Dir}}' github.com/luxfi/precompile)/{kzg4844,secp256r1,ed25519}`),
+// so they are registered and could no longer serve as the negative
+// control. The probes below are therefore synthetic sentinel keys that
+// no precompile module will ever register; they exercise the identical
+// modules.GetPrecompileModule miss → "unknown precompile config"
+// rejection path while being immune to dependency bumps that add real
+// modules. This decouples the negative-control mechanism from the churn
+// of which real precompiles happen to be (un)registered at a given pin.
 func TestMainnetUpgradeJSON_RegistryRejectsUnregisteredKey(t *testing.T) {
-	// One entry per known-unregistered key. Adding a key here is the
-	// canonical way to extend coverage if a future luxfi/precompile
-	// version ships another module without RegisterModule.
+	// One entry per synthetic unregistered key. Adding a key here is the
+	// canonical way to extend coverage; keep them obviously non-real so a
+	// future luxfi/precompile bump can never accidentally register one.
 	probes := []struct {
 		key  string
 		json string
 	}{
 		{
-			key: "kzg4844Config",
+			key: "definitelyNotARealPrecompileConfig",
 			json: `{
 			  "networkUpgradeOverrides": {"strictPQTimestamp": 1766708400},
 			  "precompileUpgrades": [
-			    {"kzg4844Config": {"blockTimestamp": 1782864000}}
+			    {"definitelyNotARealPrecompileConfig": {"blockTimestamp": 1782864000}}
 			  ]
 			}`,
 		},
 		{
-			key: "secp256r1Config",
+			key: "luxNonexistentSentinelConfig",
 			json: `{
 			  "networkUpgradeOverrides": {"strictPQTimestamp": 1766708400},
 			  "precompileUpgrades": [
-			    {"secp256r1Config": {"blockTimestamp": 1782864000}}
+			    {"luxNonexistentSentinelConfig": {"blockTimestamp": 1782864000}}
 			  ]
 			}`,
 		},
 		{
-			key: "ed25519Config",
+			key: "unregisteredProbeConfig",
 			json: `{
 			  "networkUpgradeOverrides": {"strictPQTimestamp": 1766708400},
 			  "precompileUpgrades": [
-			    {"ed25519Config": {"blockTimestamp": 1782864000}}
+			    {"unregisteredProbeConfig": {"blockTimestamp": 1782864000}}
 			  ]
 			}`,
 		},
@@ -181,17 +188,23 @@ func TestMainnetUpgradeJSON_RegistryRejectsUnregisteredKey(t *testing.T) {
 
 // TestRegressionProof_SimulatedFortyNineEntryCanonicalFails is the
 // explicit regression proof requested in Red's MEDIUM (vector 9)
-// remediation. It simulates the pre-patch 49-entry canonical by
-// extending the current 46-entry canonical with the three unregistered
-// EIP keys and asserts the parser refuses the result.
+// remediation. It simulates a pre-patch oversized canonical by
+// extending the current 46-entry canonical with three unregistered
+// keys and asserts the parser refuses the result.
 //
-// Concretely: if a future regression re-introduces any of
-// {kzg4844Config, secp256r1Config, ed25519Config} into the canonical
-// upgrade.json without first bumping luxfi/precompile to a version
-// that calls RegisterModule, the boot-time UnmarshalJSON path will
-// reject the file with "unknown precompile config: <key>" — and luxd
-// will refuse to start the C-Chain VM. This test makes that contract
-// machine-checked at PR-review time.
+// Concretely: if a future regression introduces any unregistered
+// precompile config key into the canonical upgrade.json (a module
+// referenced before its init() calls RegisterModule, or a typo'd key),
+// the boot-time UnmarshalJSON path will reject the file with
+// "unknown precompile config: <key>" — and luxd will refuse to start
+// the C-Chain VM. This test makes that contract machine-checked at
+// PR-review time.
+//
+// The injected keys are synthetic sentinels rather than the original
+// vector-8 EIP keys (kzg4844Config, secp256r1Config, ed25519Config),
+// which luxfi/precompile v0.5.38 now registers — see the history note on
+// TestMainnetUpgradeJSON_RegistryRejectsUnregisteredKey. Sentinels keep
+// the rejection contract decoupled from real-module registration churn.
 func TestRegressionProof_SimulatedFortyNineEntryCanonicalFails(t *testing.T) {
 	raw := readCanonicalMainnetUpgradeJSONRaw(t)
 
@@ -204,13 +217,12 @@ func TestRegressionProof_SimulatedFortyNineEntryCanonicalFails(t *testing.T) {
 		"canonical entry count drifted: this regression-proof test was authored against 46 entries (warpConfig + 18 live + 27 forward-dated). If the canonical count legitimately changed, update this assertion alongside.",
 	)
 
-	// Build a "pre-patch" 49-entry probe by injecting the three
-	// unregistered keys at the same forward-date as the original
-	// vector-8 CRITICAL.
+	// Build a "pre-patch" 49-entry probe by injecting three
+	// guaranteed-unregistered sentinel keys at a forward-date.
 	var asObj map[string]any
 	require.NoError(t, json.Unmarshal(raw, &asObj))
 	upgrades, _ := asObj["precompileUpgrades"].([]any)
-	for _, key := range []string{"kzg4844Config", "secp256r1Config", "ed25519Config"} {
+	for _, key := range []string{"definitelyNotARealPrecompileConfig", "luxNonexistentSentinelConfig", "unregisteredProbeConfig"} {
 		upgrades = append(upgrades, map[string]any{
 			key: map[string]any{"blockTimestamp": 1782864000},
 		})
@@ -224,7 +236,7 @@ func TestRegressionProof_SimulatedFortyNineEntryCanonicalFails(t *testing.T) {
 	err = json.Unmarshal(probe, &bad)
 	require.Errorf(t, err,
 		"simulated 49-entry canonical (the pre-patch shape Red flagged in vector 8) was accepted by the parser — the regression guard is broken. "+
-			"Expected one of {kzg4844Config, secp256r1Config, ed25519Config} to be rejected as 'unknown precompile config'.",
+			"Expected one of the injected unregistered sentinel keys to be rejected as 'unknown precompile config'.",
 	)
 	require.Containsf(t, err.Error(), "unknown precompile config",
 		"expected the canonical 'unknown precompile config' error class, got: %v", err,
