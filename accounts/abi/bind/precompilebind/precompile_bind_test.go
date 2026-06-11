@@ -660,7 +660,7 @@ func TestPrecompileBind(t *testing.T) {
 					}
 				case ModuleFileName:
 					// change address to a suitable one for testing
-					file.Content = strings.Replace(file.Content, `common.HexToAddress("{ASUITABLEHEXADDRESS}")`, `common.HexToAddress("0x03000000000000000000000000000000000000ff")`, 1)
+					file.Content = strings.Replace(file.Content, `common.HexToAddress("{ASUITABLEHEXADDRESS}")`, `common.HexToAddress("0x02000000000000000000000000000000000000ff")`, 1)
 				}
 				if err = os.WriteFile(filepath.Join(precompilePath, file.FileName), []byte(file.Content), 0o600); err != nil {
 					t.Fatalf("test %d: failed to write binding: %v", i, err)
