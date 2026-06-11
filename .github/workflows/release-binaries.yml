@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   create-release:
-    runs-on: lux-build
+    runs-on: [self-hosted, linux, amd64]
     outputs:
       upload_url: ${{ steps.release.outputs.upload_url }}
     steps:
@@ -28,23 +28,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # No GH-hosted arm runners. linux/arm64 cross-compiles on
-        # hanzo-build-linux-amd64 (with aarch64-linux-gnu-gcc for CGO).
+        # No GH-hosted arm runners. linux/arm64 cross-compiles on the
+        # native amd64 arcd runner (with aarch64-linux-gnu-gcc for CGO).
         # darwin cross-compiles via clang -arch on macos-13.
         include:
           - os: linux
             arch: amd64
-            runner: hanzo-build-linux-amd64
+            runner: '["self-hosted", "linux", "amd64"]'
           - os: linux
             arch: arm64
-            runner: hanzo-build-linux-amd64
+            runner: '["self-hosted", "linux", "amd64"]'
           - os: darwin
             arch: amd64
-            runner: macos-13
+            runner: '["macos-13"]'
           - os: darwin
             arch: arm64
-            runner: macos-13
-    runs-on: ${{ matrix.runner }}
+            runner: '["macos-13"]'
+    runs-on: ${{ fromJson(matrix.runner) }}
     env:
       GONOSUMCHECK: '*'
       GONOSUMDB: '*'
@@ -56,8 +56,8 @@ jobs:
         with:
           go-version: '1.26.4'
       # linux/arm64 cross toolchain (gcc-aarch64-linux-gnu) is baked into
-      # ghcr.io/hanzoai/runner:0.1.1, which is the image hanzo-build-linux-amd64
-      # ARC pool runs. No inline install needed.
+      # ghcr.io/hanzoai/runner:0.1.1, which is the image the native amd64
+      # arcd runner runs. No inline install needed.
       - name: Build
         run: |
           export GOOS=${{ matrix.os }}
