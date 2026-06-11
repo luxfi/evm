@@ -17,7 +17,7 @@ require (
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.2.1
 	github.com/luxfi/consensus v1.25.14
-	github.com/luxfi/constants v1.5.8-0.20260603055356-93c2c2ceb9ca
+	github.com/luxfi/constants v1.5.8
 	github.com/luxfi/crypto v1.19.17
 	github.com/luxfi/database v1.19.0
 	github.com/luxfi/filesystem v0.0.1
@@ -37,7 +37,7 @@ require (
 	github.com/luxfi/sys v0.1.0
 	github.com/luxfi/timer v1.0.2
 	github.com/luxfi/trace v0.1.4
-	github.com/luxfi/upgrade v1.0.1-0.20260603055252-f51810805436
+	github.com/luxfi/upgrade v1.0.1
 	github.com/luxfi/utils v1.1.5
 	github.com/luxfi/validators v1.2.0
 	github.com/luxfi/version v1.0.1
