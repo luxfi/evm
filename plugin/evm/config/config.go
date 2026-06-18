@@ -289,6 +289,19 @@ type Config struct {
 	// accepted by ConfigOverrides.UnmarshalJSON for chains that pinned
 	// the older flag names.
 	PQ bool `json:"pq,omitempty"`
+
+	// DexZapEndpoint points the DEX precompile (LP-9010 V4 PoolManager) at a
+	// node-local D-Chain (dexvm) over ZAP instead of the in-process embedded
+	// engine. Empty (the default) keeps the embedded engine — current behavior,
+	// fully self-contained, no external dependency.
+	//
+	// CONSENSUS SAFETY: this is consensus-deterministic ONLY when every
+	// validator runs the IDENTICAL node-local D-Chain at the IDENTICAL pinned
+	// version. The endpoint MUST be node-local (e.g. a loopback/unix socket to
+	// the dexvm on the same host) and version-pinned across the validator set —
+	// a remote or version-skewed backend produces divergent state and forks the
+	// chain. Operators flipping this knob own that invariant.
+	DexZapEndpoint string `json:"dex-zap-endpoint"`
 }
 
 // TxPoolConfig contains the transaction pool config to be passed
