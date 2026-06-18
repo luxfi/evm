@@ -72,6 +72,17 @@ func TestUnmarshalConfig(t *testing.T) {
 			false,
 		},
 		{
+			// The DEX ZAP flip is configurable: a set endpoint decodes into the
+			// field that vm.go gates the SetBackend(NewZAPEngine(...)) call on.
+			// Empty (the zero-value default, covered by the empty-config cases
+			// above) leaves the embedded engine = the inert, self-contained
+			// default a public node runs.
+			"dex zap endpoint set",
+			[]byte(`{"dex-zap-endpoint": "127.0.0.1:9099"}`),
+			Config{DexZapEndpoint: "127.0.0.1:9099"},
+			false,
+		},
+		{
 			"empty transaction history ",
 			[]byte(`{}`),
 			Config{TransactionHistory: 0},
