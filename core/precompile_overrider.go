@@ -168,6 +168,20 @@ func (s *stateDBAdapter) AddBalance(addr common.Address, amount *uint256.Int) {
 	s.stateDB.AddBalance(addr, amount, tracing.BalanceChangeUnspecified)
 }
 
+// SubBalance forwards to the underlying vm.StateDB with the FULL external
+// signature (addr, amount, reason) -> prev. The registry's stateDBBridge type-
+// asserts the internal contract.StateDB for exactly this method so that a
+// precompile which moves native value (e.g. the DEX 0x9010 custody vault: a
+// withdraw debits the vault before releasing to the caller) actually subtracts
+// the balance instead of hitting the bridge's no-op fallback. AddBalance is the
+// narrow internal pair; SubBalance is provided here so the pair is complete on
+// the concrete adapter without widening the internal interface (which has many
+// implementers/mocks). Without this the bridge logged "SubBalance fallback used"
+// and silently MINTED native value (vault unchanged, caller credited).
+func (s *stateDBAdapter) SubBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason) uint256.Int {
+	return s.stateDB.SubBalance(addr, amount, reason)
+}
+
 func (s *stateDBAdapter) CreateAccount(addr common.Address) {
 	s.stateDB.CreateAccount(addr)
 }
