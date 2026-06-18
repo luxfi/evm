@@ -76,6 +76,8 @@ import (
 	// Force-load precompiles to trigger registration
 	_ "github.com/luxfi/evm/precompile/registry"
 
+	dexprecompile "github.com/luxfi/precompile/dex"
+
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/rlp"
@@ -398,6 +400,20 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 		if err := vm.inspectDatabases(); err != nil {
 			return err
 		}
+	}
+
+	// Wire the DEX precompile backend BEFORE genesis/pool init. SetBackend
+	// errors once any pool state exists, so it MUST run before parseGenesis.
+	// Empty endpoint = embedded engine (the package default) — opt-in flip,
+	// dormant until configured. When set, point the LP-9010 PoolManager at the
+	// node-local D-Chain (dexvm) over ZAP so any Lux-derived EVM shares one
+	// unified DEX. See config.DexZapEndpoint for the consensus-safety invariant.
+	if vm.config.DexZapEndpoint != "" {
+		engine := dexprecompile.NewZAPEngine(vm.config.DexZapEndpoint, 2*time.Second)
+		if err := dexprecompile.SetBackend(engine); err != nil {
+			return fmt.Errorf("failed to install DEX ZAP backend at %q: %w", vm.config.DexZapEndpoint, err)
+		}
+		log.Info("DEX precompile backend installed", "brand", engine.Brand(), "endpoint", vm.config.DexZapEndpoint)
 	}
 
 	debugLog("Calling parseGenesis with genesisAllocFile=%q, upgradeBytes len=%d", vm.config.GenesisAllocFile, len(upgradeBytes))
