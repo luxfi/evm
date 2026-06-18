@@ -56,6 +56,68 @@ type txReadWriteSet struct {
 	writes map[common.Hash]common.Hash // slot -> value written
 }
 
+// detectConflicts is the Block-STM conflict-detection kernel, shared by every
+// caller that needs the optimistic-parallel re-execution mask (EVM blocks via
+// BlockSTMExecutor, DEX-fill settlement via SettlementExecutor).
+//
+// It implements the exact predicate the GPU conflict_detect kernel enforces
+// (gpu-kernels ops/cevm/{cuda,metal,wgsl}/conflict_detect, KAT byte-equal to
+// the CPU oracle):
+//
+//	tx[i] conflicts with an earlier tx[j<i] iff
+//	  W_j ∩ R_i ≠ ∅   OR   W_j ∩ W_i ≠ ∅   OR   R_j ∩ W_i ≠ ∅
+//
+// The single map (slot -> highest writer index) gives the same edge set as the
+// O(N²) upper-triangle GPU sweep in O(Σ|rwSet|), and selecting "any earlier
+// writer" yields the deterministic, transaction-order re-execution mask: the
+// GPU emits edges in canonical (lo,hi) order, and re-executing every hi in
+// ascending index reproduces that order exactly. failed marks speculative
+// failures that must be retried regardless of conflict.
+//
+// Returns the re-execution mask and the conflict count.
+func detectConflicts(rwSets []txReadWriteSet, failed []bool) ([]bool, int) {
+	n := len(rwSets)
+	reExec := make([]bool, n)
+
+	// committedWrites maps slot -> index of the latest tx that wrote it.
+	committedWrites := make(map[common.Hash]int)
+
+	conflicts := 0
+	for i := 0; i < n; i++ {
+		if failed != nil && failed[i] {
+			// Speculative execution failed -- must retry sequentially.
+			reExec[i] = true
+			conflicts++
+		} else {
+			for slot := range rwSets[i].reads {
+				if writerIdx, ok := committedWrites[slot]; ok && writerIdx < i {
+					reExec[i] = true
+					conflicts++
+					break
+				}
+			}
+			if !reExec[i] {
+				// A later tx must also re-execute if it writes a slot an
+				// earlier tx wrote (W∩W) -- the GPU edge predicate. The read
+				// scan above already covers W∩R and R∩W; this closes W∩W.
+				for slot := range rwSets[i].writes {
+					if writerIdx, ok := committedWrites[slot]; ok && writerIdx < i {
+						reExec[i] = true
+						conflicts++
+						break
+					}
+				}
+			}
+		}
+		// Register writes so later txs that touch them are flagged.
+		for slot := range rwSets[i].writes {
+			committedWrites[slot] = i
+		}
+	}
+
+	return reExec, conflicts
+}
+
 // txResult holds the outcome of one speculative execution.
 type txResult struct {
 	receipt *types.Receipt
@@ -214,7 +276,8 @@ func buildRWSet(tx *types.Transaction, header *types.Header) txReadWriteSet {
 
 // validateAndReExecute detects conflicts and re-executes affected txs.
 //
-// A conflict exists when tx[i] reads a slot that tx[j] (j < i) wrote.
+// A conflict exists when tx[i] touches a slot that an earlier tx[j<i] wrote
+// (W∩R, W∩W, or R∩W -- the GPU conflict_detect predicate, via detectConflicts).
 // Conflicting transactions are re-executed sequentially in order on a fresh
 // state copy so they see the correct predecessor writes.
 func (e *BlockSTMExecutor) validateAndReExecute(
@@ -227,36 +290,16 @@ func (e *BlockSTMExecutor) validateAndReExecute(
 ) ([]txResult, error) {
 	n := len(results)
 
-	// committedWrites maps slot -> index of the tx that wrote it.
-	committedWrites := make(map[common.Hash]int)
-
-	// Identify which transactions need re-execution.
-	reExec := make([]bool, n)
-	for i := 0; i < n; i++ {
-		if results[i].err != nil {
-			// Speculative execution failed -- must retry sequentially.
-			reExec[i] = true
-		} else {
-			for slot := range results[i].rwSet.reads {
-				if writerIdx, ok := committedWrites[slot]; ok && writerIdx < i {
-					reExec[i] = true
-					break
-				}
-			}
-		}
-		// Register writes so later txs that read them are flagged.
-		for slot := range results[i].rwSet.writes {
-			committedWrites[slot] = i
-		}
+	// Identify which transactions need re-execution using the shared Block-STM
+	// kernel (the same predicate the GPU conflict_detect kernel enforces).
+	rwSets := make([]txReadWriteSet, n)
+	failed := make([]bool, n)
+	for i := range results {
+		rwSets[i] = results[i].rwSet
+		failed[i] = results[i].err != nil
 	}
+	reExec, conflicts := detectConflicts(rwSets, failed)
 
-	// Count conflicts.
-	var conflicts int
-	for _, r := range reExec {
-		if r {
-			conflicts++
-		}
-	}
 	if conflicts == 0 {
 		return results, nil
 	}
