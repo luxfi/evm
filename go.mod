@@ -16,15 +16,15 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.2.1
-	github.com/luxfi/consensus v1.25.15
+	github.com/luxfi/consensus v1.25.18
 	github.com/luxfi/constants v1.5.8
 	github.com/luxfi/crypto v1.19.17
 	github.com/luxfi/database v1.19.0
 	github.com/luxfi/filesystem v0.0.1
-	github.com/luxfi/geth v1.16.99
+	github.com/luxfi/geth v1.17.11
 	github.com/luxfi/go-bip39 v1.1.2
 	github.com/luxfi/gpu v1.0.1
-	github.com/luxfi/ids v1.2.13
+	github.com/luxfi/ids v1.2.15
 	github.com/luxfi/log v1.4.3
 	github.com/luxfi/math v1.4.1
 	github.com/luxfi/math/big v0.1.0
@@ -32,7 +32,7 @@ require (
 	github.com/luxfi/metric v1.5.8
 	github.com/luxfi/p2p v1.21.1
 	github.com/luxfi/pq v1.0.3
-	github.com/luxfi/precompile v0.5.46
+	github.com/luxfi/precompile v0.5.47
 	github.com/luxfi/runtime v1.1.1
 	github.com/luxfi/sys v0.1.0
 	github.com/luxfi/timer v1.0.2
@@ -42,7 +42,7 @@ require (
 	github.com/luxfi/validators v1.2.0
 	github.com/luxfi/version v1.0.1
 	github.com/luxfi/vm v1.2.3
-	github.com/luxfi/warp v1.18.6
+	github.com/luxfi/warp v1.19.3
 	github.com/mattn/go-colorable v0.1.15
 	github.com/mattn/go-isatty v0.0.22
 	github.com/spf13/cast v1.10.0
@@ -88,13 +88,12 @@ require (
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/luxfi/accel v1.1.9 // indirect
+	github.com/luxfi/accel v1.2.2 // indirect
 	github.com/luxfi/age v1.5.0 // indirect
 	github.com/luxfi/ai v0.1.0 // indirect
 	github.com/luxfi/api v1.0.12 // indirect
 	github.com/luxfi/atomic v1.0.0 // indirect
 	github.com/luxfi/bft v0.1.5 // indirect
-	github.com/luxfi/codec v1.1.4 // indirect
 	github.com/luxfi/compress v0.0.5 // indirect
 	github.com/luxfi/concurrent v0.0.3 // indirect
 	github.com/luxfi/container v0.0.4 // indirect
