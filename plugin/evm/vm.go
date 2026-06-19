@@ -47,7 +47,6 @@ import (
 	"github.com/luxfi/evm/plugin/evm/validators/interfaces"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/types"
-	gethvm "github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/geth/triedb"
 	"github.com/luxfi/geth/triedb/hashdb"
@@ -524,9 +523,18 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	// F102 close-out — PQ gate. chainConfig is now non-nil.
 	// One concept, one place: ChainConfig.PQ holds the profile;
 	// (*EVM).runPrecompile reads it via chainConfig.PQ.RefuseUnder(op).
+	//
+	// Install the LUX strict-PQ profile, NOT AllForbidden(): the standard
+	// alt_bn128 (BN254) precompiles at 0x06–0x08 stay available for
+	// Ethereum-compat dapps. Lux's security-critical pairing/DLOG usage is
+	// in the CUSTOM precompiles (precompile/zk @ 0x0900, 0x22 Pedersen, the
+	// Z-Chain verifiers) and the consensus cert — each gated by its own
+	// strict-PQ switch driven by the SAME profile (vm.config.PQ also pins
+	// StrictPQTimestamp=0 above, which activates contract.RefuseUnderStrictPQ
+	// for those custom precompiles). See LuxStrictPQ (pq_profile.go).
 	if vm.config.PQ {
-		vm.chainConfig.PQ = gethvm.AllForbidden()
-		log.Info("EVM PQ mode active: classical precompiles refuse")
+		vm.chainConfig.PQ = LuxStrictPQ()
+		log.Info("EVM PQ mode active: classical precompiles refuse (standard bn256 0x06-0x08 kept for EVM-compat)")
 	}
 
 	// create genesisHash after applying upgradeBytes in case
