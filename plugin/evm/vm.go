@@ -75,7 +75,6 @@ import (
 	// Force-load precompiles to trigger registration
 	_ "github.com/luxfi/evm/precompile/registry"
 
-	dexprecompile "github.com/luxfi/precompile/dex"
 
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
@@ -401,19 +400,16 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 		}
 	}
 
-	// Wire the DEX precompile backend BEFORE genesis/pool init. SetBackend
-	// errors once any pool state exists, so it MUST run before parseGenesis.
-	// Empty endpoint = embedded engine (the package default) — opt-in flip,
-	// dormant until configured. When set, point the LP-9010 PoolManager at the
-	// node-local D-Chain (dexvm) over ZAP so any Lux-derived EVM shares one
-	// unified DEX. See config.DexZapEndpoint for the consensus-safety invariant.
-	if vm.config.DexZapEndpoint != "" {
-		engine := dexprecompile.NewZAPEngine(vm.config.DexZapEndpoint, 2*time.Second)
-		if err := dexprecompile.SetBackend(engine); err != nil {
-			return fmt.Errorf("failed to install DEX ZAP backend at %q: %w", vm.config.DexZapEndpoint, err)
-		}
-		log.Info("DEX precompile backend installed", "brand", engine.Brand(), "endpoint", vm.config.DexZapEndpoint)
-	}
+	// DEX settlement model (settled architecture): the C-Chain DEX precompile
+	// SETTLES certified D-Chain fill receipts at 0x9999; it does NOT query a live
+	// matcher backend. The deprecated DexZapEndpoint -> SetBackend(NewZAPEngine())
+	// wiring is REMOVED — a synchronous in-block ZAP query against the D-Chain's
+	// moving order book forks consensus (each validator observes differently-timed
+	// fills => divergent StateRoot, proven by chains/dexvm TestRED_PerValidator
+	// Relay_SplitsConsensus). ZAP survives ONLY as the dexvm's own build-path
+	// transport (chains/dexvm), never as a C-Chain live backend. Receipts ride in
+	// the V4 swap hookData and are verified inline (deterministic BLS), so there is
+	// no backend to install here. See precompile/dex/settle9999.go.
 
 	debugLog("Calling parseGenesis with genesisAllocFile=%q, upgradeBytes len=%d", vm.config.GenesisAllocFile, len(upgradeBytes))
 	fmt.Fprintf(os.Stderr, "[GENESIS-BYTES-DEBUG] len=%d first500=%s\n", len(genesisBytes), string(genesisBytes[:min(500, len(genesisBytes))]))
