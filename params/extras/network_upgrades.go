@@ -16,7 +16,13 @@ import (
 var errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
 
 // DexSettleActivationTime is THE canonical, network-wide activation boundary for the
-// DEX settlement money path 0x9999 — Dec 25 2025 00:00:00 UTC (unix 1766704800).
+// DEX settlement money path 0x9999 — unix 1766704800, i.e. 2025-12-25T23:20:00Z.
+//
+// DO NOT "round" this to midnight: the value (not the prose date) is the protocol
+// constant, and it is ALREADY LIVE (0x9999 settles against it on devnet). Changing the
+// number would move a boundary that historical receipts were built against and FORK any
+// chain that crossed it. The luxfi/precompile layer mirrors this exact value; a build-
+// tagged guard (core/precompile_alwayson_dexsettle_guard_test.go) fails CI if they drift.
 //
 // It is defined ONCE here (DRY) and is identical on every Lux network. 0x9999 is a
 // system precompile that takes no per-network parameters (all resolved at runtime from
@@ -41,7 +47,7 @@ var errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
 // For a freshly-genesised network whose genesis timestamp is already >= this value, the
 // transition fires at genesis (parent=nil), so the marker is present from block 0 — the
 // SAME mechanism, no separate genesis-precompile entry.
-const DexSettleActivationTime uint64 = 1766704800 // 2025-12-25T00:00:00Z
+const DexSettleActivationTime uint64 = 1766704800 // 2025-12-25T23:20:00Z
 
 // dexSettleTimestamp is the activation time as a *uint64 for the IsForkTransition /
 // isTimestampForked helpers (which take *uint64; nil = never).
