@@ -6,6 +6,7 @@ package evm
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/luxfi/precompile/dex"
 
 	"github.com/luxfi/cache/lru"
 	"github.com/luxfi/cache/metercacher"
@@ -75,7 +78,6 @@ import (
 	// Force-load precompiles to trigger registration
 	_ "github.com/luxfi/evm/precompile/registry"
 
-
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/rlp"
@@ -94,6 +96,7 @@ import (
 	"github.com/luxfi/upgrade"
 	p2pversion "github.com/luxfi/version"
 	nodeblock "github.com/luxfi/vm/chain"
+	"github.com/luxfi/vm/chains/atomic"
 	nodeChain "github.com/luxfi/vm/components/chain"
 
 	"github.com/luxfi/database"
@@ -139,10 +142,16 @@ const (
 
 var (
 	// Set last accepted key to be longer than the keys used to store accepted block IDs.
-	lastAcceptedKey    = []byte("last_accepted_key")
-	acceptedPrefix     = []byte("chain_accepted")
-	metadataPrefix     = []byte("metadata")
-	warpPrefix         = []byte("warp")
+	lastAcceptedKey = []byte("last_accepted_key")
+	acceptedPrefix  = []byte("chain_accepted")
+	metadataPrefix  = []byte("metadata")
+	warpPrefix      = []byte("warp")
+	// dexAtomicSeqKey stores the node-local high-water staged-atomic seq the DEX
+	// native seam has flushed to shared memory. It is a crash/idempotency optimization
+	// ONLY — the deterministic flush set is derived from consensus state (parent ->
+	// accepted staged-seq); this marker just lets a restarted node skip already-applied
+	// windows. Written in the SAME versiondb batch as the block accept.
+	dexAtomicSeqKey    = []byte("dex_atomic_flushed_seq")
 	ethDBPrefix        = []byte("ethdb")
 	validatorsDBPrefix = []byte("validators")
 )
@@ -369,7 +378,6 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	vm.logger = evmLogger
 
 	log.Info("Initializing Chain EVM VM", "Version", Version, "geth version", params.VersionWithMeta, "Config", vm.config)
-
 
 	if deprecateMsg != "" {
 		log.Warn("Deprecation Warning", "msg", deprecateMsg)
@@ -1012,8 +1020,17 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	vm.txPool = vm.eth.TxPool()
 	vm.blockChain = vm.eth.BlockChain()
 	debugLog("initializeChain: got txPool and blockChain")
-	// Set consensus context for warp message chain ID/network ID
-	vm.blockChain.SetConsensusContext(vm.ctx)
+	// Set consensus context for warp message chain ID/network ID. Embed the chain
+	// Runtime so a stateful precompile that needs the cross-chain atomic capability
+	// (the DEX 0x9999 C<->D shared-memory seam) can recover SharedMemory + chain
+	// identity via runtime.FromContext(env.ConsensusContext()). The runtime carries
+	// the per-chain atomic.SharedMemory handed to this VM by the chain manager; when
+	// it is absent (single-chain dev) FromContext is nil and the precompile reverts.
+	consensusCtx := vm.ctx
+	if vm.runtime != nil {
+		consensusCtx = runtime.WithContext(vm.ctx, vm.runtime)
+	}
+	vm.blockChain.SetConsensusContext(consensusCtx)
 	vm.miner = vm.eth.Miner()
 	lastAccepted := vm.blockChain.LastAcceptedBlock()
 	debugLog("initializeChain: lastAccepted block number=%d", lastAccepted.NumberU64())
@@ -1808,6 +1825,105 @@ func (vm *VM) GetCurrentNonce(address common.Address) (uint64, error) {
 		return 0, err
 	}
 	return state.GetNonce(address), nil
+}
+
+// stageDexAtomic is the host side of the DEX native C<->D atomic seam's cross-domain
+// commit (called from Block.Accept after blockChain.Accept). It derives the flush
+// window from CONSENSUS STATE — the parent block's staged-atomic seq and the accepted
+// block's staged-atomic seq — collects exactly that window's staged ops, and STAGES
+// the advanced node-local marker (dexAtomicSeqKey) into the versiondb's in-memory
+// layer (acceptedBlockDB sits on versiondb). It returns the collected requests and
+// this chain's shared memory so Block.Accept can apply them in the SAME database
+// batch as the marker — the platformvm acceptor pattern (state commit and shared-
+// memory Apply are ONE atomic write). It does NOT call sm.Apply and does NOT commit.
+//
+// THE EXACTLY-ONCE / CHAIN-HALT INVARIANT (the bug this closes): the SM mutation and
+// the seq-marker advance MUST land in one atomic commit. The old code applied to
+// shared memory FIRST and advanced the marker LATER in a separate versiondb.Commit();
+// a crash between them left shared memory mutated but the marker UNADVANCED, so on
+// restart the same window re-collected and sm.Apply hit a duplicate Put (Apply is NOT
+// idempotent) -> Accept fatal -> chain halt. By returning reqs+sm and letting Accept
+// pass the versiondb commit batch to sm.Apply(reqs, batch), the marker and the SM
+// mutation commit all-or-nothing: a crash applies-and-marks both or neither, and a
+// re-accept of an already-applied window sees an advanced marker -> empty window ->
+// no duplicate Put -> no halt.
+//
+// SHARED MEMORY ABSENT (single-chain dev): runtime/SM nil -> returns (nil, nil) so
+// Accept takes the plain versiondb.Commit() path. A malformed staged op or a seq
+// regression is FATAL (returns an error that fails block accept) — value must never
+// move inconsistently with consensus.
+func (vm *VM) stageDexAtomic(b *Block) (map[ids.ID]*atomic.Requests, atomic.SharedMemory, error) {
+	if vm.runtime == nil {
+		return nil, nil, nil
+	}
+	sm := vm.runtime.GetSharedMemory()
+	if sm == nil {
+		return nil, nil, nil // single-chain dev: no atomic peer wired.
+	}
+
+	// Parent and accepted block state roots define the consensus flush window.
+	parentRoot := b.ethBlock.ParentHash() // header parent hash != state root; resolve state via parent header.
+	parentHeader := vm.blockChain.GetHeaderByHash(common.Hash(b.ethBlock.ParentHash()))
+	if parentHeader != nil {
+		parentRoot = parentHeader.Root
+	}
+	parentState, err := vm.blockChain.StateAt(parentRoot)
+	if err != nil {
+		// Parent state may be pruned on a deep restart; fall back to the node-local
+		// marker as the window's lower bound (the optimization path).
+		parentState = nil
+	}
+	currentState, err := vm.blockChain.StateAt(b.ethBlock.Root())
+	if err != nil {
+		return nil, nil, fmt.Errorf("dex atomic flush: accepted state unavailable: %w", err)
+	}
+
+	var fromSeq uint64
+	if parentState != nil {
+		fromSeq = dex.ReadStagedAtomicSeq(parentState)
+	} else {
+		fromSeq = vm.readDexAtomicMarker()
+	}
+	// Never re-flush below the node-local marker (skip windows already applied). This
+	// is the crash-recovery guard: after a clean atomic commit the marker == toSeq, so
+	// a re-accept of the same block collects an EMPTY window.
+	if m := vm.readDexAtomicMarker(); m > fromSeq {
+		fromSeq = m
+	}
+	toSeq := dex.ReadStagedAtomicSeq(currentState)
+	if toSeq < fromSeq {
+		return nil, nil, dex.ErrAtomicSeqRegression
+	}
+	if toSeq == fromSeq {
+		return nil, nil, nil // no new staged ops this block.
+	}
+
+	reqs, cerr := dex.CollectStagedAtomicRange(currentState, fromSeq, toSeq)
+	if cerr != nil {
+		return nil, nil, cerr // malformed staged op -> fatal.
+	}
+	// STAGE the advanced marker into the versiondb in-memory layer (acceptedBlockDB ->
+	// versiondb). Block.Accept snapshots versiondb into a batch and passes it to
+	// sm.Apply(reqs, batch), so this marker write and the shared-memory mutation commit
+	// in ONE atomic database write.
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], toSeq)
+	if perr := vm.acceptedBlockDB.Put(dexAtomicSeqKey, buf[:]); perr != nil {
+		return nil, nil, fmt.Errorf("dex atomic marker persist: %w", perr)
+	}
+	if len(reqs) == 0 {
+		return nil, nil, nil
+	}
+	return reqs, sm, nil
+}
+
+// readDexAtomicMarker reads the node-local last-flushed staged-atomic seq (0 if unset).
+func (vm *VM) readDexAtomicMarker() uint64 {
+	b, err := vm.acceptedBlockDB.Get(dexAtomicSeqKey)
+	if err != nil || len(b) != 8 {
+		return 0
+	}
+	return binary.BigEndian.Uint64(b)
 }
 
 func (vm *VM) chainConfigExtra() *extras.ChainConfig {
