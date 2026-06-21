@@ -67,7 +67,7 @@ import (
 	// ============================================
 	// DEX (LP-9xxx) - QuantumSwap Native DEX
 	// ============================================
-	_ "github.com/luxfi/precompile/dex" // Native DEX PoolManager (LP-9010)
+	_ "github.com/luxfi/precompile/dex" // Native DEX settlement money path (LP-9999) + views (9998/9997/9996) + router (9012)
 
 	// ============================================
 	// Graph/Query Layer (0x0500-0x05FF)

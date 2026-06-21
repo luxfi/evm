@@ -29,17 +29,35 @@ import (
 func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.ConfigurationBlockContext, statedb *state.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
 
-	// Always-on precompiles (e.g. the DEX settlement money path 0x9999) are NOT
-	// activated here and intentionally get NO genesis state write. The genesis state
-	// root is consensus-critical and immutable for every existing network — writing an
-	// EXTCODESIZE marker (nonce/code) at genesis would change the genesis hash and
-	// fork live chains (a fresh-syncing node would compute a hash that disagrees with
-	// the committed genesis). Always-on activation is therefore DISPATCH-only: the
-	// precompile is in the enabled set (params.GetExtrasRules injects it) so the EVM
-	// runs it for a tx-to-0x9999, a low-level CALL/STATICCALL, and the 0x9010 V4
-	// forward — none of which need a code marker. The module's Configurator is never
-	// invoked (there is no activating config; all params resolve at runtime). See the
-	// dispatch injection in params/config_extra.go GetExtrasRules.
+	// System precompiles (the DEX settlement money path 0x9999) activate at a single
+	// canonical dated fork — extras.DexSettleActivationTime (Dec 25 2025) — installed
+	// here as a forward state transition, NOT in historical genesis. On the block
+	// transition that CROSSES that timestamp we write the standard precompile-activation
+	// marker (nonce=1 + a non-empty code byte) into the module's account so EXTCODESIZE>0,
+	// eth_getCode!=0x, and Solidity's contract-existence guard passes for a typed call.
+	//
+	// Why a forward fork and not a genesis marker: the genesis state root is consensus-
+	// critical and immutable for every existing network. Writing the marker at genesis
+	// would change the genesis hash and fork pre-activation history (a node replaying the
+	// RLP snapshot would compute a hash that disagrees with the committed genesis). So
+	// pre-activation blocks get NO marker (0x9999 is a plain account; replay stays
+	// canonical) and the marker appears exactly at the Dec 25 boundary going forward.
+	//
+	// IsForkTransition(fork, parent, current) fires once, when !parentForked && currentForked.
+	// For a freshly-genesised network whose genesis timestamp is already >= the fork
+	// (parent==nil), it fires at genesis — so fresh nets carry the marker from block 0 via
+	// the SAME mechanism (no separate genesisPrecompiles entry). The module's Configurator
+	// is NOT invoked (a system precompile has no activating config; all params resolve at
+	// runtime from the consensus context); only the EXTCODESIZE marker is installed.
+	if params.IsDexSettleForkTransition(parentTimestamp, blockTimestamp) {
+		for _, module := range modules.AlwaysOnModules() {
+			// Standard precompile-activation marker (identical to the config-driven path
+			// below): a non-empty nonce + code so the account is non-empty (not GC'd on
+			// finalize) and callable from Solidity.
+			statedb.SetNonce(module.Address, 1, tracing.NonceChangeUnspecified)
+			_ = statedb.SetCode(module.Address, []byte{0x1}, tracing.CodeChangeUnspecified)
+		}
+	}
 
 	// Note: [modules.RegisteredModules] returns precompiles sorted by module addresses.
 	// This ensures:
