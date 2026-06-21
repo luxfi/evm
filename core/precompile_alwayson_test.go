@@ -16,6 +16,9 @@ import (
 	// registry side-effect: bridges the external DEX settlement module (0x9999)
 	// into the EVM's internal registry so it is visible as AlwaysOn here.
 	_ "github.com/luxfi/evm/precompile/registry"
+	// dex provides the layer-local mirror DexSettleActivationTime asserted equal to
+	// the canonical extras value by TestDexSettleActivationTime_LayerMirrorsMatch.
+	"github.com/luxfi/precompile/dex"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/tracing"
@@ -49,6 +52,26 @@ const (
 	tsAtActivation   uint64 = extras.DexSettleActivationTime
 	tsPostActivation uint64 = extras.DexSettleActivationTime + 86_400
 )
+
+// TestDexSettleActivationTime_LayerMirrorsMatch is the DRY-safety guard for the
+// 0x9999 activation timestamp, which exists in TWO layers that cannot share a symbol:
+//
+//   - the CANONICAL definition, extras.DexSettleActivationTime (this evm layer), is what
+//     the dispatch gate (GetExtrasRules) and the marker-installing state transition use;
+//   - a layer-local MIRROR, dex.DexSettleActivationTime (luxfi/precompile), which the DEX
+//     precompile uses to gate its NEW consensus-visible logs (DEXFill, the native V4
+//     Initialize) as defense in depth — the precompile sits BELOW evm in the import graph
+//     (evm imports precompile, never the reverse) so it cannot import the extras constant.
+//
+// If these two drift, a settlement could dispatch (gated by extras) at a timestamp where
+// the precompile withholds its log (gated by the stale mirror) — or vice versa — opening a
+// settlement-without-log / log-without-settlement window and a consensus split on replay.
+// This test imports BOTH and fails CI the instant either constant moves without the other.
+func TestDexSettleActivationTime_LayerMirrorsMatch(t *testing.T) {
+	require.Equal(t, extras.DexSettleActivationTime, dex.DexSettleActivationTime,
+		"dex.DexSettleActivationTime (precompile layer-local mirror) must equal the canonical extras.DexSettleActivationTime; "+
+			"the DEX log gate and the EVM dispatch gate MUST fire on the same dated fork")
+}
 
 // TestAlwaysOn_9999_Registered asserts the DEX settlement precompile bridges into the
 // EVM registry as AlwaysOn and is enumerated by AlwaysOnModules().
