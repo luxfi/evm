@@ -31,6 +31,8 @@ import (
 	"github.com/luxfi/geth/core/tracing"
 	ethtypes "github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/log"
+	"github.com/luxfi/ids"
+	"github.com/luxfi/vm/chains/atomic"
 )
 
 func init() {
@@ -120,6 +122,76 @@ func (a *accessibleStateBridge) GetChainConfig() extconfig.ChainConfig {
 
 func (a *accessibleStateBridge) GetPrecompileEnv() extcontract.PrecompileEnvironment {
 	return nil // Not used by any external precompile
+}
+
+// accessibleStateBridge forwards the OPTIONAL cross-chain atomic capability
+// (external contract.AtomicState) to the internal AccessibleState when the
+// concrete internal adapter implements the internal contract.AtomicState. A
+// precompile in github.com/luxfi/precompile/* type-asserts the external
+// AtomicState; this bridge makes that assertion succeed by delegating to the
+// internal adapter (the EVM's accessibleStateAdapter). When the internal state
+// is not atomic-capable (a test mock), AtomicMemory() returns nil so the
+// precompile reverts.
+var _ extcontract.AtomicState = (*accessibleStateBridge)(nil)
+
+// internalAtomic mirrors the internal contract.AtomicState so the bridge can
+// type-assert the internal AccessibleState without importing it by name twice.
+type internalAtomic interface {
+	AtomicMemory() atomic.SharedMemory
+	NetworkID() uint32
+	ChainID() ids.ID
+	CChainID() ids.ID
+	TxID() ids.ID
+	CallIndex() uint32
+}
+
+func (a *accessibleStateBridge) atomicOrNil() internalAtomic {
+	if at, ok := a.internal.(internalAtomic); ok {
+		return at
+	}
+	return nil
+}
+
+func (a *accessibleStateBridge) AtomicMemory() atomic.SharedMemory {
+	if at := a.atomicOrNil(); at != nil {
+		return at.AtomicMemory()
+	}
+	return nil
+}
+
+func (a *accessibleStateBridge) NetworkID() uint32 {
+	if at := a.atomicOrNil(); at != nil {
+		return at.NetworkID()
+	}
+	return 0
+}
+
+func (a *accessibleStateBridge) ChainID() ids.ID {
+	if at := a.atomicOrNil(); at != nil {
+		return at.ChainID()
+	}
+	return ids.Empty
+}
+
+func (a *accessibleStateBridge) CChainID() ids.ID {
+	if at := a.atomicOrNil(); at != nil {
+		return at.CChainID()
+	}
+	return ids.Empty
+}
+
+func (a *accessibleStateBridge) TxID() ids.ID {
+	if at := a.atomicOrNil(); at != nil {
+		return at.TxID()
+	}
+	return ids.Empty
+}
+
+func (a *accessibleStateBridge) CallIndex() uint32 {
+	if at := a.atomicOrNil(); at != nil {
+		return at.CallIndex()
+	}
+	return 0
 }
 
 // =============================================================================
