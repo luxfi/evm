@@ -251,27 +251,28 @@ func (s *stateDBBridge) AddBalance(addr common.Address, amount *uint256.Int, _ t
 
 func (s *stateDBBridge) SubBalance(addr common.Address, amount *uint256.Int, _ tracing.BalanceChangeReason) uint256.Int {
 	// The internal contract.StateDB doesn't have SubBalance.
-	// Try to reach the underlying vm.StateDB via type assertion.
+	// Reach the underlying vm.StateDB via type assertion.
 	type subBalancer interface {
 		SubBalance(common.Address, *uint256.Int, tracing.BalanceChangeReason) uint256.Int
 	}
-	if sb, ok := s.internal.(subBalancer); ok {
-		return sb.SubBalance(addr, amount, tracing.BalanceChangeUnspecified)
-	}
-
-	// Fallback: use snapshot + manual balance calculation
-	// Get current balance, compute new, use AddBalance with negative (not possible)
-	// Instead, log warning. This path should not be hit in practice because the
-	// concrete stateDBAdapter in precompile_overrider.go wraps vm.StateDB which has SubBalance.
-	bal := s.internal.GetBalance(addr)
-	if bal != nil && bal.Cmp(amount) >= 0 {
-		// Workaround: We can't subtract directly, so we reconstruct via the underlying
-		// types. In practice this codepath is unreachable because the internal StateDB
-		// is always a stateDBAdapter{vm.StateDB} which implements SubBalance.
-		log.Error("stateDBBridge: SubBalance fallback used — precompile state may be incorrect",
+	sb, ok := s.internal.(subBalancer)
+	if !ok {
+		// FAIL CLOSED. There is NO safe fallback: the internal contract.StateDB has no
+		// way to subtract, so silently returning a zero "previous balance" without
+		// debiting (the old behaviour) would let a value-moving precompile — e.g. the
+		// 0x9999 DEX custody vault on withdraw — treat the debit as successful while the
+		// balance is untouched, MINTING native value. A failed debit on the money path
+		// must abort the call, never proceed. We panic: the EVM recovers a precompile
+		// panic into a reverted call, so the enclosing value move is rolled back rather
+		// than committed half-done. In production the internal StateDB is always the
+		// concrete stateDBAdapter{vm.StateDB} (precompile_overrider.go), which DOES
+		// implement SubBalance, so this panic is structurally unreachable; it exists to
+		// make any future StateDB that omits SubBalance fail loudly instead of minting.
+		log.Error("stateDBBridge: SubBalance on a StateDB without subtraction support — failing closed to avoid minting native value",
 			"address", addr, "amount", amount)
+		panic(fmt.Sprintf("stateDBBridge: internal StateDB %T cannot SubBalance; refusing to credit without debiting (addr=%s amount=%s)", s.internal, addr, amount))
 	}
-	return uint256.Int{}
+	return sb.SubBalance(addr, amount, tracing.BalanceChangeUnspecified)
 }
 
 func (s *stateDBBridge) GetBalanceMultiCoin(addr common.Address, coinID common.Hash) *big.Int {

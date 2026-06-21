@@ -30,10 +30,45 @@ func TestAllGenesisPrecompilesDeterminism(t *testing.T) {
 		require.Equal(t, uint64(0), *config1.Timestamp(), "genesis config timestamp should be 0")
 	}
 
-	// Verify all registered modules are present
+	// Verify all registered NON-AlwaysOn modules are present, and that NO AlwaysOn
+	// module is present. AlwaysOn precompiles (e.g. the 0x9999 DEX settlement money
+	// path) are activated by a built-in dated fork, NOT by a timestamp-0 genesis config;
+	// emitting one would enable them from genesis on every chain and bypass the gate.
 	for _, module := range modules.RegisteredModules() {
 		_, ok := result1[module.ConfigKey]
+		if module.AlwaysOn {
+			require.Falsef(t, ok,
+				"AlwaysOn module %s must NOT be in AllGenesisPrecompiles — its activation is the dated fork, not a genesis config",
+				module.ConfigKey)
+			continue
+		}
 		require.True(t, ok, "module %s should be in AllGenesisPrecompiles", module.ConfigKey)
+	}
+}
+
+// TestGenesisPrecompileBuilders_SkipAlwaysOn pins the INFO1 guard: the genesis-config
+// builders (AllGenesisPrecompiles and ChainConfig.SetAllGenesisPrecompiles) must never
+// emit a timestamp-0 genesis config for an AlwaysOn module. Writing one would enable a
+// dated-fork-gated system precompile (0x9999) from block 0 on every chain — bypassing
+// the canonical activation boundary and re-introducing the genesis-marker mutation. The
+// invariant is enforced positively (skip any module with AlwaysOn) so it holds even if an
+// AlwaysOn module is later registered into this package's module view.
+func TestGenesisPrecompileBuilders_SkipAlwaysOn(t *testing.T) {
+	fromFunc := AllGenesisPrecompiles()
+
+	var cfg ChainConfig
+	cfg.SetAllGenesisPrecompiles()
+
+	for _, module := range modules.RegisteredModules() {
+		if !module.AlwaysOn {
+			continue
+		}
+		_, inFunc := fromFunc[module.ConfigKey]
+		require.Falsef(t, inFunc,
+			"AllGenesisPrecompiles must skip AlwaysOn module %s — dated-fork activation, not genesis", module.ConfigKey)
+		_, inMethod := cfg.GenesisPrecompiles[module.ConfigKey]
+		require.Falsef(t, inMethod,
+			"SetAllGenesisPrecompiles must skip AlwaysOn module %s — dated-fork activation, not genesis", module.ConfigKey)
 	}
 }
 

@@ -17,13 +17,14 @@ import (
 //
 //	SubBalance(common.Address, *uint256.Int, tracing.BalanceChangeReason) uint256.Int
 //
-// and falls back to a NO-OP (logging "SubBalance fallback used") when the
-// assertion fails. The concrete adapter the EVM hands precompiles is
-// *stateDBAdapter; if it does not implement that EXACT signature, a precompile
-// that debits native value — e.g. the DEX 0x9010 custody vault, whose withdraw
-// debits the vault before releasing to the caller — would silently MINT (caller
-// credited, vault never debited). The fix added SubBalance to *stateDBAdapter so
-// the bridge's assertion succeeds and the fallback is unreachable.
+// and previously fell back to a NO-OP when the assertion failed. The concrete
+// adapter the EVM hands precompiles is *stateDBAdapter; if it does not implement
+// that EXACT signature, a precompile that debits native value — e.g. the DEX 0x9999
+// custody vault, whose withdraw debits the vault before releasing to the caller —
+// would silently MINT (caller credited, vault never debited). The fix added
+// SubBalance to *stateDBAdapter so the bridge's assertion succeeds and the fallback
+// is unreachable; the fallback itself now FAILS CLOSED (panics → reverted call)
+// rather than returning a zero "previous balance" without debiting.
 
 // subBalancer is the EXACT interface precompile/registry/bridge.go type-asserts.
 // Keep it byte-identical so this test fails if the bridge's expected signature or
