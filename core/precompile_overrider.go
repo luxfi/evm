@@ -49,10 +49,30 @@ type LuxPrecompileOverrider struct {
 
 // PrecompileOverride returns the precompile at the given address if it's
 // an active Lux custom precompile.
+//
+// The enabled-set decision is computed from THIS overrider's OWN per-EVM fields
+// (o.chainConfig + o.timestamp, set in precompileHook at the EVM's construction),
+// NOT from the process-global lastRulesContext that params.GetRulesExtra(Rules{})
+// would read. The geth EVM invokes PrecompileOverride lazily during opcode
+// execution (when a CALL targets a precompile address), which is a DIFFERENT
+// point in time than when precompileHook ran. Reading the last-writer-wins global
+// here is a consensus-divergence bug: on the relaunch path (admin.importChain of a
+// pre-fork RLP snapshot on a live, RPC-serving, post-fork node) a concurrent
+// eth_call/estimateGas/worker goroutine can rewrite the global timestamp to a
+// wall-clock (post-fork) value between this EVM's construction and its tx dispatch
+// — making the pre-fork block see the dated-fork 0x9999 precompile as ENABLED and
+// dispatch SettleContract.Run during what must be plain-account execution. Binding
+// the gate to o.timestamp makes every replay of a given block produce the SAME
+// enabled set on every validator, regardless of concurrent activity.
+//
+// params.GetExtrasRules is a pure function of its arguments (it does NOT read the
+// global); it is the SAME computation params.GetRulesExtra performs internally, so
+// the dated-fork 0x9999 injection (extras.IsDexSettleActive gate) is applied here
+// identically — minus the racy global read. params.ChainConfig is a type alias of
+// geth's ChainConfig, so o.chainConfig is passed directly.
 func (o *LuxPrecompileOverrider) PrecompileOverride(addr common.Address) (vm.PrecompiledContract, bool) {
-	// Get the extras rules to check active precompiles
-	rulesExtra := params.GetRulesExtra(gethparams.Rules{})
-	if !rulesExtra.IsPrecompileEnabled(addr) {
+	extrasRules := params.GetExtrasRules(gethparams.Rules{}, o.chainConfig, o.timestamp)
+	if cfg, ok := extrasRules.Precompiles[addr]; !ok || cfg.IsDisabled() {
 		return nil, false
 	}
 
