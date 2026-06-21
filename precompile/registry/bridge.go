@@ -53,6 +53,7 @@ func bridgeExternalModules() {
 			Address:      extMod.Address,
 			Contract:     &contractBridge{ext: extMod.Contract},
 			Configurator: &configuratorBridge{ext: extMod.Configurator, key: extMod.ConfigKey},
+			AlwaysOn:     extMod.AlwaysOn,
 		}
 
 		if err := modules.RegisterBridgedModule(intMod); err != nil {
@@ -141,6 +142,7 @@ type internalAtomic interface {
 	NetworkID() uint32
 	ChainID() ids.ID
 	CChainID() ids.ID
+	DChainID() ids.ID
 	TxID() ids.ID
 	CallIndex() uint32
 }
@@ -176,6 +178,13 @@ func (a *accessibleStateBridge) ChainID() ids.ID {
 func (a *accessibleStateBridge) CChainID() ids.ID {
 	if at := a.atomicOrNil(); at != nil {
 		return at.CChainID()
+	}
+	return ids.Empty
+}
+
+func (a *accessibleStateBridge) DChainID() ids.ID {
+	if at := a.atomicOrNil(); at != nil {
+		return at.DChainID()
 	}
 	return ids.Empty
 }

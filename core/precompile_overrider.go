@@ -189,6 +189,30 @@ func (a *accessibleStateAdapter) CChainID() ids.ID {
 	return ids.Empty
 }
 
+// DChainID resolves the D-Chain (dexvm) blockchain id from the runtime chain topology
+// — the consensus context's blockchain-alias lookup of "D". The node registers the
+// dexvm chain under the "D"/"dex"/"dexvm" aliases at startup (initChainAliases), before
+// any chain bootstraps, so the lookup is populated and identical on every validator and
+// every re-execution. This is the always-on DEX settlement seam's D peer with ZERO
+// per-net config. Returns ids.Empty when the runtime is absent or the network has no
+// dexvm deployed (the "D" alias does not resolve) — the calling precompile then keeps
+// the seam closed rather than guess a peer.
+func (a *accessibleStateAdapter) DChainID() ids.ID {
+	rt := a.runtimeFromCtx()
+	if rt == nil {
+		return ids.Empty
+	}
+	bc := rt.GetBCLookup()
+	if bc == nil {
+		return ids.Empty
+	}
+	dID, err := bc.Lookup("D")
+	if err != nil {
+		return ids.Empty
+	}
+	return dID
+}
+
 func (a *accessibleStateAdapter) TxID() ids.ID {
 	// The EVM tx hash is the transaction identity the precompile binds its
 	// cross-chain object to. ids.ID and common.Hash are both 32 bytes.
