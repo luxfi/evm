@@ -458,16 +458,39 @@ func GetExtrasRules(ethRules Rules, c *ChainConfig, timestamp uint64) *extras.Ru
 		}
 	}
 
-	// Always-on precompiles (e.g. the DEX settlement money path 0x9999) are ACTIVE on
-	// every chain at every timestamp with NO config entry — neither a genesis-inlined
-	// precompile nor a precompileUpgrades timestamp. They take no per-net parameters and
-	// resolve everything at runtime (consensus context / atomic state), so we add them
-	// to the enabled set unconditionally here. This is the ONE activation way for them;
-	// there is no per-net config to write, ever. (The EXTCODESIZE genesis marker is
-	// applied separately in ApplyPrecompileActivations.)
-	for _, module := range modules.AlwaysOnModules() {
-		rules.Precompiles[module.Address] = module.Configurator.MakeGenesisConfig()
+	// System precompiles (the DEX settlement money path 0x9999) are activated by a
+	// single canonical dated fork — extras.DexSettleActivationTime (Dec 25 2025) — NOT
+	// by per-net config. They take no per-net parameters and resolve everything at
+	// runtime (consensus context / atomic state), so there is no genesisPrecompiles or
+	// precompileUpgrades entry to write per network; the activation timestamp is built
+	// in and identical on every chain. We inject them into the enabled dispatch set
+	// ONLY at/after that timestamp — this is the gate PrecompileOverride consults.
+	//
+	// Timestamp-gating (not unconditional) is REQUIRED for canonical history: replaying
+	// pre-activation blocks (the RLP snapshot) must see 0x9999 as a plain account, so a
+	// historical value transfer to that address behaves as it did originally rather than
+	// dispatching the precompile. The marker (EXTCODESIZE) is installed at the same fork
+	// boundary in ApplyPrecompileActivations.
+	if extras.IsDexSettleActive(timestamp) {
+		for _, module := range modules.AlwaysOnModules() {
+			rules.Precompiles[module.Address] = module.Configurator.MakeGenesisConfig()
+		}
 	}
 
 	return rules
+}
+
+// IsDexSettleActive reports whether the 0x9999 DEX settlement precompile is active at
+// [timestamp] — i.e. at or after the single canonical dated fork
+// extras.DexSettleActivationTime (Dec 25 2025). Re-exported through params so callers in
+// core need not import params/extras directly (one dispatch gate, one source of truth).
+func IsDexSettleActive(timestamp uint64) bool { return extras.IsDexSettleActive(timestamp) }
+
+// IsDexSettleForkTransition reports whether the block transition from [parentTimestamp]
+// (nil at genesis) to [blockTimestamp] crosses the canonical 0x9999 activation boundary
+// — the single point at which the precompile-activation marker is installed. It fires
+// exactly once. For a genesis whose timestamp is already >= the fork it fires at genesis
+// (parent==nil), so fresh networks carry the marker from block 0.
+func IsDexSettleForkTransition(parentTimestamp *uint64, blockTimestamp uint64) bool {
+	return extras.IsForkTransition(extras.DexSettleTimestamp(), parentTimestamp, blockTimestamp)
 }
