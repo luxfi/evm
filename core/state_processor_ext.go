@@ -28,6 +28,19 @@ import (
 // In block processing and building, [ApplyUpgrades] is called instead which also applies state upgrades.
 func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.ConfigurationBlockContext, statedb *state.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
+
+	// Always-on precompiles (e.g. the DEX settlement money path 0x9999) are NOT
+	// activated here and intentionally get NO genesis state write. The genesis state
+	// root is consensus-critical and immutable for every existing network — writing an
+	// EXTCODESIZE marker (nonce/code) at genesis would change the genesis hash and
+	// fork live chains (a fresh-syncing node would compute a hash that disagrees with
+	// the committed genesis). Always-on activation is therefore DISPATCH-only: the
+	// precompile is in the enabled set (params.GetExtrasRules injects it) so the EVM
+	// runs it for a tx-to-0x9999, a low-level CALL/STATICCALL, and the 0x9010 V4
+	// forward — none of which need a code marker. The module's Configurator is never
+	// invoked (there is no activating config; all params resolve at runtime). See the
+	// dispatch injection in params/config_extra.go GetExtrasRules.
+
 	// Note: [modules.RegisteredModules] returns precompiles sorted by module addresses.
 	// This ensures:
 	// - the order we call [modules.Module]'s Configure for each precompile is consistent
