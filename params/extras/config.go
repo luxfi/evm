@@ -354,9 +354,19 @@ func (c *ChainConfig) MarshalJSON() ([]byte, error) {
 // for all registered precompile modules (timestamp = 0). This ensures deterministic
 // genesis hash when "all precompiles active at genesis" is the intended state.
 // Call this when building genesis configs for new chains.
+//
+// AlwaysOn modules (e.g. the 0x9999 DEX settlement money path) are SKIPPED: their
+// activation is governed by a single built-in dated fork (extras.DexSettleActivationTime),
+// NOT by a genesisPrecompiles entry. Writing a timestamp-0 genesis config for them would
+// enable them from block 0 on every chain, bypassing the dated-fork gate and re-introducing
+// the genesis-marker mutation the dated fork exists to avoid. AlwaysOn modules carry no
+// per-net config, so there is nothing to seed into genesis regardless.
 func (c *ChainConfig) SetAllGenesisPrecompiles() {
 	c.GenesisPrecompiles = make(Precompiles)
 	for _, module := range modules.RegisteredModules() {
+		if module.AlwaysOn {
+			continue
+		}
 		c.GenesisPrecompiles[module.ConfigKey] = module.Configurator.MakeGenesisConfig()
 	}
 }
@@ -364,9 +374,15 @@ func (c *ChainConfig) SetAllGenesisPrecompiles() {
 // AllGenesisPrecompiles returns a new Precompiles map populated with default
 // genesis configs for all registered precompile modules (timestamp = 0).
 // This is the authoritative source for "all precompiles active at genesis".
+//
+// AlwaysOn modules are SKIPPED for the same reason as SetAllGenesisPrecompiles: a
+// dated-fork-gated system precompile must never receive a timestamp-0 genesis config.
 func AllGenesisPrecompiles() Precompiles {
 	precompiles := make(Precompiles)
 	for _, module := range modules.RegisteredModules() {
+		if module.AlwaysOn {
+			continue
+		}
 		precompiles[module.ConfigKey] = module.Configurator.MakeGenesisConfig().(precompileconfig.Config)
 	}
 	return precompiles
