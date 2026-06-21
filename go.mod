@@ -21,7 +21,7 @@ require (
 	github.com/luxfi/crypto v1.19.17
 	github.com/luxfi/database v1.19.0
 	github.com/luxfi/filesystem v0.0.1
-	github.com/luxfi/geth v1.17.11
+	github.com/luxfi/geth v1.17.12
 	github.com/luxfi/go-bip39 v1.1.2
 	github.com/luxfi/gpu v1.0.1
 	github.com/luxfi/ids v1.2.15
@@ -32,7 +32,7 @@ require (
 	github.com/luxfi/metric v1.5.8
 	github.com/luxfi/p2p v1.21.1
 	github.com/luxfi/pq v1.0.3
-	github.com/luxfi/precompile v0.5.50
+	github.com/luxfi/precompile v0.5.51
 	github.com/luxfi/runtime v1.1.1
 	github.com/luxfi/sys v0.1.0
 	github.com/luxfi/timer v1.0.2
@@ -104,7 +104,6 @@ require (
 	github.com/luxfi/mdns v0.1.1 // indirect
 	github.com/luxfi/proto v1.3.4 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
-	github.com/luxfi/rpc v1.1.0 // indirect
 	github.com/luxfi/threshold v1.9.4 // indirect
 	github.com/luxfi/zap v0.7.2 // indirect
 	github.com/luxfi/zapdb v1.10.0 // indirect
