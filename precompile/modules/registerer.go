@@ -121,6 +121,20 @@ func RegisteredModules() []Module {
 	return registeredModules
 }
 
+// AlwaysOnModules returns the registered modules marked AlwaysOn — precompiles active
+// on every chain from genesis with NO config entry. The host activates these
+// unconditionally (EXTCODESIZE marker at genesis + Run dispatch on every block),
+// independent of genesisPrecompiles / precompileUpgrades. Deterministic address order.
+func AlwaysOnModules() []Module {
+	out := make([]Module, 0, len(registeredModules))
+	for _, m := range registeredModules {
+		if m.AlwaysOn {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
 // AllGenesisPrecompiles returns a map of all registered precompile configs
 // configured for genesis activation (timestamp = 0). This is used to populate
 // the genesisPrecompiles field in ChainConfig for deterministic genesis hash.
