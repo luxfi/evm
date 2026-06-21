@@ -50,6 +50,17 @@ const (
 	tsPostActivation uint64 = extras.DexSettleActivationTime + 86_400
 )
 
+// The cross-layer DRY guard that pins extras.DexSettleActivationTime ==
+// dex.DexSettleActivationTime (luxfi/precompile's layer-local mirror) lives in
+// precompile_alwayson_dexsettle_guard_test.go behind the `dexsettle_guard` build
+// tag. It is RELEASE-COUPLED: dex.DexSettleActivationTime sits BELOW evm in the
+// import graph (evm imports precompile, never the reverse), so evm/go.mod must be
+// bumped to a precompile tag that EXPORTS the symbol before that guard can compile.
+// Default CI excludes it (so evm/core builds against the pinned precompile tag with
+// no go.work); the release step runs `go test -tags dexsettle_guard ./core/` after
+// the go.mod bump so the invariant is enforced atomically with it. Everything in
+// THIS file uses only evm-local symbols and runs on every CI build.
+
 // TestAlwaysOn_9999_Registered asserts the DEX settlement precompile bridges into the
 // EVM registry as AlwaysOn and is enumerated by AlwaysOnModules().
 func TestAlwaysOn_9999_Registered(t *testing.T) {
