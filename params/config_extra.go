@@ -458,5 +458,16 @@ func GetExtrasRules(ethRules Rules, c *ChainConfig, timestamp uint64) *extras.Ru
 		}
 	}
 
+	// Always-on precompiles (e.g. the DEX settlement money path 0x9999) are ACTIVE on
+	// every chain at every timestamp with NO config entry — neither a genesis-inlined
+	// precompile nor a precompileUpgrades timestamp. They take no per-net parameters and
+	// resolve everything at runtime (consensus context / atomic state), so we add them
+	// to the enabled set unconditionally here. This is the ONE activation way for them;
+	// there is no per-net config to write, ever. (The EXTCODESIZE genesis marker is
+	// applied separately in ApplyPrecompileActivations.)
+	for _, module := range modules.AlwaysOnModules() {
+		rules.Precompiles[module.Address] = module.Configurator.MakeGenesisConfig()
+	}
+
 	return rules
 }
