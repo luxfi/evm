@@ -15,6 +15,47 @@ import (
 
 var errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
 
+// DexSettleActivationTime is THE canonical, network-wide activation boundary for the
+// DEX settlement money path 0x9999 — Dec 25 2025 00:00:00 UTC (unix 1766704800).
+//
+// It is defined ONCE here (DRY) and is identical on every Lux network. 0x9999 is a
+// system precompile that takes no per-network parameters (all resolved at runtime from
+// the consensus context), so its activation is NOT per-net config — it is a single dated
+// fork in the same spirit as the Durango/Quasar/Fortuna/Granite network upgrades above.
+//
+// The activation has two coupled effects, both gated on this exact timestamp via
+// IsDexSettleActive / IsForkTransition (see params/config_extra.go GetExtrasRules and
+// core/state_processor_ext.go ApplyPrecompileActivations):
+//
+//   - DISPATCH: at/after this timestamp, 0x9999 is in the enabled precompile set, so a
+//     tx-to-0x9999 / low-level CALL / typed Solidity call dispatches the native
+//     settlement contract. Before it, 0x9999 is absent — a value transfer to that
+//     address behaves as a plain account, so replaying pre-activation history (the RLP
+//     snapshot in ~/work/lux/state) stays byte-identical to canonical state.
+//   - MARKER: on the block transition that crosses this timestamp, the precompile-
+//     activation marker (SetNonce=1 + SetCode{0x1}) is written into account 0x9999 so
+//     EXTCODESIZE>0, eth_getCode!=0x, and Solidity's contract-existence guard passes.
+//     Historical genesis is NOT mutated (a genesis-time marker would change the genesis
+//     hash and fork pre-activation sync); the marker is installed forward, at the fork.
+//
+// For a freshly-genesised network whose genesis timestamp is already >= this value, the
+// transition fires at genesis (parent=nil), so the marker is present from block 0 — the
+// SAME mechanism, no separate genesis-precompile entry.
+const DexSettleActivationTime uint64 = 1766704800 // 2025-12-25T00:00:00Z
+
+// dexSettleTimestamp is the activation time as a *uint64 for the IsForkTransition /
+// isTimestampForked helpers (which take *uint64; nil = never).
+var dexSettleTimestamp = func() *uint64 { t := DexSettleActivationTime; return &t }()
+
+// DexSettleTimestamp returns the canonical 0x9999 activation timestamp pointer. Used by
+// the EVM dispatch gate and the marker-installing state transition so both reference the
+// SAME single dated fork.
+func DexSettleTimestamp() *uint64 { return dexSettleTimestamp }
+
+// IsDexSettleActive reports whether the 0x9999 DEX settlement precompile is active at
+// [time] — i.e. [time] is at or after the canonical Dec 25 2025 activation boundary.
+func IsDexSettleActive(time uint64) bool { return isTimestampForked(dexSettleTimestamp, time) }
+
 // newTimestampCompatError creates a ConfigCompatError for timestamp mismatches
 func newTimestampCompatError(what string, storedtime, newtime *uint64) *ethparams.ConfigCompatError {
 	var rew *uint64
