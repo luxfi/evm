@@ -77,8 +77,45 @@ func (b *Block) Accept(context.Context) error {
 		return fmt.Errorf("chain could not accept %s: %w", blkID, err)
 	}
 
+	// DEX native C<->D atomic seam: stage this block's atomic ops (0x9999
+	// SubmitSwapIntent C->D Puts / ImportSettlement D->C Removes) for flush to shared
+	// memory. The flush window is derived from CONSENSUS STATE (parent staged-seq ->
+	// accepted staged-seq), so every validator applies the identical request set; the
+	// staged ops are append-only EVM state, so a reverted tx's staging was already
+	// discarded. stageDexAtomic advances the node-local last-applied marker INTO the
+	// versiondb in-memory layer and returns the requests + shared memory; the marker
+	// and the shared-memory Apply commit together below (one atomic write), which is
+	// what makes the flush exactly-once and crash-safe. See native_staging.go.
+	atomicReqs, atomicSM, err := vm.stageDexAtomic(b)
+	if err != nil {
+		return fmt.Errorf("dex atomic flush failed for %s: %w", blkID, err)
+	}
+
 	if err := vm.acceptedBlockDB.Put(lastAcceptedKey, blkID[:]); err != nil {
 		return fmt.Errorf("failed to put %s as the last accepted block: %w", blkID, err)
+	}
+
+	// SINGLE cross-domain commit point. When there are staged atomic ops, snapshot the
+	// versiondb (which now holds the advanced dexAtomicSeqKey marker AND lastAcceptedKey)
+	// into a batch and hand it to sm.Apply(reqs, batch): the atomic layer commits the
+	// shared-memory mutation and our batch in ONE database write (the platformvm acceptor
+	// pattern, mirrored from chains/dexvm commitAtomic). So the marker advance and the SM
+	// mutation are all-or-nothing — a crash between them is impossible, closing the
+	// re-apply -> duplicate-Put -> chain-halt window. With no atomic ops we take the plain
+	// versiondb.Commit() path unchanged.
+	if len(atomicReqs) > 0 && atomicSM != nil {
+		batch, berr := vm.versiondb.CommitBatch()
+		if berr != nil {
+			return fmt.Errorf("dex atomic commit batch for %s: %w", blkID, berr)
+		}
+		if aerr := atomicSM.Apply(atomicReqs, batch); aerr != nil {
+			return fmt.Errorf("dex atomic shared-memory apply for %s: %w", blkID, aerr)
+		}
+		// The batch (marker + lastAccepted + any other versiondb writes) was written by
+		// Apply; clear the in-memory layer so the deferred Abort and future Commits see a
+		// clean db (the versiondb.Commit() defer-Abort discipline).
+		vm.versiondb.Abort()
+		return nil
 	}
 
 	return b.vm.versiondb.Commit()
