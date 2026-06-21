@@ -18,6 +18,9 @@ import (
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/core/vm"
 	gethparams "github.com/luxfi/geth/params"
+	"github.com/luxfi/ids"
+	"github.com/luxfi/runtime"
+	"github.com/luxfi/vm/chains/atomic"
 )
 
 func init() {
@@ -137,6 +140,63 @@ func (a *accessibleStateAdapter) GetConsensusContext() context.Context {
 
 func (a *accessibleStateAdapter) GetChainConfig() precompileconfig.ChainConfig {
 	return &chainConfigAdapter{config: a.env.ChainConfig()}
+}
+
+// accessibleStateAdapter implements contract.AtomicState so a precompile that
+// type-asserts the optional capability can reach the primary network's atomic
+// shared memory and chain identity. The source is the chain Runtime embedded in
+// the consensus context (runtime.WithContext at initializeChain); when the host
+// wired no shared memory (single-chain dev / non-atomic harness) AtomicMemory()
+// returns nil and the calling precompile reverts rather than fabricate value.
+var _ contract.AtomicState = (*accessibleStateAdapter)(nil)
+
+// runtimeFromCtx pulls the chain Runtime out of the consensus context, or nil.
+func (a *accessibleStateAdapter) runtimeFromCtx() *runtime.Runtime {
+	return runtime.FromContext(a.env.ConsensusContext())
+}
+
+func (a *accessibleStateAdapter) AtomicMemory() atomic.SharedMemory {
+	rt := a.runtimeFromCtx()
+	if rt == nil {
+		return nil
+	}
+	return rt.GetSharedMemory()
+}
+
+func (a *accessibleStateAdapter) NetworkID() uint32 {
+	if rt := a.runtimeFromCtx(); rt != nil {
+		return rt.NetworkID
+	}
+	return 0
+}
+
+func (a *accessibleStateAdapter) ChainID() ids.ID {
+	if rt := a.runtimeFromCtx(); rt != nil {
+		return rt.ChainID
+	}
+	return ids.Empty
+}
+
+func (a *accessibleStateAdapter) CChainID() ids.ID {
+	if rt := a.runtimeFromCtx(); rt != nil {
+		// On the C-Chain CChainID == ChainID; prefer the explicit field when set so
+		// the binding is correct on chains that distinguish the two.
+		if rt.CChainID != ids.Empty {
+			return rt.CChainID
+		}
+		return rt.ChainID
+	}
+	return ids.Empty
+}
+
+func (a *accessibleStateAdapter) TxID() ids.ID {
+	// The EVM tx hash is the transaction identity the precompile binds its
+	// cross-chain object to. ids.ID and common.Hash are both 32 bytes.
+	return ids.ID(a.env.StateDB().TxHash())
+}
+
+func (a *accessibleStateAdapter) CallIndex() uint32 {
+	return a.env.CallIndex()
 }
 
 // stateDBAdapter adapts vm.StateDB to contract.StateDB
