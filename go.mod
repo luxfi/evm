@@ -41,7 +41,7 @@ require (
 	github.com/luxfi/utils v1.2.0
 	github.com/luxfi/validators v1.2.0
 	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.2.3
+	github.com/luxfi/vm v1.2.5
 	github.com/luxfi/warp v1.19.5
 	github.com/mattn/go-colorable v0.1.15
 	github.com/mattn/go-isatty v0.0.22
@@ -111,7 +111,7 @@ require (
 	github.com/luxfi/accel v1.2.4 // indirect
 	github.com/luxfi/age v1.5.0 // indirect
 	github.com/luxfi/ai v0.1.0 // indirect
-	github.com/luxfi/api v1.0.14 // indirect
+	github.com/luxfi/api v1.0.15 // indirect
 	github.com/luxfi/atomic v1.0.0 // indirect
 	github.com/luxfi/bft v0.1.5 // indirect
 	github.com/luxfi/compress v0.0.5 // indirect
