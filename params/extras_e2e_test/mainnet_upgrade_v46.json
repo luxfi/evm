@@ -8,59 +8,243 @@
     "strictPQTimestamp": 1766708400
   },
   "precompileUpgrades": [
-    {"warpConfig": {"blockTimestamp": 0, "quorumNumerator": 67, "requirePrimaryNetworkSigners": true}},
-
-    {"aiMiningConfig":   {"blockTimestamp": 0}},
-    {"blake3Config":     {"blockTimestamp": 0}},
-    {"cggmp21Verify":    {"blockTimestamp": 0}},
-    {"deadZeroConfig":   {"blockTimestamp": 0}},
-    {"deadConfig":       {"blockTimestamp": 0}},
-    {"deadFullConfig":   {"blockTimestamp": 0}},
-    {"routerConfig": {
-      "blockTimestamp": 0,
-      "v3QuoterAddress":  "0x0000000000000000000000000000000000000000",
-      "v3FactoryAddress": "0x0000000000000000000000000000000000000000",
-      "v2RouterAddress":  "0x0000000000000000000000000000000000000000",
-      "v2FactoryAddress": "0x0000000000000000000000000000000000000000"
-    }},
-    {"fheConfig":        {"blockTimestamp": 0}},
-    {"frostVerify":      {"blockTimestamp": 0}},
-    {"graphConfig":      {"blockTimestamp": 0}},
-    {"hpkeConfig":       {"blockTimestamp": 0}},
-    {"mldsaVerify":      {"blockTimestamp": 0}},
-    {"mlkemConfig":      {"blockTimestamp": 0}},
-    {"pqcryptoConfig":   {"blockTimestamp": 0}},
-    {"ringConfig":       {"blockTimestamp": 0}},
-    {"slhdsaVerify":     {"blockTimestamp": 0}},
-    {"zkConfig":         {"blockTimestamp": 0}},
-
-    {"pulsarVerify":           {"blockTimestamp": 1782864000}},
-    {"magnetarVerify":         {"blockTimestamp": 1782864000}},
-    {"p3qVerify":              {"blockTimestamp": 1782864000}},
-    {"coronaThreshold":        {"blockTimestamp": 1782864000}},
-    {"hqcEncapsulate":         {"blockTimestamp": 1782864000}},
-    {"bls12381G1AddConfig":    {"blockTimestamp": 1782864000}},
-    {"bls12381G1MulConfig":    {"blockTimestamp": 1782864000}},
-    {"bls12381G1MSMConfig":    {"blockTimestamp": 1782864000}},
-    {"bls12381G2AddConfig":    {"blockTimestamp": 1782864000}},
-    {"bls12381G2MulConfig":    {"blockTimestamp": 1782864000}},
-    {"bls12381G2MSMConfig":    {"blockTimestamp": 1782864000}},
-    {"bls12381PairingConfig":  {"blockTimestamp": 1782864000}},
-    {"curve25519Config":       {"blockTimestamp": 1782864000}},
-    {"x25519Config":           {"blockTimestamp": 1782864000}},
-    {"sr25519Verify":          {"blockTimestamp": 1782864000}},
-    {"babyjubjubConfig":       {"blockTimestamp": 1782864000}},
-    {"pedersenConfig":         {"blockTimestamp": 1782864000}},
-    {"poseidonConfig":         {"blockTimestamp": 1782864000}},
-    {"pastaConfig":            {"blockTimestamp": 1782864000}},
-    {"xwingConfig":            {"blockTimestamp": 1782864000}},
-    {"computeMarketConfig":    {"blockTimestamp": 1782864000}},
-    {"bridgeRegistrarConfig":  {"blockTimestamp": 1782864000}},
-    {"stableSwapConfig":       {"blockTimestamp": 1782864000}},
-    {"vrfConfig":              {"blockTimestamp": 1782864000}},
-    {"attestationConfig":      {"blockTimestamp": 1782864000}},
-    {"anchorConfig":           {"blockTimestamp": 1782864000}},
-    {"fixedPointMathConfig":   {"blockTimestamp": 1782864000}}
+    {
+      "aiMiningConfig": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "blake3Config": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "cggmp21Verify": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "deadZeroConfig": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "deadConfig": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "deadFullConfig": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "routerConfig": {
+        "blockTimestamp": 0,
+        "v3QuoterAddress": "0x0000000000000000000000000000000000000000",
+        "v3FactoryAddress": "0x0000000000000000000000000000000000000000",
+        "v2RouterAddress": "0x0000000000000000000000000000000000000000",
+        "v2FactoryAddress": "0x0000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "fheConfig": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "frostVerify": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "graphConfig": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "hpkeConfig": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "mldsaVerify": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "mlkemConfig": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "pqcryptoConfig": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "ringConfig": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "slhdsaVerify": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "zkConfig": {
+        "blockTimestamp": 0
+      }
+    },
+    {
+      "warpConfig": {
+        "blockTimestamp": 1766708399,
+        "disable": true
+      }
+    },
+    {
+      "warpConfig": {
+        "blockTimestamp": 1766708400,
+        "quorumNumerator": 67,
+        "requirePrimaryNetworkSigners": true
+      }
+    },
+    {
+      "bls12381G1AddConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381G1MulConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381G1MSMConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381G2AddConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381G2MulConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381G2MSMConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381PairingConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "pulsarVerify": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "magnetarVerify": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "p3qVerify": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "coronaThreshold": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "hqcEncapsulate": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "curve25519Config": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "x25519Config": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "sr25519Verify": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "babyjubjubConfig": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "pedersenConfig": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "poseidonConfig": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "pastaConfig": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "xwingConfig": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "computeMarketConfig": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "bridgeRegistrarConfig": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "stableSwapConfig": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "vrfConfig": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "attestationConfig": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "anchorConfig": {
+        "blockTimestamp": 1782864000
+      }
+    },
+    {
+      "fixedPointMathConfig": {
+        "blockTimestamp": 1782864000
+      }
+    }
   ],
   "stateUpgrades": []
 }
