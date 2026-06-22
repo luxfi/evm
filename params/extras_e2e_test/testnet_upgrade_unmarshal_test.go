@@ -27,11 +27,18 @@ import (
 
 // canonicalTestnetUpgradeV47 is the byte-for-byte vendored copy of
 // luxfi/genesis configs/testnet/upgrade.json at the v47 precompile-set
-// freeze (warpConfig + 19 forward-dated 1766708400 net-new + 27 more
-// safe-subset cryptography precompiles also at 1766708400). The
-// testnet schedule front-loads all activations to the strict-PQ
-// timestamp because there is no live testnet validator state to keep
-// backwards-compatible against — it's the experimentation lane.
+// freeze. Layout (44 entries, monotonic by blockTimestamp):
+//   - 17 already-live precompiles pinned to blockTimestamp:0 — these are
+//     active at block 0 on the running testnet (see the UPGRADE_JSON in
+//     luxfi/universe k8s/lux-testnet/luxd-startup.yaml). They MUST stay at
+//     0 so a relaunch from genesis treats them as already-applied and
+//     checkPrecompileCompatible does not refuse boot.
+//   - 27 net-new safe-subset cryptography precompiles forward-dated to the
+//     strict-PQ timestamp 1766708400 (strictly after testnet genesis time
+//     1730517266), so the strict-PQ gate is in force when they activate.
+// Unlike mainnet there is no separate Quasar-Edition tier — testnet
+// front-loads its net-new activations to the strict-PQ fork because it's
+// the experimentation lane.
 //
 // Sync contract: if luxfi/genesis configs/testnet/upgrade.json changes,
 // regenerate this file:
