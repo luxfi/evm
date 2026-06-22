@@ -32,7 +32,7 @@ require (
 	github.com/luxfi/metric v1.5.9
 	github.com/luxfi/p2p v1.21.1
 	github.com/luxfi/pq v1.0.3
-	github.com/luxfi/precompile v0.5.55
+	github.com/luxfi/precompile v0.5.56
 	github.com/luxfi/runtime v1.1.1
 	github.com/luxfi/sys v0.1.0
 	github.com/luxfi/timer v1.0.2
@@ -117,7 +117,7 @@ require (
 	github.com/luxfi/compress v0.0.5 // indirect
 	github.com/luxfi/concurrent v0.0.3 // indirect
 	github.com/luxfi/container v0.0.4 // indirect
-	github.com/luxfi/corona v0.7.6 // indirect
+	github.com/luxfi/corona v0.7.9 // indirect
 	github.com/luxfi/crypto/ipa v1.2.4 // indirect
 	github.com/luxfi/fhe v1.8.2 // indirect
 	github.com/luxfi/lattice/v7 v7.1.4 // indirect
