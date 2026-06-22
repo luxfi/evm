@@ -125,11 +125,24 @@ func TestMainnetUpgradeJSON_PrecompileTimestampsAreMonotonic(t *testing.T) {
 }
 
 // TestMainnetUpgradeJSON_WarpRequiresPrimaryNetworkSigners enforces the
-// Warp policy from red-review finding #8: the live mainnet warp config
-// pins requirePrimaryNetworkSigners=true, and the canonical upgrade.json
-// MUST keep it that way so every cross-chain warp message is signed by
-// primary-network validators (not just a subnet quorum).
+// Warp policy from red-review finding #8: the canonical upgrade.json must
+// schedule warp so that, once the strict-PQ fork lands, every cross-chain
+// warp message is signed by primary-network validators (not just a subnet
+// quorum).
+//
+// Warp lives in the genesis chainConfig (cchain.json config.warpConfig at
+// the genesis timestamp, with requirePrimaryNetworkSigners=false during the
+// classical era). The upgrade schedule then carries a two-step toggle at the
+// strict-PQ fork: disable@strictPQ-1, then re-enable@strictPQ with the
+// PQ-hardened policy. Both toggles are strictly AFTER genesis time, so this
+// is a genuine future upgrade — NOT a reschedule of the genesis warp (that
+// would be the relaunch fork hazard; see relaunch_safety_test.go). The
+// policy assertion therefore targets the RE-ENABLE entry (the one that
+// carries quorumNumerator + requirePrimaryNetworkSigners); the disable entry
+// carries only {blockTimestamp, disable:true}.
 func TestMainnetUpgradeJSON_WarpRequiresPrimaryNetworkSigners(t *testing.T) {
+	const strictPQ uint64 = 1766708400
+
 	raw := readCanonicalMainnetUpgradeJSONRaw(t)
 
 	var doc struct {
@@ -137,26 +150,62 @@ func TestMainnetUpgradeJSON_WarpRequiresPrimaryNetworkSigners(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(raw, &doc))
 
-	var found bool
-	for _, entry := range doc.PrecompileUpgrades {
+	var (
+		foundDisable bool
+		foundReEnable bool
+		prevWarpTs   *uint64
+	)
+	for i, entry := range doc.PrecompileUpgrades {
 		warpRaw, ok := entry["warpConfig"]
 		if !ok {
 			continue
 		}
-		found = true
 		var warp struct {
 			BlockTimestamp               uint64 `json:"blockTimestamp"`
+			Disable                      bool   `json:"disable"`
 			QuorumNumerator              uint64 `json:"quorumNumerator"`
 			RequirePrimaryNetworkSigners bool   `json:"requirePrimaryNetworkSigners"`
 		}
 		require.NoError(t, json.Unmarshal(warpRaw, &warp))
-		require.Equal(t, uint64(0), warp.BlockTimestamp, "warpConfig blockTimestamp must be 0")
+
+		// Every warp upgrade entry must be strictly after genesis time —
+		// rescheduling the genesis warp into the (0, genesisTime] window is
+		// the relaunch fork hazard.
+		require.Greaterf(t, warp.BlockTimestamp, uint64(0),
+			"warpConfig upgrade entry at index %d has blockTimestamp 0 — warp is declared in the genesis chainConfig; an upgrade entry pinned to 0 would collide with the genesis warp and fail verifyPrecompileUpgrades",
+			i,
+		)
+		// Same-key strict increase (mirrors verifyPrecompileUpgrades).
+		if prevWarpTs != nil {
+			require.Greaterf(t, warp.BlockTimestamp, *prevWarpTs,
+				"warpConfig entries must strictly increase in blockTimestamp (got %d after %d)",
+				warp.BlockTimestamp, *prevWarpTs,
+			)
+		}
+		ts := warp.BlockTimestamp
+		prevWarpTs = &ts
+
+		if warp.Disable {
+			foundDisable = true
+			require.Equalf(t, strictPQ-1, warp.BlockTimestamp,
+				"warpConfig disable must fire one second before the strict-PQ fork (%d), got %d",
+				strictPQ-1, warp.BlockTimestamp,
+			)
+			continue
+		}
+
+		// Re-enable entry: carries the PQ-hardened policy.
+		foundReEnable = true
+		require.Equalf(t, strictPQ, warp.BlockTimestamp,
+			"warpConfig re-enable must fire at the strict-PQ fork (%d), got %d", strictPQ, warp.BlockTimestamp,
+		)
 		require.Equal(t, uint64(67), warp.QuorumNumerator, "warpConfig quorumNumerator must be 67")
 		require.Truef(t, warp.RequirePrimaryNetworkSigners,
 			"warpConfig.requirePrimaryNetworkSigners must be true on lux-mainnet — every cross-chain warp message MUST be signed by primary-network validators (red-review finding #8)",
 		)
 	}
-	require.True(t, found, "warpConfig must be present in canonical upgrade.json")
+	require.True(t, foundDisable, "warpConfig disable entry must be present in canonical upgrade.json")
+	require.True(t, foundReEnable, "warpConfig re-enable entry (with PQ signer policy) must be present in canonical upgrade.json")
 }
 
 // TestMainnetUpgradeJSON_HasStrictPQActivation enforces that the

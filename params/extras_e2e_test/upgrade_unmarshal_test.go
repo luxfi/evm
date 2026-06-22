@@ -48,12 +48,22 @@ import (
 
 // canonicalMainnetUpgradeV46 is the byte-for-byte vendored copy of
 // luxfi/genesis configs/mainnet/upgrade.json at the v46 precompile-set
-// freeze (warpConfig + 17 live-at-block-0 + 27 forward-dated to the
-// Quasar Edition activation timestamp). The dead dexConfig 0x9010 key
-// was removed when node v1.30.27 dropped that precompile (its config
-// key is no longer registered → it would brick the C-Chain on boot).
-// Vendoring it removes runtime CWD-walking and makes this
-// regression-proof hermetic in CI runners that clone only luxfi/evm.
+// freeze. Layout (46 entries, monotonic by blockTimestamp):
+//   - 17 already-live precompiles pinned to blockTimestamp:0 — these are
+//     active at block 0 on the running mainnet (see the UPGRADE_JSON in
+//     luxfi/universe k8s/lux-mainnet/luxd-startup.yaml). They MUST stay at
+//     0 so a relaunch from genesis treats them as already-applied and
+//     checkPrecompileCompatible does not refuse boot.
+//   - warpConfig disable@1766708399 then re-enable@1766708400 (PQ warp
+//     params at the strict-PQ fork; both strictly after genesis time).
+//   - 7 bls12381 family @1766708400.
+//   - 20 forward-dated @1782864000 (Quasar Edition activation; strictly
+//     after the strict-PQ gate so every classical primitive is gated).
+// The dead dexConfig 0x9010 key was removed when node v1.30.27 dropped
+// that precompile (its config key is no longer registered → it would
+// brick the C-Chain on boot). Vendoring it removes runtime CWD-walking
+// and makes this regression-proof hermetic in CI runners that clone only
+// luxfi/evm.
 //
 // Sync contract: if luxfi/genesis configs/mainnet/upgrade.json changes,
 // regenerate this file:
@@ -215,12 +225,16 @@ func TestRegressionProof_SimulatedFortyNineEntryCanonicalFails(t *testing.T) {
 	require.NoError(t, json.Unmarshal(raw, &ok),
 		"post-patch canonical (45 entries) must parse cleanly — see TestMainnetUpgradeJSON_UnmarshalsAgainstRegistry",
 	)
-	require.Lenf(t, ok.PrecompileUpgrades, 45,
-		"canonical entry count drifted: this regression-proof test was authored against 45 entries (warpConfig + the live + forward-dated set, after the dead dexConfig 0x9010 key was removed). If the canonical count legitimately changed, update this assertion alongside.",
+	require.Lenf(t, ok.PrecompileUpgrades, 46,
+		"canonical entry count drifted: this regression-proof test was authored against 46 entries "+
+			"(17 live-at-block-0 pinned to blockTimestamp:0 + warpConfig disable@1766708399 + "+
+			"warpConfig re-enable@1766708400 + 7 bls12381 family@1766708400 + 20 forward-dated@1782864000, "+
+			"after the dead dexConfig 0x9010 key was removed). If the canonical count legitimately "+
+			"changed, update this assertion alongside.",
 	)
 
 	// Build a "pre-patch" 49-entry probe by injecting three
-	// guaranteed-unregistered sentinel keys at a forward-date.
+	// guaranteed-unregistered sentinel keys at a forward-date (46 + 3 = 49).
 	var asObj map[string]any
 	require.NoError(t, json.Unmarshal(raw, &asObj))
 	upgrades, _ := asObj["precompileUpgrades"].([]any)
