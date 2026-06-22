@@ -30,6 +30,7 @@ import (
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/tracing"
 	ethtypes "github.com/luxfi/geth/core/types"
+	gethvm "github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/log"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/vm/chains/atomic"
@@ -121,8 +122,55 @@ func (a *accessibleStateBridge) GetChainConfig() extconfig.ChainConfig {
 	return &extChainConfigBridge{internal: a.internal.GetChainConfig()}
 }
 
+// envProvider is the concrete accessor the internal accessibleStateAdapter
+// (evm/core/precompile_overrider.go) exposes to hand the registry bridge the raw
+// geth precompile execution environment. It is kept OFF the EVM-internal
+// contract.AccessibleState interface (which has many implementers/mocks) and
+// type-asserted here so only the production adapter — which actually holds a geth
+// env — forwards a Call surface.
+type envProvider interface {
+	GetPrecompileEnv() gethvm.PrecompileEnvironment
+}
+
+// GetPrecompileEnv returns the external precompile execution environment with a live
+// Call surface, forwarded from the underlying geth env. This is what makes the DEX
+// 0x9999 settlement precompile's ERC-20 leg execute on-chain: the precompile sub-
+// calls the token contract (transferFrom / transfer / balanceOf) through this env's
+// Call. When the internal adapter does not provide a geth env (a non-EVM caller or a
+// test mock), this returns nil and the precompile fails-secure (ErrERC20VaultUnavailable)
+// rather than mint an unbacked claim.
 func (a *accessibleStateBridge) GetPrecompileEnv() extcontract.PrecompileEnvironment {
-	return nil // Not used by any external precompile
+	p, ok := a.internal.(envProvider)
+	if !ok {
+		return nil
+	}
+	env := p.GetPrecompileEnv()
+	if env == nil {
+		return nil
+	}
+	return &precompileEnvBridge{env: env}
+}
+
+// precompileEnvBridge adapts a geth vm.PrecompileEnvironment to the external
+// contract.PrecompileEnvironment, ADDING the Call method the DEX precompile type-
+// asserts (callableEnv). contract.PrecompileEnvironment itself declares only
+// ReadOnly(); Call is an OPTIONAL concrete capability the precompile reaches via a
+// type assertion, so adding it here does not widen the shared interface.
+type precompileEnvBridge struct {
+	env gethvm.PrecompileEnvironment
+}
+
+func (p *precompileEnvBridge) ReadOnly() bool { return p.env.ReadOnly() }
+
+// Call forwards a contract sub-call to the geth env. The caller of the sub-call is
+// the precompile's SELF address (the geth env's default — NO caller proxying), which
+// for the 0x9999 ERC-20 vault is 0x9999 itself: that matches the allowance a
+// depositor granted the vault via approve(0x9999, amount), so transferFrom pulls
+// against the correct allowance. The variadic CallOption tail of the geth signature
+// is intentionally dropped (no proxying); the external callableEnv shape is the
+// no-option form the precompile expects.
+func (p *precompileEnvBridge) Call(addr common.Address, input []byte, gas uint64, value *big.Int) ([]byte, uint64, error) {
+	return p.env.Call(addr, input, gas, value)
 }
 
 // accessibleStateBridge forwards the OPTIONAL cross-chain atomic capability
