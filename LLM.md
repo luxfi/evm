@@ -1,4 +1,4 @@
-# LLM.md - Lux EVM Module
+# Lux EVM Module
 
 ## Project Overview
 Lux EVM (formerly EVM) is the Ethereum Virtual Machine implementation for Lux L2 chains. This module provides EVM compatibility for the Lux network.
