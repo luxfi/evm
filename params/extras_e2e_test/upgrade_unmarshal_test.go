@@ -48,10 +48,12 @@ import (
 
 // canonicalMainnetUpgradeV46 is the byte-for-byte vendored copy of
 // luxfi/genesis configs/mainnet/upgrade.json at the v46 precompile-set
-// freeze (warpConfig + 18 live-at-block-0 + 27 forward-dated to the
-// Quasar Edition activation timestamp). Vendoring it removes runtime
-// CWD-walking and makes this regression-proof hermetic in CI runners
-// that clone only luxfi/evm.
+// freeze (warpConfig + 17 live-at-block-0 + 27 forward-dated to the
+// Quasar Edition activation timestamp). The dead dexConfig 0x9010 key
+// was removed when node v1.30.27 dropped that precompile (its config
+// key is no longer registered → it would brick the C-Chain on boot).
+// Vendoring it removes runtime CWD-walking and makes this
+// regression-proof hermetic in CI runners that clone only luxfi/evm.
 //
 // Sync contract: if luxfi/genesis configs/mainnet/upgrade.json changes,
 // regenerate this file:
@@ -189,7 +191,7 @@ func TestMainnetUpgradeJSON_RegistryRejectsUnregisteredKey(t *testing.T) {
 // TestRegressionProof_SimulatedFortyNineEntryCanonicalFails is the
 // explicit regression proof requested in Red's MEDIUM (vector 9)
 // remediation. It simulates a pre-patch oversized canonical by
-// extending the current 46-entry canonical with three unregistered
+// extending the current 45-entry canonical with three unregistered
 // keys and asserts the parser refuses the result.
 //
 // Concretely: if a future regression introduces any unregistered
@@ -211,10 +213,10 @@ func TestRegressionProof_SimulatedFortyNineEntryCanonicalFails(t *testing.T) {
 	// Sanity-check: the post-patch canonical accepted as-is.
 	var ok extras.UpgradeConfig
 	require.NoError(t, json.Unmarshal(raw, &ok),
-		"post-patch canonical (46 entries) must parse cleanly — see TestMainnetUpgradeJSON_UnmarshalsAgainstRegistry",
+		"post-patch canonical (45 entries) must parse cleanly — see TestMainnetUpgradeJSON_UnmarshalsAgainstRegistry",
 	)
-	require.Lenf(t, ok.PrecompileUpgrades, 46,
-		"canonical entry count drifted: this regression-proof test was authored against 46 entries (warpConfig + 18 live + 27 forward-dated). If the canonical count legitimately changed, update this assertion alongside.",
+	require.Lenf(t, ok.PrecompileUpgrades, 45,
+		"canonical entry count drifted: this regression-proof test was authored against 45 entries (warpConfig + the live + forward-dated set, after the dead dexConfig 0x9010 key was removed). If the canonical count legitimately changed, update this assertion alongside.",
 	)
 
 	// Build a "pre-patch" 49-entry probe by injecting three
