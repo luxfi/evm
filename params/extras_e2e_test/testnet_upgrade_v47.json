@@ -15,13 +15,6 @@
     {"deadZeroConfig":         {"blockTimestamp": 1766708400}},
     {"deadConfig":             {"blockTimestamp": 1766708400}},
     {"deadFullConfig":         {"blockTimestamp": 1766708400}},
-    {"dexConfig": {
-      "blockTimestamp": 1766708400,
-      "protocolFeeController": "0x9011E888251AB053B7bD1cdB598Db4f9DEd94714",
-      "maxPools": 10000,
-      "enableFlashLoans": true,
-      "enableHooks": true
-    }},
     {"routerConfig": {
       "blockTimestamp": 1766708400,
       "v3QuoterAddress":  "0x0000000000000000000000000000000000000000",
