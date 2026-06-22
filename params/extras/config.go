@@ -486,11 +486,6 @@ func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint
 // GetFeeConfig returns the original FeeConfig contained in the genesis ChainConfig.
 // Implements precompile.ChainConfig interface.
 func (c *ChainConfig) GetFeeConfig() commontype.FeeConfig {
-	if c.FeeConfig.GasLimit == nil {
-		fmt.Printf("DEBUG GetFeeConfig: GasLimit is nil, c=%p\n", c)
-	} else {
-		fmt.Printf("DEBUG GetFeeConfig: GasLimit=%v, c=%p\n", c.FeeConfig.GasLimit, c)
-	}
 	return c.FeeConfig
 }
 
