@@ -24,6 +24,7 @@ import (
 
 	// External precompile types
 	extcontract "github.com/luxfi/precompile/contract"
+	"github.com/luxfi/precompile/dex"
 	extmodules "github.com/luxfi/precompile/modules"
 	extconfig "github.com/luxfi/precompile/precompileconfig"
 
@@ -124,12 +125,34 @@ func (a *accessibleStateBridge) GetChainConfig() extconfig.ChainConfig {
 
 // envProvider is the concrete accessor the internal accessibleStateAdapter
 // (evm/core/precompile_overrider.go) exposes to hand the registry bridge the raw
-// geth precompile execution environment. It is kept OFF the EVM-internal
+// geth precompile execution environment. It is kept OFF the EVM-INTERNAL
 // contract.AccessibleState interface (which has many implementers/mocks) and
 // type-asserted here so only the production adapter — which actually holds a geth
-// env — forwards a Call surface.
+// env — can supply one. (NOTE: the EXTERNAL contract.AccessibleState interface this
+// bridge implements DOES expose GetPrecompileEnv() to every external precompile;
+// GetPrecompileEnv below gates which of them actually receive a callable env.)
 type envProvider interface {
 	GetPrecompileEnv() gethvm.PrecompileEnvironment
+}
+
+// callableEnvAllowlist is the set of precompile self-addresses that legitimately need
+// the EVM Call sub-call surface (to move ERC-20 value through the token contract for
+// C<->D settlement). It is the DEX settlement family ONLY:
+//   - 0x9999 (LXSettleAddress): the sole money path — deposit/withdraw/swap legs pull
+//     and push ERC-20 via transferFrom/transfer with 0x9999 as msg.sender.
+//   - 0x9996 (DEXPositionManagerAddress): composes 0x9999; its LP-commit leg moves
+//     ERC-20 liquidity with 0x9996 as msg.sender.
+//
+// Every OTHER external precompile (the PQ/ZK verifiers at 0x0122xx, etc.) gets a nil
+// callable env and falls back to its fail-secure refusal. Those precompiles do not
+// type-assert callableEnv today, so this changes no live behaviour — it is
+// defense-in-depth so a FUTURE external precompile cannot silently acquire EVM sub-
+// call power (with itself as msg.sender) merely by asserting the optional capability.
+// The addresses are the canonical luxfi/precompile/dex constants (one source of
+// truth; that package is already in this module's dependency graph via registry.go).
+var callableEnvAllowlist = map[common.Address]struct{}{
+	common.HexToAddress(dex.LXSettleAddress):           {},
+	common.HexToAddress(dex.DEXPositionManagerAddress): {},
 }
 
 // GetPrecompileEnv returns the external precompile execution environment with a live
@@ -139,6 +162,13 @@ type envProvider interface {
 // Call. When the internal adapter does not provide a geth env (a non-EVM caller or a
 // test mock), this returns nil and the precompile fails-secure (ErrERC20VaultUnavailable)
 // rather than mint an unbacked claim.
+//
+// SHARED-INTERFACE NOTE: this method IS on the shared external contract.AccessibleState
+// interface, so every external precompile receives this bridge. The Call surface is a
+// powerful capability (the sub-call's msg.sender is the asserting precompile's own
+// address), so it is GATED here: only the DEX settlement addresses in
+// callableEnvAllowlist receive a non-nil callable env; all others get nil (fail-secure
+// refusal). This is defense-in-depth on top of each settlement Run's CALL-only guard.
 func (a *accessibleStateBridge) GetPrecompileEnv() extcontract.PrecompileEnvironment {
 	p, ok := a.internal.(envProvider)
 	if !ok {
@@ -146,6 +176,11 @@ func (a *accessibleStateBridge) GetPrecompileEnv() extcontract.PrecompileEnviron
 	}
 	env := p.GetPrecompileEnv()
 	if env == nil {
+		return nil
+	}
+	// Gate the Call surface to the DEX settlement family. The precompile self-address
+	// the geth env carries identifies WHO is asking; only those addresses get Call.
+	if _, allowed := callableEnvAllowlist[env.Addresses().Self]; !allowed {
 		return nil
 	}
 	return &precompileEnvBridge{env: env}
@@ -163,12 +198,14 @@ type precompileEnvBridge struct {
 func (p *precompileEnvBridge) ReadOnly() bool { return p.env.ReadOnly() }
 
 // Call forwards a contract sub-call to the geth env. The caller of the sub-call is
-// the precompile's SELF address (the geth env's default — NO caller proxying), which
-// for the 0x9999 ERC-20 vault is 0x9999 itself: that matches the allowance a
-// depositor granted the vault via approve(0x9999, amount), so transferFrom pulls
-// against the correct allowance. The variadic CallOption tail of the geth signature
-// is intentionally dropped (no proxying); the external callableEnv shape is the
-// no-option form the precompile expects.
+// the asserting precompile's SELF address (the geth env's default — NO caller
+// proxying). For the DEX settlement family this is the settlement address itself
+// (0x9999, or 0x9996 for LP commits): that matches the allowance a depositor granted
+// the vault via approve(0x9999, amount), so transferFrom pulls against the correct
+// allowance. The settlement Run's CALL-only guard guarantees self is the settlement
+// address (never a DELEGATECALL delegator). The variadic CallOption tail of the geth
+// signature is intentionally dropped (no proxying); the external callableEnv shape is
+// the no-option form the precompile expects.
 func (p *precompileEnvBridge) Call(addr common.Address, input []byte, gas uint64, value *big.Int) ([]byte, uint64, error) {
 	return p.env.Call(addr, input, gas, value)
 }

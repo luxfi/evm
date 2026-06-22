@@ -14,7 +14,13 @@ import (
 	"github.com/luxfi/geth/core/types"
 	gethvm "github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/geth/params"
+	"github.com/luxfi/precompile/dex"
 )
+
+// settleSelf is the 0x9999 DEX settlement address — the canonical self the bridge
+// gates the Call surface to. The production DEX path runs with this self, so the
+// WIRED tests model it.
+var settleSelf = common.HexToAddress(dex.LXSettleAddress)
 
 // bridge_precompileenv_test.go pins the CONSUMER side of the ERC-20 settlement env
 // wiring — the fix that makes accessibleStateBridge.GetPrecompileEnv() return a LIVE
@@ -51,6 +57,7 @@ type recordingEnv struct {
 	lastVal  *big.Int
 	lastOpts int // number of CallOption passed — MUST be 0 (no proxying)
 	readOnly bool
+	self     common.Address // the precompile self the bridge gates on (Addresses().Self)
 }
 
 func (e *recordingEnv) Call(addr common.Address, input []byte, gas uint64, value *big.Int, opts ...gethvm.CallOption) ([]byte, uint64, error) {
@@ -63,19 +70,21 @@ func (e *recordingEnv) Call(addr common.Address, input []byte, gas uint64, value
 	return []byte("ok"), gas, nil
 }
 
-func (e *recordingEnv) ReadOnly() bool                            { return e.readOnly }
-func (e *recordingEnv) BlockHeader() (*types.Header, error)       { return &types.Header{}, nil }
-func (e *recordingEnv) Rules() params.Rules                       { return params.Rules{} }
-func (e *recordingEnv) BlockNumber() *big.Int                     { return big.NewInt(0) }
-func (e *recordingEnv) BlockTime() uint64                         { return 0 }
-func (e *recordingEnv) Addresses() gethvm.PrecompileAddresses     { return gethvm.PrecompileAddresses{} }
-func (e *recordingEnv) ChainConfig() *params.ChainConfig          { return nil }
-func (e *recordingEnv) StateDB() gethvm.StateDB                   { return nil }
-func (e *recordingEnv) ReadOnlyState() gethvm.StateDB             { return nil }
-func (e *recordingEnv) UseGas(uint64) bool                        { return true }
-func (e *recordingEnv) Gas() uint64                               { return 0 }
-func (e *recordingEnv) ConsensusContext() context.Context         { return context.Background() }
-func (e *recordingEnv) CallIndex() uint32                         { return 0 }
+func (e *recordingEnv) ReadOnly() bool                      { return e.readOnly }
+func (e *recordingEnv) BlockHeader() (*types.Header, error) { return &types.Header{}, nil }
+func (e *recordingEnv) Rules() params.Rules                 { return params.Rules{} }
+func (e *recordingEnv) BlockNumber() *big.Int               { return big.NewInt(0) }
+func (e *recordingEnv) BlockTime() uint64                   { return 0 }
+func (e *recordingEnv) Addresses() gethvm.PrecompileAddresses {
+	return gethvm.PrecompileAddresses{Self: e.self}
+}
+func (e *recordingEnv) ChainConfig() *params.ChainConfig  { return nil }
+func (e *recordingEnv) StateDB() gethvm.StateDB           { return nil }
+func (e *recordingEnv) ReadOnlyState() gethvm.StateDB     { return nil }
+func (e *recordingEnv) UseGas(uint64) bool                { return true }
+func (e *recordingEnv) Gas() uint64                       { return 0 }
+func (e *recordingEnv) ConsensusContext() context.Context { return context.Background() }
+func (e *recordingEnv) CallIndex() uint32                 { return 0 }
 
 var _ gethvm.PrecompileEnvironment = (*recordingEnv)(nil)
 
@@ -85,11 +94,11 @@ type internalWithEnv struct {
 	env gethvm.PrecompileEnvironment
 }
 
-func (m *internalWithEnv) GetStateDB() contract.StateDB                       { return nil }
-func (m *internalWithEnv) GetBlockContext() contract.BlockContext             { return nil }
-func (m *internalWithEnv) GetConsensusContext() context.Context               { return context.Background() }
-func (m *internalWithEnv) GetChainConfig() precompileconfig.ChainConfig       { return nil }
-func (m *internalWithEnv) GetPrecompileEnv() gethvm.PrecompileEnvironment     { return m.env }
+func (m *internalWithEnv) GetStateDB() contract.StateDB                   { return nil }
+func (m *internalWithEnv) GetBlockContext() contract.BlockContext         { return nil }
+func (m *internalWithEnv) GetConsensusContext() context.Context           { return context.Background() }
+func (m *internalWithEnv) GetChainConfig() precompileconfig.ChainConfig   { return nil }
+func (m *internalWithEnv) GetPrecompileEnv() gethvm.PrecompileEnvironment { return m.env }
 
 var _ contract.AccessibleState = (*internalWithEnv)(nil)
 
@@ -110,7 +119,7 @@ var _ contract.AccessibleState = (*internalNoEnv)(nil)
 // options (no caller proxying, so the token sees msg.sender == the precompile self,
 // matching the depositor's approve(0x9999) allowance).
 func TestBridge_GetPrecompileEnv_WiredForwardsCall(t *testing.T) {
-	rec := &recordingEnv{readOnly: false}
+	rec := &recordingEnv{readOnly: false, self: settleSelf} // DEX settlement self (allowlisted)
 	bridge := &accessibleStateBridge{internal: &internalWithEnv{env: rec}}
 
 	env := bridge.GetPrecompileEnv()
@@ -167,5 +176,37 @@ func TestBridge_GetPrecompileEnv_TypedNilEnv_FailsSecure(t *testing.T) {
 	bridge := &accessibleStateBridge{internal: &internalWithEnv{env: nil}}
 	if env := bridge.GetPrecompileEnv(); env != nil {
 		t.Fatalf("GetPrecompileEnv() returned non-nil (%T) for a nil env — typed-nil trap; precompile would nil-deref on Call", env)
+	}
+}
+
+// TestBridge_GetPrecompileEnv_NonSettlementSelf_Gated proves the defense-in-depth
+// allowlist: a precompile whose self is NOT a DEX settlement address (e.g. a PQ/ZK
+// verifier at 0x0122xx, or any future external precompile) gets a nil callable env
+// even when a live geth env is present. The Call surface (whose sub-call msg.sender
+// is the asserting precompile's own address) is reserved for the DEX settlement
+// family; everything else fails-secure. This bounds the blast radius of
+// GetPrecompileEnv() being on the shared external AccessibleState interface.
+func TestBridge_GetPrecompileEnv_NonSettlementSelf_Gated(t *testing.T) {
+	// A representative non-settlement precompile address (Pulsar threshold, 0x012204).
+	verifier := common.HexToAddress("0x0000000000000000000000000000000000012204")
+	rec := &recordingEnv{readOnly: false, self: verifier}
+	bridge := &accessibleStateBridge{internal: &internalWithEnv{env: rec}}
+	if env := bridge.GetPrecompileEnv(); env != nil {
+		t.Fatalf("GetPrecompileEnv() returned non-nil (%T) for non-settlement self %s — the Call surface must be gated to the DEX settlement family", env, verifier)
+	}
+	if rec.calls != 0 {
+		t.Fatal("a gated env must never have forwarded a Call")
+	}
+}
+
+// TestBridge_GetPrecompileEnv_PositionManagerSelf_Allowed proves 0x9996 (the LP
+// PositionManager that composes 0x9999 and moves ERC-20 liquidity) is on the
+// allowlist — its commit leg legitimately needs the Call surface.
+func TestBridge_GetPrecompileEnv_PositionManagerSelf_Allowed(t *testing.T) {
+	pm := common.HexToAddress(dex.DEXPositionManagerAddress)
+	rec := &recordingEnv{readOnly: false, self: pm}
+	bridge := &accessibleStateBridge{internal: &internalWithEnv{env: rec}}
+	if env := bridge.GetPrecompileEnv(); env == nil {
+		t.Fatalf("GetPrecompileEnv() returned nil for 0x9996 PositionManager self %s — its ERC-20 LP commit would refuse on-chain", pm)
 	}
 }
