@@ -47,7 +47,6 @@ const luxMainnetLiveUpgradeJSON = `{
     {"deadZeroConfig":   {"blockTimestamp": 0}},
     {"deadConfig":       {"blockTimestamp": 0}},
     {"deadFullConfig":   {"blockTimestamp": 0}},
-    {"dexConfig":        {"blockTimestamp": 0}},
     {"routerConfig":     {"blockTimestamp": 0}},
     {"fheConfig":        {"blockTimestamp": 0}},
     {"frostVerify":      {"blockTimestamp": 0}},
