@@ -164,15 +164,23 @@ func (a *accessibleStateAdapter) GetChainConfig() precompileconfig.ChainConfig {
 
 // GetPrecompileEnv exposes the underlying geth precompile execution environment so
 // the registry bridge (precompile/registry/bridge.go) can forward its Call surface
-// to an external precompile. The EVM-internal contract.AccessibleState interface
-// does NOT declare this method (it has many implementers/mocks that must stay
-// minimal); the bridge type-asserts this concrete accessor instead. The env's Call
-// is what the DEX 0x9999 settlement precompile uses to move ERC-20 value
-// (transferFrom / transfer / balanceOf on the token contract) for its C<->D leg —
-// the analog of the EVM pre-moving msg.value into 0x9999 for native LUX. Returns the
-// concrete vm.PrecompileEnvironment, which already implements Call; the bridge
-// narrows it to the external contract.PrecompileEnvironment shape the precompile
-// type-asserts.
+// to an external precompile. This EVM-INTERNAL accessor is NOT on the EVM-internal
+// contract.AccessibleState interface (which has many implementers/mocks that must
+// stay minimal); the bridge type-asserts this concrete accessor (envProvider).
+//
+// NOTE on reach (do not mistake this for the only control): the bridge DOES expose
+// GetPrecompileEnv() on the SHARED EXTERNAL contract.AccessibleState interface, so
+// the Call surface is reachable by every external precompile that type-asserts it.
+// The bridge therefore gates which precompiles get a non-nil callable env (only the
+// DEX settlement addresses 0x9999/0x9996) and each settlement Run pins self to its
+// own address — see precompile/registry/bridge.go and the dex settle CALL-only guard.
+//
+// The env's Call is what the DEX 0x9999 settlement precompile uses to move ERC-20
+// value (transferFrom / transfer / balanceOf on the token contract) for its C<->D
+// leg — the analog of the EVM pre-moving msg.value into 0x9999 for native LUX.
+// Returns the concrete vm.PrecompileEnvironment, which already implements Call; the
+// bridge narrows it to the external contract.PrecompileEnvironment shape the
+// precompile type-asserts.
 func (a *accessibleStateAdapter) GetPrecompileEnv() vm.PrecompileEnvironment {
 	return a.env
 }
