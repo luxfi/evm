@@ -171,7 +171,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 
 				cacheConfig := DefaultCacheConfigWithScheme(scheme)
 				cacheConfig.ChainDataDir = t.TempDir()
-				bc, err := NewBlockChain(db, cacheConfig, &oldcustomg, dummy.NewFullFaker(), vm.Config{}, genesis.Hash(), false)
+				bc, err := NewBlockChain(db, cacheConfig, &oldcustomg, dummy.NewFullFaker(), vm.Config{}, genesis.Hash(), false, nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -292,7 +292,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 		},
 		GasLimit: params.GetExtra(params.TestChainConfig).FeeConfig.GasLimit.Uint64(),
 	}
-	bc, _ := NewBlockChain(db, DefaultCacheConfig, &customg, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false)
+	bc, _ := NewBlockChain(db, DefaultCacheConfig, &customg, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false, nil)
 	defer bc.Stop()
 
 	// Advance header to block #4, past the ContractDeployerAllowListConfig.

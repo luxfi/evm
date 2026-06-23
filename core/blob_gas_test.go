@@ -165,6 +165,7 @@ func TestBlobGasEncodeDecodeRoundtrip(t *testing.T) {
 		vm.Config{},
 		common.Hash{},
 		false,
+		nil,
 	)
 	require.NoError(t, err)
 	defer blockchain.Stop()

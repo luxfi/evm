@@ -66,7 +66,7 @@ func TestBadTxAllowListBlock(t *testing.T) {
 			},
 			GasLimit: params.GetExtra(config).FeeConfig.GasLimit.Uint64(),
 		}
-		blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+		blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false, nil)
 	)
 	defer blockchain.Stop()
 
