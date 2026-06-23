@@ -16,10 +16,10 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.2.1
-	github.com/luxfi/chains v1.3.18
-	github.com/luxfi/consensus v1.25.19
+	github.com/luxfi/chains v1.3.19
+	github.com/luxfi/consensus v1.25.21
 	github.com/luxfi/constants v1.5.8
-	github.com/luxfi/crypto v1.19.21
+	github.com/luxfi/crypto v1.19.22
 	github.com/luxfi/database v1.20.4
 	github.com/luxfi/dex v1.5.16
 	github.com/luxfi/filesystem v0.0.1
@@ -34,7 +34,7 @@ require (
 	github.com/luxfi/metric v1.5.9
 	github.com/luxfi/p2p v1.21.1
 	github.com/luxfi/pq v1.0.3
-	github.com/luxfi/precompile v0.5.58
+	github.com/luxfi/precompile v0.5.59
 	github.com/luxfi/runtime v1.1.3
 	github.com/luxfi/sys v0.1.0
 	github.com/luxfi/timer v1.0.2
