@@ -47,7 +47,7 @@ func TestGenesisCancun(t *testing.T) {
 
 		// Try to create blockchain
 		engine := dummy.NewCoinbaseFaker()
-		chain, err := NewBlockChain(db, DefaultCacheConfig, gspec, engine, vm.Config{}, hash, false)
+		chain, err := NewBlockChain(db, DefaultCacheConfig, gspec, engine, vm.Config{}, hash, false, nil)
 		if err != nil {
 			t.Logf("FAIL: Cannot create blockchain with Cancun: %v", err)
 		} else {
@@ -89,7 +89,7 @@ func TestGenesisCancun(t *testing.T) {
 
 		// Try to create blockchain
 		engine := dummy.NewCoinbaseFaker()
-		chain, err := NewBlockChain(db, DefaultCacheConfig, gspec, engine, vm.Config{}, hash, false)
+		chain, err := NewBlockChain(db, DefaultCacheConfig, gspec, engine, vm.Config{}, hash, false, nil)
 		if err != nil {
 			t.Logf("FAIL: Cannot create blockchain without Cancun: %v", err)
 		} else {
