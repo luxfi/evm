@@ -408,6 +408,30 @@ func (s *stateDBBridge) Logs() []*ethtypes.Log {
 	return nil
 }
 
+// GetCodeSize forwards the EXTCODESIZE primitive (the C1 live-on-chain asset proof the
+// 0x9999 DEX value path's OnChainAssetVerifier reads) to the internal contract.StateDB.
+// Like SubBalance above, this is an OPTIONAL capability the narrow internal interface does
+// not declare, so we type-assert it. In production s.internal is the concrete
+// stateDBAdapter{vm.StateDB} (precompile_overrider.go), which DOES implement GetCodeSize by
+// forwarding to the geth StateDB; the assertion succeeds and the real code size flows.
+//
+// Without this forward, the dex precompile (which receives this *stateDBBridge as its
+// external StateDB) could not prove an ERC-20 has live code: poolStateAdapter.CodeSizeOf
+// would type-assert THIS bridge for GetCodeSize, miss it, and return -1, making
+// codeStaterFor report not-capable so EVERY real-asset market-open/swap fail-closed with
+// ErrNoOnChainVerifier — even over a genuine, code-bearing token. We return -1 (not 0) when
+// the internal StateDB cannot report code size, matching poolStateAdapter's own convention,
+// so the value path fails CLOSED ("no verifier") rather than admitting on a fabricated zero
+// (which would let an asset with no code masquerade as real).
+func (s *stateDBBridge) GetCodeSize(addr common.Address) int {
+	if cs, ok := s.internal.(interface {
+		GetCodeSize(common.Address) int
+	}); ok {
+		return cs.GetCodeSize(addr)
+	}
+	return -1
+}
+
 func (s *stateDBBridge) GetPredicateStorageSlots(addr common.Address, index int) ([]byte, bool) {
 	return s.internal.GetPredicateStorageSlots(addr, index)
 }
