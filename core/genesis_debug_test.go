@@ -105,7 +105,7 @@ func TestGenesisDebug(t *testing.T) {
 
 	// Now try to create a blockchain
 	engine := dummy.NewCoinbaseFaker()
-	chain, err := NewBlockChain(db, DefaultCacheConfig, gspec, engine, vm.Config{}, genesisHash, false)
+	chain, err := NewBlockChain(db, DefaultCacheConfig, gspec, engine, vm.Config{}, genesisHash, false, nil)
 	require.NoError(err, "Failed to create blockchain")
 	defer chain.Stop()
 

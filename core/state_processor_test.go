@@ -133,7 +133,7 @@ func TestStateProcessorErrors(t *testing.T) {
 			tooBigInitCode = [ethparams.MaxInitCodeSize + 1]byte{}
 		)
 		// FullFaker used to skip header verification that enforces no blobs.
-		blockchain, err := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false)
+		blockchain, err := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false, nil)
 		if err != nil {
 			t.Fatal("Failed to create blockchain:", err)
 		}
@@ -293,7 +293,7 @@ func TestStateProcessorErrors(t *testing.T) {
 				GasLimit: params.GetExtra(config).FeeConfig.GasLimit.Uint64(),
 			}
 		)
-		blockchain, err := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+		blockchain, err := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false, nil)
 		if err != nil {
 			t.Fatal("Failed to create blockchain:", err)
 		}
@@ -336,7 +336,7 @@ func TestStateProcessorErrors(t *testing.T) {
 				GasLimit: params.GetExtra(config).FeeConfig.GasLimit.Uint64(),
 			}
 		)
-		blockchain, err := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+		blockchain, err := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false, nil)
 		if err != nil {
 			t.Fatal("Failed to create blockchain:", err)
 		}

@@ -279,7 +279,7 @@ func TestFilters(t *testing.T) {
 	// Use cache config with SnapshotLimit: 0 because GenerateChain doesn't create snapshot layers
 	cacheConfig := *core.DefaultCacheConfig
 	cacheConfig.SnapshotLimit = 0
-	bc, err := core.NewBlockChain(db, &cacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, gspec.ToBlock().Hash(), false)
+	bc, err := core.NewBlockChain(db, &cacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, gspec.ToBlock().Hash(), false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
