@@ -1083,9 +1083,23 @@ func (context *ChainContext) Config() *params.ChainConfig {
 	return context.b.ChainConfig()
 }
 
-func (context *ChainContext) ConsensusContext() context.Context {
-	// Return the context (may contain consensus values if set by backend)
-	return context.ctx
+func (cc *ChainContext) ConsensusContext() context.Context {
+	// Return the backend blockchain's consensus context, which embeds the chain
+	// Runtime (via runtime.WithContext at initializeChain) carrying the real
+	// (networkID, cChainID). This is what NewEVMBlockContext threads into the EVM
+	// block context so a stateful precompile invoked on the eth_call/estimateGas
+	// path recovers the true chain identity through runtime.FromContext. The RPC
+	// REQUEST context (cc.ctx) does NOT carry the runtime — returning it here made
+	// every precompile that reads the consensus identity see networkID 0 / C-Chain
+	// Empty on eth_call (the identity-gate fail-closed). The request context remains
+	// the fallback for backends that do not expose a consensus context (e.g. test
+	// backends), preserving prior behavior there.
+	if b, ok := cc.b.(interface{ ConsensusContext() context.Context }); ok {
+		if consensusCtx := b.ConsensusContext(); consensusCtx != nil {
+			return consensusCtx
+		}
+	}
+	return cc.ctx
 }
 
 func doCall(ctx context.Context, b Backend, args TransactionArgs, state *state.StateDB, header *types.Header, overrides *StateOverride, blockOverrides *BlockOverrides, timeout time.Duration, globalGasCap uint64) (*core.ExecutionResult, error) {

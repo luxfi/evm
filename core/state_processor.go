@@ -28,7 +28,6 @@
 package core
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 
@@ -109,8 +108,10 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		}
 	}
 
-	// StatefulPrecompileHook is not yet exposed by luxfi/geth; predicate results
-	// are validated separately through the predicate verification path.
+	// Predicate results are validated separately through the predicate verification
+	// path. The consensus identity (networkID, cChainID) reaches stateful precompiles
+	// via context.ConsensusContext, set by NewEVMBlockContext(header, p.bc, …) above
+	// from the running *BlockChain and preserved onto evm.Context by vm.NewEVM.
 	_ = predicateResults
 	vmenv := vm.NewEVM(context, statedb, p.config, cfg)
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
@@ -290,13 +291,22 @@ func ApplyTransactionWithResults(config *params.ChainConfig, bc ChainContext, bl
 		predicateStorageSlots = predicate.PreparePredicateStorageSlots(extrasRules, tx.AccessList())
 	}
 
-	// StatefulPrecompileHook is not yet exposed by luxfi/geth.
-	// bc can be nil in test contexts (e.g., AddTxWithVMConfig).
-	var consensusCtx context.Context
-	if bc != nil {
-		consensusCtx = bc.ConsensusContext()
+	// Thread the chain's consensus context (which embeds the chain Runtime via
+	// runtime.WithContext at initializeChain) into the EVM block context so a
+	// stateful precompile can recover the real (networkID, cChainID) through
+	// runtime.FromContext(env.ConsensusContext()). geth's vm.BlockContext exposes
+	// ConsensusContext and vm.NewEVM preserves it onto evm.Context, so this is the
+	// supported seam — the prior "StatefulPrecompileHook not exposed" note was stale.
+	//
+	// The miner already builds blockContext via NewEVMBlockContext(env.header,
+	// w.chain, …), which sets ConsensusContext from the running *BlockChain; the
+	// nil-guard makes that path a no-op while guaranteeing any caller that passes a
+	// bare blockContext (so the consensus identity would otherwise be absent, i.e.
+	// networkID 0 / C-Chain Empty) still sees the real identity. bc can be nil in
+	// test contexts (e.g., AddTxWithVMConfig), in which case there is nothing to thread.
+	if bc != nil && blockContext.ConsensusContext == nil {
+		blockContext.ConsensusContext = bc.ConsensusContext()
 	}
-	_ = consensusCtx
 	_ = predicateStorageSlots
 	vmenv := vm.NewEVM(blockContext, statedb, config, cfg)
 	vmenv.SetTxContext(txContext)

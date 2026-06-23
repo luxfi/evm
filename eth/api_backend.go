@@ -96,6 +96,16 @@ func (b *EthAPIBackend) CurrentBlock() *types.Header {
 	return b.eth.blockchain.CurrentBlock()
 }
 
+// ConsensusContext returns the blockchain's consensus context, which embeds the
+// chain Runtime (set at initializeChain via runtime.WithContext) carrying the real
+// (networkID, cChainID). ethapi.ChainContext.ConsensusContext type-asserts this so
+// the eth_call/estimateGas block context threads the true chain identity into the
+// EVM, letting a stateful precompile recover it through runtime.FromContext rather
+// than seeing networkID 0 / C-Chain Empty from the RPC request context.
+func (b *EthAPIBackend) ConsensusContext() context.Context {
+	return b.eth.blockchain.ConsensusContext()
+}
+
 func (b *EthAPIBackend) LastAcceptedBlock() *types.Block {
 	return b.eth.LastAcceptedBlock()
 }
