@@ -129,10 +129,10 @@ type stubChainContext struct {
 	consensusCtx context.Context
 }
 
-func (s *stubChainContext) Engine() consensus.Engine                  { return nil }
+func (s *stubChainContext) Engine() consensus.Engine                    { return nil }
 func (s *stubChainContext) GetHeader(common.Hash, uint64) *types.Header { return nil }
-func (s *stubChainContext) Config() *params.ChainConfig               { return params.TestChainConfig }
-func (s *stubChainContext) ConsensusContext() context.Context         { return s.consensusCtx }
+func (s *stubChainContext) Config() *params.ChainConfig                 { return params.TestChainConfig }
+func (s *stubChainContext) ConsensusContext() context.Context           { return s.consensusCtx }
 
 // TestNewEVMBlockContextThreadsConsensusContext asserts the block-context builder
 // used by BOTH the miner (tx) path and the eth_call path threads the chain's

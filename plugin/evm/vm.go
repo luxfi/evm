@@ -1012,6 +1012,14 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		log.Info("Automining enabled: setting ModeSkipBlockFee=true on consensus engine")
 	}
 	consensusEngine := dummy.NewFakerWithModeAndClock(consensusMode, &vm.clock)
+	// Hand eth.New the chain Runtime the VM already holds (vm.runtime: networkID / X / C chain
+	// ids + cross-chain SharedMemory). It flows eth.Settings.ChainRuntime → core.NewBlockChain,
+	// which binds the chain identity onto the BlockChain BEFORE any block is re-executed during
+	// startup recovery. Otherwise an unclean shutdown after a 0x9999 swap would re-execute that
+	// block with identity (networkID 0 / C-Chain Empty), revert the committed swap, fail
+	// ValidateState, and the node could not boot. The identity is the runtime the VM already
+	// knows — passed explicitly, not smuggled through context.Context. vm.runtime is nil on
+	// single-chain dev, which is fine (no identity-gated precompiles there).
 	debugLog("initializeChain: calling eth.New")
 	// Wrap eth.New in panic recovery to capture any panics
 	func() {
@@ -1030,7 +1038,10 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 			&vm.ethConfig,
 			&EthPushGossiper{vm: vm},
 			vm.chaindb,
-			eth.Settings{MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest},
+			eth.Settings{
+				MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest,
+				ChainRuntime:        vm.runtime,
+			},
 			lastAcceptedHash,
 			consensusEngine,
 			&vm.clock,
@@ -1045,12 +1056,11 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	vm.txPool = vm.eth.TxPool()
 	vm.blockChain = vm.eth.BlockChain()
 	debugLog("initializeChain: got txPool and blockChain")
-	// Set consensus context for warp message chain ID/network ID. Embed the chain
-	// Runtime so a stateful precompile that needs the cross-chain atomic capability
-	// (the DEX 0x9999 C<->D shared-memory seam) can recover SharedMemory + chain
-	// identity via runtime.FromContext(env.ConsensusContext()). The runtime carries
-	// the per-chain atomic.SharedMemory handed to this VM by the chain manager; when
-	// it is absent (single-chain dev) FromContext is nil and the precompile reverts.
+	// Upgrade the consensus context on the live chain to the FULL chain Runtime, which adds
+	// the cross-chain atomic SharedMemory capability (the DEX 0x9999 C<->D shared-memory seam)
+	// on top of the identity already bound at construction. Also covers the warp message
+	// chain ID / network ID path. When vm.runtime is nil (single-chain dev) this is vm.ctx and
+	// FromContext stays nil, so a cross-chain settle reverts rather than fabricating value.
 	consensusCtx := vm.ctx
 	if vm.runtime != nil {
 		consensusCtx = runtime.WithContext(vm.ctx, vm.runtime)

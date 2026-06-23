@@ -81,7 +81,7 @@ func TestAcceptedLogsSubscription(t *testing.T) {
 	// Disable snapshots to avoid snapshot flattening issues during Accept.
 	cacheConfig := *DefaultCacheConfig
 	cacheConfig.SnapshotLimit = 0
-	chain, err := NewBlockChain(db, &cacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	chain, err := NewBlockChain(db, &cacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false, nil)
 	require.NoError(err)
 	defer chain.Stop()
 

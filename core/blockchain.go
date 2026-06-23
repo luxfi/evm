@@ -35,7 +35,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"runtime"
+	stdruntime "runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -64,6 +64,7 @@ import (
 	"github.com/luxfi/geth/metrics"
 	"github.com/luxfi/geth/triedb"
 	log "github.com/luxfi/log"
+	"github.com/luxfi/runtime"
 
 	// "github.com/luxfi/evm/triedb/firewood"
 	"github.com/luxfi/geth/triedb/hashdb"
@@ -306,7 +307,7 @@ type BlockChain struct {
 	chainConfig *params.ChainConfig // Chain & network configuration
 	cacheConfig *CacheConfig        // Cache configuration for pruning
 
-	consensusCtx context.Context // Consensus context with chain ID, network ID for warp
+	consensusCtx context.Context // Consensus context carrying chain identity (transport for the geth precompile boundary + warp); bound from the chain Runtime before reprocess, upgraded with SharedMemory by SetConsensusContext
 
 	db           ethdb.Database   // Low level persistent database to store final content in
 	snaps        *snapshot.Tree   // Snapshot tree for fast trie leaf access
@@ -400,9 +401,20 @@ type BlockChain struct {
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Ethereum Validator and
 // Processor.
+//
+// It binds [chainRuntime] (the chain's consensus identity — networkID / X / C chain ids —
+// which the VM already holds) onto the chain BEFORE loadLastState and populateMissingTries
+// run, so any block re-executed at construction (unclean-shutdown recovery via reprocessState,
+// or archive backfill via populateMissingTries) sees the SAME identity it was built and
+// accepted under. An identity-gated stateful precompile (the 0x9999 DEX value path) therefore
+// re-executes deterministically; without this, reprocess would run with networkID 0 / C-Chain
+// Empty, a committed swap would revert on re-execution, ValidateState would reject the block,
+// and the node could not boot. [chainRuntime] is nil for callers that run no identity-gated
+// precompiles (tests, the simulated backend); that is the unchanged default.
 func NewBlockChain(
 	db ethdb.Database, cacheConfig *CacheConfig, genesis *Genesis, engine consensus.Engine,
 	vmConfig vm.Config, lastAcceptedHash common.Hash, skipChainConfigCheckCompatible bool,
+	chainRuntime *runtime.Runtime,
 ) (*BlockChain, error) {
 	if cacheConfig == nil {
 		return nil, errCacheConfigNotSpecified
@@ -428,9 +440,19 @@ func NewBlockChain(
 	log.Info(strings.Repeat("-", 153))
 	log.Info("")
 
+	// Bind the chain's consensus identity BEFORE the bc is used for loadLastState /
+	// populateMissingTries reprocess. The consensus context is the last-mile transport the
+	// geth precompile boundary reads (runtime.FromContext); the explicit input is the typed
+	// [chainRuntime] the VM already holds — nil for chains with no identity-gated precompiles.
+	var consensusCtx context.Context
+	if chainRuntime != nil {
+		consensusCtx = runtime.WithContext(context.Background(), chainRuntime)
+	}
+
 	bc := &BlockChain{
 		chainConfig:         chainConfig,
 		cacheConfig:         cacheConfig,
+		consensusCtx:        consensusCtx,
 		db:                  db,
 		triedb:              triedb,
 		bodyCache:           lru.NewCache[common.Hash, *types.Body](bodyCacheLimit),
@@ -442,7 +464,7 @@ func NewBlockChain(
 		coinbaseConfigCache: lru.NewCache[common.Hash, *cacheableCoinbaseConfig](coinbaseConfigCacheLimit),
 		engine:              engine,
 		vmConfig:            vmConfig,
-		senderCacher:        NewTxSenderCacher(runtime.NumCPU()),
+		senderCacher:        NewTxSenderCacher(stdruntime.NumCPU()),
 		acceptorQueue:       make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
 		quit:                make(chan struct{}),
 		acceptedLogsCache:   NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
@@ -752,13 +774,16 @@ func (bc *BlockChain) SenderCacher() *TxSenderCacher {
 	return bc.senderCacher
 }
 
-// SetConsensusContext sets the consensus context for warp messages.
-// This should be called by the VM after creating the blockchain.
+// SetConsensusContext re-affirms / upgrades the consensus context after construction — the VM
+// calls it once the full chain Runtime (carrying the cross-chain atomic SharedMemory capability)
+// is available. The chain identity is already bound at construction from chainRuntime (so
+// reprocess is deterministic); this is the live (non-reprocess) execution context.
 func (bc *BlockChain) SetConsensusContext(ctx context.Context) {
 	bc.consensusCtx = ctx
 }
 
-// ConsensusContext returns the consensus context for warp messages.
+// ConsensusContext returns the consensus context (the transport carrying chain identity, and
+// after SetConsensusContext the cross-chain SharedMemory) read at the geth precompile boundary.
 func (bc *BlockChain) ConsensusContext() context.Context {
 	return bc.consensusCtx
 }
@@ -1894,7 +1919,7 @@ func (b *BadBlockReason) String() string {
 			receipt.Status, receipt.TxHash.Hex(), receipt.Logs, receipt.Bloom, receipt.PostState)
 	}
 	version, vcs := version.Info()
-	platform := fmt.Sprintf("%s %s %s %s", version, runtime.Version(), runtime.GOARCH, runtime.GOOS)
+	platform := fmt.Sprintf("%s %s %s %s", version, stdruntime.Version(), stdruntime.GOARCH, stdruntime.GOOS)
 	if vcs != "" {
 		vcs = fmt.Sprintf("\nVCS: %s", vcs)
 	}
