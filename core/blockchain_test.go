@@ -68,6 +68,7 @@ func createBlockChain(
 		vm.Config{},
 		lastAcceptedHash,
 		false,
+		nil,
 	)
 	return blockchain, err
 }
@@ -567,7 +568,7 @@ func testCanonicalHashMarker(t *testing.T, scheme string) {
 		db := rawdb.NewMemoryDatabase()
 		cacheConfig := DefaultCacheConfigWithScheme(scheme)
 		cacheConfig.ChainDataDir = t.TempDir()
-		chain, err := NewBlockChain(db, cacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+		chain, err := NewBlockChain(db, cacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false, nil)
 		if err != nil {
 			t.Fatalf("failed to create tester chain: %v", err)
 		}
@@ -759,7 +760,7 @@ func testCreateThenDelete(t *testing.T, config *params.ChainConfig) {
 	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{
 		//Debug:  true,
 		//Tracer: logger.NewJSONLogger(nil, os.Stdout),
-	}, common.Hash{}, false)
+	}, common.Hash{}, false, nil)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
@@ -876,7 +877,7 @@ func TestDeleteThenCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Import the canonical chain
-	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false, nil)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
@@ -964,7 +965,7 @@ func TestTransientStorageReset(t *testing.T) {
 	})
 
 	// Initialize the blockchain with 1153 enabled.
-	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vmConfig, common.Hash{}, false)
+	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vmConfig, common.Hash{}, false, nil)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
@@ -1058,7 +1059,7 @@ func TestEIP3651(t *testing.T) {
 
 		b.AddTx(tx)
 	})
-	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false, nil)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}

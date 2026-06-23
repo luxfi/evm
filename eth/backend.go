@@ -61,6 +61,7 @@ import (
 	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/geth/event"
 	log "github.com/luxfi/log"
+	"github.com/luxfi/runtime"
 	"github.com/luxfi/timer/mockable"
 )
 
@@ -72,6 +73,13 @@ var DefaultSettings Settings = Settings{MaxBlocksPerRequest: 2000}
 
 type Settings struct {
 	MaxBlocksPerRequest int64 // Maximum number of blocks to serve per getLogs request
+
+	// ChainRuntime is the chain Runtime the VM already holds (networkID / X / C chain ids,
+	// plus the cross-chain SharedMemory capability). It is threaded explicitly into
+	// core.NewBlockChain so blocks re-executed during startup recovery see the identity they
+	// were accepted under. Required for chains running the identity-gated 0x9999 DEX value
+	// path; nil is fine otherwise.
+	ChainRuntime *runtime.Runtime
 }
 
 // PushGossiper sends pushes pending transactions to peers until they are
@@ -248,7 +256,7 @@ func New(
 	if err := eth.precheckPopulateMissingTries(); err != nil {
 		return nil, err
 	}
-	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, config.Genesis, eth.engine, vmConfig, lastAcceptedHash, config.SkipUpgradeCheck)
+	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, config.Genesis, eth.engine, vmConfig, lastAcceptedHash, config.SkipUpgradeCheck, settings.ChainRuntime)
 	if err != nil {
 		return nil, err
 	}
@@ -545,7 +553,7 @@ func (s *Ethereum) handleOfflinePruning(cacheConfig *core.CacheConfig, gspec *co
 	}
 	// Note: Time Marker is written inside of [Prune] before compaction begins
 	// (considered an optional optimization)
-	s.blockchain, err = core.NewBlockChain(s.chainDb, cacheConfig, gspec, s.engine, vmConfig, lastAcceptedHash, s.config.SkipUpgradeCheck)
+	s.blockchain, err = core.NewBlockChain(s.chainDb, cacheConfig, gspec, s.engine, vmConfig, lastAcceptedHash, s.config.SkipUpgradeCheck, s.settings.ChainRuntime)
 	if err != nil {
 		return fmt.Errorf("failed to re-initialize blockchain after offline pruning: %w", err)
 	}
