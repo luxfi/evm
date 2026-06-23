@@ -232,6 +232,20 @@ func (a *accessibleStateAdapter) CChainID() ids.ID {
 	return ids.Empty
 }
 
+// GovernanceController returns the per-network DEX governance authority address the
+// host wired onto the chain runtime (installDEXValuePath, from the deployment topology)
+// — the SOLE caller permitted to halt 0x9999 settlement or seed its pots. It is a
+// governance CONTRACT, never a dev-mnemonic EOA. Returns the zero address when the
+// runtime is absent or the network configured no governance controller, which the
+// precompile treats as fail-closed (halt/seed revert). ids.ShortID and common.Address
+// are both [20]byte, so the conversion is exact.
+func (a *accessibleStateAdapter) GovernanceController() common.Address {
+	if rt := a.runtimeFromCtx(); rt != nil {
+		return common.Address(rt.GovernanceController)
+	}
+	return common.Address{}
+}
+
 // DChainID resolves the D-Chain (dexvm) blockchain id from the runtime chain topology
 // — the consensus context's blockchain-alias lookup of "D". The node registers the
 // dexvm chain under the "D"/"dex"/"dexvm" aliases at startup (initChainAliases), before
