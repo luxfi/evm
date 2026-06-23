@@ -227,6 +227,7 @@ type internalAtomic interface {
 	NetworkID() uint32
 	ChainID() ids.ID
 	CChainID() ids.ID
+	GovernanceController() common.Address
 	DChainID() ids.ID
 	TxID() ids.ID
 	CallIndex() uint32
@@ -265,6 +266,17 @@ func (a *accessibleStateBridge) CChainID() ids.ID {
 		return at.CChainID()
 	}
 	return ids.Empty
+}
+
+// GovernanceController delegates to the inner atomic capability — the per-network DEX
+// governance authority (a governance contract, never a dev-mnemonic EOA). Returns the
+// zero address when the inner state is not atomic-capable, which the precompile treats
+// as fail-closed (halt/seed revert).
+func (a *accessibleStateBridge) GovernanceController() common.Address {
+	if at := a.atomicOrNil(); at != nil {
+		return at.GovernanceController()
+	}
+	return common.Address{}
 }
 
 func (a *accessibleStateBridge) DChainID() ids.ID {
