@@ -354,6 +354,16 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	if err := vm.config.Validate(); err != nil {
 		return err
 	}
+
+	// The 0x9999 native DEX is ALWAYS-ON (live since the Dec 25 2025 precompile activation).
+	// There is no value-activation GATE to bind here: a swap's fail-closed controls (real-
+	// asset registry admission, the live-code verifier, the per-swap min-out / price floor,
+	// the halt switches, the non-reentrant custody mutex) are intrinsic to the swap and apply
+	// on every call regardless of consensus mode. No runtime flag turns the money path on or
+	// off. The LIVE WIRING of the value path's trust root (the registry-backed asset resolver
+	// + the local in-process D-Chain client) is installed below, once the chain context is
+	// known (after vm.chainConfig is set) — see installDEXValuePath in dex_value_wiring.go.
+
 	// We should deprecate config flags as the first thing, before we do anything else
 	// because this can set old flags to new flags. log the message after we have
 	// initialized the logger.
@@ -523,6 +533,21 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	}
 
 	vm.chainConfig = g.Config
+
+	// Install the 0x9999 native DEX value-path trust root (registry-backed asset resolver +
+	// local in-process D-Chain client), now that the EVM chainID (g.Config.ChainID) and the
+	// chain runtime identity are both known. This is the SOLE production install of the
+	// resolver the always-on precompile consults; without it the value path is fail-closed
+	// (every swap reverts ErrNoAssetResolver). It is wired for ALL networks and derives the
+	// resolver's identity ENTIRELY from the node's real chain context, never a constant.
+	//
+	// FAIL-CLOSED, NOT FATAL: a construction failure (missing/mismatched manifest, no chain
+	// context) is LOGGED and the resolver is left UNINSTALLED — the money path stays closed
+	// (swaps revert), it never opens. The node still boots for all non-DEX usage. We do not
+	// return the error: a node that cannot serve the DEX must still serve everything else.
+	if err := installDEXValuePath(vm.runtime, g.Config.ChainID.Uint64()); err != nil {
+		log.Warn("0x9999 native DEX value path NOT installed (value swaps will revert, fail-closed)", "err", err)
+	}
 
 	// F102 close-out — PQ gate. chainConfig is now non-nil.
 	// One concept, one place: ChainConfig.PQ holds the profile;
