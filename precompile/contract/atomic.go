@@ -4,6 +4,7 @@
 package contract
 
 import (
+	"github.com/luxfi/geth/common"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/vm/chains/atomic"
 )
@@ -29,6 +30,13 @@ type AtomicState interface {
 	ChainID() ids.ID
 	// CChainID is the C-Chain peer id (== ChainID on the C-Chain itself).
 	CChainID() ids.ID
+	// GovernanceController is the per-network DEX governance authority address — the
+	// SOLE caller permitted to toggle the 0x9999 settlement kill switches or seed its
+	// pots. A governance CONTRACT resolved by the host from its deployment topology,
+	// never a dev-mnemonic EOA. The zero address means no authority is configured, which
+	// the precompile treats as fail-closed (halt/seed revert). Internal twin of the
+	// external contract.AtomicState method the registry bridge forwards.
+	GovernanceController() common.Address
 	// DChainID is the D-Chain (dexvm) blockchain id the C<->D atomic seam routes to,
 	// resolved by the host from the chain topology (the consensus context's
 	// blockchain-alias lookup of "D"). ids.Empty on a network with no dexvm deployed.
