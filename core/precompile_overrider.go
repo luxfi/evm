@@ -317,6 +317,19 @@ func (s *stateDBAdapter) Exist(addr common.Address) bool {
 	return s.stateDB.Exist(addr)
 }
 
+// GetCodeSize forwards the EXTCODESIZE primitive to the underlying vm.StateDB. It is the
+// concrete-adapter half of an OPTIONAL capability the DEX 0x9999 value path type-asserts
+// (codeStater) to prove an ERC-20 asset is backed by LIVE on-chain code BEFORE admitting a
+// swap/market over it (C1 real-asset admission). Like SubBalance above, it is provided on
+// the concrete adapter — NOT added to the narrow internal contract.StateDB interface (which
+// has many implementers/mocks) — so the live-reality proof reads the same authoritative
+// state the value moves through, while the interface stays minimal. Without it a token whose
+// contract self-destructed (or was never deployed on a relaunched chain) could be traded
+// against a phantom; with it such an asset has code size 0 and the value path refuses.
+func (s *stateDBAdapter) GetCodeSize(addr common.Address) int {
+	return s.stateDB.GetCodeSize(addr)
+}
+
 func (s *stateDBAdapter) AddLog(log *types.Log) {
 	s.stateDB.AddLog(log)
 }
