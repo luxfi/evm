@@ -284,8 +284,8 @@ github.com/luxfi/crypto/ipa v1.2.4 h1:6xfwhI9/HrcDkF3Ti5/NxsNQIWbwYDJmRSNIHRQ/xf
 github.com/luxfi/crypto/ipa v1.2.4/go.mod h1:43J6f6rcfUMrZt4cQectMOZb6Ps+fAEj8ZTPC3Kk+gE=
 github.com/luxfi/database v1.20.4 h1:WOt2GIGJxf8AFpg49odMz8DZ8RFSLDrozGhZtmorN70=
 github.com/luxfi/database v1.20.4/go.mod h1:S/LvmfzNYWVNslcEcZwDrntqUO2ksaL8ql1nRmLUA/Q=
-github.com/luxfi/dex v1.5.16 h1:9I4FBucWGicvINlC5bZkOQwQUhLSrSYBgsIQsgWSVP4=
-github.com/luxfi/dex v1.5.16/go.mod h1:bhLgq3IKuecwg5VamR1ER+k3VBSBTuzdw/TJ/B6h7iQ=
+github.com/luxfi/dex v1.5.18 h1:mq2J/dBtZwIQk2cuGWue1WT6hl+BLku8huoBCgx3eas=
+github.com/luxfi/dex v1.5.18/go.mod h1:bhLgq3IKuecwg5VamR1ER+k3VBSBTuzdw/TJ/B6h7iQ=
 github.com/luxfi/fhe v1.8.2 h1:QllnObNFbi6D4mvFI6uQkepW8HgLtdy4RMR1TKYAInA=
 github.com/luxfi/fhe v1.8.2/go.mod h1:16yxwhcnCez/rNcd/C9JjH9IjbEz73X+0tvlsONyLeA=
 github.com/luxfi/filesystem v0.0.1 h1:VZ6xMFKaAPBW/ddlMsDnI2G0VU1lV5rYaVcW5d+KwEY=
