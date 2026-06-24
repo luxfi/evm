@@ -21,7 +21,7 @@ require (
 	github.com/luxfi/constants v1.5.8
 	github.com/luxfi/crypto v1.19.22
 	github.com/luxfi/database v1.20.4
-	github.com/luxfi/dex v1.5.16
+	github.com/luxfi/dex v1.5.18
 	github.com/luxfi/filesystem v0.0.1
 	github.com/luxfi/geth v1.17.12
 	github.com/luxfi/go-bip39 v1.1.2
