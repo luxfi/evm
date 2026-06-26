@@ -29,27 +29,20 @@ import (
 func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.ConfigurationBlockContext, statedb *state.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
 
-	// System precompiles (the DEX settlement money path 0x9999) activate at a single
-	// canonical dated fork — extras.DexSettleActivationTime (Dec 25 2025) — installed
-	// here as a forward state transition, NOT in historical genesis. On the block
-	// transition that CROSSES that timestamp we write the standard precompile-activation
-	// marker (nonce=1 + a non-empty code byte) into the module's account so EXTCODESIZE>0,
-	// eth_getCode!=0x, and Solidity's contract-existence guard passes for a typed call.
+	// System precompiles (the DEX settlement money path 0x9999) are AlwaysOn: a
+	// FIRST-RUN, no-legacy feature with no dated fork and no pre-activation history to
+	// protect. Their EXTCODESIZE marker (nonce=1 + a non-empty code byte) is installed
+	// ONCE, at genesis, so EXTCODESIZE>0, eth_getCode!=0x, and Solidity's
+	// contract-existence guard pass for a typed call from block 0.
 	//
-	// Why a forward fork and not a genesis marker: the genesis state root is consensus-
-	// critical and immutable for every existing network. Writing the marker at genesis
-	// would change the genesis hash and fork pre-activation history (a node replaying the
-	// RLP snapshot would compute a hash that disagrees with the committed genesis). So
-	// pre-activation blocks get NO marker (0x9999 is a plain account; replay stays
-	// canonical) and the marker appears exactly at the Dec 25 boundary going forward.
-	//
-	// IsForkTransition(fork, parent, current) fires once, when !parentForked && currentForked.
-	// For a freshly-genesised network whose genesis timestamp is already >= the fork
-	// (parent==nil), it fires at genesis — so fresh nets carry the marker from block 0 via
-	// the SAME mechanism (no separate genesisPrecompiles entry). The module's Configurator
+	// Genesis is the parent==nil transition: core/genesis.go calls this with a nil
+	// parentTimestamp while building the genesis block, BEFORE the genesis state root is
+	// committed (statedb.IntermediateRoot), so the marker lands in the committed genesis
+	// root deterministically on every node. Every later block has a non-nil parent, so
+	// the marker is written exactly once and never re-touched. The module's Configurator
 	// is NOT invoked (a system precompile has no activating config; all params resolve at
 	// runtime from the consensus context); only the EXTCODESIZE marker is installed.
-	if params.IsDexSettleForkTransition(parentTimestamp, blockTimestamp) {
+	if parentTimestamp == nil {
 		for _, module := range modules.AlwaysOnModules() {
 			// Standard precompile-activation marker (identical to the config-driven path
 			// below): a non-empty nonce + code so the account is non-empty (not GC'd on
