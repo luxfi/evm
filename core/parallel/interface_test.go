@@ -8,21 +8,7 @@ import (
 	"testing"
 
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/core/vm"
 )
-
-// TestDefaultExecutorReturnsNil verifies the default executor signals
-// "not handled" by returning (nil, nil).
-func TestDefaultExecutorReturnsNil(t *testing.T) {
-	exec := DefaultExecutor()
-	receipts, err := exec.ExecuteBlock(nil, nil, nil, nil, vm.Config{})
-	if err != nil {
-		t.Fatalf("DefaultExecutor returned error: %v", err)
-	}
-	if receipts != nil {
-		t.Fatalf("DefaultExecutor returned non-nil receipts: %v", receipts)
-	}
-}
 
 // TestGPUAutoDetect verifies GPU is auto-detected on darwin (Metal)
 // and reports unavailable on other platforms.
@@ -75,7 +61,6 @@ func TestGPUBatchKeccakReturnsNil(t *testing.T) {
 
 // TestInterfaceCompliance verifies the types satisfy interfaces at runtime.
 func TestInterfaceCompliance(t *testing.T) {
-	var _ BlockExecutor = DefaultExecutor()
 	var _ GPUAccelerator = DefaultGPU()
 }
 
@@ -111,15 +96,3 @@ func TestFallbackGPUNotAvailable(t *testing.T) {
 	}
 }
 
-// TestFallbackExecutorReturnsNilNil verifies the fallback executor
-// always returns (nil, nil) for any input.
-func TestFallbackExecutorReturnsNilNil(t *testing.T) {
-	exec := fallbackExecutor{}
-	receipts, err := exec.ExecuteBlock(nil, nil, nil, nil, vm.Config{})
-	if err != nil {
-		t.Fatalf("expected nil error, got: %v", err)
-	}
-	if receipts != nil {
-		t.Fatal("expected nil receipts from fallback executor")
-	}
-}

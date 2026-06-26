@@ -41,9 +41,9 @@ import (
 //
 // Apply performs the actual balance mutation against the supplied state. It is
 // injected so this package never needs to know asset/ledger internals -- the
-// same inversion TxApplyFunc uses for the EVM path. Apply MUST be a pure
-// function of the state it is given (no shared mutable capture) so speculative
-// execution on isolated copies is sound.
+// same dependency inversion the EVM path's ApplyFunc uses (executor.go). Apply
+// MUST be a pure function of the state it is given (no shared mutable capture)
+// so speculative execution on isolated copies is sound.
 type Fill struct {
 	// Maker and Taker are the two accounts whose balances move. For a spot
 	// trade these are the resting-order owner and the incoming-order owner.

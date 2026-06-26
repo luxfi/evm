@@ -16,16 +16,12 @@ package parallel
 import (
 	"sync"
 
-	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/core/vm"
-	ethparams "github.com/luxfi/geth/params"
 )
 
 var (
 	mu          sync.RWMutex
-	executor    BlockExecutor
 	accelerator GPUAccelerator
 	txExecutors map[EVMBackend]TransactionExecutor
 	activeBack  EVMBackend = GoEVM
@@ -33,13 +29,6 @@ var (
 
 func init() {
 	txExecutors = make(map[EVMBackend]TransactionExecutor)
-}
-
-// RegisterExecutor sets the parallel block executor.
-func RegisterExecutor(e BlockExecutor) {
-	mu.Lock()
-	defer mu.Unlock()
-	executor = e
 }
 
 // RegisterGPU sets the GPU accelerator.
@@ -107,17 +96,6 @@ func DefaultTransactionExecutor() TransactionExecutor {
 	return nil // GoEVM uses native geth path, no TransactionExecutor needed
 }
 
-// DefaultExecutor returns the registered parallel executor,
-// or a no-op sequential fallback if none was registered.
-func DefaultExecutor() BlockExecutor {
-	mu.RLock()
-	defer mu.RUnlock()
-	if executor != nil {
-		return executor
-	}
-	return fallbackExecutor{}
-}
-
 // DefaultGPU returns the registered GPU accelerator,
 // or a no-op if none was registered.
 func DefaultGPU() GPUAccelerator {
@@ -127,19 +105,6 @@ func DefaultGPU() GPUAccelerator {
 		return accelerator
 	}
 	return fallbackGPU{}
-}
-
-// fallbackExecutor falls through to sequential execution.
-type fallbackExecutor struct{}
-
-func (fallbackExecutor) ExecuteBlock(
-	_ *ethparams.ChainConfig,
-	_ *types.Header,
-	_ types.Transactions,
-	_ *state.StateDB,
-	_ vm.Config,
-) ([]*types.Receipt, error) {
-	return nil, nil
 }
 
 // fallbackGPU is the no-op GPU accelerator.
