@@ -355,12 +355,13 @@ func (c *ChainConfig) MarshalJSON() ([]byte, error) {
 // genesis hash when "all precompiles active at genesis" is the intended state.
 // Call this when building genesis configs for new chains.
 //
-// AlwaysOn modules (e.g. the 0x9999 DEX settlement money path) are SKIPPED: their
-// activation is governed by a single built-in dated fork (extras.DexSettleActivationTime),
+// AlwaysOn modules (e.g. the 0x9999 DEX settlement money path) are SKIPPED: they are
+// activated by the AlwaysOn mechanism (unconditional dispatch injection in
+// GetExtrasRules + a one-time genesis EXTCODESIZE marker in ApplyPrecompileActivations),
 // NOT by a genesisPrecompiles entry. Writing a timestamp-0 genesis config for them would
-// enable them from block 0 on every chain, bypassing the dated-fork gate and re-introducing
-// the genesis-marker mutation the dated fork exists to avoid. AlwaysOn modules carry no
-// per-net config, so there is nothing to seed into genesis regardless.
+// create a SECOND, conflicting activation path — the module's Configurator would run for
+// a system precompile that has no activating config. AlwaysOn modules carry no per-net
+// config, so there is nothing to seed regardless: one and only one activation path.
 func (c *ChainConfig) SetAllGenesisPrecompiles() {
 	c.GenesisPrecompiles = make(Precompiles)
 	for _, module := range modules.RegisteredModules() {
@@ -375,8 +376,9 @@ func (c *ChainConfig) SetAllGenesisPrecompiles() {
 // genesis configs for all registered precompile modules (timestamp = 0).
 // This is the authoritative source for "all precompiles active at genesis".
 //
-// AlwaysOn modules are SKIPPED for the same reason as SetAllGenesisPrecompiles: a
-// dated-fork-gated system precompile must never receive a timestamp-0 genesis config.
+// AlwaysOn modules are SKIPPED for the same reason as SetAllGenesisPrecompiles: an
+// AlwaysOn system precompile is activated by its own mechanism and must never also
+// receive a timestamp-0 genesis config (one and only one activation path).
 func AllGenesisPrecompiles() Precompiles {
 	precompiles := make(Precompiles)
 	for _, module := range modules.RegisteredModules() {
