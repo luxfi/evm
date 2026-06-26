@@ -15,52 +15,16 @@ import (
 
 var errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
 
-// DexSettleActivationTime is THE canonical, network-wide activation boundary for the
-// DEX settlement money path 0x9999 — unix 1766704800, i.e. 2025-12-25T23:20:00Z.
+// The DEX settlement money path 0x9999 is a FIRST-RUN, no-legacy system precompile: it
+// is ACTIVE FROM GENESIS on every Lux chain, with no dated fork and no per-net config.
+// There is no pre-activation history to protect, so there is no activation timestamp,
+// no dispatch gate, and no "behaves as a plain account before activation" branch.
 //
-// DO NOT "round" this to midnight: the value (not the prose date) is the protocol
-// constant, and it is ALREADY LIVE (0x9999 settles against it on devnet). Changing the
-// number would move a boundary that historical receipts were built against and FORK any
-// chain that crossed it. The luxfi/precompile layer mirrors this exact value; a build-
-// tagged guard (core/precompile_alwayson_dexsettle_guard_test.go) fails CI if they drift.
-//
-// It is defined ONCE here (DRY) and is identical on every Lux network. 0x9999 is a
-// system precompile that takes no per-network parameters (all resolved at runtime from
-// the consensus context), so its activation is NOT per-net config — it is a single dated
-// fork in the same spirit as the Durango/Quasar/Fortuna/Granite network upgrades above.
-//
-// The activation has two coupled effects, both gated on this exact timestamp via
-// IsDexSettleActive / IsForkTransition (see params/config_extra.go GetExtrasRules and
-// core/state_processor_ext.go ApplyPrecompileActivations):
-//
-//   - DISPATCH: at/after this timestamp, 0x9999 is in the enabled precompile set, so a
-//     tx-to-0x9999 / low-level CALL / typed Solidity call dispatches the native
-//     settlement contract. Before it, 0x9999 is absent — a value transfer to that
-//     address behaves as a plain account, so replaying pre-activation history (the RLP
-//     snapshot in ~/work/lux/state) stays byte-identical to canonical state.
-//   - MARKER: on the block transition that crosses this timestamp, the precompile-
-//     activation marker (SetNonce=1 + SetCode{0x1}) is written into account 0x9999 so
-//     EXTCODESIZE>0, eth_getCode!=0x, and Solidity's contract-existence guard passes.
-//     Historical genesis is NOT mutated (a genesis-time marker would change the genesis
-//     hash and fork pre-activation sync); the marker is installed forward, at the fork.
-//
-// For a freshly-genesised network whose genesis timestamp is already >= this value, the
-// transition fires at genesis (parent=nil), so the marker is present from block 0 — the
-// SAME mechanism, no separate genesis-precompile entry.
-const DexSettleActivationTime uint64 = 1766704800 // 2025-12-25T23:20:00Z
-
-// dexSettleTimestamp is the activation time as a *uint64 for the IsForkTransition /
-// isTimestampForked helpers (which take *uint64; nil = never).
-var dexSettleTimestamp = func() *uint64 { t := DexSettleActivationTime; return &t }()
-
-// DexSettleTimestamp returns the canonical 0x9999 activation timestamp pointer. Used by
-// the EVM dispatch gate and the marker-installing state transition so both reference the
-// SAME single dated fork.
-func DexSettleTimestamp() *uint64 { return dexSettleTimestamp }
-
-// IsDexSettleActive reports whether the 0x9999 DEX settlement precompile is active at
-// [time] — i.e. [time] is at or after the canonical Dec 25 2025 activation boundary.
-func IsDexSettleActive(time uint64) bool { return isTimestampForked(dexSettleTimestamp, time) }
+// Dispatch is unconditional (params/config_extra.go GetExtrasRules injects every
+// modules.AlwaysOnModules() entry into the enabled set at every timestamp), and the
+// EXTCODESIZE marker (SetNonce=1 + SetCode{0x1}) is installed once at genesis
+// (core/state_processor_ext.go ApplyPrecompileActivations, on the parent==nil
+// transition) so it lands in the committed genesis state root. See modules.AlwaysOn.
 
 // newTimestampCompatError creates a ConfigCompatError for timestamp mismatches
 func newTimestampCompatError(what string, storedtime, newtime *uint64) *ethparams.ConfigCompatError {
@@ -106,6 +70,10 @@ type NetworkUpgrades struct {
 	// discrete-log precompiles refuse to execute via contract.RefuseUnderStrictPQ.
 	// nil = never activates (classical-permissive, the default for non-Lux
 	// chains that integrate Lux precompiles). 0 = active from genesis.
+	//
+	// The Lux EVM plugin is PQ-native: it pins this to 0 (genesis) for every chain
+	// it boots, unconditionally — see plugin/evm/vm.go. The nil default is retained
+	// only for non-Lux hosts that embed the Lux precompiles classical-permissively.
 	StrictPQTimestamp *uint64 `json:"strictPQTimestamp,omitempty"`
 }
 

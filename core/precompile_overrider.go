@@ -56,20 +56,20 @@ type LuxPrecompileOverrider struct {
 // would read. The geth EVM invokes PrecompileOverride lazily during opcode
 // execution (when a CALL targets a precompile address), which is a DIFFERENT
 // point in time than when precompileHook ran. Reading the last-writer-wins global
-// here is a consensus-divergence bug: on the relaunch path (admin.importChain of a
-// pre-fork RLP snapshot on a live, RPC-serving, post-fork node) a concurrent
-// eth_call/estimateGas/worker goroutine can rewrite the global timestamp to a
-// wall-clock (post-fork) value between this EVM's construction and its tx dispatch
-// — making the pre-fork block see the dated-fork 0x9999 precompile as ENABLED and
-// dispatch SettleContract.Run during what must be plain-account execution. Binding
-// the gate to o.timestamp makes every replay of a given block produce the SAME
-// enabled set on every validator, regardless of concurrent activity.
+// here is a consensus-divergence bug for any TIMESTAMP-GATED precompile (genesis
+// precompiles, precompileUpgrades): a concurrent eth_call/estimateGas/worker
+// goroutine can rewrite the global timestamp between this EVM's construction and its
+// tx dispatch, so a replayed block could see a different enabled set than it built
+// against. Binding the decision to o.timestamp makes every replay of a given block
+// produce the SAME enabled set on every validator, regardless of concurrent activity.
 //
-// params.GetExtrasRules is a pure function of its arguments (it does NOT read the
-// global); it is the SAME computation params.GetRulesExtra performs internally, so
-// the dated-fork 0x9999 injection (extras.IsDexSettleActive gate) is applied here
-// identically — minus the racy global read. params.ChainConfig is a type alias of
-// geth's ChainConfig, so o.chainConfig is passed directly.
+// The DEX settlement money path 0x9999 is AlwaysOn (FIRST-RUN, no dated fork): it is
+// in the enabled set at EVERY timestamp, so it is immune to timestamp/global skew by
+// construction — present from genesis on, on every replay. params.GetExtrasRules is a
+// pure function of its arguments (it does NOT read the global) and injects the
+// AlwaysOn modules unconditionally, so 0x9999 resolves here identically with no racy
+// read. params.ChainConfig is a type alias of geth's ChainConfig, so o.chainConfig is
+// passed directly.
 func (o *LuxPrecompileOverrider) PrecompileOverride(addr common.Address) (vm.PrecompiledContract, bool) {
 	extrasRules := params.GetExtrasRules(gethparams.Rules{}, o.chainConfig, o.timestamp)
 	if cfg, ok := extrasRules.Precompiles[addr]; !ok || cfg.IsDisabled() {

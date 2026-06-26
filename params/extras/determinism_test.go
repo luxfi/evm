@@ -32,13 +32,14 @@ func TestAllGenesisPrecompilesDeterminism(t *testing.T) {
 
 	// Verify all registered NON-AlwaysOn modules are present, and that NO AlwaysOn
 	// module is present. AlwaysOn precompiles (e.g. the 0x9999 DEX settlement money
-	// path) are activated by a built-in dated fork, NOT by a timestamp-0 genesis config;
-	// emitting one would enable them from genesis on every chain and bypass the gate.
+	// path) are activated by the AlwaysOn mechanism (unconditional dispatch + a one-time
+	// genesis marker), NOT by a timestamp-0 genesis config; emitting one would create a
+	// second, conflicting activation path.
 	for _, module := range modules.RegisteredModules() {
 		_, ok := result1[module.ConfigKey]
 		if module.AlwaysOn {
 			require.Falsef(t, ok,
-				"AlwaysOn module %s must NOT be in AllGenesisPrecompiles — its activation is the dated fork, not a genesis config",
+				"AlwaysOn module %s must NOT be in AllGenesisPrecompiles — its activation is the AlwaysOn mechanism, not a genesis config",
 				module.ConfigKey)
 			continue
 		}
@@ -48,11 +49,11 @@ func TestAllGenesisPrecompilesDeterminism(t *testing.T) {
 
 // TestGenesisPrecompileBuilders_SkipAlwaysOn pins the INFO1 guard: the genesis-config
 // builders (AllGenesisPrecompiles and ChainConfig.SetAllGenesisPrecompiles) must never
-// emit a timestamp-0 genesis config for an AlwaysOn module. Writing one would enable a
-// dated-fork-gated system precompile (0x9999) from block 0 on every chain — bypassing
-// the canonical activation boundary and re-introducing the genesis-marker mutation. The
-// invariant is enforced positively (skip any module with AlwaysOn) so it holds even if an
-// AlwaysOn module is later registered into this package's module view.
+// emit a timestamp-0 genesis config for an AlwaysOn module. Writing one would create a
+// SECOND, conflicting activation path for an AlwaysOn system precompile (0x9999) — its
+// Configurator would run alongside the AlwaysOn mechanism (unconditional dispatch +
+// genesis marker). The invariant is enforced positively (skip any module with AlwaysOn)
+// so it holds even if an AlwaysOn module is later registered into this package's view.
 func TestGenesisPrecompileBuilders_SkipAlwaysOn(t *testing.T) {
 	fromFunc := AllGenesisPrecompiles()
 
