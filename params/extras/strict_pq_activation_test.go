@@ -10,12 +10,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// strict_pq_activation_test.go proves Red wiring task 2 deliverable (b):
-// the StrictPQ gate is no longer inert. NetworkUpgrades.IsStrictPQ is the
-// single predicate contract.RefuseUnderStrictPQ consults (via the chain
-// config's StrictPQReporter); these tests prove it returns true on a chain
-// whose StrictPQTimestamp is set, and that the production wiring (vm.config.
-// PQ -> StrictPQTimestamp=0) makes it active from genesis.
+// strict_pq_activation_test.go proves the StrictPQ gate is not inert.
+// NetworkUpgrades.IsStrictPQ is the single predicate contract.RefuseUnderStrictPQ
+// consults (via the chain config's StrictPQReporter); these tests prove it returns
+// true on a chain whose StrictPQTimestamp is set, and that StrictPQTimestamp=0 makes
+// it active from genesis. The Lux EVM plugin pins StrictPQTimestamp=0 UNCONDITIONALLY
+// (plugin/evm/vm.go) for every chain it boots, so the genesis posture below is what
+// every Lux-ecosystem chain gets. The extras layer keeps a nil default (inert) only
+// for non-Lux hosts that embed these precompiles classical-permissively.
 
 const quasarStrictPQTS uint64 = 1766708400 // Dec 25 2025 16:20 PST — mainnet
 
@@ -29,10 +31,10 @@ func TestIsStrictPQ_NilTimestamp_NeverActive(t *testing.T) {
 	require.False(t, n.IsStrictPQ(^uint64(0)))
 }
 
-// TestIsStrictPQ_GenesisActivation proves a prod strict chain wired via
-// vm.config.PQ (which sets StrictPQTimestamp = &0) reports strict-PQ at
-// every timestamp ≥ 0 — i.e. from genesis. This is the posture a node
-// rebuilding state from scratch gets.
+// TestIsStrictPQ_GenesisActivation proves a chain with StrictPQTimestamp = &0
+// reports strict-PQ at every timestamp ≥ 0 — i.e. from genesis. The Lux plugin
+// pins this unconditionally, so this is the posture every Lux chain gets from
+// block 0 (and the posture a node rebuilding state from scratch gets).
 func TestIsStrictPQ_GenesisActivation(t *testing.T) {
 	zero := uint64(0)
 	n := NetworkUpgrades{StrictPQTimestamp: &zero}
