@@ -21,22 +21,6 @@ import (
 	ethparams "github.com/luxfi/geth/params"
 )
 
-// BlockExecutor processes all transactions in a block.
-// The default implementation delegates to sequential per-tx execution.
-// The parallel implementation uses Block-STM speculative execution.
-type BlockExecutor interface {
-	// ExecuteBlock processes all transactions in a block.
-	// Returns receipts in original transaction order, or an error.
-	// A nil return (nil, nil) means "not handled, fall through to sequential."
-	ExecuteBlock(
-		config *ethparams.ChainConfig,
-		header *types.Header,
-		txs types.Transactions,
-		statedb *state.StateDB,
-		vmCfg vm.Config,
-	) ([]*types.Receipt, error)
-}
-
 // EVMBackend identifies which EVM implementation to use.
 type EVMBackend string
 

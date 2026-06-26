@@ -118,33 +118,10 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
 
-	// Parallel execution path: when built with -tags parallel and a
-	// BlockExecutor is registered (e.g., from evmgpu), try parallel
-	// execution first. Falls through to sequential on (nil, nil) return.
-	if parallelReceipts, parallelErr := parallel.DefaultExecutor().ExecuteBlock(
-		p.config, header, block.Transactions(), statedb, cfg,
-	); parallelReceipts != nil || parallelErr != nil {
-		if parallelErr != nil {
-			log.Debug("parallel execution failed, falling through to sequential", "block", header.Number, "err", parallelErr)
-		} else {
-			// Parallel succeeded -- collect logs, finalize, and return.
-			parallelLogs := make([]*types.Log, 0)
-			var totalGas uint64
-			for _, r := range parallelReceipts {
-				if r != nil {
-					parallelLogs = append(parallelLogs, r.Logs...)
-					totalGas = r.CumulativeGasUsed
-				}
-			}
-			if err := p.engine.Finalize(p.bc, block, parent, statedb, parallelReceipts); err != nil {
-				log.Debug("parallel execution finalize failed, falling through to sequential", "block", header.Number, "err", err)
-			} else {
-				return parallelReceipts, parallelLogs, totalGas, nil
-			}
-		}
-	}
-
-	// Sequential execution path (default, or fallback from parallel).
+	// Sequential execution is the live consensus path. The deterministic
+	// Block-STM parallel executor (core/parallel) is gated OFF by default
+	// (parallel.Enabled) and is not wired here until red-team and scientist
+	// review have signed off on byte-identical state roots; see core/parallel.
 	//
 	// If a modular EVM backend (revm, cevm) is registered, dispatch
 	// through it instead of the default geth interpreter.
