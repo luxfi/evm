@@ -79,7 +79,9 @@ func TestSkipPostMergeFieldsGenesisHash(t *testing.T) {
   "stateRoot": "0x2d1cedac263020c5c56ef962f6abe0da1f5217bdc6468f8c9258a0ea23699e80",
   "timestamp": "0x672485c2"
 }`
-	const wantHash = "0x3f4fa2a0b0ce089f52bf0ae9199c75ffdd76ecafc987794050cb0d286f1ec61e"
+	// 0x9999 is genesis-active (first-run, always-on, no dated fork), so the
+	// genesis carries the precompile-activation marker → this hash.
+	const wantHash = "0x5609692a3a6d440a6a3c187cb886fc8afc16904fc34c06d6591f19ee07782166"
 
 	var g Genesis
 	if err := json.Unmarshal([]byte(luxMainnetGenesis), &g); err != nil {
