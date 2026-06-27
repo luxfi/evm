@@ -24,9 +24,9 @@ const (
 
 // Verify verifies the signature of the message
 // It implements the warp.Verifier interface
-func (b *backend) Verify(ctx context.Context, unsignedMessage *warp.UnsignedMessage, _ []byte) error {
-	messageIDBytes := unsignedMessage.ID()
-	messageID := ids.ID(crypto.Keccak256Hash(messageIDBytes[:]))
+func (b *backend) Verify(ctx context.Context, core *warp.SignedCore, _ []byte) error {
+	coreID := core.ID()
+	messageID := ids.ID(crypto.Keccak256Hash(coreID[:]))
 	// Known on-chain messages should be signed
 	if _, err := b.GetMessage(messageID); err == nil {
 		return nil
@@ -34,7 +34,7 @@ func (b *backend) Verify(ctx context.Context, unsignedMessage *warp.UnsignedMess
 		return fmt.Errorf("failed to get message %s: %w", messageID, err)
 	}
 
-	parsed, err := payload.ParsePayload(unsignedMessage.Payload)
+	parsed, err := payload.ParsePayload(core.Payload)
 	if err != nil {
 		b.stats.IncMessageParseFail()
 		return fmt.Errorf("failed to parse payload: %w", err)

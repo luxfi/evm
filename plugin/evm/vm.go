@@ -61,7 +61,6 @@ import (
 	"github.com/luxfi/evm/sync/client/stats"
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/evm/warp"
-	warptypes "github.com/luxfi/warp"
 
 	"github.com/luxfi/evm/plugin/evm/customtypes"
 	customheader "github.com/luxfi/evm/plugin/evm/header"
@@ -623,12 +622,12 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 
 	// VM implements warp.BlockClient directly
 
-	// Get warp signer from context - use warptypes.Signer directly, no adapters
+	// Get warp signer from context - use luxwarp.Signer directly, no adapters
 	debugLog("Getting warp signer from context (WarpSigner=%v)", vm.runtime.WarpSigner != nil)
-	var warpSigner warptypes.Signer
+	var warpSigner luxwarp.Signer
 	if vm.runtime.WarpSigner != nil {
 		var ok bool
-		warpSigner, ok = vm.runtime.WarpSigner.(warptypes.Signer)
+		warpSigner, ok = vm.runtime.WarpSigner.(luxwarp.Signer)
 		if !ok {
 			debugLog("Invalid warp signer type: %T", vm.runtime.WarpSigner)
 			return fmt.Errorf("invalid warp signer type: %T", vm.runtime.WarpSigner)
@@ -2220,6 +2219,6 @@ type warpVerifierAdapter struct {
 }
 
 // Verify implements warp.Verifier interface
-func (w *warpVerifierAdapter) Verify(ctx context.Context, msg *warptypes.UnsignedMessage, justification []byte) error {
-	return w.backend.Verify(ctx, msg, justification)
+func (w *warpVerifierAdapter) Verify(ctx context.Context, core *luxwarp.SignedCore, justification []byte) error {
+	return w.backend.Verify(ctx, core, justification)
 }

@@ -265,7 +265,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	unsignedWarpMessage, err := warp.NewUnsignedMessage(
+	core, err := warp.NewSignedCore(
 		consensuscontext.GetNetworkID(ctx),
 		sourceChainID,
 		addressedPayload.Bytes(),
@@ -277,8 +277,8 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	// Add a log to be handled if this action is finalized.
 	topics, data, err := PackSendWarpMessageEvent(
 		sourceAddress,
-		common.Hash(unsignedWarpMessage.ID()),
-		unsignedWarpMessage.Bytes(),
+		common.Hash(core.ID()),
+		core.Bytes(),
 	)
 	if err != nil {
 		return nil, remainingGas, err
@@ -290,7 +290,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		BlockNumber: accessibleState.GetBlockContext().Number().Uint64(),
 	})
 
-	packed, err := PackSendWarpMessageOutput(common.Hash(unsignedWarpMessage.ID()))
+	packed, err := PackSendWarpMessageOutput(common.Hash(core.ID()))
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -304,14 +304,16 @@ func PackSendWarpMessageEvent(sourceAddress common.Address, unsignedMessageID co
 	return WarpABI.PackEvent("SendWarpMessage", sourceAddress, unsignedMessageID, unsignedMessageBytes)
 }
 
-// UnpackSendWarpEventDataToMessage attempts to unpack event [data] as warp.UnsignedMessage.
-func UnpackSendWarpEventDataToMessage(data []byte) (*warp.UnsignedMessage, error) {
+// UnpackSendWarpEventDataToMessage attempts to unpack event [data] as a
+// warp.SignedCore (the ZAP canonical core, replacing the deleted RLP
+// unsigned-message type).
+func UnpackSendWarpEventDataToMessage(data []byte) (*warp.SignedCore, error) {
 	event := SendWarpMessageEventData{}
 	err := WarpABI.UnpackIntoInterface(&event, "SendWarpMessage", data)
 	if err != nil {
 		return nil, err
 	}
-	return warp.ParseUnsignedMessage(event.Message)
+	return warp.ParseSignedCore(event.Message)
 }
 
 // createWarpPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
