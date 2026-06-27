@@ -2219,6 +2219,6 @@ type warpVerifierAdapter struct {
 }
 
 // Verify implements warp.Verifier interface
-func (w *warpVerifierAdapter) Verify(ctx context.Context, core *luxwarp.Core, justification []byte) error {
+func (w *warpVerifierAdapter) Verify(ctx context.Context, core *luxwarp.Message, justification []byte) error {
 	return w.backend.Verify(ctx, core, justification)
 }

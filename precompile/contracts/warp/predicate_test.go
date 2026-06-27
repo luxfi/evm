@@ -39,7 +39,7 @@ var (
 	sourceNetworkID = ids.GenerateTestID()
 
 	// valid signed core used throughout testing
-	core *warp.Core
+	msg *warp.Message
 	// valid addressed payload
 	addressedPayload      *payload.AddressedCall
 	addressedPayloadBytes []byte
@@ -86,13 +86,13 @@ func init() {
 		panic(err)
 	}
 	addressedPayloadBytes = addressedPayload.Bytes()
-	core, err = warp.NewCore(constants.UnitTestID, sourceChainID, addressedPayload.Bytes())
+	msg, err = warp.NewMessage(constants.UnitTestID, sourceChainID, addressedPayload.Bytes())
 	if err != nil {
 		panic(err)
 	}
 
 	// Post-ZAP the BLS Beam signs BeamSigningBytes(core.ID()), not raw bytes.
-	beamMsg := warp.BeamSigningBytes(core.ID())
+	beamMsg := warp.BeamSigningBytes(msg.ID())
 	for _, testVdr := range testVdrs {
 		blsSignature, err := testVdr.sk.Sign(beamMsg)
 		if err != nil {
@@ -159,7 +159,7 @@ func createWarpMessage(numKeys int) *warp.Envelope {
 	}
 	copy(beam.Signature[:], bls.SignatureToBytes(aggregateSignature))
 
-	env, err := warp.NewEnvelope(core, beam, nil, nil)
+	env, err := warp.NewEnvelope(msg, beam, nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -234,7 +234,7 @@ func newPredicateConsensusCtx(tb testing.TB, state consensuscontext.ValidatorSta
 	rt := utilstest.NewTestRuntime(tb, ids.GenerateTestID())
 	rt.ValidatorState = state
 	// Align the node's network ID with the cores the tests build via
-	// warp.NewCore(constants.UnitTestID, ...) so VerifyPredicate's network-ID
+	// warp.NewMessage(constants.UnitTestID, ...) so VerifyPredicate's network-ID
 	// check (parity with warp.VerifyEnvelope) accepts them.
 	rt.NetworkID = constants.UnitTestID
 	return consensuscontext.WithContext(context.Background(), rt)
@@ -299,10 +299,10 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 	cChainID := ids.GenerateTestID()
 	addressedCall, err := payload.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
 	require.NoError(err)
-	msgCore, err := warp.NewCore(constants.UnitTestID, cChainID, addressedCall.Bytes())
+	msg, err := warp.NewMessage(constants.UnitTestID, cChainID, addressedCall.Bytes())
 	require.NoError(err)
 
-	beamMsg := warp.BeamSigningBytes(msgCore.ID())
+	beamMsg := warp.BeamSigningBytes(msg.ID())
 	getValidatorsOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
 	blsSignatures := make([]*bls.Signature, 0, numKeys)
 	for i := 0; i < numKeys; i++ {
@@ -327,7 +327,7 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 		Signers: bitSet,
 	}
 	copy(beam.Signature[:], bls.SignatureToBytes(aggregateSignature))
-	warpMsg, err := warp.NewEnvelope(msgCore, beam, nil, nil)
+	warpMsg, err := warp.NewEnvelope(msg, beam, nil, nil)
 	require.NoError(err)
 
 	envBytes, err := warpMsg.Bytes()
@@ -461,9 +461,9 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	}
 	copy(beam.Signature[:], bls.SignatureToBytes(aggregateSignature))
 	// Create a signed core with an invalid addressed payload
-	msgCore, err := warp.NewCore(constants.UnitTestID, sourceChainID, []byte{1, 2, 3})
+	msg, err := warp.NewMessage(constants.UnitTestID, sourceChainID, []byte{1, 2, 3})
 	require.NoError(t, err)
-	warpMsg, err := warp.NewEnvelope(msgCore, beam, nil, nil)
+	warpMsg, err := warp.NewEnvelope(msg, beam, nil, nil)
 	require.NoError(t, err)
 	warpMsgBytes, err := warpMsg.Bytes()
 	require.NoError(t, err)
@@ -488,14 +488,14 @@ func TestInvalidAddressedPayload(t *testing.T) {
 func TestInvalidBitSet(t *testing.T) {
 	addressedCall, err := payload.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
 	require.NoError(t, err)
-	msgCore, err := warp.NewCore(
+	msg, err := warp.NewMessage(
 		constants.UnitTestID,
 		sourceChainID,
 		addressedCall.Bytes(),
 	)
 	require.NoError(t, err)
 
-	msg, err := warp.NewEnvelope(msgCore, warp.BitSetSignature{
+	env, err := warp.NewEnvelope(msg, warp.BitSetSignature{
 		Signers:   make([]byte, 1),
 		Signature: [bls.SignatureLen]byte{},
 	}, nil, nil)
@@ -510,7 +510,7 @@ func TestInvalidBitSet(t *testing.T) {
 			publicKey: true,
 		},
 	})
-	msgBytes, err := msg.Bytes()
+	msgBytes, err := env.Bytes()
 	require.NoError(t, err)
 	predicateBytes := predicate.PackPredicate(msgBytes)
 	test := precompiletest.PredicateTest{
@@ -529,7 +529,7 @@ func TestInvalidBitSet(t *testing.T) {
 	test.Run(t)
 }
 
-// TestWarpWrongNetworkID proves VerifyPredicate rejects a message whose Core
+// TestWarpWrongNetworkID proves VerifyPredicate rejects a message whose Message
 // is stamped with a network ID different from the verifying node's — parity
 // with warp.VerifyEnvelope. The rejection happens before any signature work,
 // so the (unsigned) message still passes PredicateGas.
@@ -546,13 +546,13 @@ func TestWarpWrongNetworkID(t *testing.T) {
 	addressedCall, err := payload.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
 	require.NoError(t, err)
 	// constants.UnitTestID+1 != the test runtime's UnitTestID.
-	msgCore, err := warp.NewCore(constants.UnitTestID+1, sourceChainID, addressedCall.Bytes())
+	msg, err := warp.NewMessage(constants.UnitTestID+1, sourceChainID, addressedCall.Bytes())
 	require.NoError(t, err)
 	bitSet := warp.NewBitSet()
 	for i := 0; i < numKeys; i++ {
 		bitSet.Add(i)
 	}
-	warpMsg, err := warp.NewEnvelope(msgCore, warp.BitSetSignature{Signers: bitSet}, nil, nil)
+	warpMsg, err := warp.NewEnvelope(msg, warp.BitSetSignature{Signers: bitSet}, nil, nil)
 	require.NoError(t, err)
 	warpMsgBytes, err := warpMsg.Bytes()
 	require.NoError(t, err)
