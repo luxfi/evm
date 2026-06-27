@@ -16,12 +16,12 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.2.1
-	github.com/luxfi/chains v1.3.19
-	github.com/luxfi/consensus v1.25.21
+	github.com/luxfi/chains v1.3.22
+	github.com/luxfi/consensus v1.25.29
 	github.com/luxfi/constants v1.5.8
-	github.com/luxfi/crypto v1.19.22
+	github.com/luxfi/crypto v1.19.26
 	github.com/luxfi/database v1.20.4
-	github.com/luxfi/dex v1.5.16
+	github.com/luxfi/dex v1.5.20
 	github.com/luxfi/filesystem v0.0.1
 	github.com/luxfi/geth v1.17.12
 	github.com/luxfi/go-bip39 v1.1.2
@@ -128,7 +128,7 @@ require (
 	github.com/luxfi/proto v1.3.5 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
 	github.com/luxfi/threshold v1.9.9 // indirect
-	github.com/luxfi/zap v0.8.10 // indirect
+	github.com/luxfi/zap v0.8.11 // indirect
 	github.com/luxfi/zapdb v1.10.1 // indirect
 	github.com/miekg/dns v1.1.72 // indirect
 	github.com/mimoo/StrobeGo v0.0.0-20220103164710-9a04d6ca976b // indirect
