@@ -122,7 +122,7 @@ func (c *Config) Equal(s precompileconfig.Config) bool {
 }
 
 func (c *Config) Accept(acceptCtx *precompileconfig.AcceptContext, blockHash common.Hash, blockNumber uint64, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
-	core, err := UnpackSendWarpEventDataToMessage(logData)
+	msg, err := UnpackSendWarpEventDataToMessage(logData)
 	if err != nil {
 		return fmt.Errorf("failed to parse warp log data into signed core (TxHash: %s, LogIndex: %d): %w", txHash, logIndex, err)
 	}
@@ -133,9 +133,9 @@ func (c *Config) Accept(acceptCtx *precompileconfig.AcceptContext, blockHash com
 		"txHash", txHash,
 		"logIndex", logIndex,
 		"logData", common.Bytes2Hex(logData),
-		"warpMessageID", core.ID(),
+		"warpMessageID", msg.ID(),
 	)
-	if err := acceptCtx.Warp.AddMessage(core); err != nil {
+	if err := acceptCtx.Warp.AddMessage(msg); err != nil {
 		return fmt.Errorf("failed to add warp message during accept (TxHash: %s, LogIndex: %d): %w", txHash, logIndex, err)
 	}
 	return nil
@@ -168,7 +168,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("%w: %s", errInvalidWarpMsg, err)
 	}
-	_, err = payload.ParsePayload(warpMessage.Core.Payload)
+	_, err = payload.ParsePayload(warpMessage.Message.Payload)
 	if err != nil {
 		return 0, fmt.Errorf("%w: %s", errInvalidWarpMsgPayload, err)
 	}
@@ -213,8 +213,8 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	// matching warp.VerifyEnvelope. The bespoke verify path must enforce the same
 	// checks (one and one way); D folds NetworkID, so this is defense in depth
 	// against cross-network replay.
-	if localNetworkID := consensuscontext.GetNetworkID(predicateContext.ConsensusCtx); warpMsg.Core.NetworkID != localNetworkID {
-		return fmt.Errorf("%w: message network ID %d does not match local network ID %d", errFailedVerification, warpMsg.Core.NetworkID, localNetworkID)
+	if localNetworkID := consensuscontext.GetNetworkID(predicateContext.ConsensusCtx); warpMsg.Message.NetworkID != localNetworkID {
+		return fmt.Errorf("%w: message network ID %d does not match local network ID %d", errFailedVerification, warpMsg.Message.NetworkID, localNetworkID)
 	}
 
 	quorumNumerator := WarpDefaultQuorumNumerator
@@ -229,7 +229,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	}
 
 	// Get the source chain ID from the warp message
-	sourceChainID := warpMsg.Core.SourceChainID
+	sourceChainID := warpMsg.Message.SourceChainID
 
 	// Get network ID from validator state for the source chain
 	sourceNetworkID, err := validatorState.GetNetworkID(sourceChainID)
@@ -382,10 +382,10 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 		return fmt.Errorf("%w: %w", errFailedVerification, err)
 	}
 
-	// Verify the BLS Beam over the ZAP digest D = warpMsg.Core.ID(). The Beam
-	// signs warp.BeamSigningBytes(D), authenticating the entire Core
+	// Verify the BLS Beam over the ZAP digest D = warpMsg.Message.ID(). The Beam
+	// signs warp.BeamSigningBytes(D), authenticating the entire Message
 	// (network ID, source chain, PQ lineage, payload) — not stale RLP bytes.
-	err = verifyBeam(beam, warpMsg.Core.ID(), canonicalValidators)
+	err = verifyBeam(beam, warpMsg.Message.ID(), canonicalValidators)
 	if err != nil {
 		return fmt.Errorf("%w: %w", errFailedVerification, err)
 	}
