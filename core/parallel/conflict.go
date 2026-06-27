@@ -86,6 +86,12 @@ type Metrics struct {
 	BlocksProcessed atomic.Int64
 	TxsProcessed    atomic.Int64
 	TxsReExecuted   atomic.Int64
+	// VerifiedBlocks counts blocks committed through ExecuteVerified — i.e. blocks
+	// where the parallel engine produced a state root byte-identical to the local
+	// sequential reference and the result was committed. It is the observable proof
+	// that the gated parallel path actually engaged (vs falling closed to
+	// sequential), and the signal a Process-level test asserts on.
+	VerifiedBlocks atomic.Int64
 }
 
 // DefaultMetrics is the global parallel-execution metrics instance.

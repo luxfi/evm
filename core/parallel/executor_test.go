@@ -268,7 +268,7 @@ func (h *harness) sequential(t testing.TB, txs types.Transactions) (common.Hash,
 
 // newExecutor builds the parallel engine over txs with the given worker count.
 func (h *harness) newExecutor(txs types.Transactions, workers int) *Executor {
-	return NewExecutor(h.db, h.preRoot, txs, true, workers, func(vmsdb vm.StateDB, i int) (*types.Receipt, error) {
+	return NewExecutor(h.db, h.preRoot, txs, h.header.GasLimit, true, workers, func(vmsdb vm.StateDB, i int) (*types.Receipt, error) {
 		return h.apply(vmsdb, txs[i])
 	})
 }
@@ -503,7 +503,7 @@ func TestContractCreation(t *testing.T) {
 func TestExecuteVerifiedGate(t *testing.T) {
 	h := newHarness(t, 8)
 	txs := h.genBlock(7)
-	seqRoot, _ := h.sequential(t, txs)
+	seqRoot, seqReceipts := h.sequential(t, txs)
 
 	// Disabled: must no-op and leave pre-state untouched.
 	Enabled.Store(false)
@@ -518,9 +518,12 @@ func TestExecuteVerifiedGate(t *testing.T) {
 	Enabled.Store(true)
 	defer Enabled.Store(false)
 
-	// Enabled + correct reference root: applied, post-state matches.
-	ok2 := false
+	// Enabled + correct reference root: applied, post-state matches, and the
+	// RETURNED receipts are the canonical sequential ones (byte-for-byte gas,
+	// status and cumulative gas) — not the parallel engine's, which carry
+	// tx-local log indices.
 	pre2, _ := state.New(h.preRoot, h.db, nil)
+	before := DefaultMetrics.VerifiedBlocks.Load()
 	rc, ok2 := h.newExecutor(txs, 4).ExecuteVerified(pre2, seqRoot)
 	if !ok2 {
 		t.Fatal("ExecuteVerified refused a correct reference root")
@@ -531,15 +534,105 @@ func TestExecuteVerifiedGate(t *testing.T) {
 	if r := pre2.IntermediateRoot(true); r != seqRoot {
 		t.Fatalf("verified post-state %x != sequential %x", r, seqRoot)
 	}
+	compareReceipts(t, seqReceipts, rc, "ExecuteVerified returns canonical sequential receipts")
+	if got := DefaultMetrics.VerifiedBlocks.Load(); got != before+1 {
+		t.Fatalf("VerifiedBlocks metric did not increment on commit: %d -> %d", before, got)
+	}
 
 	// Enabled + WRONG reference root: must refuse and leave pre-state untouched.
+	// This is the fail-closed-to-sequential proof at the boundary: a claimed root
+	// that differs from local sequential by any amount is never committed.
 	pre3, _ := state.New(h.preRoot, h.db, nil)
 	wrong := common.HexToHash("0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef")
+	refusedAt := DefaultMetrics.VerifiedBlocks.Load()
 	if _, ok := h.newExecutor(txs, 4).ExecuteVerified(pre3, wrong); ok {
 		t.Fatal("ExecuteVerified accepted a WRONG reference root (fail-secure violated)")
 	}
 	if r := pre3.IntermediateRoot(true); r != h.preRoot {
 		t.Fatalf("refused gate mutated pre-state: %x != %x", r, h.preRoot)
+	}
+	if got := DefaultMetrics.VerifiedBlocks.Load(); got != refusedAt {
+		t.Fatalf("VerifiedBlocks metric advanced on a refused block: %d -> %d", refusedAt, got)
+	}
+}
+
+// TestGateRejectsOverBlockGasLimit proves the gas-limit fork class is closed: a
+// transaction whose gas cannot be reserved against the remaining block gas makes
+// the sequential reference fail, so ExecuteVerified refuses (ok=false) and leaves
+// pre untouched — the caller then runs sequential and surfaces the same rejection.
+// Without this, a flag-on validator could commit a block a flag-off validator
+// rejects (the prefix-reservation divergence).
+func TestGateRejectsOverBlockGasLimit(t *testing.T) {
+	h := newHarness(t, 4)
+	// Two transfers, each 21000 gas, under a block limit that admits the first but
+	// not the second's reservation (21000 fits in 30000 remaining? set limit so the
+	// SECOND reservation fails): limit=40000 ⇒ tx0 reserves 21000 (ok, 19000 left),
+	// tx1 needs 21000 > 19000 ⇒ ErrGasLimitReached at tx1.
+	to := h.addrs[1]
+	txs := types.Transactions{
+		h.signTx(0, 0, &to, big.NewInt(1), nil, 21000),
+		h.signTx(2, 0, &to, big.NewInt(1), nil, 21000),
+	}
+	seqRoot, _ := h.sequential(t, txs) // sequential() uses a full-limit pool, so it succeeds
+	Enabled.Store(true)
+	defer Enabled.Store(false)
+	pre, _ := state.New(h.preRoot, h.db, nil)
+	// Build an executor whose block gas limit is too small for both reservations.
+	exec := NewExecutor(h.db, h.preRoot, txs, 40000, true, 4, func(vmsdb vm.StateDB, i int) (*types.Receipt, error) {
+		return h.apply(vmsdb, txs[i])
+	})
+	if _, ok := exec.ExecuteVerified(pre, seqRoot); ok {
+		t.Fatal("ExecuteVerified committed a block that exceeds the gas-limit reservation (fork class open)")
+	}
+	if r := pre.IntermediateRoot(true); r != h.preRoot {
+		t.Fatalf("over-gas-limit refusal mutated pre-state: %x != %x", r, h.preRoot)
+	}
+}
+
+// TestRealisticHeavyBlock is the realistic-workload root-equality proof the task
+// asks for: a large, contract-heavy block with hot-slot contention, fanout,
+// same-sender bursts and contract creation, asserting the parallel root byte-
+// equals sequential across worker counts {1,2,4,8}. It is genBlock at scale plus
+// a deploy burst, so it stresses re-execution depth and the materialize cadence
+// far harder than the 30–60 tx corpus blocks.
+func TestRealisticHeavyBlock(t *testing.T) {
+	h := newHarness(t, 24)
+	rng := rand.New(rand.NewSource(99))
+	nonces := make([]uint64, len(h.addrs))
+	var txs types.Transactions
+	emit := func(from int, to *common.Address, value *big.Int, data []byte, gas uint64) {
+		txs = append(txs, h.signTx(from, nonces[from], to, value, data, gas))
+		nonces[from]++
+	}
+	for i := 0; i < 400; i++ {
+		from := rng.Intn(len(h.addrs))
+		switch rng.Intn(7) {
+		case 0:
+			to := h.addrs[rng.Intn(len(h.addrs))]
+			emit(from, &to, big.NewInt(int64(rng.Intn(1000)+1)), nil, 21000)
+		case 1, 2: // hot contract: maximal slot-0 contention + LOG0
+			emit(from, &h.hotAddr, big.NewInt(0), nil, 120000)
+		case 3: // fanout: disjoint storage
+			emit(from, &h.fanAddr, big.NewInt(0), nil, 120000)
+		case 4: // contract creation
+			emit(from, nil, big.NewInt(0), deployCounter, 200000)
+		case 5: // same-sender burst (dependency chain)
+			for k := 0; k < 4; k++ {
+				emit(from, &h.hotAddr, big.NewInt(0), nil, 120000)
+			}
+		case 6:
+			to := h.addrs[rng.Intn(len(h.addrs))]
+			emit(from, &to, big.NewInt(1), nil, 21000)
+		}
+	}
+	t.Logf("heavy block: %d transactions", len(txs))
+	seqRoot, seqReceipts := h.sequential(t, txs)
+	for _, w := range []int{1, 2, 4, 8} {
+		parRoot, parReceipts := h.parallel(t, txs, w)
+		if parRoot != seqRoot {
+			t.Fatalf("workers %d: heavy-block ROOT MISMATCH parallel=%x sequential=%x", w, parRoot, seqRoot)
+		}
+		compareReceipts(t, seqReceipts, parReceipts, fmt.Sprintf("heavy workers %d", w))
 	}
 }
 
