@@ -38,12 +38,12 @@ var (
 	sourceChainID   = ids.GenerateTestID()
 	sourceNetworkID = ids.GenerateTestID()
 
-	// valid unsigned warp message used throughout testing
-	unsignedMsg *warp.UnsignedMessage
+	// valid signed core used throughout testing
+	core *warp.SignedCore
 	// valid addressed payload
 	addressedPayload      *payload.AddressedCall
 	addressedPayloadBytes []byte
-	// blsSignatures of [unsignedMsg] from each of [testVdrs]
+	// blsSignatures over BeamSigningBytes(core.ID()) from each of [testVdrs]
 	blsSignatures []*bls.Signature
 
 	numTestVdrs = 10_000
@@ -86,13 +86,15 @@ func init() {
 		panic(err)
 	}
 	addressedPayloadBytes = addressedPayload.Bytes()
-	unsignedMsg, err = warp.NewUnsignedMessage(constants.UnitTestID, sourceChainID, addressedPayload.Bytes())
+	core, err = warp.NewSignedCore(constants.UnitTestID, sourceChainID, addressedPayload.Bytes())
 	if err != nil {
 		panic(err)
 	}
 
+	// Post-ZAP the BLS Beam signs BeamSigningBytes(core.ID()), not raw bytes.
+	beamMsg := warp.BeamSigningBytes(core.ID())
 	for _, testVdr := range testVdrs {
-		blsSignature, err := testVdr.sk.Sign(unsignedMsg.Bytes())
+		blsSignature, err := testVdr.sk.Sign(beamMsg)
 		if err != nil {
 			panic(err)
 		}
@@ -141,9 +143,9 @@ func newTestValidator() *testValidator {
 	}
 }
 
-// createWarpMessage constructs a signed warp message using the global variable [unsignedMsg]
+// createWarpMessage constructs a signed warp envelope using the global [core]
 // and the first [numKeys] signatures from [blsSignatures]
-func createWarpMessage(numKeys int) *warp.Message {
+func createWarpMessage(numKeys int) *warp.WarpEnvelope {
 	aggregateSignature, err := bls.AggregateSignatures(blsSignatures[0:numKeys])
 	if err != nil {
 		panic(err)
@@ -152,26 +154,27 @@ func createWarpMessage(numKeys int) *warp.Message {
 	for i := 0; i < numKeys; i++ {
 		bitSet.Add(i)
 	}
-	warpSignature := &warp.BitSetSignature{
+	beam := warp.BitSetSignature{
 		Signers: bitSet,
 	}
-	copy(warpSignature.Signature[:], bls.SignatureToBytes(aggregateSignature))
+	copy(beam.Signature[:], bls.SignatureToBytes(aggregateSignature))
 
-	// Create a simplified Message structure for testing
-	// Since the warp package has interface serialization issues,
-	// we'll create a mock message that contains the necessary data
-	warpMsg := &warp.Message{
-		UnsignedMessage: unsignedMsg,
-		Signature:       warpSignature,
+	env, err := warp.NewWarpEnvelope(core, beam, nil, nil)
+	if err != nil {
+		panic(err)
 	}
-	return warpMsg
+	return env
 }
 
-// createPredicate constructs a warp message using createWarpMessage with numKeys signers
+// createPredicate constructs a warp envelope using createWarpMessage with numKeys signers
 // and packs it into predicate encoding.
 func createPredicate(numKeys int) []byte {
 	warpMsg := createWarpMessage(numKeys)
-	predicateBytes := predicate.PackPredicate(warpMsg.Bytes())
+	envBytes, err := warpMsg.Bytes()
+	if err != nil {
+		panic(err)
+	}
+	predicateBytes := predicate.PackPredicate(envBytes)
 	return predicateBytes
 }
 
@@ -203,18 +206,6 @@ func (t *testValidatorStateWrapper) GetMinimumHeight(ctx context.Context) (uint6
 	return 0, nil
 }
 
-func (t *testValidatorStateWrapper) GetValidatorSet(height uint64, chainID ids.ID) (map[ids.NodeID]uint64, error) {
-	validatorOutputs, err := t.State.GetValidatorSet(context.Background(), height, chainID)
-	if err != nil {
-		return nil, err
-	}
-	result := make(map[ids.NodeID]uint64, len(validatorOutputs))
-	for nodeID, output := range validatorOutputs {
-		result[nodeID] = output.Weight
-	}
-	return result, nil
-}
-
 // GetValidatorSetWithOutput returns the full validator output including public keys
 // This implements the ValidatorOutputGetter interface used by VerifyPredicate
 func (t *testValidatorStateWrapper) GetValidatorSetWithOutput(ctx context.Context, height uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
@@ -235,6 +226,16 @@ func (t *testValidatorStateWrapper) GetNetworkID(id ids.ID) (ids.ID, error) {
 	return ids.Empty, nil
 }
 
+// newPredicateConsensusCtx builds a consensus context whose Runtime carries the
+// given validator state. VerifyPredicate reads the validator set via the
+// production path runtime.GetValidatorState (Runtime.ValidatorState), so tests
+// must inject through the Runtime, not the legacy WithValidatorState key.
+func newPredicateConsensusCtx(tb testing.TB, state consensuscontext.ValidatorState) context.Context {
+	rt := utilstest.NewTestRuntime(tb, ids.GenerateTestID())
+	rt.ValidatorState = state
+	return consensuscontext.WithContext(context.Background(), rt)
+}
+
 // createConsensusCtx creates a context.Context instance with a validator state specified by the given validatorRanges
 func createConsensusCtx(tb testing.TB, validatorRanges []validatorRange) context.Context {
 	getValidatorsOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
@@ -252,21 +253,18 @@ func createConsensusCtx(tb testing.TB, validatorRanges []validatorRange) context
 		}
 	}
 
-	consensusCtx := utilstest.NewTestConsensusContext(tb)
 	state := &validatorstest.State{
 		GetValidatorSetF: func(ctx context.Context, height uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 			return getValidatorsOutput, nil
 		},
 	}
-	// Use consensuscontext.WithValidatorState to add validator state to context
 	wrappedState := &testValidatorStateWrapper{
 		State: state,
 		GetNetworkIDF: func(id ids.ID) (ids.ID, error) {
 			return sourceNetworkID, nil
 		},
 	}
-	consensusCtx = consensuscontext.WithValidatorState(consensusCtx, wrappedState)
-	return consensusCtx
+	return newPredicateConsensusCtx(tb, wrappedState)
 }
 
 func createValidPredicateTest(consensusCtx context.Context, numKeys uint64, predicateBytes []byte) precompiletest.PredicateTest {
@@ -274,7 +272,7 @@ func createValidPredicateTest(consensusCtx context.Context, numKeys uint64, pred
 		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
 			ConsensusCtx: consensusCtx,
-			ProposerVMBlockCtx: &block.Context{
+			ProposerVMBlockCtx: &chain.Context{
 				PChainHeight: 1,
 			},
 		},
@@ -297,13 +295,14 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 	cChainID := ids.GenerateTestID()
 	addressedCall, err := payload.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
 	require.NoError(err)
-	unsignedMsg, err := warp.NewUnsignedMessage(constants.UnitTestID, cChainID, addressedCall.Bytes())
+	msgCore, err := warp.NewSignedCore(constants.UnitTestID, cChainID, addressedCall.Bytes())
 	require.NoError(err)
 
+	beamMsg := warp.BeamSigningBytes(msgCore.ID())
 	getValidatorsOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
 	blsSignatures := make([]*bls.Signature, 0, numKeys)
 	for i := 0; i < numKeys; i++ {
-		sig, err := testVdrs[i].sk.Sign(unsignedMsg.Bytes())
+		sig, err := testVdrs[i].sk.Sign(beamMsg)
 		require.NoError(err)
 
 		validatorOutput := &validators.GetValidatorOutput{
@@ -320,26 +319,18 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 	for i := 0; i < numKeys; i++ {
 		bitSet.Add(i)
 	}
-	warpSignature := &warp.BitSetSignature{
+	beam := warp.BitSetSignature{
 		Signers: bitSet,
 	}
-	copy(warpSignature.Signature[:], bls.SignatureToBytes(aggregateSignature))
-	warpMsg := &warp.Message{
-		UnsignedMessage: unsignedMsg,
-		Signature:       warpSignature,
-	}
+	copy(beam.Signature[:], bls.SignatureToBytes(aggregateSignature))
+	warpMsg, err := warp.NewWarpEnvelope(msgCore, beam, nil, nil)
+	require.NoError(err)
 
-	predicateBytes := predicate.PackPredicate(warpMsg.Bytes())
+	envBytes, err := warpMsg.Bytes()
+	require.NoError(err)
+	predicateBytes := predicate.PackPredicate(envBytes)
 
-	consensusCtx := utilstest.NewTestConsensusContext(t)
 	chainID := ids.GenerateTestID()
-	// Use consensus helper functions to add values to context
-	consensusCtx = consensuscontext.WithIDs(consensusCtx, consensuscontext.IDs{
-		NetworkID: 1,
-		ChainID:   chainID,
-	})
-	// Also set chainID via evmconsensus for GetChainID
-	consensusCtx = evmconsensus.WithChainID(consensusCtx, chainID)
 
 	state := &validatorstest.State{
 		GetValidatorSetF: func(ctx context.Context, height uint64, requestedChainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
@@ -352,7 +343,7 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 		},
 	}
 
-	// Add validator state to context (wrap it first)
+	// Wrap the state; C-Chain (cChainID) is on the primary network.
 	wrappedState := &testValidatorStateWrapper{
 		State: state,
 		GetChainIDF: func(cID ids.ID) (ids.ID, error) {
@@ -361,13 +352,17 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 			return constants.PrimaryNetworkID, nil
 		},
 	}
-	consensusCtx = consensuscontext.WithValidatorState(consensusCtx, wrappedState)
+
+	// Inject the validator state via the Runtime (production path) and set the
+	// receiving chainID via evmconsensus for GetChainID.
+	consensusCtx := newPredicateConsensusCtx(t, wrappedState)
+	consensusCtx = evmconsensus.WithChainID(consensusCtx, chainID)
 
 	test := precompiletest.PredicateTest{
 		Config: NewConfig(utils.NewUint64(0), 0, requirePrimaryNetworkSigners),
 		PredicateContext: &precompileconfig.PredicateContext{
 			ConsensusCtx: consensusCtx,
-			ProposerVMBlockCtx: &block.Context{
+			ProposerVMBlockCtx: &chain.Context{
 				PChainHeight: 1,
 			},
 		},
@@ -397,7 +392,7 @@ func TestInvalidPredicatePacking(t *testing.T) {
 		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
 			ConsensusCtx: consensusCtx,
-			ProposerVMBlockCtx: &block.Context{
+			ProposerVMBlockCtx: &chain.Context{
 				PChainHeight: 1,
 			},
 		},
@@ -420,7 +415,8 @@ func TestInvalidWarpMessage(t *testing.T) {
 		},
 	})
 	warpMsg := createWarpMessage(1)
-	warpMsgBytes := warpMsg.Bytes()
+	warpMsgBytes, err := warpMsg.Bytes()
+	require.NoError(t, err)
 	warpMsgBytes = append(warpMsgBytes, byte(0x01)) // Invalidate warp message packing
 	predicateBytes := predicate.PackPredicate(warpMsgBytes)
 
@@ -428,7 +424,7 @@ func TestInvalidWarpMessage(t *testing.T) {
 		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
 			ConsensusCtx: consensusCtx,
-			ProposerVMBlockCtx: &block.Context{
+			ProposerVMBlockCtx: &chain.Context{
 				PChainHeight: 1,
 			},
 		},
@@ -456,25 +452,24 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	for i := 0; i < numKeys; i++ {
 		bitSet.Add(i)
 	}
-	warpSignature := &warp.BitSetSignature{
+	beam := warp.BitSetSignature{
 		Signers: bitSet,
 	}
-	copy(warpSignature.Signature[:], bls.SignatureToBytes(aggregateSignature))
-	// Create an unsigned message with an invalid addressed payload
-	unsignedMsg, err := warp.NewUnsignedMessage(constants.UnitTestID, sourceChainID, []byte{1, 2, 3})
+	copy(beam.Signature[:], bls.SignatureToBytes(aggregateSignature))
+	// Create a signed core with an invalid addressed payload
+	msgCore, err := warp.NewSignedCore(constants.UnitTestID, sourceChainID, []byte{1, 2, 3})
 	require.NoError(t, err)
-	warpMsg := &warp.Message{
-		UnsignedMessage: unsignedMsg,
-		Signature:       warpSignature,
-	}
-	warpMsgBytes := warpMsg.Bytes()
+	warpMsg, err := warp.NewWarpEnvelope(msgCore, beam, nil, nil)
+	require.NoError(t, err)
+	warpMsgBytes, err := warpMsg.Bytes()
+	require.NoError(t, err)
 	predicateBytes := predicate.PackPredicate(warpMsgBytes)
 
 	test := precompiletest.PredicateTest{
 		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
 			ConsensusCtx: consensusCtx,
-			ProposerVMBlockCtx: &block.Context{
+			ProposerVMBlockCtx: &chain.Context{
 				PChainHeight: 1,
 			},
 		},
@@ -489,20 +484,18 @@ func TestInvalidAddressedPayload(t *testing.T) {
 func TestInvalidBitSet(t *testing.T) {
 	addressedCall, err := payload.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
 	require.NoError(t, err)
-	unsignedMsg, err := warp.NewUnsignedMessage(
+	msgCore, err := warp.NewSignedCore(
 		constants.UnitTestID,
 		sourceChainID,
 		addressedCall.Bytes(),
 	)
 	require.NoError(t, err)
 
-	msg := &warp.Message{
-		UnsignedMessage: unsignedMsg,
-		Signature: &warp.BitSetSignature{
-			Signers:   make([]byte, 1),
-			Signature: [bls.SignatureLen]byte{},
-		},
-	}
+	msg, err := warp.NewWarpEnvelope(msgCore, warp.BitSetSignature{
+		Signers:   make([]byte, 1),
+		Signature: [bls.SignatureLen]byte{},
+	}, nil, nil)
+	require.NoError(t, err)
 
 	numKeys := 1
 	consensusCtx := createConsensusCtx(t, []validatorRange{
@@ -513,12 +506,14 @@ func TestInvalidBitSet(t *testing.T) {
 			publicKey: true,
 		},
 	})
-	predicateBytes := predicate.PackPredicate(msg.Bytes())
+	msgBytes, err := msg.Bytes()
+	require.NoError(t, err)
+	predicateBytes := predicate.PackPredicate(msgBytes)
 	test := precompiletest.PredicateTest{
 		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
 			ConsensusCtx: consensusCtx,
-			ProposerVMBlockCtx: &block.Context{
+			ProposerVMBlockCtx: &chain.Context{
 				PChainHeight: 1,
 			},
 		},
@@ -563,7 +558,7 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 			Config: NewDefaultConfig(utils.NewUint64(0)),
 			PredicateContext: &precompileconfig.PredicateContext{
 				ConsensusCtx: consensusCtx,
-				ProposerVMBlockCtx: &block.Context{
+				ProposerVMBlockCtx: &chain.Context{
 					PChainHeight: 1,
 				},
 			},
@@ -621,7 +616,7 @@ func TestWarpMultiplePredicates(t *testing.T) {
 				Config: NewDefaultConfig(utils.NewUint64(0)),
 				PredicateContext: &precompileconfig.PredicateContext{
 					ConsensusCtx: consensusCtx,
-					ProposerVMBlockCtx: &block.Context{
+					ProposerVMBlockCtx: &chain.Context{
 						PChainHeight: 1,
 					},
 				},
@@ -665,7 +660,7 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 			Config: NewConfig(utils.NewUint64(0), uint64(nonDefaultQuorumNumerator), false),
 			PredicateContext: &precompileconfig.PredicateContext{
 				ConsensusCtx: consensusCtx,
-				ProposerVMBlockCtx: &block.Context{
+				ProposerVMBlockCtx: &chain.Context{
 					PChainHeight: 1,
 				},
 			},
@@ -752,21 +747,18 @@ func makeWarpPredicateTests(tb testing.TB) map[string]precompiletest.PredicateTe
 			}
 		}
 
-		consensusCtx := utilstest.NewTestConsensusContext(tb)
-
 		state := &validatorstest.State{
 			GetValidatorSetF: func(ctx context.Context, height uint64, chainID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 				return getValidatorsOutput, nil
 			},
 		}
-		// Wrap state and add to context
 		wrappedState := &testValidatorStateWrapper{
 			State: state,
 			GetNetworkIDF: func(id ids.ID) (ids.ID, error) {
 				return sourceNetworkID, nil
 			},
 		}
-		consensusCtx = consensuscontext.WithValidatorState(consensusCtx, wrappedState)
+		consensusCtx := newPredicateConsensusCtx(tb, wrappedState)
 
 		predicateTests[testName] = createValidPredicateTest(consensusCtx, uint64(numSigners), predicateBytes)
 	}
