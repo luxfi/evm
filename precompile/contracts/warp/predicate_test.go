@@ -233,6 +233,10 @@ func (t *testValidatorStateWrapper) GetNetworkID(id ids.ID) (ids.ID, error) {
 func newPredicateConsensusCtx(tb testing.TB, state consensuscontext.ValidatorState) context.Context {
 	rt := utilstest.NewTestRuntime(tb, ids.GenerateTestID())
 	rt.ValidatorState = state
+	// Align the node's network ID with the cores the tests build via
+	// warp.NewCore(constants.UnitTestID, ...) so VerifyPredicate's network-ID
+	// check (parity with warp.VerifyEnvelope) accepts them.
+	rt.NetworkID = constants.UnitTestID
 	return consensuscontext.WithContext(context.Background(), rt)
 }
 
@@ -520,6 +524,51 @@ func TestInvalidBitSet(t *testing.T) {
 		PredicateBytes: predicateBytes,
 		Gas:            GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:         errCannotGetNumSigners,
+	}
+
+	test.Run(t)
+}
+
+// TestWarpWrongNetworkID proves VerifyPredicate rejects a message whose Core
+// is stamped with a network ID different from the verifying node's — parity
+// with warp.VerifyEnvelope. The rejection happens before any signature work,
+// so the (unsigned) message still passes PredicateGas.
+func TestWarpWrongNetworkID(t *testing.T) {
+	numKeys := 10
+	consensusCtx := createConsensusCtx(t, []validatorRange{
+		{
+			start:     0,
+			end:       numKeys,
+			weight:    20,
+			publicKey: true,
+		},
+	})
+	addressedCall, err := payload.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
+	require.NoError(t, err)
+	// constants.UnitTestID+1 != the test runtime's UnitTestID.
+	msgCore, err := warp.NewCore(constants.UnitTestID+1, sourceChainID, addressedCall.Bytes())
+	require.NoError(t, err)
+	bitSet := warp.NewBitSet()
+	for i := 0; i < numKeys; i++ {
+		bitSet.Add(i)
+	}
+	warpMsg, err := warp.NewEnvelope(msgCore, warp.BitSetSignature{Signers: bitSet}, nil, nil)
+	require.NoError(t, err)
+	warpMsgBytes, err := warpMsg.Bytes()
+	require.NoError(t, err)
+	predicateBytes := predicate.PackPredicate(warpMsgBytes)
+
+	test := precompiletest.PredicateTest{
+		Config: NewDefaultConfig(utils.NewUint64(0)),
+		PredicateContext: &precompileconfig.PredicateContext{
+			ConsensusCtx: consensusCtx,
+			ProposerVMBlockCtx: &chain.Context{
+				PChainHeight: 1,
+			},
+		},
+		PredicateBytes: predicateBytes,
+		Gas:            GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		ExpectedErr:    errFailedVerification,
 	}
 
 	test.Run(t)
