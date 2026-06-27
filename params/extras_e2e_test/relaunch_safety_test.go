@@ -76,7 +76,6 @@ var liveAtBlockZero = map[string]bool{
 	"hpkeConfig":     true,
 	"mldsaVerify":    true,
 	"mlkemConfig":    true,
-	"pqcryptoConfig": true,
 	"ringConfig":     true,
 	"slhdsaVerify":   true,
 	"zkConfig":       true,
