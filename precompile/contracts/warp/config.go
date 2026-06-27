@@ -209,6 +209,14 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 		return fmt.Errorf("%w: %w", errCannotParseWarpMsg, err)
 	}
 
+	// Reject a message stamped with a different origin network than this node's,
+	// matching warp.VerifyEnvelope. The bespoke verify path must enforce the same
+	// checks (one and one way); D folds NetworkID, so this is defense in depth
+	// against cross-network replay.
+	if localNetworkID := consensuscontext.GetNetworkID(predicateContext.ConsensusCtx); warpMsg.Core.NetworkID != localNetworkID {
+		return fmt.Errorf("%w: message network ID %d does not match local network ID %d", errFailedVerification, warpMsg.Core.NetworkID, localNetworkID)
+	}
+
 	quorumNumerator := WarpDefaultQuorumNumerator
 	if c.QuorumNumerator != 0 {
 		quorumNumerator = c.QuorumNumerator
