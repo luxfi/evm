@@ -76,6 +76,23 @@ func londonConfig() *params.ChainConfig {
 	}
 }
 
+// cancunConfig is londonConfig advanced through the merge to Cancun, activating
+// EIP-6780 (SELFDESTRUCT-only-in-same-tx). Shanghai/Cancun are time-based and
+// gated on the merge, so the harness must also supply a non-nil PREVRANDAO
+// (see newHarnessCfg random argument).
+func cancunConfig() *params.ChainConfig {
+	c := londonConfig()
+	z := big.NewInt(0)
+	t0 := uint64(0)
+	c.ArrowGlacierBlock = z
+	c.GrayGlacierBlock = z
+	c.MergeNetsplitBlock = z
+	c.TerminalTotalDifficulty = big.NewInt(0)
+	c.ShanghaiTime = &t0
+	c.CancunTime = &t0
+	return c
+}
+
 type harness struct {
 	cfg     *params.ChainConfig
 	db      state.Database
@@ -84,12 +101,29 @@ type harness struct {
 	keys    []*ecdsa.PrivateKey
 	addrs   []common.Address
 	header  *types.Header
+	random  *common.Hash // non-nil => post-merge rules (required for Shanghai/Cancun)
 	hotAddr common.Address
 	fanAddr common.Address
 }
 
-func newHarness(t testing.TB, numAccounts int) *harness {
-	cfg := londonConfig()
+// contractSpec is a pre-deployed account for a custom genesis: code, an optional
+// starting balance, and optional storage slots. A spec with no code and a zero
+// balance stages a genuinely EMPTY account (0,0,0) — used to exercise the
+// EIP-158 touch-then-delete path (which requires deleteEmptyGenesis=false so the
+// empty account survives the genesis commit into the base trie).
+type contractSpec struct {
+	code    []byte
+	balance *uint256.Int
+	storage map[common.Hash]common.Hash
+}
+
+// newHarnessCfg is the single genesis builder: `numAccounts` funded EOAs plus
+// arbitrary pre-deployed accounts, under an explicit chain config. `random`
+// non-nil selects the post-merge rule set (PREVRANDAO present) which London
+// leaves nil and Shanghai/Cancun require. `deleteEmptyGenesis` is the EIP-158
+// rule for the GENESIS commit only — set false to stage pre-existing empty
+// accounts. newHarness is the London + hot/fanout specialization.
+func newHarnessCfg(t testing.TB, numAccounts int, cfg *params.ChainConfig, random *common.Hash, deleteEmptyGenesis bool, deploys map[common.Address]contractSpec) *harness {
 	db := state.NewDatabase(rawdb.NewMemoryDatabase())
 	pre, err := state.New(types.EmptyRootHash, db, nil)
 	if err != nil {
@@ -109,13 +143,21 @@ func newHarness(t testing.TB, numAccounts int) *harness {
 		addrs[i] = common.Address(crypto.PubkeyToAddress(key.PublicKey))
 		pre.SetBalance(addrs[i], fund, tracing.BalanceChangeUnspecified)
 	}
+	for addr, spec := range deploys {
+		if len(spec.code) > 0 {
+			pre.SetCode(addr, spec.code, tracing.CodeChangeUnspecified)
+		}
+		// SetBalance even for the zero value materializes an empty (0,0,0) object,
+		// so an empty account can be staged into the base trie.
+		if spec.balance != nil {
+			pre.SetBalance(addr, spec.balance, tracing.BalanceChangeUnspecified)
+		}
+		for k, v := range spec.storage {
+			pre.SetState(addr, k, v)
+		}
+	}
 
-	hotAddr := common.HexToAddress("0x00000000000000000000000000000000000000a7")
-	fanAddr := common.HexToAddress("0x00000000000000000000000000000000000000fa")
-	pre.SetCode(hotAddr, hotContract, tracing.CodeChangeUnspecified)
-	pre.SetCode(fanAddr, fanoutContract, tracing.CodeChangeUnspecified)
-
-	root, err := pre.Commit(0, true, false)
+	root, err := pre.Commit(0, deleteEmptyGenesis, false)
 	if err != nil {
 		t.Fatalf("commit genesis: %v", err)
 	}
@@ -130,8 +172,7 @@ func newHarness(t testing.TB, numAccounts int) *harness {
 		signer:  types.LatestSignerForChainID(cfg.ChainID),
 		keys:    keys,
 		addrs:   addrs,
-		hotAddr: hotAddr,
-		fanAddr: fanAddr,
+		random:  random,
 		header: &types.Header{
 			Number:     big.NewInt(1),
 			GasLimit:   30_000_000,
@@ -143,8 +184,20 @@ func newHarness(t testing.TB, numAccounts int) *harness {
 	}
 }
 
+func newHarness(t testing.TB, numAccounts int) *harness {
+	hotAddr := common.HexToAddress("0x00000000000000000000000000000000000000a7")
+	fanAddr := common.HexToAddress("0x00000000000000000000000000000000000000fa")
+	h := newHarnessCfg(t, numAccounts, londonConfig(), nil, true, map[common.Address]contractSpec{
+		hotAddr: {code: hotContract},
+		fanAddr: {code: fanoutContract},
+	})
+	h.hotAddr = hotAddr
+	h.fanAddr = fanAddr
+	return h
+}
+
 func (h *harness) blockContext() vm.BlockContext {
-	return vm.BlockContext{
+	ctx := vm.BlockContext{
 		CanTransfer: gethcore.CanTransfer,
 		Transfer:    gethcore.Transfer,
 		GetHash:     func(uint64) common.Hash { return common.Hash{} },
@@ -154,7 +207,17 @@ func (h *harness) blockContext() vm.BlockContext {
 		Time:        h.header.Time,
 		Difficulty:  new(big.Int).Set(h.header.Difficulty),
 		BaseFee:     new(big.Int).Set(h.header.BaseFee),
+		BlobBaseFee: big.NewInt(1),
 	}
+	// A non-nil PREVRANDAO signals post-merge: chainConfig.Rules then turns on
+	// IsMerge (and thus IsCancun/IsEIP6780) when the timestamps are active.
+	// London blocks leave it nil so those rules stay off.
+	if h.random != nil {
+		r := *h.random
+		ctx.Random = &r
+		ctx.Difficulty = new(big.Int) // post-merge difficulty is zero
+	}
+	return ctx
 }
 
 // apply runs one transaction against vmsdb with the real EVM. It is the SINGLE
