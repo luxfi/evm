@@ -111,7 +111,7 @@ func (addressedPayloadHandler) packFailed() []byte {
 }
 
 func (addressedPayloadHandler) handleMessage(warpMessage *warp.Envelope) ([]byte, error) {
-	addressedPayload, err := payload.ParsePayload(warpMessage.Core.Payload)
+	addressedPayload, err := payload.ParsePayload(warpMessage.Message.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errInvalidAddressedPayload, err)
 	}
@@ -122,7 +122,7 @@ func (addressedPayloadHandler) handleMessage(warpMessage *warp.Envelope) ([]byte
 	}
 	return PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 		Message: WarpMessage{
-			SourceChainID:       common.BytesToHash(warpMessage.Core.SourceChainID[:]),
+			SourceChainID:       common.BytesToHash(warpMessage.Message.SourceChainID[:]),
 			OriginSenderAddress: common.BytesToAddress(addressedCall.SourceAddress),
 			Payload:             addressedCall.Payload,
 		},
@@ -137,7 +137,7 @@ func (blockHashHandler) packFailed() []byte {
 }
 
 func (blockHashHandler) handleMessage(warpMessage *warp.Envelope) ([]byte, error) {
-	parsedPayload, err := payload.ParsePayload(warpMessage.Core.Payload)
+	parsedPayload, err := payload.ParsePayload(warpMessage.Message.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errInvalidBlockHashPayload, err)
 	}
@@ -148,7 +148,7 @@ func (blockHashHandler) handleMessage(warpMessage *warp.Envelope) ([]byte, error
 	}
 	return PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{
 		WarpBlockHash: WarpBlockHash{
-			SourceChainID: common.BytesToHash(warpMessage.Core.SourceChainID[:]),
+			SourceChainID: common.BytesToHash(warpMessage.Message.SourceChainID[:]),
 			BlockHash:     common.BytesToHash(blockHashPayload.Hash[:]),
 		},
 		Valid: true,

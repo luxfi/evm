@@ -50,11 +50,11 @@ func (a *API) GetMessage(ctx context.Context, messageID ids.ID) (hexutil.Bytes, 
 
 // GetMessageSignature returns the BLS signature associated with a messageID.
 func (a *API) GetMessageSignature(ctx context.Context, messageID ids.ID) (hexutil.Bytes, error) {
-	core, err := a.backend.GetMessage(messageID)
+	msg, err := a.backend.GetMessage(messageID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get message %s with error %w", messageID, err)
 	}
-	signature, err := a.backend.GetMessageSignature(ctx, core)
+	signature, err := a.backend.GetMessageSignature(ctx, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get signature for message %s with error %w", messageID, err)
 	}
@@ -72,11 +72,11 @@ func (a *API) GetBlockSignature(ctx context.Context, blockID ids.ID) (hexutil.By
 
 // GetMessageAggregateSignature fetches the aggregate signature for the requested [messageID]
 func (a *API) GetMessageAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64, chainIDStr string) (signedMessageBytes hexutil.Bytes, err error) {
-	core, err := a.backend.GetMessage(messageID)
+	msg, err := a.backend.GetMessage(messageID)
 	if err != nil {
 		return nil, err
 	}
-	return a.aggregateSignatures(ctx, core, quorumNum, chainIDStr)
+	return a.aggregateSignatures(ctx, msg, quorumNum, chainIDStr)
 }
 
 // GetBlockAggregateSignature fetches the aggregate signature for the requested [blockID]
@@ -86,15 +86,15 @@ func (a *API) GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, qu
 		return nil, err
 	}
 	chainID := a.runtimeCtx.GetChainID()
-	core, err := warp.NewCore(a.runtimeCtx.GetNetworkID(), chainID, blockHashPayload.Bytes())
+	msg, err := warp.NewMessage(a.runtimeCtx.GetNetworkID(), chainID, blockHashPayload.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
-	return a.aggregateSignatures(ctx, core, quorumNum, chainIDStr)
+	return a.aggregateSignatures(ctx, msg, quorumNum, chainIDStr)
 }
 
-func (a *API) aggregateSignatures(ctx context.Context, core *warp.Core, quorumNum uint64, chainIDStr string) (hexutil.Bytes, error) {
+func (a *API) aggregateSignatures(ctx context.Context, msg *warp.Message, quorumNum uint64, chainIDStr string) (hexutil.Bytes, error) {
 	chainID := a.runtimeCtx.GetChainID()
 	if len(chainIDStr) > 0 {
 		cid, err := ids.FromString(chainIDStr)
@@ -118,7 +118,7 @@ func (a *API) aggregateSignatures(ctx context.Context, core *warp.Core, quorumNu
 
 	// Create validator state wrapper for warp messaging
 	// This handles the special case for Primary Network messages
-	sourceChainID := core.SourceChainID
+	sourceChainID := msg.SourceChainID
 	wrappedState := warpvalidators.NewState(
 		validatorState,
 		a.runtimeCtx.GetChainID(),
@@ -165,7 +165,7 @@ func (a *API) aggregateSignatures(ctx context.Context, core *warp.Core, quorumNu
 		Signers:   warp.NewBitSet(),
 		Signature: [bls.SignatureLen]byte{},
 	}
-	initialEnvelope, err := warp.NewEnvelope(core, emptyBeam, nil, nil)
+	initialEnvelope, err := warp.NewEnvelope(msg, emptyBeam, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create initial envelope: %w", err)
 	}
