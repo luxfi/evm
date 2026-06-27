@@ -265,7 +265,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	core, err := warp.NewCore(
+	msg, err := warp.NewMessage(
 		consensuscontext.GetNetworkID(ctx),
 		sourceChainID,
 		addressedPayload.Bytes(),
@@ -277,8 +277,8 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	// Add a log to be handled if this action is finalized.
 	topics, data, err := PackSendWarpMessageEvent(
 		sourceAddress,
-		common.Hash(core.ID()),
-		core.Bytes(),
+		common.Hash(msg.ID()),
+		msg.Bytes(),
 	)
 	if err != nil {
 		return nil, remainingGas, err
@@ -290,7 +290,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		BlockNumber: accessibleState.GetBlockContext().Number().Uint64(),
 	})
 
-	packed, err := PackSendWarpMessageOutput(common.Hash(core.ID()))
+	packed, err := PackSendWarpMessageOutput(common.Hash(msg.ID()))
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -305,15 +305,15 @@ func PackSendWarpMessageEvent(sourceAddress common.Address, unsignedMessageID co
 }
 
 // UnpackSendWarpEventDataToMessage attempts to unpack event [data] as a
-// warp.Core (the ZAP canonical core, replacing the deleted RLP
+// warp.Message (the ZAP canonical core, replacing the deleted RLP
 // unsigned-message type).
-func UnpackSendWarpEventDataToMessage(data []byte) (*warp.Core, error) {
+func UnpackSendWarpEventDataToMessage(data []byte) (*warp.Message, error) {
 	event := SendWarpMessageEventData{}
 	err := WarpABI.UnpackIntoInterface(&event, "SendWarpMessage", data)
 	if err != nil {
 		return nil, err
 	}
-	return warp.ParseCore(event.Message)
+	return warp.ParseMessage(event.Message)
 }
 
 // createWarpPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
