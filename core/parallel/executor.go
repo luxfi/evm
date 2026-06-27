@@ -41,6 +41,7 @@ type Executor struct {
 	db          state.Database
 	root        common.Hash
 	txs         types.Transactions
+	gasLimit    uint64
 	deleteEmpty bool
 	workers     int
 	apply       ApplyFunc
@@ -59,9 +60,12 @@ type txOutcome struct {
 }
 
 // NewExecutor builds an executor over a block's transactions. `root` is the
-// pre-state root (the parent block's state root); `deleteEmpty` is the EIP-158
-// rule for the block; `workers` ≤ 0 means runtime.NumCPU().
-func NewExecutor(db state.Database, root common.Hash, txs types.Transactions, deleteEmpty bool, workers int, apply ApplyFunc) *Executor {
+// pre-state root (the parent block's state root); `gasLimit` is the block gas
+// limit, enforced as a faithful GasPool reservation in the sequential reference
+// so an over-limit block is rejected exactly as the live path rejects it;
+// `deleteEmpty` is the EIP-158 rule for the block; `workers` ≤ 0 means
+// runtime.NumCPU().
+func NewExecutor(db state.Database, root common.Hash, txs types.Transactions, gasLimit uint64, deleteEmpty bool, workers int, apply ApplyFunc) *Executor {
 	if workers <= 0 {
 		workers = runtime.NumCPU()
 	}
@@ -69,6 +73,7 @@ func NewExecutor(db state.Database, root common.Hash, txs types.Transactions, de
 		db:          db,
 		root:        root,
 		txs:         txs,
+		gasLimit:    gasLimit,
 		deleteEmpty: deleteEmpty,
 		workers:     workers,
 		apply:       apply,
@@ -151,16 +156,31 @@ func (e *Executor) settleError(i int) error {
 // `referenceRoot` is retained as a mandatory cross-check: it MUST equal the
 // locally computed sequential root, so a caller that passes a forged or merely
 // claimed root (e.g. an untrusted header.Root) is rejected rather than trusted.
+// Because DummyEngine.Finalize mutates no state, the block's header.Root IS the
+// post-transaction state root, so the live caller passes block.Root() here and a
+// forged header is caught in this gate rather than only downstream.
+//
 // `pre` is mutated (and receipts returned) only when sequential, the caller's
 // reference, and the parallel result all agree byte-for-byte; otherwise ok=false
 // and `pre` is left untouched so the caller runs sequential itself.
+//
+// The RETURNED receipts are the canonical sequential ones, NOT the parallel
+// engine's: each parallel transaction runs on its own speculative StateDB whose
+// per-block log index counter restarts at zero, so the parallel receipts carry
+// tx-local log indices and would derive a wrong receipt-trie root. The sequential
+// reference accumulates every transaction's logs on one StateDB, so its receipts
+// are block-correct. The committed STATE comes from materializing the parallel
+// write sets (proven byte-identical to sequential by the determinism corpus); the
+// committed RECEIPTS come from the sequential reference. Both halves are therefore
+// exactly what a sequential validator commits.
 func (e *Executor) ExecuteVerified(pre *state.StateDB, referenceRoot common.Hash) (receipts []*types.Receipt, ok bool) {
 	if !Enabled.Load() {
 		return nil, false
 	}
-	// The authoritative reference: recompute sequential locally. This is the only
-	// root the parallel result is ever checked against.
-	seqRoot, seqErr := e.executeSequential(pre.Copy())
+	// The authoritative reference: recompute sequential locally, capturing the
+	// canonical receipts and root. This is the only root the parallel result is
+	// ever checked against, and the only receipts ever committed.
+	seqReceipts, seqRoot, seqErr := e.executeSequential(pre.Copy())
 	if seqErr != nil {
 		return nil, false
 	}
@@ -170,32 +190,55 @@ func (e *Executor) ExecuteVerified(pre *state.StateDB, referenceRoot common.Hash
 	if referenceRoot != seqRoot {
 		return nil, false
 	}
+	// Parallel cross-check on an independent copy. Its receipts are intentionally
+	// discarded (tx-local log indices); only its ROOT is consensus-comparable.
 	probe := pre.Copy()
-	receipts, parRoot, err := e.Execute(probe)
-	if err != nil || parRoot != seqRoot {
+	if _, parRoot, err := e.Execute(probe); err != nil || parRoot != seqRoot {
 		return nil, false
 	}
-	// Byte-identical to the locally computed sequential root: replay onto pre.
-	// materialize reproduces the per-transaction Finalise cadence, leaving pre
-	// fully finalised.
+	// Byte-identical to the locally computed sequential root: replay the parallel
+	// write sets onto pre. materialize reproduces the per-transaction Finalise
+	// cadence, leaving pre fully finalised at seqRoot.
 	e.materialize(pre)
-	return receipts, true
+	DefaultMetrics.VerifiedBlocks.Add(1)
+	return seqReceipts, true
 }
 
 // executeSequential runs every transaction in order on `sdb`, Finalising after
-// each (the post-Byzantium cadence), and returns the resulting state root. It is
-// the authoritative sequential reference for ExecuteVerified. It is intentionally
-// NOT a fast path: it provides no parallelism and exists solely so the parity
-// reference is always locally computed, never a caller-supplied root.
-func (e *Executor) executeSequential(sdb *state.StateDB) (common.Hash, error) {
+// each (the post-Byzantium cadence), and returns the canonical receipts and the
+// resulting state root. It is the authoritative sequential reference for
+// ExecuteVerified. It is intentionally NOT a fast path: it provides no
+// parallelism and exists solely so the parity reference — root AND receipts — is
+// always locally computed, never a caller-supplied value.
+//
+// It also reproduces the live path's block gas-limit enforcement. geth's GasPool
+// reserves each transaction's gas limit up front (SubGas) and refunds the unused
+// remainder, so after transaction j the pool holds blockGasLimit − Σ gasUsed and
+// transaction i is admitted iff Σ_{j<i} gasUsed_j + gasLimit_i ≤ blockGasLimit.
+// An over-limit block therefore fails the sequential reference here, so
+// ExecuteVerified returns ok=false and the caller's own sequential loop surfaces
+// the identical ErrGasLimitReached — a flag-on validator can never accept a block
+// (e.g. one whose later transaction cannot reserve its gas) that a flag-off
+// validator rejects. The pure-root parallel cross-check does not model the pool;
+// pinning the gate to this sequential reference is what closes that fork class.
+func (e *Executor) executeSequential(sdb *state.StateDB) ([]*types.Receipt, common.Hash, error) {
+	receipts := make([]*types.Receipt, len(e.txs))
+	var cumulative uint64 // Σ gasUsed; invariant: cumulative ≤ e.gasLimit
 	for i := range e.txs {
+		if e.txs[i].Gas() > e.gasLimit-cumulative { // faithful SubGas(gasLimit) reservation
+			return nil, common.Hash{}, fmt.Errorf("block-stm: gas limit reached at tx %d (block limit %d, used %d, tx wants %d)", i, e.gasLimit, cumulative, e.txs[i].Gas())
+		}
 		sdb.SetTxContext(e.txs[i].Hash(), i)
-		if _, err := e.apply(sdb, i); err != nil {
-			return common.Hash{}, err
+		r, err := e.apply(sdb, i)
+		if err != nil {
+			return nil, common.Hash{}, err
 		}
 		sdb.Finalise(e.deleteEmpty)
+		cumulative += r.GasUsed
+		r.CumulativeGasUsed = cumulative
+		receipts[i] = r
 	}
-	return sdb.IntermediateRoot(e.deleteEmpty), nil
+	return receipts, sdb.IntermediateRoot(e.deleteEmpty), nil
 }
 
 // executeParallel runs the given transaction indices, each on its own
