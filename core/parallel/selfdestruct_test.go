@@ -215,6 +215,49 @@ func TestCreate2DeploySelfdestructReviveCancun(t *testing.T) {
 	}
 }
 
+// storeThenSelfdestructInit is constructor code that writes storage slot 1 and
+// then SELFDESTRUCTs in the same execution. Deployed via CREATE2 under Cancun it
+// is a newContract, so EIP-6780 performs the full same-tx delete and the slot it
+// just wrote must be wiped with it.
+//
+//	PUSH1 0x11  PUSH1 0x01  SSTORE   PUSH20 <benef>  SELFDESTRUCT
+func storeThenSelfdestructInit(benef common.Address) []byte {
+	out := []byte{0x60, 0x11, 0x60, 0x01, 0x55, 0x73}
+	out = append(out, benef.Bytes()...)
+	return append(out, 0xff)
+}
+
+// TestCancunCreate2StorageWipeThenRevive is the recreate-storage class on live
+// (Cancun) rules. Tx A CREATE2-deploys a contract that writes storage and
+// self-destructs in its constructor; EIP-6780 fully deletes it (newContract),
+// wiping that storage. Tx B revives the address with a value transfer. The
+// revived account must carry NO storage and match sequential byte-for-byte.
+func TestCancunCreate2StorageWipeThenRevive(t *testing.T) {
+	initA := storeThenSelfdestructInit(benefAddr)
+	x := create2Addr(factoryAddr, common.Hash{}, initA)
+	r := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000abc")
+	h := newHarnessCfg(t, 6, cancunConfig(), &r, true, map[common.Address]contractSpec{
+		factoryAddr: {code: create2FactoryCode},
+		x:           {balance: uint256.NewInt(2_000_000)},
+	})
+
+	var txs types.Transactions
+	txs = append(txs, h.signTx(0, 0, &factoryAddr, big.NewInt(0), initA, 200_000)) // tx A: create2 + SSTORE + same-tx selfdestruct
+	txs = append(txs, h.signTx(1, 0, &x, big.NewInt(3_003), nil, 21_000))          // tx B: revive
+
+	_, sdb := h.assertDeterministic(t, txs, "cancun-create2-storage-wipe-revive")
+
+	if !sdb.Exist(x) {
+		t.Fatal("revived account absent from post-state")
+	}
+	if got := sdb.GetState(x, common.BytesToHash([]byte{0x01})); got != (common.Hash{}) {
+		t.Fatalf("storage slot survived 6780 delete + revival: slot1 = %x (must be wiped)", got)
+	}
+	if got := sdb.GetBalance(x); got.Cmp(uint256.NewInt(3_003)) != 0 {
+		t.Fatalf("revived account balance = %s, want 3003", got)
+	}
+}
+
 // TestSelfdestructDeterminismBothForks runs the call-then-send-value sequence
 // under both rule sets. On London the pre-existing contract is deleted (revival);
 // on Cancun EIP-6780 keeps the pre-existing contract (no delete) — both must be
