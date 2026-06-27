@@ -37,24 +37,24 @@ type BlockClient interface {
 // Backend tracks signature-eligible warp messages and provides an interface to fetch them.
 // The backend is also used to query for warp message signatures by the signature request handler.
 //
-// Post-ZAP the signed subject is the warp.SignedCore (its D = ID() is what the
+// Post-ZAP the signed subject is the warp.Core (its D = ID() is what the
 // BLS Beam signs via warp.BeamSigningBytes(D)); the deleted RLP
 // unsigned-message type is gone.
 type Backend interface {
 	// AddMessage signs [core] and adds it to the warp backend database.
-	AddMessage(core *warp.SignedCore) error
+	AddMessage(core *warp.Core) error
 
 	// GetMessageSignature validates the message and returns the signature of the requested message.
-	GetMessageSignature(ctx context.Context, core *warp.SignedCore) ([]byte, error)
+	GetMessageSignature(ctx context.Context, core *warp.Core) ([]byte, error)
 
 	// GetBlockSignature returns the signature of a hash payload containing blockID if it's the ID of an accepted block.
 	GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte, error)
 
 	// GetMessage retrieves the [core] from the warp backend database if available.
-	GetMessage(messageHash ids.ID) (*warp.SignedCore, error)
+	GetMessage(messageHash ids.ID) (*warp.Core, error)
 
 	// Verify verifies the signature of the message.
-	Verify(ctx context.Context, core *warp.SignedCore, _ []byte) error
+	Verify(ctx context.Context, core *warp.Core, _ []byte) error
 }
 
 // backend implements Backend, keeps track of warp messages, and generates message signatures.
@@ -66,8 +66,8 @@ type backend struct {
 	blockClient               BlockClient
 	validatorReader           interfaces.ValidatorReader
 	signatureCache            cache.Cacher[ids.ID, []byte]
-	messageCache              *lru.Cache[ids.ID, *warp.SignedCore]
-	offchainAddressedCallMsgs map[string]*warp.SignedCore
+	messageCache              *lru.Cache[ids.ID, *warp.Core]
+	offchainAddressedCallMsgs map[string]*warp.Core
 	stats                     *verifierStats
 }
 
@@ -90,16 +90,16 @@ func NewBackend(
 		blockClient:               blockClient,
 		signatureCache:            signatureCache,
 		validatorReader:           validatorReader,
-		messageCache:              lru.NewCache[ids.ID, *warp.SignedCore](messageCacheSize),
+		messageCache:              lru.NewCache[ids.ID, *warp.Core](messageCacheSize),
 		stats:                     newVerifierStats(),
-		offchainAddressedCallMsgs: make(map[string]*warp.SignedCore),
+		offchainAddressedCallMsgs: make(map[string]*warp.Core),
 	}
 	return b, b.initOffChainMessages(offchainMessages)
 }
 
 func (b *backend) initOffChainMessages(offchainMessages [][]byte) error {
 	for i, offchainMsg := range offchainMessages {
-		core, err := warp.ParseSignedCore(offchainMsg)
+		core, err := warp.ParseCore(offchainMsg)
 		if err != nil {
 			return fmt.Errorf("%w at index %d: %w", errParsingOffChainMessage, i, err)
 		}
@@ -125,7 +125,7 @@ func (b *backend) initOffChainMessages(offchainMessages [][]byte) error {
 	return nil
 }
 
-func (b *backend) AddMessage(core *warp.SignedCore) error {
+func (b *backend) AddMessage(core *warp.Core) error {
 	coreID := core.ID()
 	messageID := ids.ID(crypto.Keccak256Hash(coreID[:]))
 	log.Debug("Adding warp message to backend", "messageID", messageID)
@@ -143,7 +143,7 @@ func (b *backend) AddMessage(core *warp.SignedCore) error {
 	return nil
 }
 
-func (b *backend) GetMessageSignature(ctx context.Context, core *warp.SignedCore) ([]byte, error) {
+func (b *backend) GetMessageSignature(ctx context.Context, core *warp.Core) ([]byte, error) {
 	coreID := core.ID()
 	messageID := ids.ID(crypto.Keccak256Hash(coreID[:]))
 
@@ -166,7 +166,7 @@ func (b *backend) GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte
 		return nil, fmt.Errorf("failed to create new block hash payload: %w", err)
 	}
 
-	core, err := warp.NewSignedCore(b.networkID, b.sourceChainID, blockHashPayload.Bytes())
+	core, err := warp.NewCore(b.networkID, b.sourceChainID, blockHashPayload.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new signed core: %w", err)
 	}
@@ -188,7 +188,7 @@ func (b *backend) GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte
 	return sig, nil
 }
 
-func (b *backend) GetMessage(messageID ids.ID) (*warp.SignedCore, error) {
+func (b *backend) GetMessage(messageID ids.ID) (*warp.Core, error) {
 	if message, ok := b.messageCache.Get(messageID); ok {
 		return message, nil
 	}
@@ -202,7 +202,7 @@ func (b *backend) GetMessage(messageID ids.ID) (*warp.SignedCore, error) {
 		return nil, err
 	}
 
-	core, err := warp.ParseSignedCore(coreBytes)
+	core, err := warp.ParseCore(coreBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse signed core %s: %w", messageID.String(), err)
 	}
@@ -211,7 +211,7 @@ func (b *backend) GetMessage(messageID ids.ID) (*warp.SignedCore, error) {
 	return core, nil
 }
 
-func (b *backend) signMessage(core *warp.SignedCore) ([]byte, error) {
+func (b *backend) signMessage(core *warp.Core) ([]byte, error) {
 	if b.warpSigner == nil {
 		return nil, errors.New("warp signer not configured")
 	}

@@ -34,7 +34,7 @@ require (
 	github.com/luxfi/metric v1.5.9
 	github.com/luxfi/p2p v1.21.1
 	github.com/luxfi/pq v1.0.3
-	github.com/luxfi/precompile v0.10.0
+	github.com/luxfi/precompile v0.11.0
 	github.com/luxfi/runtime v1.1.3
 	github.com/luxfi/sys v0.1.0
 	github.com/luxfi/timer v1.0.2
@@ -44,7 +44,7 @@ require (
 	github.com/luxfi/validators v1.2.0
 	github.com/luxfi/version v1.0.1
 	github.com/luxfi/vm v1.2.5
-	github.com/luxfi/warp v1.20.0
+	github.com/luxfi/warp v1.21.0
 	github.com/mattn/go-colorable v0.1.15
 	github.com/mattn/go-isatty v0.0.22
 	github.com/spf13/cast v1.10.0

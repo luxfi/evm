@@ -24,7 +24,7 @@ const (
 
 // Verify verifies the signature of the message
 // It implements the warp.Verifier interface
-func (b *backend) Verify(ctx context.Context, core *warp.SignedCore, _ []byte) error {
+func (b *backend) Verify(ctx context.Context, core *warp.Core, _ []byte) error {
 	coreID := core.ID()
 	messageID := ids.ID(crypto.Keccak256Hash(coreID[:]))
 	// Known on-chain messages should be signed

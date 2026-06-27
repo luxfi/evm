@@ -164,7 +164,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("%w: %s", errInvalidPredicateBytes, err)
 	}
-	warpMessage, err := warp.ParseWarpEnvelope(unpackedPredicateBytes)
+	warpMessage, err := warp.ParseEnvelope(unpackedPredicateBytes)
 	if err != nil {
 		return 0, fmt.Errorf("%w: %s", errInvalidWarpMsg, err)
 	}
@@ -204,7 +204,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	}
 
 	// Note: PredicateGas should be called before VerifyPredicate, so we should never reach an error case here.
-	warpMsg, err := warp.ParseWarpEnvelope(unpackedPredicateBytes)
+	warpMsg, err := warp.ParseEnvelope(unpackedPredicateBytes)
 	if err != nil {
 		return fmt.Errorf("%w: %w", errCannotParseWarpMsg, err)
 	}
@@ -375,7 +375,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	}
 
 	// Verify the BLS Beam over the ZAP digest D = warpMsg.Core.ID(). The Beam
-	// signs warp.BeamSigningBytes(D), authenticating the entire SignedCore
+	// signs warp.BeamSigningBytes(D), authenticating the entire Core
 	// (network ID, source chain, PQ lineage, payload) — not stale RLP bytes.
 	err = verifyBeam(beam, warpMsg.Core.ID(), canonicalValidators)
 	if err != nil {
