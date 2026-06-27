@@ -56,7 +56,8 @@ func wiringChain(t *testing.T, nBlocks int) (*Genesis, []*types.Block, common.Ad
 		k, err := crypto.ToECDSA(common.LeftPadBytes(big.NewInt(int64(i+1)).Bytes(), 32))
 		require.NoError(t, err)
 		keys[i] = k
-		addrs[i] = crypto.PubkeyToAddress(k.PublicKey)
+		ca := crypto.PubkeyToAddress(k.PublicKey) // crypto/common.Address
+		addrs[i] = common.BytesToAddress(ca[:])   // geth/common.Address
 		alloc[addrs[i]] = types.Account{Balance: funds}
 	}
 	gspec := &Genesis{
@@ -70,7 +71,8 @@ func wiringChain(t *testing.T, nBlocks int) (*Genesis, []*types.Block, common.Ad
 	callData, err := parsed.Pack("Call")
 	require.NoError(t, err)
 
-	contractAddr := crypto.CreateAddress(crypto.PubkeyToAddress(keys[0].PublicKey), 0)
+	cc := crypto.CreateAddress(crypto.PubkeyToAddress(keys[0].PublicKey), 0)
+	contractAddr := common.BytesToAddress(cc[:])
 
 	nonces := make([]uint64, len(keys))
 	price := big.NewInt(legacy.BaseFee)
