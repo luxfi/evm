@@ -22,11 +22,11 @@ import (
 )
 
 var (
-	networkID           uint32 = 54321
-	sourceChainID              = ids.GenerateTestID()
-	testSourceAddress   []byte
-	testPayload         = []byte("test")
-	testCore *warp.SignedCore
+	networkID         uint32 = 54321
+	sourceChainID            = ids.GenerateTestID()
+	testSourceAddress []byte
+	testPayload       = []byte("test")
+	testCore          *warp.Core
 )
 
 func init() {
@@ -37,7 +37,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	testCore, err = warp.NewSignedCore(networkID, sourceChainID, testAddressedCallPayload.Bytes())
+	testCore, err = warp.NewCore(networkID, sourceChainID, testAddressedCallPayload.Bytes())
 	if err != nil {
 		panic(err)
 	}
@@ -45,7 +45,7 @@ func init() {
 
 // evmMessageID derives the backend's storage/lookup key for a core, matching
 // the keying used by AddMessage/Verify/GetMessageSignature: Keccak256(core.ID()).
-func evmMessageID(core *warp.SignedCore) ids.ID {
+func evmMessageID(core *warp.Core) ids.ID {
 	id := core.ID()
 	return ids.ID(crypto.Keccak256Hash(id[:]))
 }
@@ -103,7 +103,7 @@ func TestGetBlockSignature(t *testing.T) {
 
 	blockHashPayload, err := payload.NewHash(blkID[:])
 	require.NoError(err)
-	core, err := warp.NewSignedCore(networkID, sourceChainID, blockHashPayload.Bytes())
+	core, err := warp.NewCore(networkID, sourceChainID, blockHashPayload.Bytes())
 	require.NoError(err)
 	expectedSig, err := warpSigner.Sign(core)
 	require.NoError(err)

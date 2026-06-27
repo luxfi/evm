@@ -44,7 +44,7 @@ func init() {
 
 type messageHandler interface {
 	packFailed() []byte
-	handleMessage(msg *warp.WarpEnvelope) ([]byte, error)
+	handleMessage(msg *warp.Envelope) ([]byte, error)
 }
 
 func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, suppliedGas uint64, handler messageHandler) ([]byte, uint64, error) {
@@ -93,7 +93,7 @@ func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, s
 	if err != nil {
 		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidPredicateBytes, err)
 	}
-	warpMessage, err := warp.ParseWarpEnvelope(unpackedPredicateBytes)
+	warpMessage, err := warp.ParseEnvelope(unpackedPredicateBytes)
 	if err != nil {
 		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidWarpMsg, err)
 	}
@@ -110,7 +110,7 @@ func (addressedPayloadHandler) packFailed() []byte {
 	return getVerifiedWarpMessageInvalidOutput
 }
 
-func (addressedPayloadHandler) handleMessage(warpMessage *warp.WarpEnvelope) ([]byte, error) {
+func (addressedPayloadHandler) handleMessage(warpMessage *warp.Envelope) ([]byte, error) {
 	addressedPayload, err := payload.ParsePayload(warpMessage.Core.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errInvalidAddressedPayload, err)
@@ -136,7 +136,7 @@ func (blockHashHandler) packFailed() []byte {
 	return getVerifiedWarpBlockHashInvalidOutput
 }
 
-func (blockHashHandler) handleMessage(warpMessage *warp.WarpEnvelope) ([]byte, error) {
+func (blockHashHandler) handleMessage(warpMessage *warp.Envelope) ([]byte, error) {
 	parsedPayload, err := payload.ParsePayload(warpMessage.Core.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errInvalidBlockHashPayload, err)
