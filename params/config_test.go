@@ -340,7 +340,6 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		EVMTimestamp:        utils.NewUint64(0),
-		DurangoTimestamp:    utils.NewUint64(0),
 	}
 
 	extraConfig := &extras.ChainConfig{
