@@ -95,12 +95,22 @@ func (basic *snapshotTestBasic) prepare(t *testing.T) (*BlockChain, []*types.Blo
 		t.Fatalf("Failed to create chain: %v", err)
 	}
 
-	// Now generate blocks using the chain's genesis and database
-	// This ensures blocks are compatible with the chain
-	blocks, _, _ := GenerateChain(gspec.Config, chain.Genesis(), engine, db, basic.chainBlocks, 10, func(i int, b *BlockGen) {})
+	// Generate blocks on a dedicated hash-scheme database (genDb) so that block
+	// production can always read the genesis state, even when it is non-empty
+	// (e.g. a genesis-active precompile marker). GenerateChain forcibly uses a
+	// hash-scheme trie database to retain all nodes; if it shared the chain's
+	// path-scheme db, the non-empty genesis nodes would be unreadable and no
+	// blocks would be produced. The block structures are scheme-agnostic and are
+	// re-executed into the chain's own (basic.scheme) database via InsertChain
+	// below, so this matches the GenerateChainWithGenesis pattern used by the
+	// rest of the core test suite.
+	genDb, blocks, _, err := GenerateChainWithGenesis(gspec, engine, basic.chainBlocks, 10, func(i int, b *BlockGen) {})
+	if err != nil {
+		t.Fatalf("Failed to generate chain: %v", err)
+	}
 
-	// Store the database for later use
-	basic.genDb = db
+	// Store the databases for later use
+	basic.genDb = genDb
 	basic.db = db
 
 	// genesis as last accepted
@@ -136,7 +146,6 @@ func (basic *snapshotTestBasic) prepare(t *testing.T) (*BlockChain, []*types.Blo
 	// Set runtime fields
 	basic.datadir = datadir
 	basic.ancient = ancient
-	basic.db = basic.genDb // Using same database now
 	basic.engine = engine
 	basic.gspec = gspec
 	return chain, blocks
@@ -296,7 +305,7 @@ func (snaptest *gappedSnapshotTest) test(t *testing.T) {
 
 	// Insert blocks without enabling snapshot if gapping is required.
 	chain.Stop()
-	gappedBlocks, _, _ := GenerateChain(snaptest.gspec.Config, blocks[len(blocks)-1], snaptest.engine, snaptest.db, snaptest.gapped, 10, func(i int, b *BlockGen) {})
+	gappedBlocks, _, _ := GenerateChain(snaptest.gspec.Config, blocks[len(blocks)-1], snaptest.engine, snaptest.genDb, snaptest.gapped, 10, func(i int, b *BlockGen) {})
 
 	// Insert a few more blocks without enabling snapshot
 	var cacheConfig = &CacheConfig{
@@ -358,7 +367,7 @@ func (snaptest *wipeCrashSnapshotTest) test(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
-	newBlocks, _, _ := GenerateChain(snaptest.gspec.Config, blocks[len(blocks)-1], snaptest.engine, snaptest.db, snaptest.newBlocks, 10, func(i int, b *BlockGen) {})
+	newBlocks, _, _ := GenerateChain(snaptest.gspec.Config, blocks[len(blocks)-1], snaptest.engine, snaptest.genDb, snaptest.newBlocks, 10, func(i int, b *BlockGen) {})
 	newchain.InsertChain(newBlocks)
 	newchain.Stop()
 
