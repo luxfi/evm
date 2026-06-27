@@ -12,6 +12,7 @@ package registry
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -299,6 +300,47 @@ func (a *accessibleStateBridge) CallIndex() uint32 {
 	}
 	return 0
 }
+
+// accessibleStateBridge forwards the OPTIONAL host atomic-staging capability (external
+// contract.AtomicStager) to the internal adapter — the LP-311 stateless-conduit seam. The
+// 0x9999 conduit type-asserts the external AtomicStager to stage its cross-chain objects in
+// the HOST's non-empty staging account (never the conduit's own, reapable account). When the
+// internal state is not staging-capable (a test mock), the assertion below fails and the
+// conduit fails closed (it never writes its own storage as a fallback).
+var _ extcontract.AtomicStager = (*accessibleStateBridge)(nil)
+
+// internalStager mirrors the internal staging capability the EVM's accessibleStateAdapter
+// implements (core/dex_atomic_staging.go), so the bridge can forward without importing it by
+// name. The internal and external shapes are identical (ids/[]byte only).
+type internalStager interface {
+	StageExport(dst ids.ID, key ids.ID, object []byte) error
+	ConsumeImport(src ids.ID, key ids.ID) ([]byte, bool, error)
+}
+
+func (a *accessibleStateBridge) stagerOrNil() internalStager {
+	if st, ok := a.internal.(internalStager); ok {
+		return st
+	}
+	return nil
+}
+
+func (a *accessibleStateBridge) StageExport(dst ids.ID, key ids.ID, object []byte) error {
+	if st := a.stagerOrNil(); st != nil {
+		return st.StageExport(dst, key, object)
+	}
+	return errNoAtomicStager
+}
+
+func (a *accessibleStateBridge) ConsumeImport(src ids.ID, key ids.ID) ([]byte, bool, error) {
+	if st := a.stagerOrNil(); st != nil {
+		return st.ConsumeImport(src, key)
+	}
+	return nil, false, errNoAtomicStager
+}
+
+// errNoAtomicStager is returned when the host wired no atomic-staging backend (a test mock);
+// the conduit turns it into a clean revert, never a fabricated value or own-storage write.
+var errNoAtomicStager = errors.New("evm/registry: host wired no atomic staging backend (AtomicStager)")
 
 // =============================================================================
 // StateDB Bridge (internal → external)
