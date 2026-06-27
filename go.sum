@@ -324,6 +324,8 @@ github.com/luxfi/precompile v0.10.0 h1:Hz7gUZ3gN5uCjN427+Tpnqnxd0XCf8dAgnN56+5J6
 github.com/luxfi/precompile v0.10.0/go.mod h1:0n+LNoJjHyPvNs+8XoGshujoZhCFuwy2/HXHmeGA2Do=
 github.com/luxfi/precompile v0.11.0 h1:LdSsfoBxPzkLfIkKtwM44ySE9vDfDEKKj0qUejkLJjs=
 github.com/luxfi/precompile v0.11.0/go.mod h1:tJMbLUbBEY7ZetUjfUmRDSD76sSQ30X7DddP07eWj6M=
+github.com/luxfi/precompile v0.12.0 h1:tKYWAIn6Ma4D4c+eW/IBGJyOvrkZcl5qXkhyhBjZ92k=
+github.com/luxfi/precompile v0.12.0/go.mod h1:zU20NTtiSrUZzaNQJc3zTrZSydJKUV+rGzOgM+AGfFE=
 github.com/luxfi/proto v1.3.5 h1:AW11rnu5xyvB7beyowoiY9uIffLOF3+eMR/a3EkK2c8=
 github.com/luxfi/proto v1.3.5/go.mod h1:ixTofGpdW1rTYr+wgTuBhAsgBv8GnWYHMLWbPNEdm7M=
 github.com/luxfi/resource v0.0.1 h1:mTh+ICWSy548GTUSSyx7V/X5dV18oEwxZeQEYGJQhD4=
@@ -356,6 +358,8 @@ github.com/luxfi/warp v1.20.0 h1:CyUokvCZ2ZhIpbziKPzCdqdvdMc1V32JpyoZTM2tShs=
 github.com/luxfi/warp v1.20.0/go.mod h1:4a6ZqXSsQVpm1nl1Q5i6SYPjDcdHvPyEoj4M9pvrIHE=
 github.com/luxfi/warp v1.21.0 h1:QRgDJuGkp0V3GkmnboHTOKl9Ak0ZHc8DcQqbV4gnCRM=
 github.com/luxfi/warp v1.21.0/go.mod h1:4a6ZqXSsQVpm1nl1Q5i6SYPjDcdHvPyEoj4M9pvrIHE=
+github.com/luxfi/warp v1.22.0 h1:S3yiVUaBkHwMkYMAUxHpyVqRe8ZubugCozBgUyRczNA=
+github.com/luxfi/warp v1.22.0/go.mod h1:4a6ZqXSsQVpm1nl1Q5i6SYPjDcdHvPyEoj4M9pvrIHE=
 github.com/luxfi/zap v0.8.11 h1:jT+ol9rj557MRdmnzxrVUCR3CDFaE+8OpzUsLIn92og=
 github.com/luxfi/zap v0.8.11/go.mod h1:JfqII8VtVQYLLTX6obU1DP9sjGqf9L24vfug5ifh0b8=
 github.com/luxfi/zapcodec v1.0.1 h1:pRxLxCOi6uihQMg8A8riDjNjefU2cXZxfRVZ+obeuL8=
