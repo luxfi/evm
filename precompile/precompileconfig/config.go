@@ -55,11 +55,11 @@ type Predicater interface {
 
 // WarpMessageWriter queues a precompile-emitted cross-chain message for the
 // validator set to attest. Post-ZAP hard fork the unsigned subject is the
-// warp.SignedCore (whose D = keccak256(DST ‖ zap_c14n) the BLS Beam / Pulsar
+// warp.Core (whose D = keccak256(DST ‖ zap_c14n) the BLS Beam / Pulsar
 // Pulse / ML-DSA lanes sign), replacing the deleted RLP unsigned-message type.
-// Build a core via warp.NewSignedCore(networkID, sourceChainID, payload).
+// Build a core via warp.NewCore(networkID, sourceChainID, payload).
 type WarpMessageWriter interface {
-	AddMessage(core *warp.SignedCore) error
+	AddMessage(core *warp.Core) error
 }
 
 // AcceptContext defines the context passed in to a precompileconfig's Accepter

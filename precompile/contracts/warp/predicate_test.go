@@ -39,7 +39,7 @@ var (
 	sourceNetworkID = ids.GenerateTestID()
 
 	// valid signed core used throughout testing
-	core *warp.SignedCore
+	core *warp.Core
 	// valid addressed payload
 	addressedPayload      *payload.AddressedCall
 	addressedPayloadBytes []byte
@@ -86,7 +86,7 @@ func init() {
 		panic(err)
 	}
 	addressedPayloadBytes = addressedPayload.Bytes()
-	core, err = warp.NewSignedCore(constants.UnitTestID, sourceChainID, addressedPayload.Bytes())
+	core, err = warp.NewCore(constants.UnitTestID, sourceChainID, addressedPayload.Bytes())
 	if err != nil {
 		panic(err)
 	}
@@ -145,7 +145,7 @@ func newTestValidator() *testValidator {
 
 // createWarpMessage constructs a signed warp envelope using the global [core]
 // and the first [numKeys] signatures from [blsSignatures]
-func createWarpMessage(numKeys int) *warp.WarpEnvelope {
+func createWarpMessage(numKeys int) *warp.Envelope {
 	aggregateSignature, err := bls.AggregateSignatures(blsSignatures[0:numKeys])
 	if err != nil {
 		panic(err)
@@ -159,7 +159,7 @@ func createWarpMessage(numKeys int) *warp.WarpEnvelope {
 	}
 	copy(beam.Signature[:], bls.SignatureToBytes(aggregateSignature))
 
-	env, err := warp.NewWarpEnvelope(core, beam, nil, nil)
+	env, err := warp.NewEnvelope(core, beam, nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -295,7 +295,7 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 	cChainID := ids.GenerateTestID()
 	addressedCall, err := payload.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
 	require.NoError(err)
-	msgCore, err := warp.NewSignedCore(constants.UnitTestID, cChainID, addressedCall.Bytes())
+	msgCore, err := warp.NewCore(constants.UnitTestID, cChainID, addressedCall.Bytes())
 	require.NoError(err)
 
 	beamMsg := warp.BeamSigningBytes(msgCore.ID())
@@ -323,7 +323,7 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 		Signers: bitSet,
 	}
 	copy(beam.Signature[:], bls.SignatureToBytes(aggregateSignature))
-	warpMsg, err := warp.NewWarpEnvelope(msgCore, beam, nil, nil)
+	warpMsg, err := warp.NewEnvelope(msgCore, beam, nil, nil)
 	require.NoError(err)
 
 	envBytes, err := warpMsg.Bytes()
@@ -457,9 +457,9 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	}
 	copy(beam.Signature[:], bls.SignatureToBytes(aggregateSignature))
 	// Create a signed core with an invalid addressed payload
-	msgCore, err := warp.NewSignedCore(constants.UnitTestID, sourceChainID, []byte{1, 2, 3})
+	msgCore, err := warp.NewCore(constants.UnitTestID, sourceChainID, []byte{1, 2, 3})
 	require.NoError(t, err)
-	warpMsg, err := warp.NewWarpEnvelope(msgCore, beam, nil, nil)
+	warpMsg, err := warp.NewEnvelope(msgCore, beam, nil, nil)
 	require.NoError(t, err)
 	warpMsgBytes, err := warpMsg.Bytes()
 	require.NoError(t, err)
@@ -484,14 +484,14 @@ func TestInvalidAddressedPayload(t *testing.T) {
 func TestInvalidBitSet(t *testing.T) {
 	addressedCall, err := payload.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
 	require.NoError(t, err)
-	msgCore, err := warp.NewSignedCore(
+	msgCore, err := warp.NewCore(
 		constants.UnitTestID,
 		sourceChainID,
 		addressedCall.Bytes(),
 	)
 	require.NoError(t, err)
 
-	msg, err := warp.NewWarpEnvelope(msgCore, warp.BitSetSignature{
+	msg, err := warp.NewEnvelope(msgCore, warp.BitSetSignature{
 		Signers:   make([]byte, 1),
 		Signature: [bls.SignatureLen]byte{},
 	}, nil, nil)

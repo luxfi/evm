@@ -86,7 +86,7 @@ func (a *API) GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, qu
 		return nil, err
 	}
 	chainID := a.runtimeCtx.GetChainID()
-	core, err := warp.NewSignedCore(a.runtimeCtx.GetNetworkID(), chainID, blockHashPayload.Bytes())
+	core, err := warp.NewCore(a.runtimeCtx.GetNetworkID(), chainID, blockHashPayload.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (a *API) GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, qu
 	return a.aggregateSignatures(ctx, core, quorumNum, chainIDStr)
 }
 
-func (a *API) aggregateSignatures(ctx context.Context, core *warp.SignedCore, quorumNum uint64, chainIDStr string) (hexutil.Bytes, error) {
+func (a *API) aggregateSignatures(ctx context.Context, core *warp.Core, quorumNum uint64, chainIDStr string) (hexutil.Bytes, error) {
 	chainID := a.runtimeCtx.GetChainID()
 	if len(chainIDStr) > 0 {
 		cid, err := ids.FromString(chainIDStr)
@@ -165,7 +165,7 @@ func (a *API) aggregateSignatures(ctx context.Context, core *warp.SignedCore, qu
 		Signers:   warp.NewBitSet(),
 		Signature: [bls.SignatureLen]byte{},
 	}
-	initialEnvelope, err := warp.NewWarpEnvelope(core, emptyBeam, nil, nil)
+	initialEnvelope, err := warp.NewEnvelope(core, emptyBeam, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create initial envelope: %w", err)
 	}
