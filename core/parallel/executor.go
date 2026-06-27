@@ -139,25 +139,63 @@ func (e *Executor) settleError(i int) error {
 	return fmt.Errorf("read set remained inconsistent against a final prefix")
 }
 
-// ExecuteVerified is the fail-secure entry point. It runs the engine on a COPY of
-// the pre-state and only mutates `pre` (returning the receipts) if the parallel
-// state root byte-equals referenceRoot — the authoritative sequential/consensus
-// root. On disabled, error, or ANY root divergence it returns ok=false and leaves
-// `pre` untouched so the caller runs sequential. A parallel result that does not
-// reproduce the consensus root is never accepted.
+// ExecuteVerified is the fail-secure entry point. The parity reference is the
+// LOCALLY COMPUTED sequential root — never the caller-supplied `referenceRoot` —
+// and is recomputed here every block (no speedup). This pins the safety contract
+// in code: a future caller cannot wire referenceRoot = header.Root to skip
+// sequential and have a divergent parallel result silently accepted. The engine
+// is not trusted to be ≡ sequential until independently proven across the full
+// conformance corpus; until then this gate re-derives sequential and refuses any
+// parallel result that does not byte-equal it.
+//
+// `referenceRoot` is retained as a mandatory cross-check: it MUST equal the
+// locally computed sequential root, so a caller that passes a forged or merely
+// claimed root (e.g. an untrusted header.Root) is rejected rather than trusted.
+// `pre` is mutated (and receipts returned) only when sequential, the caller's
+// reference, and the parallel result all agree byte-for-byte; otherwise ok=false
+// and `pre` is left untouched so the caller runs sequential itself.
 func (e *Executor) ExecuteVerified(pre *state.StateDB, referenceRoot common.Hash) (receipts []*types.Receipt, ok bool) {
 	if !Enabled.Load() {
 		return nil, false
 	}
-	probe := pre.Copy()
-	receipts, root, err := e.Execute(probe)
-	if err != nil || root != referenceRoot {
+	// The authoritative reference: recompute sequential locally. This is the only
+	// root the parallel result is ever checked against.
+	seqRoot, seqErr := e.executeSequential(pre.Copy())
+	if seqErr != nil {
 		return nil, false
 	}
-	// Byte-identical: replay the same writes onto the real pre-state.
+	// The caller's claimed root must match local truth. header.Root can therefore
+	// never serve as the parity reference: if it diverges from local sequential we
+	// fail secure here, before the parallel engine's output is ever consulted.
+	if referenceRoot != seqRoot {
+		return nil, false
+	}
+	probe := pre.Copy()
+	receipts, parRoot, err := e.Execute(probe)
+	if err != nil || parRoot != seqRoot {
+		return nil, false
+	}
+	// Byte-identical to the locally computed sequential root: replay onto pre.
+	// materialize reproduces the per-transaction Finalise cadence, leaving pre
+	// fully finalised.
 	e.materialize(pre)
-	pre.Finalise(e.deleteEmpty)
 	return receipts, true
+}
+
+// executeSequential runs every transaction in order on `sdb`, Finalising after
+// each (the post-Byzantium cadence), and returns the resulting state root. It is
+// the authoritative sequential reference for ExecuteVerified. It is intentionally
+// NOT a fast path: it provides no parallelism and exists solely so the parity
+// reference is always locally computed, never a caller-supplied root.
+func (e *Executor) executeSequential(sdb *state.StateDB) (common.Hash, error) {
+	for i := range e.txs {
+		sdb.SetTxContext(e.txs[i].Hash(), i)
+		if _, err := e.apply(sdb, i); err != nil {
+			return common.Hash{}, err
+		}
+		sdb.Finalise(e.deleteEmpty)
+	}
+	return sdb.IntermediateRoot(e.deleteEmpty), nil
 }
 
 // executeParallel runs the given transaction indices, each on its own
@@ -204,7 +242,7 @@ func (e *Executor) executeOne(i int) {
 	hooked := ethstate.NewHookedState(inner, wc.hooks())
 
 	receipt, execErr := e.apply(hooked, i)
-	ws := buildWriteSet(inner, wc)
+	ws := buildWriteSet(inner, wc, rs, e.deleteEmpty)
 	e.mv.record(i, inc, ws)
 
 	e.results[i] = txOutcome{receipt: receipt, rs: rs, ws: ws, err: execErr, incarnation: inc}
@@ -271,8 +309,7 @@ func (e *Executor) readsConsistent(i int) bool {
 // commit materializes the fixpoint into canonical state and assembles receipts
 // with correct cumulative gas.
 func (e *Executor) commit(canonical *state.StateDB) ([]*types.Receipt, common.Hash, error) {
-	e.materialize(canonical)
-	canonical.Finalise(e.deleteEmpty)
+	e.materialize(canonical) // finalises per transaction; the journal is already clear
 	root := canonical.IntermediateRoot(e.deleteEmpty)
 
 	receipts := make([]*types.Receipt, len(e.txs))
@@ -291,37 +328,59 @@ func (e *Executor) commit(canonical *state.StateDB) ([]*types.Receipt, common.Ha
 	return receipts, root, nil
 }
 
-// materialize replays the fixpoint write sets onto canonical state in
-// transaction order. Because each location's final value is published by its
-// highest writer and replayed last, the canonical trie ends byte-identical to
-// sequential execution.
+// materialize replays the fixpoint write sets onto canonical state, reproducing
+// sequential execution's per-transaction Finalise cadence EXACTLY: each
+// transaction's net write set is applied and then Finalise(deleteEmpty) is run,
+// just as sequential does between transactions. This is what preserves the
+// delete-then-recreate boundary of a resurrection and the EIP-158/161
+// empty-account deletion — a single trailing Finalise collapses those into the
+// wrong order and forks (an account self-destructed by tx A then revived by tx B
+// would be deleted, or an empty account touched by a tx would survive). Because
+// each write set already carries the post-Finalise truth of its transaction
+// (buildWriteSet ran the same Finalise to compute it), replaying it under the
+// same cadence reconstructs sequential's intermediate states one for one, so the
+// canonical trie ends byte-identical to sequential execution.
 func (e *Executor) materialize(canonical *state.StateDB) {
 	for i := range e.results {
-		ws := e.results[i].ws
-		if ws == nil {
+		if ws := e.results[i].ws; ws != nil {
+			applyWriteSet(canonical, ws)
+		}
+		// Reproduce sequential's per-transaction Finalise. A transaction that
+		// produced no writes still finalises (clearing any touched-empty account)
+		// so the cadence — and therefore the destruct/empty bookkeeping that drives
+		// resurrection — matches sequential one transaction at a time.
+		canonical.Finalise(e.deleteEmpty)
+	}
+}
+
+// applyWriteSet applies one transaction's net write set onto canonical state. An
+// account marked absent is self-destructed (its storage is wiped, so its storage
+// writes are skipped); an account marked present has its balance, nonce and code
+// set. Code is replayed only when its hash actually changed. The subsequent
+// Finalise (in materialize) realizes destructs/empties before the next
+// transaction's writes are applied, so a later revival sees a deleted account and
+// recreates it fresh — exactly as the live EVM does.
+func applyWriteSet(canonical *state.StateDB, ws *writeSet) {
+	destructed := make(map[common.Address]bool)
+	for _, aw := range ws.accounts {
+		if !aw.val.exists {
+			canonical.SelfDestruct(aw.addr)
+			destructed[aw.addr] = true
 			continue
 		}
-		destructed := make(map[common.Address]bool)
-		for _, aw := range ws.accounts {
-			if !aw.val.exists {
-				canonical.SelfDestruct(aw.addr)
-				destructed[aw.addr] = true
-				continue
-			}
-			bal := aw.val.balance
-			canonical.SetBalance(aw.addr, &bal, tracing.BalanceChangeUnspecified)
-			canonical.SetNonce(aw.addr, aw.val.nonce, tracing.NonceChangeUnspecified)
-			if aw.val.codeHash != types.EmptyCodeHash && aw.val.codeHash != (common.Hash{}) {
-				if canonical.GetCodeHash(aw.addr) != aw.val.codeHash {
-					canonical.SetCode(aw.addr, aw.val.code, tracing.CodeChangeUnspecified)
-				}
+		bal := aw.val.balance
+		canonical.SetBalance(aw.addr, &bal, tracing.BalanceChangeUnspecified)
+		canonical.SetNonce(aw.addr, aw.val.nonce, tracing.NonceChangeUnspecified)
+		if aw.val.codeHash != types.EmptyCodeHash && aw.val.codeHash != (common.Hash{}) {
+			if canonical.GetCodeHash(aw.addr) != aw.val.codeHash {
+				canonical.SetCode(aw.addr, aw.val.code, tracing.CodeChangeUnspecified)
 			}
 		}
-		for _, sw := range ws.storage {
-			if destructed[sw.addr] {
-				continue
-			}
-			canonical.SetState(sw.addr, sw.slot, sw.val)
+	}
+	for _, sw := range ws.storage {
+		if destructed[sw.addr] {
+			continue
 		}
+		canonical.SetState(sw.addr, sw.slot, sw.val)
 	}
 }

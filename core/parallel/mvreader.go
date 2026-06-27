@@ -226,32 +226,86 @@ type writeSet struct {
 	storage  []storageWrite
 }
 
-// buildWriteSet reads the FINAL (post-execution, post-revert) value of every
-// touched location from the authoritative inner StateDB. This is what makes the
-// capture revert-safe: hooks may have fired for values later rolled back, but
-// the inner StateDB holds only the committed truth.
-func buildWriteSet(inner *ethstate.StateDB, wc *writeCapture) *writeSet {
+// currentAccount reads addr's authoritative account value from the inner StateDB.
+// Called AFTER the per-transaction Finalise, so a non-existent result means the
+// account is genuinely gone for this transaction — self-destructed, EIP-158
+// empty-deleted, or never present — not merely marked. Code is fetched only for
+// non-empty codeHashes (EOAs and freshly-destroyed accounts carry none).
+func currentAccount(inner *ethstate.StateDB, addr common.Address) accountVal {
+	if !inner.Exist(addr) {
+		return accountVal{exists: false}
+	}
+	av := accountVal{
+		exists:   true,
+		nonce:    inner.GetNonce(addr),
+		balance:  *inner.GetBalance(addr),
+		codeHash: inner.GetCodeHash(addr),
+	}
+	if av.codeHash != types.EmptyCodeHash && av.codeHash != (common.Hash{}) {
+		av.code = inner.GetCode(addr)
+	}
+	return av
+}
+
+// buildWriteSet computes transaction i's net write set as the per-transaction
+// Finalise leaves it. It runs the inner StateDB's own Finalise(deleteEmpty) —
+// reproducing the EXACT cadence of sequential execution — then publishes, for
+// every account the transaction read or hook-touched, the post-Finalise value
+// whenever it DIFFERS from the value the multi-version reader served.
+//
+// Diffing post-Finalise existence against the read snapshot is what captures the
+// three classes the old hook-only capture missed:
+//
+//   - self-destruct: present → absent ⇒ recorded as exists=false.
+//   - EIP-158 empty deletion: present(empty) → absent ⇒ recorded as exists=false.
+//   - EIP-161 zero-value touch: a pure touch fires no balance hook, but it dirties
+//     an empty account, so Finalise deletes it (present → absent) and the diff
+//     records the deletion. A genuinely read-only empty account is NOT dirtied,
+//     survives Finalise unchanged, and so is (correctly) not recorded.
+//
+// Reads that did not change the account (cur == snapshot) are excluded, so pure
+// reads never leak into the write set. This is the single, faithful per-tx
+// Finalise reproduction the consensus-safe replay (executor.materialize) depends
+// on; the replay re-runs the same Finalise per transaction so the
+// delete-then-recreate boundary of a resurrection is preserved.
+func buildWriteSet(inner *ethstate.StateDB, wc *writeCapture, rs *readSet, deleteEmpty bool) *writeSet {
+	// Snapshot the per-account value the reader served, and the candidate set
+	// (every account read or hook-touched). Every hook-touched account was first
+	// read through the reader, so the read set already covers wc.addrs; the union
+	// is belt-and-suspenders. Snapshot BEFORE Finalise so later inner reads (which
+	// may re-resolve a now-absent account) cannot perturb this view.
+	snap := make(map[common.Address]accountVal, len(rs.obs))
+	candidates := make(map[common.Address]struct{}, len(rs.obs))
+	for _, o := range rs.obs {
+		if o.key.kind == accountKey {
+			snap[o.key.addr] = o.resolved
+			candidates[o.key.addr] = struct{}{}
+		}
+	}
+	for addr := range wc.addrs {
+		candidates[addr] = struct{}{}
+	}
+
+	// Realize this transaction's deletions and value finalization exactly as
+	// sequential does between transactions.
+	inner.Finalise(deleteEmpty)
+
 	ws := &writeSet{
-		accounts: make([]accountWrite, 0, len(wc.addrs)),
+		accounts: make([]accountWrite, 0, len(candidates)),
 		storage:  make([]storageWrite, 0, len(wc.slots)),
 	}
-	destructed := make(map[common.Address]bool, len(wc.addrs))
-	for addr := range wc.addrs {
-		if inner.HasSelfDestructed(addr) || !inner.Exist(addr) {
-			destructed[addr] = true
-			ws.accounts = append(ws.accounts, accountWrite{addr: addr, val: accountVal{exists: false}})
+	destructed := make(map[common.Address]bool, len(candidates))
+	for addr := range candidates {
+		cur := currentAccount(inner, addr)
+		if cur.equal(snap[addr]) {
+			// Unchanged versus what the reader served: a pure read, or a write that
+			// netted back to the snapshot value. Either way not part of the write set.
 			continue
 		}
-		av := accountVal{
-			exists:   true,
-			nonce:    inner.GetNonce(addr),
-			balance:  *inner.GetBalance(addr),
-			codeHash: inner.GetCodeHash(addr),
+		ws.accounts = append(ws.accounts, accountWrite{addr: addr, val: cur})
+		if !cur.exists {
+			destructed[addr] = true
 		}
-		if av.codeHash != types.EmptyCodeHash && av.codeHash != (common.Hash{}) {
-			av.code = inner.GetCode(addr)
-		}
-		ws.accounts = append(ws.accounts, accountWrite{addr: addr, val: av})
 	}
 	for sl := range wc.slots {
 		if destructed[sl.addr] {
