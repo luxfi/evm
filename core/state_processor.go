@@ -118,10 +118,54 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
 
-	// Sequential execution is the live consensus path. The deterministic
-	// Block-STM parallel executor (core/parallel) is gated OFF by default
-	// (parallel.Enabled) and is not wired here until red-team and scientist
-	// review have signed off on byte-identical state roots; see core/parallel.
+	// Deterministic Block-STM parallel execution — gated OFF by default
+	// (parallel.Enabled; nothing in production flips it, sequential below is the
+	// live path). When enabled, every block runs through ExecuteVerified, which
+	// executes the block in parallel AND recomputes the sequential root locally,
+	// commits ONLY when the two are byte-identical, and otherwise fails closed to
+	// the sequential loop below. The committed (state, receipts) pair is therefore
+	// exactly what a sequential validator commits, so a mixed parallel/sequential
+	// validator set cannot fork: a parallel root differing from sequential by one
+	// byte is never committed.
+	//
+	// The parallel base reader reads the parent (committed) state root, so the
+	// engine is eligible only when the live pre-transaction state still equals
+	// parent.Root — i.e. no uncommitted pre-tx mutation (a precompile upgrade or an
+	// EIP-4788 beacon-root write) is pending. Those rare blocks fall through to
+	// sequential. The IntermediateRoot probe runs only under the flag, so the
+	// default (flag-off) path pays nothing.
+	if parallel.Enabled.Load() {
+		deleteEmpty := p.config.IsEIP158(blockNumber)
+		if statedb.IntermediateRoot(deleteEmpty) == parent.Root {
+			txs := block.Transactions()
+			exec := parallel.NewExecutor(p.bc.stateCache, parent.Root, txs, block.GasLimit(), deleteEmpty, 0,
+				func(vmsdb vm.StateDB, i int) (*types.Receipt, error) {
+					return p.applyParallelTx(txs[i], i, vmsdb, signer, header, blockHash, blockNumber, cfg)
+				})
+			// block.Root() is the post-transaction state root (DummyEngine.Finalize
+			// mutates no state), so it is the parity reference ExecuteVerified pins
+			// against its own local sequential recomputation. A forged header.Root is
+			// caught here; a genuine parallel/sequential divergence fails closed.
+			if parReceipts, ok := exec.ExecuteVerified(statedb, block.Root()); ok {
+				for _, r := range parReceipts {
+					*usedGas += r.GasUsed
+					allLogs = append(allLogs, r.Logs...)
+				}
+				receipts = parReceipts
+				// Finalize runs on the committed (sequential-equal) statedb, exactly as
+				// in the sequential path below.
+				if err := p.engine.Finalize(p.bc, block, parent, statedb, receipts); err != nil {
+					return nil, nil, 0, fmt.Errorf("engine finalization check failed: %w", err)
+				}
+				return receipts, allLogs, *usedGas, nil
+			}
+			// ok=false: pre-state untouched. Fall through to the sequential loop,
+			// which recomputes and (for an invalid block) surfaces the real error.
+		}
+	}
+
+	// Sequential execution is the live consensus path (and the fail-closed target
+	// of the gated parallel path above).
 	//
 	// If a modular EVM backend (revm, cevm) is registered, dispatch
 	// through it instead of the default geth interpreter.
@@ -181,6 +225,67 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 	}
 
 	return receipts, allLogs, *usedGas, nil
+}
+
+// applyParallelTx executes one transaction against vmsdb for the Block-STM engine
+// and builds its receipt, mirroring applyTransaction EXACTLY except for two
+// concerns the parallel executor owns: it does NOT Finalise the state (the engine
+// reproduces the per-transaction Finalise cadence) and it does NOT accumulate
+// CumulativeGasUsed (the engine assigns it in transaction order). A FRESH block
+// context is built per call so each speculative worker has a private BLOCKHASH
+// cache (GetHashFn's cache is not concurrency-safe) — without this, concurrent
+// workers would race it.
+//
+// Logs and bloom are populated only when vmsdb is the canonical sequential
+// *state.StateDB: that is the only StateDB whose per-block log index counter is
+// block-correct. The parallel cross-check runs each transaction on its own
+// speculative hooked StateDB and discards these receipts (it is consensus-compared
+// by state ROOT only), so a degraded receipt there is immaterial — ExecuteVerified
+// returns and commits only the sequential reference's receipts.
+func (p *StateProcessor) applyParallelTx(tx *types.Transaction, i int, vmsdb vm.StateDB, signer types.Signer, header *types.Header, blockHash common.Hash, blockNumber *big.Int, cfg vm.Config) (*types.Receipt, error) {
+	msg, err := TransactionToMessage(tx, signer, header.BaseFee)
+	if err != nil {
+		return nil, err
+	}
+	// Per-call block context ⇒ private GetHashFn cache ⇒ race-free across workers.
+	blockContext := NewEVMBlockContext(header, p.bc, nil)
+	vmenv := vm.NewEVM(blockContext, vmsdb, p.config, cfg)
+	vmenv.SetTxContext(NewEVMTxContext(msg))
+	// A fresh, permissive per-tx gas pool: the speculative parallel path cannot
+	// share a mutable block pool across re-executing workers. The block gas LIMIT
+	// is enforced as a faithful reservation in the sequential reference inside
+	// ExecuteVerified (executor.executeSequential), so an over-limit block is
+	// rejected there, not here.
+	gp := new(GasPool).AddGas(header.GasLimit)
+	result, err := ApplyMessage(vmenv, msg, gp)
+	if err != nil {
+		return nil, err
+	}
+	receipt := &types.Receipt{Type: tx.Type(), GasUsed: result.UsedGas}
+	if result.Failed() {
+		receipt.Status = types.ReceiptStatusFailed
+	} else {
+		receipt.Status = types.ReceiptStatusSuccessful
+	}
+	receipt.TxHash = tx.Hash()
+	if tx.Type() == types.BlobTxType {
+		receipt.BlobGasUsed = uint64(len(tx.BlobHashes()) * ethparams.BlobTxBlobGasPerBlob)
+		receipt.BlobGasPrice = vmenv.Context.BlobBaseFee
+	}
+	if msg.To == nil {
+		var cryptoAddr crypto.Address
+		copy(cryptoAddr[:], vmenv.Origin[:])
+		createdAddr := crypto.CreateAddress(cryptoAddr, tx.Nonce())
+		receipt.ContractAddress = common.BytesToAddress(createdAddr[:])
+	}
+	if cs, ok := vmsdb.(*state.StateDB); ok {
+		receipt.Logs = cs.GetLogs(tx.Hash(), blockNumber.Uint64(), blockHash, header.Time)
+		receipt.Bloom = types.CreateBloom(receipt)
+		receipt.BlockHash = blockHash
+		receipt.BlockNumber = blockNumber
+		receipt.TransactionIndex = uint(i)
+	}
+	return receipt, nil
 }
 
 func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, blockTime uint64, tx *types.Transaction, usedGas *uint64, evm *vm.EVM) (*types.Receipt, error) {
