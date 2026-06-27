@@ -17,12 +17,21 @@ import (
 	"github.com/luxfi/geth/core/vm"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/math/set"
-	"github.com/luxfi/runtime"
+	context "github.com/luxfi/runtime"
 	agoUtils "github.com/luxfi/utils"
 	"github.com/luxfi/warp"
 	"github.com/luxfi/warp/payload"
 	"github.com/stretchr/testify/require"
 )
+
+// mustEnvBytes serializes a WarpEnvelope for tests, panicking on error.
+func mustEnvBytes(env *warp.WarpEnvelope) []byte {
+	b, err := env.Bytes()
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
 
 func TestGetBlockchainID(t *testing.T) {
 	t.Skip("MUST-SKIP: Requires refactoring for consensus API changes (GetChainID, WithValidatorState)")
@@ -98,7 +107,7 @@ func TestSendWarpMessage(t *testing.T) {
 		sendWarpMessagePayload,
 	)
 	require.NoError(t, err)
-	unsignedWarpMessage, err := warp.NewUnsignedMessage(
+	unsignedWarpMessage, err := warp.NewSignedCore(
 		context.GetNetworkID(defaultConsensusCtx),
 		blockchainID,
 		sendWarpMessageAddressedPayload.Bytes(),
@@ -192,11 +201,11 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 		packagedPayloadBytes,
 	)
 	require.NoError(t, err)
-	unsignedWarpMsg, err := warp.NewUnsignedMessage(networkID, sourceChainID, addressedPayload.Bytes())
+	unsignedWarpMsg, err := warp.NewSignedCore(networkID, sourceChainID, addressedPayload.Bytes())
 	require.NoError(t, err)
-	warpMessage, err := warp.NewMessage(unsignedWarpMsg, &warp.BitSetSignature{}) // Create message with empty signature for testing
+	warpMessage, err := warp.NewWarpEnvelope(unsignedWarpMsg, warp.BitSetSignature{}, nil, nil) // Create message with empty signature for testing
 	require.NoError(t, err)
-	warpMessagePredicateBytes := predicate.PackPredicate(warpMessage.Bytes())
+	warpMessagePredicateBytes := predicate.PackPredicate(mustEnvBytes(warpMessage))
 	getVerifiedWarpMsg, err := PackGetVerifiedWarpMessage(0)
 	require.NoError(t, err)
 	noFailures := set.NewBits().Bytes()
@@ -375,11 +384,11 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 		"get message invalid predicate packing": {
 			Caller:     callerAddr,
 			InputFn:    func(t testing.TB) []byte { return getVerifiedWarpMsg },
-			Predicates: [][]byte{warpMessage.Bytes()},
+			Predicates: [][]byte{mustEnvBytes(warpMessage)},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
-			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessage.Bytes())),
+			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(mustEnvBytes(warpMessage))),
 			ReadOnly:    false,
 			ExpectedErr: errInvalidPredicateBytes.Error(),
 		},
@@ -398,12 +407,12 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
 			Predicates: func() [][]byte {
-				unsignedMessage, err := warp.NewUnsignedMessage(networkID, sourceChainID, []byte{1, 2, 3}) // Invalid addressed payload
+				unsignedMessage, err := warp.NewSignedCore(networkID, sourceChainID, []byte{1, 2, 3}) // Invalid addressed payload
 				require.NoError(t, err)
-				warpMessage, err := warp.NewMessage(unsignedMessage, &warp.BitSetSignature{})
+				warpMessage, err := warp.NewWarpEnvelope(unsignedMessage, warp.BitSetSignature{}, nil, nil)
 				require.NoError(t, err)
 
-				return [][]byte{predicate.PackPredicate(warpMessage.Bytes())}
+				return [][]byte{predicate.PackPredicate(mustEnvBytes(warpMessage))}
 			}(),
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
@@ -456,11 +465,11 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 	blockHash := ids.GenerateTestID()
 	blockHashPayload, err := payload.NewHash(blockHash[:])
 	require.NoError(t, err)
-	unsignedWarpMsg, err := warp.NewUnsignedMessage(networkID, sourceChainID, blockHashPayload.Bytes())
+	unsignedWarpMsg, err := warp.NewSignedCore(networkID, sourceChainID, blockHashPayload.Bytes())
 	require.NoError(t, err)
-	warpMessage, err := warp.NewMessage(unsignedWarpMsg, &warp.BitSetSignature{}) // Create message with empty signature for testing
+	warpMessage, err := warp.NewWarpEnvelope(unsignedWarpMsg, warp.BitSetSignature{}, nil, nil) // Create message with empty signature for testing
 	require.NoError(t, err)
-	warpMessagePredicateBytes := predicate.PackPredicate(warpMessage.Bytes())
+	warpMessagePredicateBytes := predicate.PackPredicate(mustEnvBytes(warpMessage))
 	getVerifiedWarpBlockHash, err := PackGetVerifiedWarpBlockHash(0)
 	require.NoError(t, err)
 	noFailures := set.NewBits().Bytes()
@@ -636,11 +645,11 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 		"get message invalid predicate packing": {
 			Caller:     callerAddr,
 			InputFn:    func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
-			Predicates: [][]byte{warpMessage.Bytes()},
+			Predicates: [][]byte{mustEnvBytes(warpMessage)},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
-			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessage.Bytes())),
+			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(mustEnvBytes(warpMessage))),
 			ReadOnly:    false,
 			ExpectedErr: errInvalidPredicateBytes.Error(),
 		},
@@ -659,12 +668,12 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
 			Predicates: func() [][]byte {
-				unsignedMessage, err := warp.NewUnsignedMessage(networkID, sourceChainID, []byte{1, 2, 3}) // Invalid block hash payload
+				unsignedMessage, err := warp.NewSignedCore(networkID, sourceChainID, []byte{1, 2, 3}) // Invalid block hash payload
 				require.NoError(t, err)
-				warpMessage, err := warp.NewMessage(unsignedMessage, &warp.BitSetSignature{})
+				warpMessage, err := warp.NewWarpEnvelope(unsignedMessage, warp.BitSetSignature{}, nil, nil)
 				require.NoError(t, err)
 
-				return [][]byte{predicate.PackPredicate(warpMessage.Bytes())}
+				return [][]byte{predicate.PackPredicate(mustEnvBytes(warpMessage))}
 			}(),
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
@@ -722,7 +731,7 @@ func TestPackEvents(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	unsignedWarpMessage, err := warp.NewUnsignedMessage(
+	unsignedWarpMessage, err := warp.NewSignedCore(
 		networkID,
 		sourceChainID,
 		addressedPayload.Bytes(),
@@ -731,7 +740,7 @@ func TestPackEvents(t *testing.T) {
 
 	_, data, err := PackSendWarpMessageEvent(
 		sourceAddress,
-		common.Hash(unsignedMsg.ID()),
+		common.Hash(unsignedWarpMessage.ID()),
 		unsignedWarpMessage.Bytes(),
 	)
 	require.NoError(t, err)
