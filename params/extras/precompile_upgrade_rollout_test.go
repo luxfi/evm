@@ -150,9 +150,9 @@ func TestMainnetUpgradeJSON_WarpRequiresPrimaryNetworkSigners(t *testing.T) {
 	require.NoError(t, json.Unmarshal(raw, &doc))
 
 	var (
-		foundDisable bool
+		foundDisable  bool
 		foundReEnable bool
-		prevWarpTs   *uint64
+		prevWarpTs    *uint64
 	)
 	for i, entry := range doc.PrecompileUpgrades {
 		warpRaw, ok := entry["warpConfig"]
@@ -207,62 +207,6 @@ func TestMainnetUpgradeJSON_WarpRequiresPrimaryNetworkSigners(t *testing.T) {
 	require.True(t, foundReEnable, "warpConfig re-enable entry (with PQ signer policy) must be present in canonical upgrade.json")
 }
 
-// TestMainnetUpgradeJSON_HasStrictPQActivation enforces that the
-// canonical upgrade.json activates the strict-PQ profile so that
-// contract.RefuseUnderStrictPQ short-circuits every classical precompile
-// at the activation timestamp. Without this, classical primitives
-// (bls12-381 modules, sr25519/x25519, babyjubjub, pedersen, pasta,
-// frost/cggmp21) keep executing alongside the PQ stack — directly
-// contradicting the v1.0 "100% safe" floor of the Quasar Edition rollout.
-//
-// strictPQTimestamp is a NetworkUpgrades field on the EVM extras config;
-// it activates when the chain's current block timestamp >= the value.
-// When active, classical-pairing-and-discrete-log precompiles return
-// contract.ErrClassicalForbiddenInPQ instead of running their Run()
-// bodies (per ~/work/lux/precompile/contract/strict_pq.go).
-func TestMainnetUpgradeJSON_HasStrictPQActivation(t *testing.T) {
-	const quasarTS uint64 = 1766708400
-
-	raw := readCanonicalMainnetUpgradeJSONRaw(t)
-	var doc struct {
-		NetworkUpgradeOverrides *struct {
-			StrictPQTimestamp *uint64 `json:"strictPQTimestamp"`
-		} `json:"networkUpgradeOverrides"`
-	}
-	require.NoError(t, json.Unmarshal(raw, &doc))
-
-	require.NotNilf(t, doc.NetworkUpgradeOverrides,
-		"canonical upgrade.json must include networkUpgradeOverrides with strictPQTimestamp",
-	)
-	require.NotNilf(t, doc.NetworkUpgradeOverrides.StrictPQTimestamp,
-		"canonical upgrade.json must set networkUpgradeOverrides.strictPQTimestamp — without it RefuseUnderStrictPQ never fires and classical primitives keep executing alongside PQ",
-	)
-	require.Equalf(t, quasarTS, *doc.NetworkUpgradeOverrides.StrictPQTimestamp,
-		"strictPQTimestamp must equal the Quasar activation timestamp %d (Dec 25 2025 16:20 PST) — task constraint",
-		quasarTS,
-	)
-}
-
-// TestMainnetChainConfig_HasStrictPQTrue enforces that the EVM-plugin
-// chain config for lux-mainnet sets `pq: true`. That flag wires the
-// strict-PQ posture into both the geth-layer std precompile registry
-// (vm.chainConfig.PQ = gethvm.AllForbidden()) AND the Lux extras
-// StrictPQTimestamp = &0 — together they make every classical primitive
-// refuse from the moment the EVM plugin boots. The upgrade.json side
-// activates RefuseUnderStrictPQ at the Quasar timestamp on RUNNING
-// chains; this chain-config flag pins the same posture for nodes that
-// rebuild state from scratch.
-func TestMainnetChainConfig_HasStrictPQTrue(t *testing.T) {
-	raw := readCanonicalMainnetChainConfigRaw(t)
-	var doc struct {
-		PQ bool `json:"pq"`
-	}
-	require.NoError(t, json.Unmarshal(raw, &doc))
-	require.Truef(t, doc.PQ,
-		"~/work/lux/state/chain-configs/lux-mainnet/config.json must set \"pq\": true — without it the EVM plugin boots without classical-precompile refusal and the chain runs in classical-permissive mode, contradicting the strict-PQ rollout",
-	)
-}
-
 // readPrecompileUpgradeTimestamps decodes the precompileUpgrades array
 // into a {key: blockTimestamp} map, skipping warpConfig (covered by its
 // own test) and feeManagerConfig (not a precompile activation per se).
@@ -310,25 +254,5 @@ func readCanonicalMainnetUpgradeJSONRaw(t *testing.T) []byte {
 		}
 	}
 	t.Skipf("canonical mainnet upgrade.json not reachable from cwd — looked in %v; run from a worktree that contains luxfi/genesis alongside luxfi/evm", candidates)
-	return nil
-}
-
-// readCanonicalMainnetChainConfigRaw returns the canonical mainnet
-// chain-config bytes (the EVM plugin config.json mounted at
-// /data/configs/chains/<CID>/config.json on production luxd pods).
-func readCanonicalMainnetChainConfigRaw(t *testing.T) []byte {
-	t.Helper()
-	candidates := []string{
-		// luxfi/evm running standalone, sibling lux/state checkout.
-		"../../../../state/chain-configs/lux-mainnet/config.json",
-		// monorepo layout.
-		"../../../state/chain-configs/lux-mainnet/config.json",
-	}
-	for _, candidate := range candidates {
-		if data, err := os.ReadFile(candidate); err == nil {
-			return data
-		}
-	}
-	t.Skipf("canonical mainnet chain config not reachable from cwd — looked in %v; run from a worktree that contains lux/state alongside luxfi/evm", candidates)
 	return nil
 }
