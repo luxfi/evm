@@ -27,7 +27,6 @@ import (
 	_ "github.com/luxfi/precompile/magnetar" // 0x012207 Magnetar (public-DKG MPC threshold SLH-DSA, FIPS 205 byte-equal)
 	_ "github.com/luxfi/precompile/hqc"      // 0x012208 HQC (code-based KEM, family-disjoint backup)
 	_ "github.com/luxfi/precompile/starkfri" // 0x012220 STARK-FRI strict-PQ STARK verifier (formerly misnamed P3Q at 0x012205)
-	_ "github.com/luxfi/precompile/pqcrypto" // Unified PQ crypto operations
 
 	// ============================================
 	// Privacy/Encryption (0x0700-0x07FF)
