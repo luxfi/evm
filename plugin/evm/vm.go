@@ -280,6 +280,15 @@ type VM struct {
 	// as it is uninitialized at first and is only initialized when onNormalOperationsStarted is called.
 	builderLock sync.Mutex
 	builder     *blockBuilder
+	// builderReady is closed by onNormalOperationsStarted once vm.builder is
+	// set, so a WaitForEvent call that arrived BEFORE block building was
+	// initialized (it parks in the builder==nil select) wakes and re-fetches
+	// the now-ready builder instead of blocking forever. The node-side
+	// notification bridge calls WaitForEvent with a non-cancellable context and
+	// never re-subscribes, so without this signal the first early call never
+	// returns and no block is ever built (cf. ava's NotificationForwarder +
+	// CheckForEvent, which cancels+resubscribes on VM state change).
+	builderReady chan struct{}
 
 	clock          nodemockable.Clock
 	consensusClock consensusmockable.Clock
@@ -344,6 +353,7 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	upgradeBytes := init.Upgrade
 	configBytes := init.Config
 	vm.stateSyncDone = make(chan struct{})
+	vm.builderReady = make(chan struct{})
 	vm.config.SetDefaults(defaultTxPoolConfig)
 	if len(configBytes) > 0 {
 		if err := json.Unmarshal(configBytes, &vm.config); err != nil {
@@ -1370,6 +1380,10 @@ func (vm *VM) onNormalOperationsStarted() error {
 		})
 	}
 	vm.builderLock.Unlock()
+	// Signal any WaitForEvent call that parked in the builder==nil select
+	// before block building was initialized. Closed exactly once
+	// (onNormalOperationsStarted runs once, gated by vm.bootstrapped above).
+	close(vm.builderReady)
 
 	if vm.ethTxGossipHandler == nil {
 		// Get logger from context for gossip handler
@@ -1469,6 +1483,13 @@ func (vm *VM) WaitForEvent(ctx context.Context) (block.Message, error) {
 			return block.Message{}, ctx.Err()
 		case <-vm.stateSyncDone:
 			return block.Message{Type: block.StateSyncDone}, nil
+		case <-vm.builderReady:
+			// Block building was initialized after this call parked here.
+			// Re-fetch the now-ready builder and fall through to it, instead of
+			// blocking forever waiting on a context the caller never cancels.
+			vm.builderLock.Lock()
+			builder = vm.builder
+			vm.builderLock.Unlock()
 		case <-vm.shutdownChan:
 			return block.Message{}, errShuttingDownVM
 		}
