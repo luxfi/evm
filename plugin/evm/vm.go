@@ -1495,7 +1495,30 @@ func (vm *VM) WaitForEvent(ctx context.Context) (block.Message, error) {
 		}
 	}
 
-	return builder.waitForEvent(ctx)
+	return builder.waitForEvent(ctx, vm.minNextBuildTime())
+}
+
+// minNextBuildTime is the earliest wall-clock time the next block should be
+// built: the accepted tip's timestamp plus the fee config's TargetBlockRate.
+// The block gas cost rises the further ahead of the target rate a block lands
+// (cost = parentCost + step·(TargetBlockRate − elapsed)), and verifyBlockFee
+// rejects a block whose transaction tips cannot cover that cost — so building at
+// the target rate keeps the cost at the parent's level (0 from genesis) and lets
+// even a single small-tip transaction be included. A zero time (error path)
+// disables pacing, falling back to immediate build.
+func (vm *VM) minNextBuildTime() time.Time {
+	if vm.blockChain == nil {
+		return time.Time{}
+	}
+	header := vm.blockChain.CurrentHeader()
+	if header == nil {
+		return time.Time{}
+	}
+	feeConfig, _, err := vm.blockChain.GetFeeConfigAt(header)
+	if err != nil {
+		return time.Time{}
+	}
+	return time.Unix(int64(header.Time+feeConfig.TargetBlockRate), 0)
 }
 
 // Shutdown implements the chain.ChainVM interface
