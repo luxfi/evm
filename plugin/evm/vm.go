@@ -440,17 +440,12 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	}
 	debugLog("parseGenesis succeeded: chainID=%v alloc=%d accounts", g.Config.ChainID, len(g.Alloc))
 
-	// The Lux EVM is PQ-native: pin strict-PQ from genesis on the extras config,
-	// UNCONDITIONALLY, for every chain this plugin boots. From block 0 the Lux
-	// stateful precompiles that call contract.RefuseUnderStrictPQ (KZG, Groth16,
-	// PLONK, fflonk, Halo2, BN254-Pedersen, BabyJubJub, Pallas/Vesta, BLS12-381
-	// modules, etc.) refuse classical pairing/discrete-log primitives — the
-	// ecosystem uses the post-quantum verifiers instead. This is gated on being a
-	// Lux-ecosystem chain (i.e. running this plugin), NOT on a per-VM config flag;
-	// the nil StrictPQTimestamp default (extras) remains only for non-Lux hosts that
-	// embed the precompiles classical-permissively.
-	zero := uint64(0)
-	params.GetExtra(g.Config).StrictPQTimestamp = &zero
+	// Enable-everything builder surface: the EVM precompile layer does NOT
+	// refuse classical primitives. Wallet-curve verify (ed25519/sr25519/
+	// secp256r1/ecrecover), pairings, hashes and the classical SNARK verifiers
+	// are all ENABLED so builders can target Lux natively from any chain. Lux's
+	// own security is post-quantum at the CONSENSUS/identity layer (quasar/p3q),
+	// never enforced by refusing an EVM verifier a dapp asked for.
 
 	vm.syntacticBlockValidator = NewBlockValidator()
 	debugLog("Creating ethConfig")
@@ -549,23 +544,14 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 		log.Warn("0x9999 native DEX value path NOT installed (value swaps will revert, fail-closed)", "err", err)
 	}
 
-	// F102 close-out — geth-layer PQ profile for the STANDARD precompiles (0x01–0x09).
-	// One concept, one place: ChainConfig.PQ holds the profile;
-	// (*EVM).runPrecompile reads it via chainConfig.PQ.RefuseUnder(op).
-	//
-	// Install the LUX strict-PQ profile, NOT AllForbidden(): the standard
-	// alt_bn128 (BN254) precompiles at 0x06–0x08 stay available for Ethereum-compat
-	// dapps. This geth-layer profile is the ONLY PQ surface still opt-in
-	// (vm.config.PQ), because it governs the EVM-compat-sensitive standard
-	// precompiles (ecrecover/sha256/ripemd/blake2f) that ordinary dapps depend on.
-	// Lux's security-critical pairing/DLOG usage lives in the CUSTOM precompiles
-	// (precompile/zk @ 0x0900, 0x22 Pedersen, the Z-Chain verifiers) and is ALREADY
-	// strict from genesis UNCONDITIONALLY via StrictPQTimestamp=0 pinned above
-	// (contract.RefuseUnderStrictPQ). See LuxStrictPQ (pq_profile.go).
-	if vm.config.PQ {
-		vm.chainConfig.PQ = LuxStrictPQ()
-		log.Info("EVM PQ mode active: standard classical precompiles refuse (bn256 0x06-0x08 kept for EVM-compat; Lux custom precompiles strict from genesis)")
-	}
+	// Standard precompiles (ecrecover 0x01, sha256 0x02, ripemd160 0x03,
+	// blake2f 0x09, bn256 0x06-0x08, bls12381 0x0b-0x11, kzg 0x0a) are ENABLED:
+	// the chain installs no forbidding pq.Profile (chainConfig.PQ stays nil =
+	// permissive in runPrecompile). They are verify-only / hash, key-safe, and
+	// every Ethereum dapp depends on ecrecover — refusing them would break the
+	// builder surface. The geth-layer profile mechanism (chainConfig.PQ +
+	// runPrecompile.RefuseUnder) remains available for any chain that wants it;
+	// Lux installs nothing. Lux's PQ security is enforced at consensus, not here.
 
 	// create genesisHash after applying upgradeBytes in case
 	// upgradeBytes modifies genesis.
