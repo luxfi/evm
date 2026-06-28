@@ -480,22 +480,6 @@ func (c *extChainConfigBridge) IsDurango(time uint64) bool {
 	return c.internal.IsDurango(time)
 }
 
-// IsStrictPQ satisfies the external contract.StrictPQReporter interface so
-// classical precompiles in github.com/luxfi/precompile/* refuse to execute
-// when the chain pins a strict post-quantum profile. The internal config
-// (chainConfigAdapter) delegates to extras.IsStrictPQ. We type-assert
-// rather than widen precompileconfig.ChainConfig so non-Lux chains that
-// integrate Lux precompiles remain classical-permissive by default.
-func (c *extChainConfigBridge) IsStrictPQ(time uint64) bool {
-	type strictPQ interface {
-		IsStrictPQ(time uint64) bool
-	}
-	if r, ok := c.internal.(strictPQ); ok {
-		return r.IsStrictPQ(time)
-	}
-	return false
-}
-
 // =============================================================================
 // Configurator Bridge (external → internal)
 // =============================================================================
