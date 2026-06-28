@@ -122,13 +122,7 @@ func (b *blockBuilder) waitForEvent(ctx context.Context, earliestBuild time.Time
 	if err != nil {
 		return block.Message{}, err
 	}
-	nextBuild := earliestBuild
-	if !lastBuildTime.IsZero() {
-		if retry := lastBuildTime.Add(minBlockBuildingRetryDelay); retry.After(nextBuild) {
-			nextBuild = retry
-		}
-	}
-	timeUntilNextBuild := time.Until(nextBuild)
+	timeUntilNextBuild := time.Until(nextBuildTime(earliestBuild, lastBuildTime))
 	if timeUntilNextBuild <= 0 {
 		return block.Message{Type: block.PendingTxs}, nil
 	}
@@ -139,6 +133,27 @@ func (b *blockBuilder) waitForEvent(ctx context.Context, earliestBuild time.Time
 	case <-time.After(timeUntilNextBuild):
 		return block.Message{Type: block.PendingTxs}, nil
 	}
+}
+
+// nextBuildTime is the earliest wall-clock instant the next block may be built.
+// It is the later of two floors:
+//   - earliestBuild: parent.Time + TargetBlockRate — building before this raises
+//     the block's required fee, so a small-tip tx cannot cover it and the block
+//     is rejected by verifyBlockFee (the stall this pacing exists to prevent).
+//   - lastBuildTime + minBlockBuildingRetryDelay: a retry floor that keeps a
+//     failed BuildBlock from hot-looping once earliestBuild has already passed.
+//
+// A zero lastBuildTime (no block built this session yet) means only earliestBuild
+// applies. Pure function of its inputs (no clock read) so the pacing decision is
+// deterministically testable; the wall-clock comparison stays in waitForEvent.
+func nextBuildTime(earliestBuild, lastBuildTime time.Time) time.Time {
+	if lastBuildTime.IsZero() {
+		return earliestBuild
+	}
+	if retry := lastBuildTime.Add(minBlockBuildingRetryDelay); retry.After(earliestBuild) {
+		return retry
+	}
+	return earliestBuild
 }
 
 // waitForNeedToBuild waits until needToBuild returns true.
