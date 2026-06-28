@@ -402,13 +402,3 @@ func (c *chainConfigAdapter) IsDurango(time uint64) bool {
 	extra := params.GetExtra(c.config)
 	return extra.IsDurango(time)
 }
-
-// IsStrictPQ satisfies the contract.StrictPQReporter interface so that
-// classical precompiles (KZG, Groth16, PLONK, fflonk, Halo2, BN254-Pedersen,
-// BabyJubJub, Pallas/Vesta) refuse to run on chains that pin a strict
-// post-quantum profile. Returns false when StrictPQTimestamp is unset
-// (the default for non-Lux chains and Lux chains without strict-PQ pinned).
-func (c *chainConfigAdapter) IsStrictPQ(time uint64) bool {
-	extra := params.GetExtra(c.config)
-	return extra.IsStrictPQ(time)
-}

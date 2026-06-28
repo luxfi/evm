@@ -271,25 +271,6 @@ type Config struct {
 	// Database Scheme
 	StateScheme string `json:"state-scheme"`
 
-	// PQ activates the chain-wide strict-PQ posture inside the EVM
-	// precompile layer. PQ mode is binary: a chain is strict-PQ or it
-	// isn't — there is no relaxed-PQ. When true, the ecrecover precompile
-	// at 0x01 refuses every input with ErrClassicalAuthForbidden (gas is
-	// still charged per EIP-150). Default false preserves classical-compat
-	// semantics — required for legacy chains and the Lux-Permissive
-	// profile.
-	//
-	// The node populates this from its resolved
-	// consensusconfig.ChainSecurityProfile (F102 close-out) so the EVM
-	// plugin process inherits the chain-wide posture without re-resolving
-	// genesis. One way only: install once at chain bootstrap inside
-	// VM.Initialize, never per-tx.
-	//
-	// JSON key "pq" with legacy aliases "lux-strict-pq" and "annulus"
-	// accepted by ConfigOverrides.UnmarshalJSON for chains that pinned
-	// the older flag names.
-	PQ bool `json:"pq,omitempty"`
-
 	// NOTE: the former DexZapEndpoint knob is REMOVED. The C-Chain DEX precompile
 	// (0x9999) settles certified D-Chain fill receipts INLINE (deterministic BLS
 	// verify); it never points at a live matcher backend (a synchronous in-block
