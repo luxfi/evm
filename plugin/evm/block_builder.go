@@ -15,10 +15,11 @@ import (
 )
 
 const (
-	// Minimum delay between blocks when mempool content hasn't changed.
-	// When mempool HAS new txs, blocks are built immediately (no delay).
-	// This only throttles repeated builds of identical mempool state.
-	minBlockBuildingRetryDelay = 1 * time.Millisecond
+	// Retry floor after a build attempt, so a BuildBlock that fails (e.g. the
+	// block gas cost is momentarily uncoverable) does not hot-loop. Primary
+	// pacing is to the target block rate (see waitForEvent); this only bounds
+	// the retry cadence when the target-rate time has already passed.
+	minBlockBuildingRetryDelay = 100 * time.Millisecond
 )
 
 type blockBuilder struct {
@@ -106,20 +107,32 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 	}()
 }
 
-// waitForEvent waits until a block needs to be built.
-// It returns only after at least [minBlockBuildingRetryDelay] passed from the last time a block was built.
-func (b *blockBuilder) waitForEvent(ctx context.Context) (block.Message, error) {
+// waitForEvent waits until a block needs to be built, then paces the signal so
+// the next block is not built before [earliestBuild]. earliestBuild is
+// parent.Time + TargetBlockRate: building earlier makes the block gas cost rise
+// (it scales with how far ahead of the target rate a block lands), and a block
+// whose transactions cannot cover that cost is rejected by verifyBlockFee and
+// never mines — so a single small-tip tx would stall forever without this pace.
+// Pacing to the target rate also gives the mempool time to gossip-converge
+// across validators, so they build identical blocks (same ID) instead of racing
+// to finalize conflicting blocks at the same height. A short retry floor keeps a
+// failed BuildBlock from hot-looping when earliestBuild has already passed.
+func (b *blockBuilder) waitForEvent(ctx context.Context, earliestBuild time.Time) (block.Message, error) {
 	lastBuildTime, err := b.waitForNeedToBuild(ctx)
 	if err != nil {
 		return block.Message{}, err
 	}
-	timeSinceLastBuildTime := time.Since(lastBuildTime)
-	if b.lastBuildTime.IsZero() || timeSinceLastBuildTime >= minBlockBuildingRetryDelay {
-		log.Debug("Last time we built a block was long enough ago, no need to wait", "timeSinceLastBuildTime", timeSinceLastBuildTime)
+	nextBuild := earliestBuild
+	if !lastBuildTime.IsZero() {
+		if retry := lastBuildTime.Add(minBlockBuildingRetryDelay); retry.After(nextBuild) {
+			nextBuild = retry
+		}
+	}
+	timeUntilNextBuild := time.Until(nextBuild)
+	if timeUntilNextBuild <= 0 {
 		return block.Message{Type: block.PendingTxs}, nil
 	}
-	timeUntilNextBuild := minBlockBuildingRetryDelay - timeSinceLastBuildTime
-	log.Debug("Last time we built a block was too recent, waiting", "timeUntilNextBuild", timeUntilNextBuild)
+	log.Debug("Pacing block build to the target block rate", "timeUntilNextBuild", timeUntilNextBuild)
 	select {
 	case <-ctx.Done():
 		return block.Message{}, ctx.Err()
