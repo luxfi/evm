@@ -33,8 +33,7 @@ require (
 	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.5.9
 	github.com/luxfi/p2p v1.21.1
-	github.com/luxfi/pq v1.0.3
-	github.com/luxfi/precompile v0.15.0
+	github.com/luxfi/precompile v0.16.0
 	github.com/luxfi/runtime v1.1.3
 	github.com/luxfi/sys v0.1.0
 	github.com/luxfi/timer v1.0.2
@@ -113,7 +112,6 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/luxfi/accel v1.2.4 // indirect
 	github.com/luxfi/age v1.5.0 // indirect
-	github.com/luxfi/ai v0.1.0 // indirect
 	github.com/luxfi/api v1.0.15 // indirect
 	github.com/luxfi/atomic v1.0.0 // indirect
 	github.com/luxfi/bft v0.1.5 // indirect
@@ -125,6 +123,7 @@ require (
 	github.com/luxfi/fhe v1.8.2 // indirect
 	github.com/luxfi/lattice/v7 v7.1.4 // indirect
 	github.com/luxfi/mdns v0.1.1 // indirect
+	github.com/luxfi/pq v1.0.3 // indirect
 	github.com/luxfi/proto v1.3.5 // indirect
 	github.com/luxfi/resource v0.0.1 // indirect
 	github.com/luxfi/threshold v1.9.9 // indirect
