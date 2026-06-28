@@ -54,7 +54,6 @@ const luxMainnetLiveUpgradeJSON = `{
     {"hpkeConfig":       {"blockTimestamp": 0}},
     {"mldsaVerify":      {"blockTimestamp": 0}},
     {"mlkemConfig":      {"blockTimestamp": 0}},
-    {"pqcryptoConfig":   {"blockTimestamp": 0}},
     {"ringConfig":       {"blockTimestamp": 0}},
     {"slhdsaVerify":     {"blockTimestamp": 0}},
     {"zkConfig":         {"blockTimestamp": 0}}
