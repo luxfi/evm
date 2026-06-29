@@ -266,6 +266,8 @@ github.com/luxfi/container v0.0.4 h1:BXhF82WyfqVP5mjlNcr7tP0Fcnvl0Ap1rkiu+rq5XuM
 github.com/luxfi/container v0.0.4/go.mod h1:Z3SpmMF5d4t77MM0nHYXURpn+EMVaeu1fhbd/3BGaek=
 github.com/luxfi/corona v0.7.9 h1:NQe9V/80CdKLvbaVRE2uepxvxg9KHbWfcGRKWrzLSHc=
 github.com/luxfi/corona v0.7.9/go.mod h1:SfS7xo/k4uoteEYwYy+QCMPzTU8EIEbLnbWKx5ENVCw=
+github.com/luxfi/corona v0.10.2 h1:pIS5uJq2lHnk6NFjoaBN8CvjPp9wwFHek91rV0u3jHk=
+github.com/luxfi/corona v0.10.2/go.mod h1:gx0nrRq4TB/scQm1kNU10lyRDQhKLMAYK1fIrfCrZ9s=
 github.com/luxfi/crypto v1.19.26 h1:+aHn/L479ak2ih7s/DkBZojjuhcyHBLqu3nYT81vcrU=
 github.com/luxfi/crypto v1.19.26/go.mod h1:0DCU62kX8+zhYU2qeM07A4pifJyPkPujnUOfgc8TOFQ=
 github.com/luxfi/crypto/ipa v1.2.4 h1:6xfwhI9/HrcDkF3Ti5/NxsNQIWbwYDJmRSNIHRQ/xfU=
@@ -308,6 +310,8 @@ github.com/luxfi/mdns v0.1.1 h1:g2eRr9AXcziPkkcd24M+Qu9ApEpoKKjfI79QSNqv0rQ=
 github.com/luxfi/mdns v0.1.1/go.mod h1:dbp5f3h3aE7CGzwbaWzBM9cwdcekhmSrWhQevgYhhNA=
 github.com/luxfi/metric v1.5.9 h1:UAgXMNZf5oN/XJwwuKorf8iMaCj3nyP6thHPCwkUwY4=
 github.com/luxfi/metric v1.5.9/go.mod h1:ux+w3RZQCfF1zM8MO0wAWyNj/CsDlPd2mwTGshB9vY0=
+github.com/luxfi/mlwe v0.2.1 h1:pRwTjNUUtzUxRIlMbUPpeh9DE2/NdqfS17hfdogazp4=
+github.com/luxfi/mlwe v0.2.1/go.mod h1:DD9EHTeiyh/y0KGGeqL+q9S4n8raeGiGdaG/BQPAvT0=
 github.com/luxfi/mock v0.1.1 h1:0HEtIjg1J6CWz+IUyP6rsGqNWTcmxjFnSQIhaDuARwY=
 github.com/luxfi/mock v0.1.1/go.mod h1:jo35akl3Vtd8LbzDts8VJ0jmSVycrd1/eBi6g6t5hKU=
 github.com/luxfi/p2p v1.21.1 h1:gmz1JMDhzHIL3dQlhwIDvR4OlFuhNVfnWUl/ipYhAIo=
