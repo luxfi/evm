@@ -1,3 +1,5 @@
+<p align="center"><img src=".github/hero.svg" alt="evm" width="880"></p>
+
 # Lux EVM
 
 [![Releases](https://img.shields.io/github/v/tag/luxfi/evm.svg?sort=semver)](https://github.com/luxfi/evm/releases)
