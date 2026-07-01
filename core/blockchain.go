@@ -1154,6 +1154,69 @@ func (bc *BlockChain) LastAcceptedBlock() *types.Block {
 	return bc.acceptorTip
 }
 
+// MaterializeState guarantees the state trie for [target] is present in the trie
+// database, rebuilding it on demand from the nearest ancestor whose state is
+// available if it was pruned. It is a cheap HasState no-op when the state is
+// already present.
+//
+// This is the recovery half of the fresh-multi-node block-production halt: on a
+// fresh chain the reorg/reject churn that equivocation produces can dereference
+// an accepted block's trie AFTER it becomes the head (the state is present at
+// accept — so the accept-path guard is a no-op — but pruned before the next
+// BuildBlock reads it), wedging the chain with "missing trie node". Called from
+// the miner's createCurrentEnvironment on a StateAt miss, this re-executes the
+// pruned range so BuildBlock can always load its parent state. reprocessBlock's
+// ValidateState re-checks each rebuilt root against its header, so a
+// non-deterministic transition surfaces loudly rather than silently.
+func (bc *BlockChain) MaterializeState(target *types.Block) error {
+	if bc.HasState(target.Root()) {
+		return nil
+	}
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+	// Re-check under the lock — a concurrent insert may have materialized it.
+	if bc.HasState(target.Root()) {
+		return nil
+	}
+
+	// Walk back to the nearest ancestor whose state is available, collecting the
+	// missing blocks (target first, oldest-missing last).
+	var missing []*types.Block
+	cur := target
+	for !bc.HasState(cur.Root()) {
+		if cur.NumberU64() == 0 {
+			return fmt.Errorf("cannot materialize state for %s:%d: genesis state missing", target.Hash().Hex(), target.NumberU64())
+		}
+		missing = append(missing, cur)
+		parent := bc.GetBlock(cur.ParentHash(), cur.NumberU64()-1)
+		if parent == nil {
+			return fmt.Errorf("cannot materialize state for %s:%d: missing ancestor %s:%d", target.Hash().Hex(), target.NumberU64(), cur.ParentHash().Hex(), cur.NumberU64()-1)
+		}
+		cur = parent
+	}
+
+	log.Warn("[STATE-MATERIALIZE] rebuilding pruned state on demand",
+		"target", target.Hash(), "targetHeight", target.NumberU64(), "targetRoot", target.Root(),
+		"fromHeight", cur.NumberU64(), "blocks", len(missing),
+	)
+
+	// Re-execute forward from [cur] (which has state) through the missing range.
+	parent := cur
+	for i := len(missing) - 1; i >= 0; i-- {
+		child := missing[i]
+		root, err := bc.reprocessBlock(parent, child)
+		if err != nil {
+			return fmt.Errorf("materialize: failed to re-execute %s:%d: %w", child.Hash().Hex(), child.NumberU64(), err)
+		}
+		if root != child.Root() {
+			return fmt.Errorf("materialize: re-executed root %s != header root %s for %s:%d (non-deterministic state transition)",
+				root.Hex(), child.Root().Hex(), child.Hash().Hex(), child.NumberU64())
+		}
+		parent = child
+	}
+	return nil
+}
+
 // SetLastAcceptedBlockDirect sets the last accepted block directly without
 // validation. This is used during block import to update the canonical chain
 // head after InsertChain has verified and inserted the blocks.
