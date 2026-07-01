@@ -41,18 +41,13 @@ type BlockExecutor interface {
 type EVMBackend string
 
 const (
-	// GoEVM is the default Go EVM from luxfi/geth (geth interpreter).
+	// GoEVM is the Go EVM from luxfi/geth (geth interpreter) with Block-STM
+	// parallel execution across all cores. It is the only real backend: a
+	// backend is wired end-to-end and parity-proven against GoEVM, or it does
+	// not exist in the tree. No stub backends.
 	GoEVM EVMBackend = "gevm"
 
-	// RustEVM uses revm (Rust EVM) via FFI for execution.
-	// Native Block-STM parallel execution, memory-safe.
-	RustEVM EVMBackend = "revm"
-
-	// CppEVM is the Lux C++ EVM via CGo.
-	// Fastest single-threaded interpreter, SIMD opcodes, GPU kernel dispatch.
-	CppEVM EVMBackend = "cevm"
-
-	// AutoEVM selects the best available backend at runtime.
+	// AutoEVM selects the best available backend at runtime (currently GoEVM).
 	AutoEVM EVMBackend = "auto"
 )
 
@@ -60,9 +55,10 @@ const (
 // This is the per-tx abstraction point for swappable EVM backends.
 //
 // Backends implement this to replace the default Go EVM interpreter:
-//   - GoEVM: delegates to geth's vm.EVM.Call()/Create() (default)
-//   - RustEVM: calls revm via FFI (faster single-thread, native Block-STM)
-//   - CppEVM: calls evmone via CGo (fastest interpreter, GPU offload)
+//   - GoEVM: delegates to geth's vm.EVM.Call()/Create(), Block-STM parallel
+//
+// A real backend is wired end-to-end and parity-proven against GoEVM before
+// it is registered here. No stub backends.
 //
 // The StateDB interface is the bridge — all backends read/write state
 // through the same Go StateDB, ensuring consensus compatibility.
@@ -82,7 +78,7 @@ type TransactionExecutor interface {
 	) (*types.Receipt, error)
 
 	// SupportsParallel returns true if this backend can execute
-	// transactions in parallel (e.g., Block-STM in revm, GPU in cevm).
+	// transactions in parallel (e.g., Block-STM across cores).
 	SupportsParallel() bool
 
 	// SupportsGPU returns true if this backend can offload computation

@@ -77,9 +77,9 @@ func (api *EvmBackendAPI) SetBackend(_ context.Context, args SetBackendArgs) (*S
 
 	requested := parallel.EVMBackend(args.Backend)
 	switch requested {
-	case parallel.GoEVM, parallel.RustEVM, parallel.CppEVM, parallel.AutoEVM:
+	case parallel.GoEVM, parallel.AutoEVM:
 	default:
-		return nil, fmt.Errorf("unknown backend %q; valid: gevm, revm, cevm, auto", args.Backend)
+		return nil, fmt.Errorf("unknown backend %q; valid: gevm, auto", args.Backend)
 	}
 
 	previous := parallel.ActiveBackend()
