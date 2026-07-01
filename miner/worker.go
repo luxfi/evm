@@ -281,7 +281,20 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.PredicateContext, parent *types.Header, header *types.Header, feeConfig commontype.FeeConfig, tstart time.Time) (*environment, error) {
 	currentState, err := w.chain.StateAt(parent.Root)
 	if err != nil {
-		return nil, err
+		// The parent's state trie may have been pruned by the reorg/reject churn a
+		// fresh multi-node chain produces under equivocation (present at accept,
+		// dereferenced before this build reads it), which would wedge the chain with
+		// "missing trie node". Rebuild it on demand so block production continues
+		// instead of halting. No-op on a healthy chain (StateAt succeeds).
+		if parentBlock := w.chain.GetBlock(parent.Hash(), parent.Number.Uint64()); parentBlock != nil {
+			if merr := w.chain.MaterializeState(parentBlock); merr != nil {
+				return nil, fmt.Errorf("failed to materialize parent state for build: %w (StateAt: %v)", merr, err)
+			}
+			currentState, err = w.chain.StateAt(parent.Root)
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	chainConfig := params.GetExtra(w.chainConfig)
 	capacity, err := customheader.GasCapacity(chainConfig, feeConfig, parent, header.Time)
