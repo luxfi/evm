@@ -1342,6 +1342,42 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 		}
 	}
 
+	// [ACCEPT-BACKSTOP] Guarantee the accepted block's state is materialized before
+	// it becomes the head. Under equivocation the consensus engine can finalize (via
+	// the α-of-K cert / catch-up path) a block that this node verified only as a
+	// transient non-canonical sibling — whose state trie was then dereferenced when
+	// that sibling was rejected — and the finalize path does NOT re-verify it. The
+	// result is a head whose state root is absent from the trie database, so the next
+	// BuildBlock fails with "missing trie node" and the chain wedges (the fresh
+	// re-genesised testnet/devnet block-2 halt). Re-executing here on the parent
+	// (== last accepted, whose state is present by construction) rematerializes the
+	// exact accepted root; commitWithSnap's ValidateState re-checks the computed root
+	// against the header, so a mismatch surfaces loudly instead of silently. When the
+	// state is already present (the common, non-equivocation path) this is a cheap
+	// HasState no-op. The WARN fires ONLY on the equivocation-commit-gap, so it doubles
+	// as the confirming instrumentation for that root cause.
+	if !bc.HasState(block.Root()) {
+		parent := bc.lastAccepted // parent == block.ParentHash(), asserted above
+		log.Warn("[ACCEPT-BACKSTOP] accepted block state not materialized; re-executing on parent",
+			"height", block.NumberU64(),
+			"acceptedHash", block.Hash(),
+			"acceptedRoot", block.Root(),
+			"parentHash", parent.Hash(),
+			"parentRoot", parent.Root(),
+			"canonicalAtHeight", canonical,
+		)
+		reRoot, err := bc.reprocessBlock(parent, block)
+		if err != nil {
+			return fmt.Errorf("accept: failed to materialize state for accepted block %s:%d: %w", block.Hash(), block.NumberU64(), err)
+		}
+		if reRoot != block.Root() {
+			return fmt.Errorf("accept: re-executed root %s != accepted header root %s for block %s:%d (non-deterministic state transition)",
+				reRoot.Hex(), block.Root().Hex(), block.Hash(), block.NumberU64())
+		}
+		log.Warn("[ACCEPT-BACKSTOP] re-materialized accepted block state",
+			"height", block.NumberU64(), "root", block.Root())
+	}
+
 	// Enqueue block in the acceptor
 	bc.lastAccepted = block
 	bc.addAcceptorQueue(block)
