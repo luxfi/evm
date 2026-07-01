@@ -151,7 +151,3 @@ func (fallbackGPU) Available() bool { return false }
 func (fallbackGPU) BatchEcrecover(_ []*types.Transaction) (map[common.Hash]common.Address, error) {
 	return nil, nil
 }
-
-func (fallbackGPU) BatchKeccak(_ [][]byte) ([]common.Hash, error) {
-	return nil, nil
-}
