@@ -20,6 +20,20 @@ const (
 	// pacing is to the target block rate (see waitForEvent); this only bounds
 	// the retry cadence when the target-rate time has already passed.
 	minBlockBuildingRetryDelay = 100 * time.Millisecond
+
+	// builderPollInterval bounds how long a parked waitForNeedToBuild can sleep
+	// before it re-polls the mempool, independent of the tx-submit subscription.
+	// The subscription (awaitSubmittedTxs) is the primary wake; this periodic
+	// re-poll is the backstop that closes the subscribe-gap window — a tx that
+	// arrives while no builder is parked (between two WaitForEvent calls, or
+	// while the proposervm is sleeping out its slot) broadcasts to no waiter and
+	// is otherwise only caught on the next needToBuild() poll. With this backstop
+	// a tx-after-idle ALWAYS wakes a parked builder within builderPollInterval,
+	// so a demand-driven chain mines the first tx within a bounded time with no
+	// keep-warm hack. It only ever produces a build when needToBuild() is true,
+	// so idle chains stay empty-block-free; it changes wake TIMING only, never
+	// block CONTENTS, so validators still build identical blocks.
+	builderPollInterval = 500 * time.Millisecond
 )
 
 type blockBuilder struct {
@@ -38,6 +52,12 @@ type blockBuilder struct {
 	// This is used to ensure that we don't build blocks too frequently,
 	// but at least after a minimum delay of minBlockBuildingRetryDelay.
 	lastBuildTime time.Time
+
+	// pendingTxs reports whether the mempool holds at least one buildable
+	// transaction. It is the single source of truth for needToBuild and is
+	// injectable so the wake path can be tested without a live txpool. Set by
+	// NewBlockBuilder to poll the real pool.
+	pendingTxs func() bool
 }
 
 func (vm *VM) NewBlockBuilder() *blockBuilder {
@@ -46,6 +66,12 @@ func (vm *VM) NewBlockBuilder() *blockBuilder {
 		txPool:       vm.txPool,
 		shutdownChan: vm.shutdownChan,
 		shutdownWg:   &vm.shutdownWg,
+	}
+	// Use empty filter to check if ANY pending transactions exist. The miner
+	// applies proper fee filters when building; a MinTip filter here would
+	// reject valid legacy transactions (no GasTipCap) and stall production.
+	b.pendingTxs = func() bool {
+		return b.txPool.PendingSize(txpool.PendingFilter{}) > 0
 	}
 	b.pendingSignal = sync.NewCond(&b.buildBlockLock)
 	return b
@@ -61,12 +87,7 @@ func (b *blockBuilder) handleGenerateBlock() {
 // needToBuild returns true if there are outstanding transactions to be issued
 // into a block.
 func (b *blockBuilder) needToBuild() bool {
-	// Use empty filter to check if ANY pending transactions exist
-	// The miner will apply proper fee filters when building the block
-	// Using MinTip filter here rejects valid legacy transactions that
-	// don't have GasTipCap set, causing block production to stall
-	size := b.txPool.PendingSize(txpool.PendingFilter{})
-	return size > 0
+	return b.pendingTxs()
 }
 
 // signalCanBuild signals that a new block can be built.
@@ -85,6 +106,10 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 	txSubmitChan := make(chan core.NewTxsEvent)
 	b.txPool.SubscribeTransactions(txSubmitChan, true)
 
+	// Bounded-wake backstop: guarantees a parked builder re-polls the mempool
+	// even if a tx-submit notification is ever delivered to no waiter.
+	b.startPendingTxPoll()
+
 	b.shutdownWg.Add(1)
 	go func() {
 		defer func() {
@@ -99,6 +124,40 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 			select {
 			case <-txSubmitChan:
 				log.Trace("New tx detected, trying to generate a block")
+				b.signalCanBuild()
+			case <-b.shutdownChan:
+				return
+			}
+		}
+	}()
+}
+
+// startPendingTxPoll starts the bounded-wake backstop: a node-lifetime ticker
+// that periodically broadcasts pendingSignal so any builder parked in
+// waitForNeedToBuild re-evaluates needToBuild() (which polls the live mempool)
+// at least every builderPollInterval. This closes the subscribe-gap window
+// without a keep-warm hack: a tx that arrived while no builder was parked — so
+// the awaitSubmittedTxs broadcast reached no waiter — is picked up on the next
+// tick rather than sitting pending indefinitely. It is decomplected from the
+// tx-submit subscription so the two wake sources are independent (and the
+// backstop is testable without a live txpool).
+func (b *blockBuilder) startPendingTxPoll() {
+	b.shutdownWg.Add(1)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error("panic in pending-tx poll", "error", r)
+				panic(r)
+			}
+		}()
+		defer b.shutdownWg.Done()
+
+		ticker := time.NewTicker(builderPollInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
 				b.signalCanBuild()
 			case <-b.shutdownChan:
 				return
