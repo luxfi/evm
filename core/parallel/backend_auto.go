@@ -24,31 +24,21 @@ func init() {
 
 // detectBackend selects the parallel-EVM backend.
 //
-// LP-108 (2026-05-04): collapsed to GoEVM only. The previous code
-// auto-selected CppEVM when a GPU was detected, but the
-// cevmExecutor.ExecuteTransaction body returned `nil, nil` (always
-// fell through to Go EVM regardless of selection). That was a
-// pretense, not an acceleration path.
-//
-// CppEVM and RustEVM are kept behind their respective build tags
-// (`//go:build cevm` / `//go:build revm`) so the registrations are
-// only present when those backends are wired through the cgo
-// bridge and the parity gate against Go EVM is met. Until then,
-// auto-detect returns Go EVM honestly.
-//
-// To re-enable CppEVM auto-selection: complete the cevm bridge in
-// backend_cevm.go::ExecuteTransaction and add a parity test against
-// the Go EVM Block-STM path.
+// GoEVM (Block-STM across all cores) is the only real backend. Stub backends
+// are not allowed in the tree — a backend is wired end-to-end and parity-proven
+// against GoEVM before it exists here. GPU is detected for observability only;
+// it does not change execution until a real GPU-dispatching backend is wired
+// and passes the parity gate.
 func detectBackend() {
 	selectedResult = GoEVM
 	if gpu := DefaultGPU(); gpu.Available() {
 		switch runtime.GOOS {
 		case "darwin":
-			selectedGPUName = "Metal (detected; cevm dispatch wiring pending — runs Go EVM)"
+			selectedGPUName = "Metal (present; informational — GoEVM in use)"
 		case "linux":
-			selectedGPUName = "CUDA (detected; cevm dispatch wiring pending — runs Go EVM)"
+			selectedGPUName = "CUDA (present; informational — GoEVM in use)"
 		default:
-			selectedGPUName = "GPU (detected; cevm dispatch wiring pending — runs Go EVM)"
+			selectedGPUName = "GPU (present; informational — GoEVM in use)"
 		}
 	} else {
 		selectedGPUName = "none"

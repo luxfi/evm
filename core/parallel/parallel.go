@@ -50,7 +50,7 @@ func RegisterGPU(g GPUAccelerator) {
 }
 
 // RegisterTransactionExecutor registers a per-tx executor for a given backend.
-// Call from init() in backend packages (e.g., revmbackend, cevmbackend).
+// Call from a backend package's init() once it is wired and parity-proven.
 func RegisterTransactionExecutor(backend EVMBackend, e TransactionExecutor) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -63,9 +63,10 @@ func SetBackend(backend EVMBackend) {
 	mu.Lock()
 	defer mu.Unlock()
 	if backend == AutoEVM {
-		// Priority: CppEVM > RustEVM > GoEVM
-		for _, b := range []EVMBackend{CppEVM, RustEVM, GoEVM} {
-			if _, ok := txExecutors[b]; ok {
+		// GoEVM (Block-STM) is the only real backend. Any additional backend
+		// registers itself once wired + parity-proven, and is preferred here.
+		for b := range txExecutors {
+			if b != GoEVM {
 				activeBack = b
 				return
 			}
