@@ -61,17 +61,6 @@ func TestGPUBatchEcrecover(t *testing.T) {
 	}
 }
 
-// TestGPUBatchKeccakReturnsNil verifies batch keccak returns nil (not yet wired).
-func TestGPUBatchKeccakReturnsNil(t *testing.T) {
-	gpu := DefaultGPU()
-	result, err := gpu.BatchKeccak([][]byte{{0x01, 0x02}})
-	if err != nil {
-		t.Fatalf("BatchKeccak returned error: %v", err)
-	}
-	if result != nil {
-		t.Fatalf("BatchKeccak returned non-nil result: %v", result)
-	}
-}
 
 // TestInterfaceCompliance verifies the types satisfy interfaces at runtime.
 func TestInterfaceCompliance(t *testing.T) {

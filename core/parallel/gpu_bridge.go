@@ -111,10 +111,6 @@ func (g *gpuBridge) BatchEcrecover(txs []*types.Transaction) (map[common.Hash]co
 	return addrs, nil
 }
 
-func (g *gpuBridge) BatchKeccak(_ [][]byte) ([]common.Hash, error) {
-	return nil, nil // not yet available; CPU path used
-}
-
 // padTo32 returns a 32-byte big-endian representation of a big.Int.
 func padTo32(n *big.Int) []byte {
 	b := n.Bytes()
