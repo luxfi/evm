@@ -95,7 +95,4 @@ type GPUAccelerator interface {
 	// BatchEcrecover recovers sender addresses for a batch of transactions.
 	// Returns a map from tx hash to recovered sender address.
 	BatchEcrecover(txs []*types.Transaction) (map[common.Hash]common.Address, error)
-
-	// BatchKeccak hashes multiple inputs on GPU.
-	BatchKeccak(inputs [][]byte) ([]common.Hash, error)
 }
