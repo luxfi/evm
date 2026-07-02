@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/luxfi/chains/dexvm/registry"
-	"github.com/luxfi/dex/pkg/dexcore"
+	dexcore "github.com/luxfi/dex/pkg/dex"
 	"github.com/luxfi/ids"
 	"github.com/luxfi/precompile/dex"
 	"github.com/luxfi/runtime"
