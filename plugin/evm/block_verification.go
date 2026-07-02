@@ -91,11 +91,16 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 		return errUnclesUnsupported
 	}
 
-	// Block must not be empty (unless automining/dev mode is enabled)
+	// EMPTY-BLOCK POLICY IS BUILD-ONLY — deliberately NOT enforced here. SyntacticVerify runs at
+	// PARSE, VERIFY, and ACCEPT; rejecting an empty block here made a consensus-FINALIZED empty
+	// block un-acceptable, which (with the fail-closed finalize→VM.Accept fix) HALTS the chain,
+	// and (before it) let the decided-floor run ahead of the EVM — the phantom-floor freeze.
+	// Finality MUST override the anti-spam empty rule: an α-of-K-certified block is applied
+	// regardless of emptiness (the cert is still required — this does NOT weaken any other
+	// structural check). The demand-driven "don't PRODUCE empty blocks" rule now lives solely on
+	// the build path (buildBlockWithContext, vm.go), so a proposer still never emits an empty
+	// block while a finalized one still Accepts.
 	txs := b.ethBlock.Transactions()
-	if len(txs) == 0 && !b.vm.config.EnableAutomining {
-		return errEmptyBlock
-	}
 
 	if !rulesExtra.IsEVM {
 		// Make sure that all the txs have the correct fee set.
