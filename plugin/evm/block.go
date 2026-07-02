@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/luxfi/geth/rlp"
@@ -16,6 +17,7 @@ import (
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/params/extras"
+	"github.com/luxfi/evm/plugin/evm/customtypes"
 	"github.com/luxfi/evm/plugin/evm/header"
 	"github.com/luxfi/evm/precompile/precompileconfig"
 	"github.com/luxfi/evm/predicate"
@@ -187,6 +189,53 @@ func (b *Block) Timestamp() time.Time {
 }
 
 // syntacticVerify verifies that a *Block is well-formed.
+// ensureBlockGasCost populates this block's derived BlockGasCost from its PARENT header when it is
+// not already set. BlockGasCost is NOT part of the RLP-encoded block — it is computed from the
+// parent (block-gas economics), so it can only be filled once the parent header is available.
+//
+// THE PARSE/VERIFY DECOMPLECTION: parse (ParseBlock/UnmarshalBlock) must NOT require the parent — a
+// bootstrap descent parses ancestry blocks AHEAD of the accepted height, whose parents are not yet
+// present. Best-effort population at parse (parent present ⇒ fill it) keeps the live path fast, and
+// leaving it nil for an ahead-of-accepted block lets the block still parse (its id/height/parent —
+// all the descent's content-addressed walk needs — come from the decoded header). Verify/Accept then
+// runs with the parent ACCEPTED and calls this to fill BlockGasCost authoritatively, after which the
+// consensus/dummy header verification enforces its correctness against the recomputed expected value.
+// SetHeaderExtra is keyed by header hash (a global map), so a value filled here persists even for a
+// block object first parsed (and cached) while its parent was absent. no-op when already set, at
+// genesis (always 0), or when the parent is still absent.
+func (b *Block) ensureBlockGasCost() {
+	if b == nil || b.ethBlock == nil {
+		return
+	}
+	ethHeader := b.ethBlock.Header()
+	if ethHeader.Number == nil {
+		return
+	}
+	if ethHeader.Number.Uint64() == 0 {
+		if customtypes.GetHeaderExtra(ethHeader).BlockGasCost == nil {
+			extra := customtypes.GetHeaderExtra(ethHeader)
+			extra.BlockGasCost = big.NewInt(0)
+			customtypes.SetHeaderExtra(ethHeader, extra)
+		}
+		return
+	}
+	if customtypes.GetHeaderExtra(ethHeader).BlockGasCost != nil {
+		return
+	}
+	parent := b.vm.blockChain.GetHeaderByHash(ethHeader.ParentHash)
+	if parent == nil {
+		return // parent not yet present (ahead-of-accepted parse) — Verify fills it with the parent present
+	}
+	config := params.GetExtra(b.vm.chainConfig)
+	feeConfig, _, err := b.vm.blockChain.GetFeeConfigAt(parent)
+	if err != nil || !config.IsEVM(ethHeader.Time) {
+		return
+	}
+	extra := customtypes.GetHeaderExtra(ethHeader)
+	extra.BlockGasCost = header.BlockGasCost(config, feeConfig, parent, ethHeader.Time)
+	customtypes.SetHeaderExtra(ethHeader, extra)
+}
+
 func (b *Block) syntacticVerify() error {
 	if b == nil || b.ethBlock == nil {
 		return errInvalidBlock
@@ -254,6 +303,12 @@ func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writ
 	} else {
 		log.Debug("Verifying block without context", "block", b.ID(), "height", b.Height())
 	}
+	// Populate the parent-derived BlockGasCost now that the parent is ACCEPTED (Verify runs after
+	// the parent). A block first parsed while its parent was absent (a bootstrap descent parsing
+	// ancestry ahead of the accepted height) carries a nil BlockGasCost; fill it here so the
+	// consensus/dummy header verification below (InsertBlockManual) enforces its correctness. This
+	// is the VERIFY half of the parse/verify decomplection — parse no longer requires the parent.
+	b.ensureBlockGasCost()
 	if err := b.syntacticVerify(); err != nil {
 		return fmt.Errorf("syntactic block verification failed: %w", err)
 	}

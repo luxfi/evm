@@ -62,9 +62,6 @@ import (
 	"github.com/luxfi/evm/utils"
 	"github.com/luxfi/evm/warp"
 
-	"github.com/luxfi/evm/plugin/evm/customtypes"
-	customheader "github.com/luxfi/evm/plugin/evm/header"
-
 	// Force-load tracer engine to trigger registration
 	//
 	// We must import this package (not referenced elsewhere) so that the native "callTracer"
@@ -1180,40 +1177,18 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 				return nil, err
 			}
 
-			// CRITICAL: Populate BlockGasCost on blocks received via P2P.
-			// The BlockGasCost is stored in an in-memory map on the block producer,
-			// but this data is NOT included in RLP encoding. We must calculate it
-			// from the parent header before verification.
-			header := ethBlock.Header()
-			if header.Number.Uint64() > 0 {
-				// Non-genesis block: calculate BlockGasCost from parent
-				parent := vm.blockChain.GetHeaderByHash(header.ParentHash)
-				if parent != nil {
-					config := params.GetExtra(vm.chainConfig)
-					// Get fee config at parent height
-					feeConfig, _, err := vm.blockChain.GetFeeConfigAt(parent)
-					if err == nil && config.IsEVM(header.Time) {
-						blockGasCost := customheader.BlockGasCost(
-							config,
-							feeConfig,
-							parent,
-							header.Time,
-						)
-						customtypes.SetHeaderExtra(header, &customtypes.HeaderExtra{
-							BlockGasCost: blockGasCost,
-						})
-					}
-				}
-			} else {
-				// Genesis block: BlockGasCost is always 0
-				customtypes.SetHeaderExtra(header, &customtypes.HeaderExtra{
-					BlockGasCost: big.NewInt(0),
-				})
-			}
-
 			block := vm.newBlock(ethBlock)
+			// BlockGasCost is DERIVED from the parent header (not part of the RLP block), so it can
+			// only be filled when the parent is present. Best-effort here (parent present ⇒ fill it,
+			// keeping the live P2P path unchanged); a bootstrap descent parsing an ancestry block
+			// AHEAD of the accepted height (parent absent) leaves it nil and STILL parses — the
+			// content-addressed descent needs only id/height/parent from the decoded header, and
+			// Verify/Accept fills + enforces BlockGasCost with the parent present (block.go). This is
+			// the parse/verify decomplection that restores upstream ParseBlock statelessness.
+			block.ensureBlockGasCost()
 			// Performing syntactic verification in ParseBlock allows for
-			// short-circuiting bad blocks before they are processed by the VM.
+			// short-circuiting bad blocks before they are processed by the VM. It is now STATELESS
+			// (no BlockGasCost/parent requirement — see block_verification.go).
 			if err := block.syntacticVerify(); err != nil {
 				return nil, fmt.Errorf("syntactic block verification failed: %w", err)
 			}

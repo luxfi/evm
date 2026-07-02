@@ -112,14 +112,17 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 		return fmt.Errorf("block timestamp is too far in the future: %d > allowed %d", blockTimestamp, maxBlockTime)
 	}
 
+	// BlockGasCost is NOT verified here. It is NOT part of the RLP block — it is DERIVED from the
+	// parent header, so requiring it at parse time made ParseBlock STATEFUL (a bootstrap descent
+	// parses ancestry blocks ahead of the accepted height, whose parents are not yet present, and
+	// they all failed here with errNilBlockGasCostEVM — masked by the ZAP errorToZAP mapping as the
+	// misleading "malformed block id"). SyntacticVerify is decomplected to STATELESS block-intrinsic
+	// checks only. BlockGasCost is populated (block.ensureBlockGasCost, with the parent present) and
+	// ENFORCED at Verify/Accept — the consensus/dummy header verification (InsertBlockManual) computes
+	// the expected BlockGasCost from the parent and rejects a mismatch — so no non-connecting or
+	// gas-cost-invalid block can be ACCEPTED just because it now PARSES.
 	if rulesExtra.IsEVM {
-		blockGasCost := customtypes.GetHeaderExtra(ethHeader).BlockGasCost
-		switch {
-		// Make sure BlockGasCost is not nil
-		// NOTE: ethHeader.BlockGasCost correctness is checked in header verification
-		case blockGasCost == nil:
-			return errNilBlockGasCostEVM
-		case !blockGasCost.IsUint64():
+		if blockGasCost := customtypes.GetHeaderExtra(ethHeader).BlockGasCost; blockGasCost != nil && !blockGasCost.IsUint64() {
 			return fmt.Errorf("too large blockGasCost: %d", blockGasCost)
 		}
 	}
