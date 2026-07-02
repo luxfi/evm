@@ -455,14 +455,20 @@ func GetExtrasRules(ethRules Rules, c *ChainConfig, timestamp uint64) *extras.Ru
 	}
 
 	// System precompiles (the DEX settlement money path 0x9999) are AlwaysOn: a
-	// FIRST-RUN, no-legacy feature, active from genesis on every Lux chain with no dated
-	// fork and no per-net config. They take no per-net parameters and resolve everything
-	// at runtime (consensus context / atomic state), so there is nothing to seed into
-	// genesisPrecompiles or precompileUpgrades — they are injected into the enabled
-	// dispatch set UNCONDITIONALLY, at every timestamp including genesis. This is the set
-	// PrecompileOverride consults; the matching EXTCODESIZE marker is installed once at
-	// genesis (parent==nil) in ApplyPrecompileActivations.
+	// system precompile activated by the Lux protocol on every chain with no per-net
+	// config. They take no per-net parameters and resolve everything at runtime (consensus
+	// context / atomic state), so there is nothing to seed into genesisPrecompiles or
+	// precompileUpgrades. They enter the enabled dispatch set at their protocol
+	// ActivationTime (a fork-like timestamp constant), consistent with the EXTCODESIZE
+	// marker installed at the same crossing transition by ApplyPrecompileActivations: a
+	// precompile that is not yet present in state (EXTCODESIZE==0) must not dispatch, and
+	// one that is present must. This is the set PrecompileOverride consults; the decision
+	// is a pure function of the passed-in timestamp (no global read), so it is race-safe
+	// and identical on every replay of a given block.
 	for _, module := range modules.AlwaysOnModules() {
+		if module.ActivationTime > timestamp {
+			continue // not yet activated at this timestamp
+		}
 		rules.Precompiles[module.Address] = module.Configurator.MakeGenesisConfig()
 	}
 

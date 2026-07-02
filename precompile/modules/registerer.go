@@ -121,10 +121,13 @@ func RegisteredModules() []Module {
 	return registeredModules
 }
 
-// AlwaysOnModules returns the registered modules marked AlwaysOn — precompiles active
-// on every chain from genesis with NO config entry. The host activates these
-// unconditionally (EXTCODESIZE marker at genesis + Run dispatch on every block),
-// independent of genesisPrecompiles / precompileUpgrades. Deterministic address order.
+// AlwaysOnModules returns the registered modules marked AlwaysOn — system precompiles
+// activated by the Lux protocol on every chain with NO config entry (independent of
+// genesisPrecompiles / precompileUpgrades). The host activates each at its
+// Module.ActivationTime — installing the EXTCODESIZE marker on the block transition that
+// crosses it (genesis iff ActivationTime <= the genesis timestamp) and dispatching Run
+// only at/after it — so a chain born before ActivationTime keeps its original genesis.
+// Deterministic address order.
 func AlwaysOnModules() []Module {
 	out := make([]Module, 0, len(registeredModules))
 	for _, m := range registeredModules {
