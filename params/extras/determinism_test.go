@@ -32,8 +32,8 @@ func TestAllGenesisPrecompilesDeterminism(t *testing.T) {
 
 	// Verify all registered NON-AlwaysOn modules are present, and that NO AlwaysOn
 	// module is present. AlwaysOn precompiles (e.g. the 0x9999 DEX settlement money
-	// path) are activated by the AlwaysOn mechanism (unconditional dispatch + a one-time
-	// genesis marker), NOT by a timestamp-0 genesis config; emitting one would create a
+	// path) are activated by the AlwaysOn mechanism (protocol-timestamp-gated dispatch +
+	// activation-crossing marker), NOT by a timestamp-0 genesis config; emitting one would create a
 	// second, conflicting activation path.
 	for _, module := range modules.RegisteredModules() {
 		_, ok := result1[module.ConfigKey]
@@ -51,8 +51,8 @@ func TestAllGenesisPrecompilesDeterminism(t *testing.T) {
 // builders (AllGenesisPrecompiles and ChainConfig.SetAllGenesisPrecompiles) must never
 // emit a timestamp-0 genesis config for an AlwaysOn module. Writing one would create a
 // SECOND, conflicting activation path for an AlwaysOn system precompile (0x9999) — its
-// Configurator would run alongside the AlwaysOn mechanism (unconditional dispatch +
-// genesis marker). The invariant is enforced positively (skip any module with AlwaysOn)
+// Configurator would run alongside the AlwaysOn mechanism (protocol-timestamp-gated
+// dispatch + activation-crossing marker). The invariant is enforced positively (skip any module with AlwaysOn)
 // so it holds even if an AlwaysOn module is later registered into this package's view.
 func TestGenesisPrecompileBuilders_SkipAlwaysOn(t *testing.T) {
 	fromFunc := AllGenesisPrecompiles()

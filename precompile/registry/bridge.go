@@ -37,6 +37,21 @@ import (
 	"github.com/luxfi/vm/chains/atomic"
 )
 
+// DexSettleActivationTime is the Lux-protocol timestamp at which the AlwaysOn DEX
+// settlement system precompile (0x9999) becomes present — EXTCODESIZE marker installed
+// and Run dispatched — on every Lux chain. 2025-12-25T23:20:00Z.
+//
+// It is a protocol constant (the analog of a fork timestamp), NOT per-network JSON
+// config, so it applies uniformly and needs no genesisPrecompiles / precompileUpgrades
+// entry. Every Lux chain in existence was (re-)genesised BEFORE this timestamp (Lux
+// mainnet/testnet and Zoo mainnet block-0 are all Nov 2024), so none of them carry
+// 0x9999 in their ORIGINAL genesis state — this constant is what keeps their genesis
+// hashes byte-identical after the fix, while 0x9999 still activates later, at the block
+// that crosses this timestamp during history replay (verified: ZERO 0x9999 usage on
+// mainnet before it, so activation introduces no state divergence). A chain genesised
+// at/after this timestamp gets 0x9999 in its genesis state.
+const DexSettleActivationTime uint64 = 1766704800
+
 func init() {
 	bridgeExternalModules()
 }
@@ -56,6 +71,18 @@ func bridgeExternalModules() {
 			Contract:     &contractBridge{ext: extMod.Contract},
 			Configurator: &configuratorBridge{ext: extMod.Configurator, key: extMod.ConfigKey},
 			AlwaysOn:     extMod.AlwaysOn,
+		}
+		// Lux activates its AlwaysOn system precompiles (the DEX settlement family,
+		// 0x9999) at the protocol timestamp DexSettleActivationTime, not at genesis.
+		// This is the Lux-network activation SCHEDULE for the precompile (the external
+		// module provides only the CODE); it is set here rather than in the external
+		// module so pre-activation chains reproduce their original genesis hash while
+		// 0x9999 still turns on, network-wide, at the crossing block. The external
+		// AlwaysOn module carries no activation time, so a genesis-active AlwaysOn
+		// module cannot occur today; if one is ever added it must declare ActivationTime
+		// explicitly here.
+		if extMod.AlwaysOn {
+			intMod.ActivationTime = DexSettleActivationTime
 		}
 
 		if err := modules.RegisterBridgedModule(intMod); err != nil {

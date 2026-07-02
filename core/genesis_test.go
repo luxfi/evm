@@ -63,9 +63,10 @@ func setupGenesisBlock(db ethdb.Database, triedb *triedb.Database, genesis *Gene
 }
 
 func TestGenesisBlockForTesting(t *testing.T) {
-	// Hash carries the genesis-active 0x9999 precompile marker (first-run,
-	// always-on, no dated fork).
-	genesisBlockForTestingHash := common.HexToHash("0x4e9727637befadbd73fb84f5360f3d026802c1a261025736692d2472c0c20379")
+	// Genesis timestamp is 0, which predates the DEX settlement (0x9999) activation
+	// (registry.DexSettleActivationTime, Dec 2025), so 0x9999 is NOT in genesis state and
+	// the hash is the plain single-account genesis — see genesis_dexsettle_reproduce_test.go.
+	genesisBlockForTestingHash := common.HexToHash("0x517cc43afd8c4516d00dae3c767b336d4ad9a9aeffbf0a4b205ef0bdc6343f35")
 	block := GenesisBlockForTesting(rawdb.NewMemoryDatabase(), common.Address{1}, big.NewInt(1))
 	if block.Hash() != genesisBlockForTestingHash {
 		t.Errorf("wrong testing genesis hash, got %v, want %v", block.Hash(), genesisBlockForTestingHash)

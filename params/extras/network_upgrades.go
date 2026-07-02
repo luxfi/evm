@@ -15,16 +15,20 @@ import (
 
 var errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
 
-// The DEX settlement money path 0x9999 is a FIRST-RUN, no-legacy system precompile: it
-// is ACTIVE FROM GENESIS on every Lux chain, with no dated fork and no per-net config.
-// There is no pre-activation history to protect, so there is no activation timestamp,
-// no dispatch gate, and no "behaves as a plain account before activation" branch.
+// The DEX settlement money path 0x9999 is a system precompile activated by the Lux
+// PROTOCOL on every chain with NO per-net config — but NOT from genesis. It turns on at
+// the protocol constant registry.DexSettleActivationTime (Dec 2025), exactly like a
+// dated fork. Every Lux chain in existence was (re-)genesised BEFORE that timestamp, so
+// none carries 0x9999 in its ORIGINAL genesis state; treating it as genesis-active would
+// mutate the genesis state root and break re-import of those chains' archived RLPs.
 //
-// Dispatch is unconditional (params/config_extra.go GetExtrasRules injects every
-// modules.AlwaysOnModules() entry into the enabled set at every timestamp), and the
-// EXTCODESIZE marker (SetNonce=1 + SetCode{0x1}) is installed once at genesis
-// (core/state_processor_ext.go ApplyPrecompileActivations, on the parent==nil
-// transition) so it lands in the committed genesis state root. See modules.AlwaysOn.
+// Dispatch and the EXTCODESIZE marker are keyed on the SAME activation timestamp so they
+// can never disagree: params/config_extra.go GetExtrasRules injects the module into the
+// enabled set only at timestamps >= modules.Module.ActivationTime, and
+// core/state_processor_ext.go ApplyPrecompileActivations installs the marker (SetNonce=1
+// + SetCode{0x1}) exactly once, on the block transition that crosses ActivationTime
+// (which is genesis iff the genesis timestamp already reaches it). Before activation the
+// address behaves as a plain account. See modules.AlwaysOn / modules.Module.ActivationTime.
 
 // newTimestampCompatError creates a ConfigCompatError for timestamp mismatches
 func newTimestampCompatError(what string, storedtime, newtime *uint64) *ethparams.ConfigCompatError {

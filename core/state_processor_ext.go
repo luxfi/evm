@@ -29,28 +29,17 @@ import (
 func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.ConfigurationBlockContext, statedb *state.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
 
-	// System precompiles (the DEX settlement money path 0x9999) are AlwaysOn: a
-	// FIRST-RUN, no-legacy feature with no dated fork and no pre-activation history to
-	// protect. Their EXTCODESIZE marker (nonce=1 + a non-empty code byte) is installed
-	// ONCE, at genesis, so EXTCODESIZE>0, eth_getCode!=0x, and Solidity's
-	// contract-existence guard pass for a typed call from block 0.
-	//
-	// Genesis is the parent==nil transition: core/genesis.go calls this with a nil
-	// parentTimestamp while building the genesis block, BEFORE the genesis state root is
-	// committed (statedb.IntermediateRoot), so the marker lands in the committed genesis
-	// root deterministically on every node. Every later block has a non-nil parent, so
-	// the marker is written exactly once and never re-touched. The module's Configurator
-	// is NOT invoked (a system precompile has no activating config; all params resolve at
-	// runtime from the consensus context); only the EXTCODESIZE marker is installed.
-	if parentTimestamp == nil {
-		for _, module := range modules.AlwaysOnModules() {
-			// Standard precompile-activation marker (identical to the config-driven path
-			// below): a non-empty nonce + code so the account is non-empty (not GC'd on
-			// finalize) and callable from Solidity.
-			statedb.SetNonce(module.Address, 1, tracing.NonceChangeUnspecified)
-			_ = statedb.SetCode(module.Address, []byte{0x1}, tracing.CodeChangeUnspecified)
-		}
-	}
+	// AlwaysOn system precompiles (the DEX settlement money path 0x9999) are activated by
+	// the Lux protocol on every chain with NO per-network config, at their protocol
+	// ActivationTime (a fork-like timestamp constant, set by the registry bridge), NOT
+	// unconditionally at genesis. Their EXTCODESIZE marker (nonce=1 + a non-empty code
+	// byte) is installed exactly ONCE, on the block transition that crosses ActivationTime
+	// — which is genesis IFF ActivationTime <= the genesis timestamp. A chain whose genesis
+	// predates ActivationTime does NOT get the marker in its genesis state (its original
+	// pre-precompile genesis hash is preserved byte-identically); the marker is instead
+	// installed later, during history replay, at the first block whose timestamp reaches
+	// ActivationTime. This mirrors the config-driven activation crossing logic below.
+	applyAlwaysOnActivations(parentTimestamp, blockTimestamp, statedb)
 
 	// Note: [modules.RegisteredModules] returns precompiles sorted by module addresses.
 	// This ensures:
@@ -96,6 +85,38 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, 
 		}
 	}
 	return nil
+}
+
+// applyAlwaysOnActivations installs the EXTCODESIZE marker (nonce=1 + a non-empty code
+// byte) for each AlwaysOn system precompile whose protocol ActivationTime is crossed by
+// this block transition, so EXTCODESIZE>0 / eth_getCode!=0x / Solidity's contract-
+// existence guard pass from the activation block forward.
+//
+// "Crossed by this transition" is defined exactly like the config-driven precompile
+// activation below (GetActivatingPrecompileConfigs):
+//   - genesis (parentTimestamp == nil): crossed iff ActivationTime <= blockTimestamp,
+//     so the marker lands in the committed genesis state root ONLY for a chain genesised
+//     at/after ActivationTime. A pre-activation chain's genesis root is untouched.
+//   - later block (parentTimestamp != nil): crossed iff
+//     *parentTimestamp < ActivationTime <= blockTimestamp — the single transition where
+//     the precompile turns on during history replay.
+// The marker is therefore written exactly once, deterministically, on every node. An
+// AlwaysOn module's Configurator is NOT invoked (a system precompile has no activating
+// config; all params resolve at runtime from the consensus context) — only the marker.
+func applyAlwaysOnActivations(parentTimestamp *uint64, blockTimestamp uint64, statedb *state.StateDB) {
+	for _, module := range modules.AlwaysOnModules() {
+		var crossed bool
+		if parentTimestamp == nil {
+			crossed = module.ActivationTime <= blockTimestamp
+		} else {
+			crossed = *parentTimestamp < module.ActivationTime && module.ActivationTime <= blockTimestamp
+		}
+		if !crossed {
+			continue
+		}
+		statedb.SetNonce(module.Address, 1, tracing.NonceChangeUnspecified)
+		_ = statedb.SetCode(module.Address, []byte{0x1}, tracing.CodeChangeUnspecified)
+	}
 }
 
 // applyStateUpgrades checks if any of the state upgrades specified by the chain config are activated by the block
