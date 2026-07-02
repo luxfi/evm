@@ -79,9 +79,13 @@ func TestSkipPostMergeFieldsGenesisHash(t *testing.T) {
   "stateRoot": "0x2d1cedac263020c5c56ef962f6abe0da1f5217bdc6468f8c9258a0ea23699e80",
   "timestamp": "0x672485c2"
 }`
-	// 0x9999 is genesis-active (first-run, always-on, no dated fork), so the
-	// genesis carries the precompile-activation marker → this hash.
-	const wantHash = "0x5609692a3a6d440a6a3c187cb886fc8afc16904fc34c06d6591f19ee07782166"
+	// The genesis timestamp (0x672485c2, Nov 2024) predates the DEX settlement (0x9999)
+	// activation (registry.DexSettleActivationTime, Dec 2025), so 0x9999 is NOT in genesis
+	// state and this is the TRUE canonical Lux mainnet genesis hash — byte-identical to the
+	// lux-mainnet-96369.rlp block-0 import target. (Before the genesis-injection fix this
+	// test asserted 0x5609692a…, the value the unconditional 0x9999 marker mutated it to;
+	// that was the bug, cross-checked here against the sibling test's `canonical` constant.)
+	const wantHash = "0x3f4fa2a0b0ce089f52bf0ae9199c75ffdd76ecafc987794050cb0d286f1ec61e"
 
 	var g Genesis
 	if err := json.Unmarshal([]byte(luxMainnetGenesis), &g); err != nil {
