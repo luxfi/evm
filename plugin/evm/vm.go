@@ -336,6 +336,10 @@ func (vm *VM) ParseBlock(ctx context.Context, b []byte) (nodeblock.Block, error)
 	// Call the embedded State's ParseBlock and convert the result
 	blk, err := vm.State.ParseBlock(ctx, b)
 	if err != nil {
+		// PARSEBLOCK_DIAG (temporary): the bootstrap descent parses ancestry blocks ahead
+		// of the accepted height; surface the REAL error the ZAP errorToZAP mapping otherwise
+		// drops (which the node sees as the misleading "malformed block id").
+		log.Warn("PARSEBLOCK_DIAG error", "err", err, "bytesLen", len(b))
 		return nil, err
 	}
 	return blk, nil
