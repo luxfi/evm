@@ -1588,6 +1588,15 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nod
 	blk := vm.newBlock(block)
 	log.Info("[EVM DEBUG] buildBlock: created block", "ethHash", block.Hash(), "id", blk.ID(), "height", blk.Height())
 
+	// ANTI-EMPTY BUILD POLICY (moved here from SyntacticVerify so it gates BUILD ONLY): the
+	// C-Chain is demand-driven — a proposer never PRODUCES an empty block, so the chain advances
+	// only on real demand. The check lives ONLY on this build path so a consensus-FINALIZED empty
+	// block still Accepts (finality overrides anti-spam — see block_verification.go). Fail before
+	// the verify+state work below to avoid touching the triedb for a block we will not propose.
+	if len(block.Transactions()) == 0 && !vm.config.EnableAutomining {
+		return nil, errEmptyBlock
+	}
+
 	// Verify is called on a non-wrapped block here, such that this
 	// does not add [blk] to the processing blocks map in ChainState.
 	//
