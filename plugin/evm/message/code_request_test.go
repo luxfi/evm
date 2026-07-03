@@ -19,7 +19,7 @@ func TestMarshalCodeRequest(t *testing.T) {
 		Hashes: []common.Hash{common.BytesToHash([]byte("some code pls"))},
 	}
 
-	base64CodeRequest := "AAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAHNvbWUgY29kZSBwbHM="
+	base64CodeRequest := "AAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHNvbWUgY29kZSBwbHM="
 
 	codeRequestBytes, err := Codec.Marshal(Version, codeRequest)
 	assert.NoError(t, err)
@@ -45,7 +45,7 @@ func TestMarshalCodeResponse(t *testing.T) {
 		Data: [][]byte{codeData},
 	}
 
-	base64CodeResponse := "AAAAAAABAAAAMlL9/AchgmVPFj9fD5piHXKVZsdNEAN8TXu7BAfR4sZJgYVa2GgdDYbR6R4AFnk5y2aU"
+	base64CodeResponse := "AAABAAAAMgAAAFL9/AchgmVPFj9fD5piHXKVZsdNEAN8TXu7BAfR4sZJgYVa2GgdDYbR6R4AFnk5y2aU"
 
 	codeResponseBytes, err := Codec.Marshal(Version, codeResponse)
 	assert.NoError(t, err)

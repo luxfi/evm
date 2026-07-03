@@ -16,13 +16,14 @@ import (
 //
 // All message-package wire blobs are length-prefixed-and-versioned:
 //
-//	[u16 version][... type-specific big-endian fields ...]
+//	[u16 version][... type-specific little-endian fields ...]
 //
 // Version is currently 0. Slices and byte blobs are length-prefixed with
 // a u32. Fixed-size byte arrays (common.Hash) are emitted as raw bytes.
-// bool is a single byte (0/1). Big-endian throughout. Layout is preserved
-// byte-for-byte against the legacy linearcodec encoding so on-the-wire
-// peers do not need to re-sync.
+// bool is a single byte (0/1). Integer fields are little-endian, matching
+// the luxfi/utils wrappers.Packer primitives used across the stack (the
+// LP-023 codec migration flipped these from big-endian to little-endian at
+// utils v1.2.0). The golden-vector tests pin this byte-for-byte.
 const (
 	// Version is the current wire version. Increment on any incompatible
 	// schema change. There is no "v0 read fallback" — hard cut, one shape.
@@ -56,7 +57,7 @@ type Manager interface {
 
 // manager is the package-local marshal/unmarshal entry point. It plays the
 // same role codec.Manager played but without the reflection registry —
-// each known type marshals via a hand-rolled big-endian writer dispatched
+// each known type marshals via a hand-rolled little-endian writer dispatched
 // in [marshalValue] / [unmarshalValue].
 type manager struct {
 	maxSize int
