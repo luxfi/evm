@@ -13,7 +13,9 @@ import (
 
 const (
 	// codecVersion is the wire-version byte prefix retained on the disk
-	// format. The serialised layout is fixed-shape big-endian:
+	// format. The serialised layout is fixed-shape little-endian (the u16
+	// version and every u64 field use luxfi/utils wrappers.Packer, which
+	// encodes little-endian since the LP-023 migration at utils v1.2.0):
 	//
 	//   [u16 version][i64 UpDuration][u64 LastUpdated][20 NodeID]
 	//   [u64 Weight][u64 StartTime][u8 IsActive][u8 IsL1Validator]
@@ -29,7 +31,7 @@ const (
 // as an exported sentinel because tests assert on it.
 var ErrUnknownVersion = errors.New("unknown validator-data codec version")
 
-// marshalValidatorData renders the fixed-shape big-endian wire format
+// marshalValidatorData renders the fixed-shape little-endian wire format
 // for validatorData. Total length is validatorDataLen.
 func marshalValidatorData(d *validatorData) []byte {
 	p := wrappers.Packer{Bytes: make([]byte, 0, validatorDataLen), MaxSize: validatorDataLen}

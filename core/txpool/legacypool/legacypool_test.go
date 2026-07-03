@@ -82,6 +82,21 @@ func init() {
 	eip1559Config = &cpy
 	eip1559Config.BerlinBlock = common.Big0
 	eip1559Config.LondonBlock = common.Big0
+
+	// Decouple the pool test baseline from the production DefaultConfig, whose
+	// slot/queue limits were raised for high throughput (commit fdc49e256:
+	// AccountSlots 16->4096, GlobalSlots 5120->65536, AccountQueue/GlobalQueue
+	// 64/1024->16384/16384). The limiting tests size their tx batches off these
+	// fields symbolically, so the production values inflate every such test to
+	// tens of thousands of signed txs (10+ min package runtime) and make the
+	// small-GlobalSlots cases self-contradictory (e.g. per-account minimum
+	// AccountSlots=4096 > GlobalSlots=128, so nothing is ever evicted). Pin the
+	// canonical values upstream geth's DefaultConfig uses — the values these
+	// tests were written against. Production DefaultConfig is unchanged.
+	testTxPoolConfig.AccountSlots = 16
+	testTxPoolConfig.GlobalSlots = 4096 + 1024
+	testTxPoolConfig.AccountQueue = 64
+	testTxPoolConfig.GlobalQueue = 1024
 }
 
 type testBlockChain struct {
