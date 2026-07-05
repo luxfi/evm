@@ -17,7 +17,7 @@ var errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
 
 // The DEX settlement money path 0x9999 is a system precompile activated by the Lux
 // PROTOCOL on every chain with NO per-net config — but NOT from genesis. It turns on at
-// the protocol constant registry.DexSettleActivationTime (Dec 2025), exactly like a
+// the protocol constant registry.SettleOnlyActivationTimestamp (Dec 2025), exactly like a
 // dated fork. Every Lux chain in existence was (re-)genesised BEFORE that timestamp, so
 // none carries 0x9999 in its ORIGINAL genesis state; treating it as genesis-active would
 // mutate the genesis state root and break re-import of those chains' archived RLPs.

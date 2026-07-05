@@ -37,20 +37,53 @@ import (
 	"github.com/luxfi/vm/chains/atomic"
 )
 
-// DexSettleActivationTime is the Lux-protocol timestamp at which the AlwaysOn DEX
-// settlement system precompile (0x9999) becomes present — EXTCODESIZE marker installed
-// and Run dispatched — on every Lux chain. 2025-12-25T23:20:00Z.
+// SettleOnlyActivationTimestamp is the SINGLE Lux-protocol timestamp that gates the
+// AlwaysOn DEX system precompile (0x9999). It is the analog of a fork timestamp — NOT
+// per-network JSON config — so it applies uniformly with no genesisPrecompiles /
+// precompileUpgrades entry. It couples TWO effects that are one event and must never
+// disagree:
 //
-// It is a protocol constant (the analog of a fork timestamp), NOT per-network JSON
-// config, so it applies uniformly and needs no genesisPrecompiles / precompileUpgrades
-// entry. Every Lux chain in existence was (re-)genesised BEFORE this timestamp (Lux
-// mainnet/testnet and Zoo mainnet block-0 are all Nov 2024), so none of them carry
-// 0x9999 in their ORIGINAL genesis state — this constant is what keeps their genesis
-// hashes byte-identical after the fix, while 0x9999 still activates later, at the block
-// that crosses this timestamp during history replay (verified: ZERO 0x9999 usage on
-// mainnet before it, so activation introduces no state divergence). A chain genesised
-// at/after this timestamp gets 0x9999 in its genesis state.
-const DexSettleActivationTime uint64 = 1766704800
+//  1. PRESENCE — the EXTCODESIZE marker is installed and Run dispatches only at
+//     timestamps >= this value (before it, 0x9999 is a plain account). This is also the
+//     genesis-injection gate: a chain genesised BEFORE it carries no 0x9999 in block-0
+//     state, keeping the byte-identical genesis hash of every pre-2025 chain (Lux
+//     mainnet/testnet and Zoo mainnet block-0 are all Nov 2024); a chain genesised
+//     at/after it gets the 0x9999 marker in its genesis state.
+//  2. BEHAVIOR — since luxfi/precompile v0.19.x (the settle-only decomplect that REMOVED
+//     the embedded in-block matcher op), whenever 0x9999 is present it behaves
+//     settle-only: a swap settles ONLY by consuming a D-committed atomic object; the old
+//     matcher entrypoints revert. Present ≡ settle-only in this build, so this one
+//     timestamp is BOTH the presence gate and the settle-only gate.
+//
+// FLEET-SAFETY — WHY THIS MUST BE A FORWARD (near-future) TIMESTAMP, NEVER A PAST ONE:
+// on boot a node re-processes its uncommitted block window. If this gate is in the PAST,
+// that window contains blocks the OLD matcher build already produced with 0x9999
+// live-as-matcher; the settle-only build re-executes them, reverts the matcher calls
+// (different gasUsed) → state-root divergence → "invalid gas used" → every node dies
+// identically. A past gate cannot distinguish already-produced matcher blocks from new
+// ones. A near-future gate replays all existing history under the SAME (pre-gate)
+// semantics it was produced under, and applies settle-only only to NEW blocks at/after
+// the gate.
+//
+// TODO(coordinator) — set this to a NEAR-FUTURE timestamp before cutting the release.
+// It is intentionally left at the ORIGINAL past value below so this prepared change is a
+// pure no-op rename; DO NOT ship it unchanged. Moving it is this ONE line. Constraint:
+//   - MUST be strictly greater than the timestamp of the last already-accepted block in
+//     the target chain's canonical history, so no already-produced block changes gasUsed
+//     on replay (and after the intended upgrade-rollout window).
+//   - FRESH DEVNET (no matcher history): any near-future value works — small margin over
+//     genesis is fine.
+//   - MAINNET / any chain with real history: read the last accepted block time and set
+//     the gate safely after it. The value DIFFERS per environment; it is an
+//     owner/coordinator decision, not a source default. Do not guess it here.
+//
+// DEVNET-PROOF (coordinator call 2026-07-05): a FRESH net genesis'd NOW (July 2026, Unix
+// ~1.783e9) is already AFTER this Dec-25-2025 gate, so 0x9999 settle-only is active FROM
+// GENESIS on it — no value change needed, and the mainnet/testnet/zoo reproduce-tests (which
+// require the gate to sit ABOVE those chains' existing 0x9999 matcher history) stay green.
+// The fresh devnet's genesis timestamp MUST be >= this value (it will be — see deploy).
+// MAINNET re-gate to a near-future forward value is the separate owner call in the TODO above.
+const SettleOnlyActivationTimestamp uint64 = 1766704800 // 2025-12-25T23:20:00Z — see TODO above for the mainnet forward re-gate
 
 func init() {
 	bridgeExternalModules()
@@ -73,7 +106,7 @@ func bridgeExternalModules() {
 			AlwaysOn:     extMod.AlwaysOn,
 		}
 		// Lux activates its AlwaysOn system precompiles (the DEX settlement family,
-		// 0x9999) at the protocol timestamp DexSettleActivationTime, not at genesis.
+		// 0x9999) at the protocol timestamp SettleOnlyActivationTimestamp, not at genesis.
 		// This is the Lux-network activation SCHEDULE for the precompile (the external
 		// module provides only the CODE); it is set here rather than in the external
 		// module so pre-activation chains reproduce their original genesis hash while
@@ -82,7 +115,7 @@ func bridgeExternalModules() {
 		// module cannot occur today; if one is ever added it must declare ActivationTime
 		// explicitly here.
 		if extMod.AlwaysOn {
-			intMod.ActivationTime = DexSettleActivationTime
+			intMod.ActivationTime = SettleOnlyActivationTimestamp
 		}
 
 		if err := modules.RegisterBridgedModule(intMod); err != nil {
