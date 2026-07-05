@@ -80,7 +80,7 @@ func TestSkipPostMergeFieldsGenesisHash(t *testing.T) {
   "timestamp": "0x672485c2"
 }`
 	// The genesis timestamp (0x672485c2, Nov 2024) predates the DEX settlement (0x9999)
-	// activation (registry.DexSettleActivationTime, Dec 2025), so 0x9999 is NOT in genesis
+	// activation (registry.SettleOnlyActivationTimestamp, Dec 2025), so 0x9999 is NOT in genesis
 	// state and this is the TRUE canonical Lux mainnet genesis hash — byte-identical to the
 	// lux-mainnet-96369.rlp block-0 import target. (Before the genesis-injection fix this
 	// test asserted 0x5609692a…, the value the unconditional 0x9999 marker mutated it to;

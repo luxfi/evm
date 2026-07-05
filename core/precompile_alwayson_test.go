@@ -22,18 +22,18 @@ import (
 // path 0x9999. It is a SYSTEM precompile activated by the Lux PROTOCOL on every chain
 // with NO per-net config (no dexSettleConfig genesis precompile, no precompileUpgrades
 // entry) — but NOT from genesis. It turns on at the protocol constant
-// registry.DexSettleActivationTime (2025-12-25), exactly like a dated fork, so a chain
+// registry.SettleOnlyActivationTimestamp (2025-12-25), exactly like a dated fork, so a chain
 // whose genesis predates it reproduces its ORIGINAL genesis (see
 // genesis_dexsettle_reproduce_test.go). The activation couples two effects, both pinned
 // here and both keyed on the SAME timestamp so they can never disagree:
 //
 //   - DISPATCH: 0x9999 enters the enabled precompile set at timestamps >=
-//     DexSettleActivationTime, and is ABSENT before it. This is the set
+//     SettleOnlyActivationTimestamp, and is ABSENT before it. This is the set
 //     PrecompileOverride consults; the decision is a pure function of the passed-in
 //     timestamp (no process-global read), so it is race-safe and identical on every
 //     replay of a given block.
 //   - MARKER: the EXTCODESIZE marker (nonce=1 + non-empty code) is written into 0x9999
-//     exactly ONCE, on the block transition that crosses DexSettleActivationTime (which
+//     exactly ONCE, on the block transition that crosses SettleOnlyActivationTimestamp (which
 //     is genesis iff the genesis timestamp already reaches it). So EXTCODESIZE>0 /
 //     eth_getCode!=0x / Solidity's contract-existence guard pass from the activation
 //     block forward, and NOT before.
@@ -45,7 +45,7 @@ var settleAddr9999 = common.HexToAddress("0x000000000000000000000000000000000000
 var addr9999 = settleAddr9999
 
 // activation is the protocol timestamp at which 0x9999 turns on (marker + dispatch).
-var activation = registry.DexSettleActivationTime
+var activation = registry.SettleOnlyActivationTimestamp
 
 // TestAlwaysOn_9999_Registered asserts the DEX settlement precompile bridges into the
 // EVM registry as AlwaysOn, is enumerated by AlwaysOnModules(), and carries the protocol
@@ -194,8 +194,8 @@ func TestDexSettle_PrecompileOverride_GatedByActivation(t *testing.T) {
 func TestDexSettle_PrecompileOverride_NoGlobalRace(t *testing.T) {
 	cfg := params.WithExtra(&params.ChainConfig{}, &extras.ChainConfig{})
 
-	a := &LuxPrecompileOverrider{chainConfig: cfg, timestamp: activation}          // activation-block replay
-	b := &LuxPrecompileOverrider{chainConfig: cfg, timestamp: activation + 1 << 30} // later block / eth_call
+	a := &LuxPrecompileOverrider{chainConfig: cfg, timestamp: activation}         // activation-block replay
+	b := &LuxPrecompileOverrider{chainConfig: cfg, timestamp: activation + 1<<30} // later block / eth_call
 
 	const iters = 2000
 	done := make(chan struct{})
