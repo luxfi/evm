@@ -101,7 +101,7 @@ func TestGenesisReproduce_PreDexActivationChains(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := canonicalGenesis(t, tc.chainID, tc.timestampHex)
 			// Genesis timestamp is Nov 2024, strictly before the DEX activation.
-			require.Less(t, g.Timestamp, registry.DexSettleActivationTime,
+			require.Less(t, g.Timestamp, registry.SettleOnlyActivationTimestamp,
 				"precondition: this chain's genesis must predate DEX settlement activation")
 
 			blk := g.ToBlock()
@@ -123,9 +123,9 @@ func TestGenesisReproduce_PreDexActivationChains(t *testing.T) {
 // into its genesis state (EXTCODESIZE marker present from block 0), and its genesis hash
 // therefore differs from the same chain built with a pre-activation timestamp.
 func TestGenesisReproduce_FreshChainWantsDexAtGenesis(t *testing.T) {
-	freshTS := registry.DexSettleActivationTime + 3600 // one hour after activation
+	freshTS := registry.SettleOnlyActivationTimestamp + 3600 // one hour after activation
 	g := canonicalGenesis(t, 424242, fmt.Sprintf("0x%x", freshTS))
-	require.GreaterOrEqual(t, g.Timestamp, registry.DexSettleActivationTime)
+	require.GreaterOrEqual(t, g.Timestamp, registry.SettleOnlyActivationTimestamp)
 
 	sdb := genesisState(t, g)
 	require.Equal(t, []byte{0x01}, sdb.GetCode(addr9999),
@@ -135,7 +135,7 @@ func TestGenesisReproduce_FreshChainWantsDexAtGenesis(t *testing.T) {
 
 	// Its hash must differ from the identical chain built one second before activation
 	// (which omits 0x9999) — proving the injection is genuinely timestamp-gated, not inert.
-	pre := canonicalGenesis(t, 424242, fmt.Sprintf("0x%x", registry.DexSettleActivationTime-1))
+	pre := canonicalGenesis(t, 424242, fmt.Sprintf("0x%x", registry.SettleOnlyActivationTimestamp-1))
 	require.NotEqual(t, pre.ToBlock().Hash(), g.ToBlock().Hash(),
 		"genesis hash must change across the activation boundary")
 }
