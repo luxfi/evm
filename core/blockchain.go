@@ -1593,6 +1593,21 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, parentRoot common.
 		return nil
 	}
 
+	// Hash scheme: pin this block's state root in the triedb dirty cache.
+	// hashdb.Update references storage-trie roots but never the state root, so
+	// every processed root has parents==0. The StateHistory-deep tipBuffer
+	// Dereferences roots as they age out (and RejectTrie on reject); with
+	// duplicate roots on an idle chain that Dereference lands on the live head
+	// and evicts it — and at a non-CommitInterval height the head was never
+	// flushed to disk, yielding "missing trie node" at tip. This Reference is
+	// refcount-balanced (+1 here per processed block, -1 on the matching
+	// AcceptTrie eviction or RejectTrie) and restores the reference invariant
+	// documented at writeBlockAndSetHead's call site. It touches only in-memory
+	// GC pinning — never a state root, block hash, gas value, or on-disk byte.
+	if err := bc.triedb.Reference(block.Root(), common.Hash{}); err != nil {
+		return fmt.Errorf("failed to reference state root for block %s: %w", block.Hash().Hex(), err)
+	}
+
 	// Note: if InsertTrie must be the last step in verification that can return an error.
 	// This allows [stateManager] to assume that if it inserts a trie without returning an
 	// error then the block has passed verification and either AcceptTrie/RejectTrie will
