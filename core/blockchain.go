@@ -352,6 +352,20 @@ type BlockChain struct {
 
 	lastAccepted *types.Block // Prevents reorgs past this height
 
+	// [headStatePinRoot] is a dedicated, UNBALANCED GC reference held on the
+	// accepted head's state root so it can never be evicted from the trie dirty
+	// cache while it is the head — even across an arbitrarily long idle window
+	// (no block production), duplicate empty-block roots, cold snapshot/cache
+	// layers, or a small StateHistory. It is transferred head-to-head in Accept
+	// (Reference the new head, then Dereference the previous head) and
+	// re-established on the loaded head at startup, so exactly one live head pin
+	// exists at all times, on bc.lastAccepted.Root(). This is distinct from the
+	// insert-time Reference in writeBlockAndSetHead, which is refcount-BALANCED
+	// (consumed as the block ages through the StateHistory-deep tipBuffer) and so
+	// does NOT protect an idle head. Empty on pathdb (Reference/Dereference are
+	// no-ops there); the idle-head-eviction only affects the hashdb dirty cache.
+	headStatePinRoot common.Hash
+
 	senderCacher *TxSenderCacher
 
 	// [acceptorQueue] is a processing queue for the Acceptor. This is
@@ -506,6 +520,19 @@ func NewBlockChain(
 	// It is critical to update this vaue before performing any state repairs so
 	// that all accepted blocks can be considered.
 	bc.acceptorTip = bc.lastAccepted
+
+	// [HEAD-STATE-PIN] Establish the dedicated head pin on the loaded accepted root
+	// at startup, so a node that restarts and then sits idle (produces no block)
+	// still cannot GC its head state — closing the restart-then-idle variant of the
+	// freeze. pinAcceptedHead is a no-op if the state is not yet present (a
+	// bootstrapping/state-syncing node), where the first Accept establishes it.
+	// This is why "restart fixes it" is recovery evidence only — the pin, not the
+	// restart, is what makes the head GC-ineligible from here on.
+	if bc.lastAccepted != nil {
+		if err := bc.pinAcceptedHead(bc.lastAccepted.Root()); err != nil {
+			return nil, fmt.Errorf("failed to pin loaded accepted head state root %s: %w", bc.lastAccepted.Root().Hex(), err)
+		}
+	}
 
 	// Make sure the state associated with the block is available
 	head := bc.CurrentBlock()
@@ -1242,6 +1269,13 @@ func (bc *BlockChain) SetLastAcceptedBlockDirect(block *types.Block) error {
 	bc.currentBlock.Store(block.Header())
 	bc.hc.SetCurrentHeader(block.Header())
 
+	// [HEAD-STATE-PIN] Keep the head pin on the directly-set accepted head so a
+	// repair/resurrection path that sits idle afterward cannot GC its head state.
+	// Best-effort: this is a recovery path and normal Accept re-establishes the pin.
+	if err := bc.pinAcceptedHead(block.Root()); err != nil {
+		log.Warn("[HEAD-STATE-PIN] failed to pin directly-set accepted head", "root", block.Root(), "err", err)
+	}
+
 	return nil
 }
 
@@ -1375,6 +1409,34 @@ func (bc *BlockChain) EnsureGenesisState() error {
 	return nil
 }
 
+// pinAcceptedHead transfers the dedicated, unbalanced GC pin (see the
+// [headStatePinRoot] field doc) onto root, releasing the previous head's pin so
+// exactly one live reference is held on the current accepted head's state root.
+// That reference makes the head GC-ineligible: the tipBuffer/Cap can never evict
+// it while it is the head, regardless of idle duration, duplicate empty-block
+// roots, cold caches, or a small StateHistory. This is the durable freeze fix —
+// the standalone lifetime "is the accepted head", NOT balanced against the
+// InsertTrie/AcceptTrie/RejectTrie reference counting.
+//
+// No-op when: root is already the pinned head (duplicate roots — keeps exactly
+// one reference), or its state is not yet materialized (a bootstrapping /
+// state-syncing node — the first Accept with present state then establishes it).
+// Reference/Dereference are no-ops on pathdb, so this is inert there. Callers
+// must hold bc.chainmu (the state markers it reads/writes are chainmu-guarded).
+func (bc *BlockChain) pinAcceptedHead(root common.Hash) error {
+	if root == bc.headStatePinRoot || !bc.HasState(root) {
+		return nil
+	}
+	if err := bc.triedb.Reference(root, common.Hash{}); err != nil {
+		return err
+	}
+	if bc.headStatePinRoot != (common.Hash{}) {
+		bc.triedb.Dereference(bc.headStatePinRoot)
+	}
+	bc.headStatePinRoot = root
+	return nil
+}
+
 // Accept sets a minimum height at which no reorg can pass. Additionally,
 // this function may trigger a reorg if the block being accepted is not in the
 // canonical chain.
@@ -1443,6 +1505,16 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 
 	// Enqueue block in the acceptor
 	bc.lastAccepted = block
+
+	// [HEAD-STATE-PIN] Transfer the dedicated head pin to the new accepted head so
+	// its state root can never be GC'd/capped while it is the head — the durable
+	// fix for the idle-tip "missing trie node at head" wedge. State is present here
+	// by construction (the ACCEPT-BACKSTOP above guarantees HasState(root)), so a
+	// pin failure at this point is a genuine triedb fault and is fatal to Accept.
+	if err := bc.pinAcceptedHead(block.Root()); err != nil {
+		return fmt.Errorf("failed to pin accepted head state root %s:%d: %w", block.Hash().Hex(), block.NumberU64(), err)
+	}
+
 	bc.addAcceptorQueue(block)
 	acceptedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
 	acceptedTxsCounter.Inc(int64(len(block.Transactions())))
