@@ -530,7 +530,9 @@ func NewBlockChain(
 	// restart, is what makes the head GC-ineligible from here on.
 	if bc.lastAccepted != nil {
 		if err := bc.pinAcceptedHead(bc.lastAccepted.Root()); err != nil {
-			return nil, fmt.Errorf("failed to pin loaded accepted head state root %s: %w", bc.lastAccepted.Root().Hex(), err)
+			// Non-fatal (backend may not support refcounting, e.g. pathdb):
+			// degrade to pre-fix behavior rather than blocking startup.
+			log.Warn("[HEAD-STATE-PIN] failed to pin loaded accepted head", "root", bc.lastAccepted.Root(), "err", err)
 		}
 	}
 
@@ -1508,11 +1510,11 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 
 	// [HEAD-STATE-PIN] Transfer the dedicated head pin to the new accepted head so
 	// its state root can never be GC'd/capped while it is the head — the durable
-	// fix for the idle-tip "missing trie node at head" wedge. State is present here
-	// by construction (the ACCEPT-BACKSTOP above guarantees HasState(root)), so a
-	// pin failure at this point is a genuine triedb fault and is fatal to Accept.
+	// fix for the idle-tip "missing trie node at head" wedge. Non-fatal by design
+	// (matching the acceptor's tolerance of backend "not supported"): a failed pin
+	// degrades to the pre-fix behavior instead of wedging Accept itself.
 	if err := bc.pinAcceptedHead(block.Root()); err != nil {
-		return fmt.Errorf("failed to pin accepted head state root %s:%d: %w", block.Hash().Hex(), block.NumberU64(), err)
+		log.Warn("[HEAD-STATE-PIN] failed to pin accepted head state root", "hash", block.Hash(), "height", block.NumberU64(), "err", err)
 	}
 
 	bc.addAcceptorQueue(block)
