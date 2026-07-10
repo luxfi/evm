@@ -26,22 +26,20 @@ import (
 // trails, and can never exceed, the accepted tip). This proves `eth_getBlockByNumber("finalized")`
 // never returns a block above the Quasar height, that it is monotone (never regresses on a
 // restart-seed race), and that `latest` stays on the accepted tip (a correct non-finality tag).
-func TestFinalizedSafeResolveToQuasarNeverAboveIt(t *testing.T) {
+// buildAcceptedChain builds a REAL canonical chain (genesis + n accepted blocks) so the
+// `finalized`/`safe` + export-height resolution is exercised against a real chain (LastAccepted /
+// GetBlockByNumber / the clamp), not a mock. Accept tip = n.
+func buildAcceptedChain(t *testing.T, n int) *core.BlockChain {
+	t.Helper()
 	key, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	cryptoAddr := crypto.PubkeyToAddress(key.PublicKey)
 	addr := common.BytesToAddress(cryptoAddr[:])
 	bal, _ := new(big.Int).SetString("100000000000000000000000", 10)
-
-	gspec := &core.Genesis{
-		Config: params.TestChainConfig,
-		Alloc:  types.GenesisAlloc{addr: {Balance: bal}},
-	}
+	gspec := &core.Genesis{Config: params.TestChainConfig, Alloc: types.GenesisAlloc{addr: {Balance: bal}}}
 	engine := dummy.NewETHFaker()
-
-	const numBlocks = 5
 	// The dummy engine requires the fee-recipient (blackhole) coinbase on generated blocks.
 	coinbase := common.HexToAddress("0x0100000000000000000000000000000000000000")
-	genDb, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, numBlocks, 10, func(i int, b *core.BlockGen) {
+	genDb, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, n, 10, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(coinbase)
 	})
 	require.NoError(t, err)
@@ -50,12 +48,17 @@ func TestFinalizedSafeResolveToQuasarNeverAboveIt(t *testing.T) {
 	t.Cleanup(func() { chain.Stop() })
 	_, err = chain.InsertChain(blocks)
 	require.NoError(t, err)
-	// Accept every block so the blockchain's LastAcceptedBlock is the tip — the Nova/accept tip
-	// the `latest` tag tracks (distinct from the export/Quasar tip the `finalized` tag tracks).
 	for _, blk := range blocks {
 		require.NoError(t, chain.Accept(blk))
 	}
 	chain.DrainAcceptorQueue()
+	require.EqualValues(t, n, chain.LastAcceptedBlock().NumberU64())
+	return chain
+}
+
+func TestFinalizedSafeResolveToQuasarNeverAboveIt(t *testing.T) {
+	const numBlocks = 5
+	chain := buildAcceptedChain(t, numBlocks)
 
 	// The eth backend's blockchain is the canonical chain (genesis..numBlocks). LastAccepted /
 	// `latest` is the Nova tip (numBlocks); the export (Quasar) height is set separately below.
@@ -125,4 +128,36 @@ func TestFinalizedSafeResolveToQuasarNeverAboveIt(t *testing.T) {
 		require.EqualValues(t, h, blk.NumberU64())
 		require.LessOrEqual(t, blk.NumberU64(), tip, "finalized must never exceed the accepted tip")
 	}
+}
+
+// TestClampedQuasarHeight_RealRewind exercises the BELT against a GENUINE rewind
+// (SetLastAcceptedBlockDirect — the primitive the EVM-rewind→re-import restore runbook uses): with a
+// persisted export height of 8 and the accept tip rewound to 5, ClampedQuasarHeight (the ONE shared
+// clamp both `finalized`/`safe` and the warp gate read) resolves to 5 — never the stale 8 above the
+// served accept tip — WITHOUT relying on the VM's reconcile having run. This is the structural belt
+// that the warp gate now shares (LOW-1), verified under -race at the eth level.
+func TestClampedQuasarHeight_RealRewind(t *testing.T) {
+	chain := buildAcceptedChain(t, 10)
+	eth := &Ethereum{blockchain: chain}
+	backend := &EthAPIBackend{eth: eth}
+	ctx := context.Background()
+
+	eth.SetLastQuasarHeight(8) // valid, ≤ accept tip 10
+	require.EqualValues(t, 8, eth.ClampedQuasarHeight())
+
+	// REWIND to block 5 (SetLastAcceptedBlockDirect): accept tip drops below the export height.
+	require.NoError(t, chain.SetLastAcceptedBlockDirect(chain.GetBlockByNumber(5)))
+	require.EqualValues(t, 5, chain.LastAcceptedBlock().NumberU64())
+
+	// The RAW export height is still 8 (clearing it is the VM reconcile's job) — but the BELT clamps.
+	require.EqualValues(t, 8, eth.LastQuasarHeight())
+	require.EqualValues(t, 5, eth.ClampedQuasarHeight(), "ClampedQuasarHeight MUST clamp to the rewound accept tip")
+
+	// `finalized`/`safe` therefore resolve to block 5, never the stale block 8.
+	fin, err := backend.BlockByNumber(ctx, rpc.FinalizedBlockNumber)
+	require.NoError(t, err)
+	require.EqualValues(t, 5, fin.NumberU64(), "finalized MUST clamp to the rewound accept tip, never the stale export height")
+	safe, err := backend.BlockByNumber(ctx, rpc.SafeBlockNumber)
+	require.NoError(t, err)
+	require.EqualValues(t, 5, safe.NumberU64())
 }

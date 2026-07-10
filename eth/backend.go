@@ -485,6 +485,15 @@ func (s *Ethereum) LastAcceptedBlock() *types.Block {
 	return s.blockchain.LastAcceptedBlock()
 }
 
+// NewTestEthereum builds an Ethereum wrapping only the given blockchain — TEST SUPPORT so a test
+// in another package (e.g. plugin/evm's boot-wiring reconcile test) can drive the
+// `finalized`/`safe` + export-height resolution against a REAL chain without the full node stack.
+// ONLY the blockchain-backed reads (LastAcceptedBlock, GetBlockByNumber, the export-height clamp)
+// are wired; everything else is nil. Not for production use.
+func NewTestEthereum(chain *core.BlockChain) *Ethereum {
+	return &Ethereum{blockchain: chain}
+}
+
 // SetLastQuasarHeight records the highest EXPORT-FINAL (Quasar, ⅔-by-stake) block number.
 // Monotone: a value at or below the current height is ignored (the export frontier only ever
 // advances). Called by the plugin VM from the consensus export-frontier observer, and once on
@@ -501,10 +510,28 @@ func (s *Ethereum) SetLastQuasarHeight(h uint64) {
 	}
 }
 
-// LastQuasarHeight returns the highest EXPORT-FINAL (Quasar) block number (0 before the first
-// export forms). The eth `finalized`/`safe` block tags resolve to the block at this number —
-// NEVER above it, because a Nova-accepted block above it is reorgable and must not be exported.
+// LastQuasarHeight returns the RAW highest EXPORT-FINAL (Quasar) block number the VM has recorded
+// (0 before the first export). This is the persisted/in-mem value; export SURFACES must instead
+// read ClampedQuasarHeight (which never exceeds the accept tip). Used by the node's boot re-seed
+// of the consensus export frontier, where the reconcile has already run so raw == clamped.
 func (s *Ethereum) LastQuasarHeight() uint64 { return s.lastQuasarHeight.Load() }
+
+// ClampedQuasarHeight is the EXPORT-FINAL (Quasar) height CLAMPED to the served accept tip —
+// min(LastQuasarHeight, LastAccepted.Number). This is the ONE place the clamp lives: BOTH the RPC
+// `finalized`/`safe` resolver (EthAPIBackend.quasarHeight) and the warp export gate
+// (warpBlockClient.LastQuasarHeight) read it, so an export surface can NEVER name a block above the
+// served accept tip — STRUCTURALLY, regardless of reconcile timing — with no second inlined copy of
+// the clamp to drift. In normal operation quasar ≤ accept so the clamp is invisible; it binds only
+// in the transient rewind window before reconcileQuasarWithAccept clears the stale key.
+func (s *Ethereum) ClampedQuasarHeight() uint64 {
+	h := s.lastQuasarHeight.Load()
+	if acc := s.blockchain.LastAcceptedBlock(); acc != nil {
+		if n := acc.NumberU64(); n < h {
+			return n
+		}
+	}
+	return h
+}
 
 // ResetLastQuasarHeight FORCE-sets the in-memory export height, bypassing the monotone guard of
 // SetLastQuasarHeight. It exists for the ONE legal regression of the otherwise-irreversible

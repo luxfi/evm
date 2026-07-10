@@ -38,7 +38,6 @@ import (
 
 	"github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/geth/rlp"
 	log "github.com/luxfi/log"
 )
 
@@ -92,98 +91,13 @@ func (api *AdminAPI) ExportChain(file string, first *uint64, last *uint64) (bool
 	return true, nil
 }
 
-// ImportChain imports a blockchain from a local file.
-// State is committed periodically during import for restart-safety.
-func (api *AdminAPI) ImportChain(file string) (bool, error) {
-	in, err := os.Open(file)
-	if err != nil {
-		return false, err
-	}
-	defer in.Close()
-
-	var reader io.Reader = in
-	if strings.HasSuffix(file, ".gz") {
-		if reader, err = gzip.NewReader(reader); err != nil {
-			return false, err
-		}
-	}
-
-	chain := api.eth.BlockChain()
-	if err := chain.EnsureGenesisState(); err != nil {
-		return false, fmt.Errorf("failed to ensure genesis state: %w", err)
-	}
-
-	stream := rlp.NewStream(reader, 0)
-	blocks, index := make([]*types.Block, 0, 2500), 0
-	var lastInsertedBlock *types.Block
-	commitInterval := chain.CommitInterval()
-	var lastCommitHeight uint64
-
-	log.Info("ImportChain: starting", "file", file, "currentBlock", chain.CurrentBlock().Number, "commitInterval", commitInterval)
-
-	for batch := 0; ; batch++ {
-		for len(blocks) < cap(blocks) {
-			block := new(types.Block)
-			if err := stream.Decode(block); err == io.EOF {
-				break
-			} else if err != nil {
-				return false, fmt.Errorf("block %d: failed to parse: %v", index, err)
-			}
-			if block.NumberU64() == 0 {
-				continue
-			}
-			blocks = append(blocks, block)
-			index++
-		}
-		if len(blocks) == 0 {
-			break
-		}
-
-		log.Info("ImportChain: inserting batch", "batch", batch, "blocks", len(blocks), "firstNum", blocks[0].NumberU64())
-		n, err := chain.InsertChain(blocks)
-		if err != nil {
-			return false, fmt.Errorf("batch %d: failed to insert after %d blocks: %v", batch, n, err)
-		}
-		if n > 0 {
-			lastInsertedBlock = blocks[n-1]
-			currentHeight := lastInsertedBlock.NumberU64()
-
-			if err := chain.SetLastAcceptedBlockDirect(lastInsertedBlock); err != nil {
-				return false, fmt.Errorf("failed to set last accepted block: %v", err)
-			}
-
-			// Periodically commit state trie to disk for restart-safety
-			if currentHeight-lastCommitHeight >= commitInterval {
-				log.Info("ImportChain: committing state", "block", currentHeight)
-				if err := chain.ForceCommitState(lastInsertedBlock); err != nil {
-					return false, fmt.Errorf("failed to commit state at block %d: %v", currentHeight, err)
-				}
-				lastCommitHeight = currentHeight
-			}
-		}
-		blocks = blocks[:0]
-	}
-
-	if lastInsertedBlock != nil {
-		// Final state commit
-		finalHeight := lastInsertedBlock.NumberU64()
-		if finalHeight > lastCommitHeight {
-			log.Info("ImportChain: final state commit", "block", finalHeight)
-			if err := chain.ForceCommitState(lastInsertedBlock); err != nil {
-				return false, fmt.Errorf("failed to commit final state: %v", err)
-			}
-		}
-
-		// Update VM layer via callback
-		if err := api.eth.CallPostImportCallback(lastInsertedBlock.Hash(), finalHeight); err != nil {
-			log.Warn("ImportChain: post-import callback failed", "error", err)
-		}
-
-		log.Info("ImportChain: completed", "blocks", index, "height", finalHeight)
-	}
-
-	return true, nil
-}
+// NOTE: admin_importChain is DELIBERATELY not implemented on this eth-package AdminAPI. There is
+// EXACTLY ONE admin_importChain — the plugin VM's (plugin/evm/admin_api.go), which runs under
+// vmLock AND calls reconcileQuasarWithAccept after each SetLastAcceptedBlockDirect so a re-import
+// that lowers the accept tip clears the stale EXPORT-FINAL (Quasar) height. An eth-package
+// ImportChain here (which neither reconciled nor skipped ≤-head blocks) would reopen the two-tier
+// finality-safety rewind hole the moment a future RegisterName reorder stopped the plugin one from
+// shadowing it. Do not re-add it here.
 
 // WriteGenesisStateSpec writes the genesis state spec to the database.
 // This is required for RLP import to work when the genesis state trie is not accessible.

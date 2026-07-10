@@ -34,9 +34,15 @@ func (w *warpBlockClient) GetAcceptedBlock(ctx context.Context, blkID ids.ID) (n
 	return w.vm.newBlock(ethBlock), nil
 }
 
-// LastQuasarHeight returns the VM's highest EXPORT-FINAL (Quasar, ⅔-by-stake) block number — the
-// export-tier gate for warp block signatures (a cross-chain export must sit at export finality,
-// not the reorgable local Accept tip).
+// LastQuasarHeight returns the accept-tip-CLAMPED EXPORT-FINAL (Quasar, ⅔-by-stake) height — the
+// export-tier gate for warp block signatures (a cross-chain export must sit at export finality, not
+// the reorgable local Accept tip). It reads the SAME shared clamp (eth.ClampedQuasarHeight) the RPC
+// `finalized`/`safe` resolver uses, so the warp gate is structurally belt-protected — it can never
+// admit a block above the served accept tip even during the transient rewind window (before
+// reconcileQuasarWithAccept clears a stale key), independent of reconcile ordering.
 func (w *warpBlockClient) LastQuasarHeight() uint64 {
-	return w.vm.LastQuasarHeight()
+	if w.vm.eth == nil {
+		return 0
+	}
+	return w.vm.eth.ClampedQuasarHeight()
 }
