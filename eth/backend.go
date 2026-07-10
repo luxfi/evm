@@ -506,6 +506,13 @@ func (s *Ethereum) SetLastQuasarHeight(h uint64) {
 // NEVER above it, because a Nova-accepted block above it is reorgable and must not be exported.
 func (s *Ethereum) LastQuasarHeight() uint64 { return s.lastQuasarHeight.Load() }
 
+// ResetLastQuasarHeight FORCE-sets the in-memory export height, bypassing the monotone guard of
+// SetLastQuasarHeight. It exists for the ONE legal regression of the otherwise-irreversible
+// export frontier: a rewind / RLP re-import that lowered the accept tip below the persisted
+// quasar height (the plugin VM's reconcileQuasarWithAccept calls this with 0 — conservative:
+// nothing export-final until the rebuilt chain re-certifies). Normal operation NEVER calls it.
+func (s *Ethereum) ResetLastQuasarHeight(h uint64) { s.lastQuasarHeight.Store(h) }
+
 // precheckPopulateMissingTries returns an error if config flags should prevent
 // [populateMissingTries]
 //
