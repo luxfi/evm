@@ -87,6 +87,13 @@ func (api *AdminAPI) ImportChain(ctx context.Context, file string) (*ImportChain
 	}
 	log.Info("admin_importChain: complete", "hash", lastHash.Hex(), "height", lastHeight)
 
+	// A re-import (the EVM-rewind→re-import restore runbook) can leave the accept tip below a
+	// persisted EXPORT-FINAL (Quasar) height. Clear the now-stale export height so `finalized`/
+	// `safe` and warp never report a rebuilt (never ⅔-certified) block as export-final — the exact
+	// two-tier safety class this path could otherwise reopen. Conservative reset to 0; the rebuilt
+	// chain re-certifies from there (the belt clamp in api_backend guards the interim window).
+	api.vm.reconcileQuasarWithAccept(lastHeight)
+
 	return &ImportChainResult{
 		Success:        true,
 		BlocksImported: totalImported,

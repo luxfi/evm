@@ -101,6 +101,19 @@ func TestFinalizedSafeResolveToQuasarNeverAboveIt(t *testing.T) {
 	eth.SetLastQuasarHeight(numBlocks)
 	require.EqualValues(t, numBlocks, num(rpc.FinalizedBlockNumber))
 
+	// BELT — the case RED flagged as false confidence: seed the export height ABOVE the accept tip
+	// (the rewind-stale-key scenario, where a re-import lowered the accept tip below a persisted
+	// quasar height) and assert finalized/safe CLAMP to the accept tip. The code now ENFORCES this;
+	// previously it was only incidentally true because normal op keeps quasar ≤ accept, so a
+	// stale-high key would have named a block above (or off) the served chain.
+	eth.SetLastQuasarHeight(numBlocks + 100) // stale-high, far above the accept tip
+	require.EqualValues(t, tip, num(rpc.FinalizedBlockNumber), "finalized MUST clamp to the accept tip when the export height is stale-high")
+	require.EqualValues(t, tip, num(rpc.SafeBlockNumber), "safe MUST clamp to the accept tip when the export height is stale-high")
+	require.EqualValues(t, tip, hdrNum(rpc.FinalizedBlockNumber))
+	require.LessOrEqual(t, num(rpc.FinalizedBlockNumber), tip, "finalized must NEVER exceed the accept tip, even with a stale-high export key")
+	// Restore for the exhaustive loop below.
+	eth.ResetLastQuasarHeight(numBlocks)
+
 	// THE INVARIANT, exhaustively: for EVERY export height, `finalized` resolves to exactly that
 	// height and NEVER above the accepted tip.
 	for h := uint64(0); h <= numBlocks; h++ {
