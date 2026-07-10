@@ -33,3 +33,10 @@ func (w *warpBlockClient) GetAcceptedBlock(ctx context.Context, blkID ids.ID) (n
 
 	return w.vm.newBlock(ethBlock), nil
 }
+
+// LastQuasarHeight returns the VM's highest EXPORT-FINAL (Quasar, ⅔-by-stake) block number — the
+// export-tier gate for warp block signatures (a cross-chain export must sit at export finality,
+// not the reorgable local Accept tip).
+func (w *warpBlockClient) LastQuasarHeight() uint64 {
+	return w.vm.LastQuasarHeight()
+}
