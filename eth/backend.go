@@ -34,6 +34,7 @@ import (
 	"math/big"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/luxfi/evm/consensus"
@@ -118,6 +119,13 @@ type Ethereum struct {
 	netRPCService *ethapi.NetAPI
 
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
+
+	// lastQuasarHeight is the highest EXPORT-FINAL (Quasar, ⅔-by-stake) block number — the block
+	// the eth `finalized`/`safe` tags resolve to. It is pushed by the consensus engine strictly
+	// AFTER the block's local (Nova majority) Accept, and is DURABLE (the plugin VM persists it and
+	// reloads it on boot), so the export surface never reports a reorgable Nova-accepted block as
+	// finalized and never regresses on restart. Monotone; 0 (→ genesis) before the first export.
+	lastQuasarHeight atomic.Uint64
 
 	shutdownTracker *shutdowncheck.ShutdownTracker // Tracks if and when the node has shutdown ungracefully
 
@@ -476,6 +484,27 @@ func (s *Ethereum) Stop() error {
 func (s *Ethereum) LastAcceptedBlock() *types.Block {
 	return s.blockchain.LastAcceptedBlock()
 }
+
+// SetLastQuasarHeight records the highest EXPORT-FINAL (Quasar, ⅔-by-stake) block number.
+// Monotone: a value at or below the current height is ignored (the export frontier only ever
+// advances). Called by the plugin VM from the consensus export-frontier observer, and once on
+// boot with the persisted value.
+func (s *Ethereum) SetLastQuasarHeight(h uint64) {
+	for {
+		cur := s.lastQuasarHeight.Load()
+		if h <= cur {
+			return
+		}
+		if s.lastQuasarHeight.CompareAndSwap(cur, h) {
+			return
+		}
+	}
+}
+
+// LastQuasarHeight returns the highest EXPORT-FINAL (Quasar) block number (0 before the first
+// export forms). The eth `finalized`/`safe` block tags resolve to the block at this number —
+// NEVER above it, because a Nova-accepted block above it is reorgable and must not be exported.
+func (s *Ethereum) LastQuasarHeight() uint64 { return s.lastQuasarHeight.Load() }
 
 // precheckPopulateMissingTries returns an error if config flags should prevent
 // [populateMissingTries]

@@ -139,6 +139,10 @@ const (
 var (
 	// Set last accepted key to be longer than the keys used to store accepted block IDs.
 	lastAcceptedKey = []byte("last_accepted_key")
+	// quasarHeightKey stores the highest EXPORT-FINAL (Quasar, ⅔-by-stake) block number — the
+	// block the eth `finalized`/`safe` tags resolve to. Persisted so the export surface never
+	// regresses on restart (the in-memory consensus frontier resets to 0 until a cert re-forms).
+	quasarHeightKey = []byte("quasar_export_height_key")
 	acceptedPrefix  = []byte("chain_accepted")
 	metadataPrefix  = []byte("metadata")
 	warpPrefix      = []byte("warp")
@@ -1050,6 +1054,11 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	vm.txPool = vm.eth.TxPool()
 	vm.blockChain = vm.eth.BlockChain()
 	debugLog("initializeChain: got txPool and blockChain")
+	// Restore the durable EXPORT-FINAL (Quasar) height so the `finalized`/`safe` tags are correct
+	// from the first RPC — before consensus re-forms a ⅔-stake cert this session. Advance-only.
+	if h := vm.readLastQuasarHeight(); h > 0 {
+		vm.eth.SetLastQuasarHeight(h)
+	}
 	// Upgrade the consensus context on the live chain to the FULL chain Runtime, which adds
 	// the cross-chain atomic SharedMemory capability (the DEX 0x9999 C<->D shared-memory seam)
 	// on top of the identity already bound at construction. Also covers the warp message
@@ -2052,6 +2061,47 @@ func (vm *VM) readLastAccepted() (common.Hash, uint64, error) {
 		}
 		return lastAcceptedHash, height, nil
 	}
+}
+
+// SetLastQuasarFinalized records that the block at `height` has reached EXPORT finality (Quasar,
+// ⅔-by-stake). It is the sink the consensus export-frontier observer pushes into — strictly AFTER
+// the block's local (Nova majority) Accept. It advances the in-memory export height the eth
+// `finalized`/`safe` tags read (eth.SetLastQuasarHeight is monotone) AND persists it so the export
+// surface survives a restart without regressing (the in-memory consensus frontier resets to 0
+// until a cert re-forms). No-op before the eth backend exists.
+func (vm *VM) SetLastQuasarFinalized(height uint64) {
+	if vm.eth == nil {
+		return
+	}
+	if height <= vm.eth.LastQuasarHeight() {
+		return // monotone: the export frontier only advances
+	}
+	vm.eth.SetLastQuasarHeight(height)
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], height)
+	if err := vm.acceptedBlockDB.Put(quasarHeightKey, buf[:]); err != nil {
+		log.Warn("failed to persist EXPORT-FINAL (quasar) height", "height", height, "err", err)
+	}
+}
+
+// LastQuasarHeight returns the highest EXPORT-FINAL (Quasar) block number the eth `finalized`/
+// `safe` tags resolve to (0 before the first export). The node reads it on boot to re-seed the
+// consensus export frontier so GetQuasarTip / QuasarHeight do not regress on restart.
+func (vm *VM) LastQuasarHeight() uint64 {
+	if vm.eth == nil {
+		return 0
+	}
+	return vm.eth.LastQuasarHeight()
+}
+
+// readLastQuasarHeight loads the durable EXPORT-FINAL (Quasar) height from acceptedBlockDB on
+// boot. 0 (→ genesis) when never exported or missing.
+func (vm *VM) readLastQuasarHeight() uint64 {
+	b, err := vm.acceptedBlockDB.Get(quasarHeightKey)
+	if err != nil || len(b) != 8 {
+		return 0
+	}
+	return binary.BigEndian.Uint64(b)
 }
 
 // attachEthService registers the backend RPC services provided by Ethereum

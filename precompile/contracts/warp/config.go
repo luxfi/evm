@@ -27,7 +27,15 @@ import (
 
 const (
 	WarpDefaultQuorumNumerator uint64 = 67
-	WarpQuorumNumeratorMinimum uint64 = 33
+	// WarpQuorumNumeratorMinimum is floored at ⅔ (67/100). Under the two-tier consensus, local
+	// Accept is a BARE MAJORITY (Nova) which is reorgable and can fork under f=1 equivocation. A
+	// warp message is a CROSS-CHAIN EXPORT: if a route could require < ⅔ stake to verify, the two
+	// conflicting Nova forks {1,2,E}/{3,4,E} could EACH aggregate a valid warp export (a
+	// double-spend). Requiring ≥⅔ stake to verify ANY warp message means at most one of two
+	// conflicting exports can ever validate (two ⅔-stake sets must intersect on >⅓ honest stake),
+	// restoring the ⅔-accept safety the pre-split Accept tier gave for free. (Block-hash exports
+	// are ALSO gated on Quasar finality at the signing side — see warp.verifyBlockMessage.)
+	WarpQuorumNumeratorMinimum uint64 = 67
 	WarpQuorumDenominator      uint64 = 100
 )
 
