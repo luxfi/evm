@@ -111,22 +111,15 @@ func (b *EthAPIBackend) LastAcceptedBlock() *types.Block {
 }
 
 // quasarHeight is the EXPORT-FINAL (Quasar, ⅔-by-stake) height the eth `finalized`/`safe` tags
-// resolve to, CLAMPED to the served accept tip. The two-tier consensus advances the local (Nova)
+// resolve to — the accept-tip-CLAMPED export height (eth.Ethereum.ClampedQuasarHeight, the ONE
+// shared clamp the warp export gate also reads). The two-tier consensus advances the local (Nova)
 // accept tip at a BARE MAJORITY, which is reorgable and MUST NOT be exported; the export-final
-// height is pushed by consensus strictly after accept and is durable across restart
-// (eth.Ethereum.LastQuasarHeight), so in normal operation it is ≤ accept and the clamp is
-// invisible. But a rewind / RLP re-import (SetLastAcceptedBlockDirect) can lower the accept tip
-// BELOW a persisted quasar height; until reconcileQuasarWithAccept clears that stale key, this
-// clamp (belt to that suspenders) guarantees `finalized`/`safe` never name a block above the
-// currently-served accept tip. 0 (→ genesis) before the first export.
+// height is pushed by consensus strictly after accept and is durable across restart, so normally it
+// is ≤ accept and the clamp is invisible — it binds only in the transient rewind window before
+// reconcileQuasarWithAccept clears the stale key, guaranteeing `finalized`/`safe` never name a block
+// above the served accept tip. 0 (→ genesis) before the first export.
 func (b *EthAPIBackend) quasarHeight() uint64 {
-	h := b.eth.LastQuasarHeight()
-	if acc := b.eth.LastAcceptedBlock(); acc != nil {
-		if n := acc.NumberU64(); n < h {
-			h = n
-		}
-	}
-	return h
+	return b.eth.ClampedQuasarHeight()
 }
 
 func (b *EthAPIBackend) quasarHeader() *types.Header {
