@@ -680,6 +680,13 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 		if err != nil {
 			return fmt.Errorf("startup import failed: %w", err)
 		}
+		// A startup import can leave the accept tip below a persisted EXPORT-FINAL (Quasar) height.
+		// reconcile AFTER it — the boot reconcile in initializeChain ran BEFORE this import (against
+		// the pre-import tip), and importBlocksFromFile (unlike admin_importChain) does not reconcile
+		// itself — so without this a stale export height would survive an --import-chain-data rewind
+		// and `finalized`/warp would report a rebuilt (never-⅔-certified) block export-final. Single
+		// threaded at boot (no observer yet), so no lock needed here.
+		vm.reconcileQuasarWithAccept(lastHeight)
 		log.Info("Startup import complete", "blocks", imported, "lastHash", lastHash.Hex(), "height", lastHeight)
 	}
 
@@ -2076,6 +2083,16 @@ func (vm *VM) readLastAccepted() (common.Hash, uint64, error) {
 // surface survives a restart without regressing (the in-memory consensus frontier resets to 0
 // until a cert re-forms). No-op before the eth backend exists.
 func (vm *VM) SetLastQuasarFinalized(height uint64) {
+	// Acquire vmLock — the SAME lock reconcileQuasarWithAccept relies on (held by its
+	// admin_importChain caller) — so the durable-key writes here (Put + Store) are MUTUALLY
+	// EXCLUDED with a concurrent reconcile's Reset(0)+Delete on the same atomic + acceptedBlockDB
+	// key. This observer callback (fired by the consensus export frontier, holding NO VM lock) could
+	// otherwise interleave a live cert-finalization against a re-import's reconcile and leave the
+	// in-mem height and the durable key inconsistent. Never re-entrant: the only caller is the
+	// consensus observer, which holds no VM lock; reconcile itself does NOT take vmLock (its caller
+	// does), so no double-acquire.
+	vm.vmLock.Lock()
+	defer vm.vmLock.Unlock()
 	if vm.eth == nil {
 		return
 	}
