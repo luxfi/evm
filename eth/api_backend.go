@@ -110,9 +110,30 @@ func (b *EthAPIBackend) LastAcceptedBlock() *types.Block {
 	return b.eth.LastAcceptedBlock()
 }
 
+// quasarHeader / quasarBlock resolve the highest EXPORT-FINAL (Quasar, ⅔-by-stake) block — the
+// ONLY block the eth `finalized`/`safe` tags may return. The two-tier consensus advances the
+// local (Nova) accept tip at a BARE MAJORITY, which is reorgable and MUST NOT be exported; the
+// export-final height is pushed by consensus strictly after accept and is durable across restart
+// (eth.Ethereum.LastQuasarHeight). It is 0 (→ genesis) before the first export forms, and NEVER
+// above the accept tip. Returns nil only if the block at that height is not (yet) canonical.
+func (b *EthAPIBackend) quasarHeader() *types.Header {
+	return b.eth.blockchain.GetHeaderByNumber(b.eth.LastQuasarHeight())
+}
+
+func (b *EthAPIBackend) quasarBlock() *types.Block {
+	return b.eth.blockchain.GetBlockByNumber(b.eth.LastQuasarHeight())
+}
+
 func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	// EXPORT-FINAL tags: `finalized`(-3)/`safe`(-4) resolve to the highest EXPORT-FINAL (Quasar,
+	// ⅔-by-stake) block — NEVER the Nova/accept tip below (a Nova-accepted block is reorgable and
+	// non-exportable). Handled BEFORE IsAccepted(), which would otherwise fold them into the
+	// accepted tip (the semantic-collapse the two-tier split exists to prevent).
+	if number == rpc.FinalizedBlockNumber || number == rpc.SafeBlockNumber {
+		return b.quasarHeader(), nil
 	}
 	// Treat requests for the pending, latest, or accepted block
 	// identically.
@@ -180,6 +201,11 @@ func (b *EthAPIBackend) HeaderByNumberOrHash(ctx context.Context, blockNrOrHash 
 func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Block, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	// EXPORT-FINAL tags: `finalized`(-3)/`safe`(-4) resolve to the highest EXPORT-FINAL (Quasar)
+	// block, NEVER the reorgable Nova/accept tip. See quasarBlock / HeaderByNumber.
+	if number == rpc.FinalizedBlockNumber || number == rpc.SafeBlockNumber {
+		return b.quasarBlock(), nil
 	}
 	// Treat requests for the pending, latest, or accepted block
 	// identically.

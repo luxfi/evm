@@ -51,16 +51,27 @@ func (b *backend) Verify(ctx context.Context, msg *warp.Message, _ []byte) error
 	}
 }
 
-// verifyBlockMessage returns nil if blockHashPayload contains the ID
-// of an accepted block indicating it should be signed by the VM.
+// verifyBlockMessage returns nil if blockHashPayload contains the ID of an EXPORT-FINAL block
+// indicating it should be signed by the VM. Under the two-tier consensus a block hash warp
+// signature is a CROSS-CHAIN EXPORT, so the block must have reached ⅔-by-stake QUASAR finality —
+// NOT merely local (Nova, bare-majority) Accept. A Nova-accepted block is reorgable and can fork
+// under f=1 equivocation; signing it would let two conflicting forks each aggregate a valid warp
+// export (a double-spend). Requiring Quasar finality (height ≤ LastQuasarHeight) closes that: at
+// most one block per height ever reaches Quasar (>⅓ stake would have to double-sign otherwise).
 func (b *backend) verifyBlockMessage(ctx context.Context, blockHashPayload *payload.Hash) error {
 	// Convert []byte to ids.ID
 	var blockID ids.ID
 	copy(blockID[:], blockHashPayload.Hash)
-	_, err := b.blockClient.GetAcceptedBlock(ctx, blockID)
+	blk, err := b.blockClient.GetAcceptedBlock(ctx, blockID)
 	if err != nil {
 		b.stats.IncBlockValidationFail()
 		return fmt.Errorf("failed to get block %s: %w", blockID, err)
+	}
+	// EXPORT GATE: the block must be at or below the export-final (Quasar) height.
+	if quasar := b.blockClient.LastQuasarHeight(); blk.Height() > quasar {
+		b.stats.IncBlockValidationFail()
+		return fmt.Errorf("refusing to warp-sign block %s at height %d: not yet EXPORT-final "+
+			"(quasar height %d) — a warp export requires ⅔-stake finality, not local accept", blockID, blk.Height(), quasar)
 	}
 
 	return nil

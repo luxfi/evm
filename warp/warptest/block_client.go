@@ -81,6 +81,11 @@ func (f BlockClient) GetAcceptedBlock(ctx context.Context, blockID ids.ID) (chai
 	return f(ctx, blockID)
 }
 
+// LastQuasarHeight reports the export-final (Quasar) height for the test client. It returns the
+// max uint64 so a mock block is always treated as EXPORT-final — these tests exercise the warp
+// signature/verification path, not the two-tier export gate (which is covered by its own test).
+func (f BlockClient) LastQuasarHeight() uint64 { return ^uint64(0) }
+
 // MakeBlockClient returns a new BlockClient that returns the provided blocks.
 // If a block is requested that isn't part of the provided blocks, an error is
 // returned.

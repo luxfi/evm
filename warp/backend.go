@@ -32,6 +32,11 @@ var (
 
 type BlockClient interface {
 	GetAcceptedBlock(ctx context.Context, blockID ids.ID) (chain.Block, error)
+	// LastQuasarHeight returns the highest EXPORT-FINAL (Quasar, ⅔-by-stake) block number. A warp
+	// block signature is a CROSS-CHAIN EXPORT and so belongs at the export tier — this VM signs a
+	// block hash only once the block has reached Quasar finality (height ≤ this), NEVER on the
+	// reorgable local (Nova, bare-majority) Accept tip. 0 before the first export forms.
+	LastQuasarHeight() uint64
 }
 
 // Backend tracks signature-eligible warp messages and provides an interface to fetch them.
