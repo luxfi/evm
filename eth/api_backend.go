@@ -110,18 +110,31 @@ func (b *EthAPIBackend) LastAcceptedBlock() *types.Block {
 	return b.eth.LastAcceptedBlock()
 }
 
-// quasarHeader / quasarBlock resolve the highest EXPORT-FINAL (Quasar, ⅔-by-stake) block — the
-// ONLY block the eth `finalized`/`safe` tags may return. The two-tier consensus advances the
-// local (Nova) accept tip at a BARE MAJORITY, which is reorgable and MUST NOT be exported; the
-// export-final height is pushed by consensus strictly after accept and is durable across restart
-// (eth.Ethereum.LastQuasarHeight). It is 0 (→ genesis) before the first export forms, and NEVER
-// above the accept tip. Returns nil only if the block at that height is not (yet) canonical.
+// quasarHeight is the EXPORT-FINAL (Quasar, ⅔-by-stake) height the eth `finalized`/`safe` tags
+// resolve to, CLAMPED to the served accept tip. The two-tier consensus advances the local (Nova)
+// accept tip at a BARE MAJORITY, which is reorgable and MUST NOT be exported; the export-final
+// height is pushed by consensus strictly after accept and is durable across restart
+// (eth.Ethereum.LastQuasarHeight), so in normal operation it is ≤ accept and the clamp is
+// invisible. But a rewind / RLP re-import (SetLastAcceptedBlockDirect) can lower the accept tip
+// BELOW a persisted quasar height; until reconcileQuasarWithAccept clears that stale key, this
+// clamp (belt to that suspenders) guarantees `finalized`/`safe` never name a block above the
+// currently-served accept tip. 0 (→ genesis) before the first export.
+func (b *EthAPIBackend) quasarHeight() uint64 {
+	h := b.eth.LastQuasarHeight()
+	if acc := b.eth.LastAcceptedBlock(); acc != nil {
+		if n := acc.NumberU64(); n < h {
+			h = n
+		}
+	}
+	return h
+}
+
 func (b *EthAPIBackend) quasarHeader() *types.Header {
-	return b.eth.blockchain.GetHeaderByNumber(b.eth.LastQuasarHeight())
+	return b.eth.blockchain.GetHeaderByNumber(b.quasarHeight())
 }
 
 func (b *EthAPIBackend) quasarBlock() *types.Block {
-	return b.eth.blockchain.GetBlockByNumber(b.eth.LastQuasarHeight())
+	return b.eth.blockchain.GetBlockByNumber(b.quasarHeight())
 }
 
 func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error) {

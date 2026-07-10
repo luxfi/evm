@@ -1059,6 +1059,12 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	if h := vm.readLastQuasarHeight(); h > 0 {
 		vm.eth.SetLastQuasarHeight(h)
 	}
+	// Reconcile against the RESTORED accept tip: if an offline rewind / RLP re-import lowered the
+	// accept tip below the persisted quasar height, clear the now-stale export height (conservative
+	// reset to 0) so a rebuilt-with-different-canonical block is never reported export-final.
+	if acc := vm.eth.LastAcceptedBlock(); acc != nil {
+		vm.reconcileQuasarWithAccept(acc.NumberU64())
+	}
 	// Upgrade the consensus context on the live chain to the FULL chain Runtime, which adds
 	// the cross-chain atomic SharedMemory capability (the DEX 0x9999 C<->D shared-memory seam)
 	// on top of the identity already bound at construction. Also covers the warp message
@@ -2076,12 +2082,44 @@ func (vm *VM) SetLastQuasarFinalized(height uint64) {
 	if height <= vm.eth.LastQuasarHeight() {
 		return // monotone: the export frontier only advances
 	}
-	vm.eth.SetLastQuasarHeight(height)
+	// PERSIST BEFORE advancing the in-memory value: the durable key is the source of truth. A
+	// crash between the two must never leave the in-mem height ahead of what boot restores — that
+	// would be a monotonicity DIP on the next boot (a Nova block briefly reported export-final).
+	// Only advance in-mem once the write has committed.
 	var buf [8]byte
 	binary.BigEndian.PutUint64(buf[:], height)
 	if err := vm.acceptedBlockDB.Put(quasarHeightKey, buf[:]); err != nil {
-		log.Warn("failed to persist EXPORT-FINAL (quasar) height", "height", height, "err", err)
+		log.Warn("failed to persist EXPORT-FINAL (quasar) height; NOT advancing in-mem", "height", height, "err", err)
+		return
 	}
+	vm.eth.SetLastQuasarHeight(height)
+}
+
+// reconcileQuasarWithAccept clears the durable + in-memory EXPORT (Quasar) height when it exceeds
+// the accept tip — the ONE legal regression of the otherwise-irreversible export frontier. A
+// rewind / RLP re-import (SetLastAcceptedBlockDirect, e.g. the EVM-rewind→1084996 restore runbook)
+// can lower the accept tip below a persisted quasar height; after the chain rebuilds past that
+// height with a DIFFERENT canonical, the stale quasar height would name a block that was NEVER
+// ⅔-certified — reported as export-final to every bridge / DEX consumer. Conservative: reset to 0
+// (nothing export-final until the rebuilt chain re-certifies) rather than guess a still-valid
+// lower height. Idempotent — a no-op when the frontier is already within the accept tip. Called
+// on boot (against the restored last-accepted height) and after each SetLastAcceptedBlockDirect
+// (the live re-import path). On the next boot the node re-seeds consensus' export frontier from
+// this cleared (0) height, so its advance-only guard yields to the rewind without special-casing.
+func (vm *VM) reconcileQuasarWithAccept(acceptHeight uint64) {
+	if vm.eth == nil {
+		return
+	}
+	if vm.eth.LastQuasarHeight() <= acceptHeight {
+		return
+	}
+	vm.eth.ResetLastQuasarHeight(0)
+	if err := vm.acceptedBlockDB.Delete(quasarHeightKey); err != nil {
+		log.Warn("failed to clear stale EXPORT (quasar) height on rewind", "err", err)
+	}
+	log.Warn("EXPORT (quasar) height RESET to 0 — accept tip rewound below it (rewind/re-import); "+
+		"export re-certifies from the rebuilt chain (nothing is export-final until then)",
+		"acceptHeight", acceptHeight)
 }
 
 // LastQuasarHeight returns the highest EXPORT-FINAL (Quasar) block number the eth `finalized`/
