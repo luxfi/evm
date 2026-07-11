@@ -24,7 +24,7 @@ on:
 jobs:
   antithesis:
     name: Run Antithesis
-    runs-on: ubuntu-latest
+    runs-on: lux-build-amd64
     steps:
       - uses: antithesishq/antithesis-trigger-action@6c0a27302c0a3cd97d87d40bd6704e673abed4bb #v0.9
         with:
