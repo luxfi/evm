@@ -8,7 +8,7 @@ on:
 
 jobs:
   bench:
-    runs-on: ubuntu-latest
+    runs-on: lux-build-amd64
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
