@@ -12,8 +12,8 @@ import (
 // ValidatorUptime is signed when the ValidationID is known and the validator
 // has been up for TotalUptime seconds.
 type ValidatorUptime struct {
-	ValidationID ids.ID `serialize:"true"`
-	TotalUptime  uint64 `serialize:"true"` // in seconds
+	ValidationID ids.ID
+	TotalUptime  uint64 // in seconds
 
 	bytes []byte
 }
