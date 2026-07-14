@@ -18,9 +18,9 @@ var (
 
 // BlockRequest is a request to retrieve Parents number of blocks starting from Hash from newest-oldest manner
 type BlockRequest struct {
-	Hash    common.Hash `serialize:"true"`
-	Height  uint64      `serialize:"true"`
-	Parents uint16      `serialize:"true"`
+	Hash    common.Hash
+	Height  uint64
+	Parents uint16
 }
 
 func (b BlockRequest) String() string {
@@ -39,5 +39,5 @@ func (b BlockRequest) Handle(ctx context.Context, nodeID ids.NodeID, requestID u
 // requested in BlockRequest.Hash. The next block is the parent, etc.
 // handler: handlers.BlockRequestHandler
 type BlockResponse struct {
-	Blocks [][]byte `serialize:"true"`
+	Blocks [][]byte
 }
