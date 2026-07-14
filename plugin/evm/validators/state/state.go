@@ -29,13 +29,13 @@ const (
 )
 
 type validatorData struct {
-	UpDuration    time.Duration `serialize:"true"`
-	LastUpdated   uint64        `serialize:"true"`
-	NodeID        ids.NodeID    `serialize:"true"`
-	Weight        uint64        `serialize:"true"`
-	StartTime     uint64        `serialize:"true"`
-	IsActive      bool          `serialize:"true"`
-	IsL1Validator bool          `serialize:"true"`
+	UpDuration    time.Duration
+	LastUpdated   uint64
+	NodeID        ids.NodeID
+	Weight        uint64
+	StartTime     uint64
+	IsActive      bool
+	IsL1Validator bool
 
 	validationID ids.ID // database key
 }

@@ -17,7 +17,7 @@ var _ Request = CodeRequest{}
 // CodeRequest is a request to retrieve a contract code with specified Hash
 type CodeRequest struct {
 	// Hashes is a list of contract code hashes
-	Hashes []common.Hash `serialize:"true"`
+	Hashes []common.Hash
 }
 
 func (c CodeRequest) String() string {
@@ -43,5 +43,5 @@ func NewCodeRequest(hashes []common.Hash) CodeRequest {
 // the corresponding element in CodeRequest.Hashes
 // handler: handlers.CodeRequestHandler
 type CodeResponse struct {
-	Data [][]byte `serialize:"true"`
+	Data [][]byte
 }

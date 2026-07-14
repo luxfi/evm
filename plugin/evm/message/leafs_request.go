@@ -18,11 +18,11 @@ var _ Request = LeafsRequest{}
 // LeafsRequest is a request to receive trie leaves at specified Root within Start and End byte range
 // Limit outlines maximum number of leaves to returns starting at Start
 type LeafsRequest struct {
-	Root    common.Hash `serialize:"true"`
-	Account common.Hash `serialize:"true"`
-	Start   []byte      `serialize:"true"`
-	End     []byte      `serialize:"true"`
-	Limit   uint16      `serialize:"true"`
+	Root    common.Hash
+	Account common.Hash
+	Start   []byte
+	End     []byte
+	Limit   uint16
 }
 
 func (l LeafsRequest) String() string {
@@ -48,8 +48,8 @@ func (l LeafsRequest) Handle(ctx context.Context, nodeID ids.NodeID, requestID u
 // pair in the response has any more elements to its right within the trie.
 type LeafsResponse struct {
 	// Keys and Vals provides the key-value pairs in the trie in the response.
-	Keys [][]byte `serialize:"true"`
-	Vals [][]byte `serialize:"true"`
+	Keys [][]byte
+	Vals [][]byte
 
 	// More indicates if there are more leaves to the right of the last value in this response.
 	//
@@ -60,5 +60,5 @@ type LeafsResponse struct {
 
 	// ProofVals contain the edge merkle-proofs for the range of keys included in the response.
 	// The keys for the proof are simply the keccak256 hashes of the values, so they are not included in the response to save bandwidth.
-	ProofVals [][]byte `serialize:"true"`
+	ProofVals [][]byte
 }

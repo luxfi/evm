@@ -19,9 +19,9 @@ import (
 // SyncSummary provides the information necessary to sync a node starting
 // at the given block.
 type SyncSummary struct {
-	BlockNumber uint64      `serialize:"true"`
-	BlockHash   common.Hash `serialize:"true"`
-	BlockRoot   common.Hash `serialize:"true"`
+	BlockNumber uint64
+	BlockHash   common.Hash
+	BlockRoot   common.Hash
 
 	summaryID  ids.ID
 	bytes      []byte
