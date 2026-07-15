@@ -15,35 +15,35 @@ require (
 	github.com/holiman/billy v0.0.0-20250707135307-f2f9b9aae7db
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
-	github.com/luxfi/cache v1.2.1
-	github.com/luxfi/chains v1.3.22
-	github.com/luxfi/consensus v1.25.29
-	github.com/luxfi/constants v1.5.8
-	github.com/luxfi/crypto v1.19.26
-	github.com/luxfi/database v1.20.4
+	github.com/luxfi/cache v1.3.1
+	github.com/luxfi/chains v1.7.7
+	github.com/luxfi/consensus v1.36.2
+	github.com/luxfi/constants v1.6.2
+	github.com/luxfi/crypto v1.20.2
+	github.com/luxfi/database v1.21.1
 	github.com/luxfi/dex v1.14.0
 	github.com/luxfi/filesystem v0.0.1
-	github.com/luxfi/geth v1.17.12
+	github.com/luxfi/geth v1.20.1
 	github.com/luxfi/go-bip39 v1.1.2
 	github.com/luxfi/gpu v1.0.1
-	github.com/luxfi/ids v1.2.15
+	github.com/luxfi/ids v1.3.2
 	github.com/luxfi/log v1.4.3
-	github.com/luxfi/math v1.4.1
+	github.com/luxfi/math v1.5.1
 	github.com/luxfi/math/big v0.1.0
 	github.com/luxfi/math/safe v0.0.1
-	github.com/luxfi/metric v1.5.9
-	github.com/luxfi/p2p v1.21.1
-	github.com/luxfi/precompile v0.19.0
-	github.com/luxfi/runtime v1.1.3
+	github.com/luxfi/metric v1.8.1
+	github.com/luxfi/p2p v1.22.1
+	github.com/luxfi/precompile v0.19.3
+	github.com/luxfi/runtime v1.3.1
 	github.com/luxfi/sys v0.1.0
-	github.com/luxfi/timer v1.0.2
-	github.com/luxfi/trace v1.1.0
-	github.com/luxfi/upgrade v1.0.1
-	github.com/luxfi/utils v1.2.0
-	github.com/luxfi/validators v1.2.0
+	github.com/luxfi/timer v1.1.1
+	github.com/luxfi/trace v1.2.1
+	github.com/luxfi/upgrade v1.0.3
+	github.com/luxfi/utils v1.3.1
+	github.com/luxfi/validators v1.3.1
 	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.2.6
-	github.com/luxfi/warp v1.23.0
+	github.com/luxfi/vm v1.3.1
+	github.com/luxfi/warp v1.24.1
 	github.com/mattn/go-colorable v0.1.15
 	github.com/mattn/go-isatty v0.0.22
 	github.com/spf13/cast v1.10.0
@@ -113,24 +113,24 @@ require (
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/luxfi/accel v1.2.4 // indirect
-	github.com/luxfi/age v1.5.0 // indirect
-	github.com/luxfi/api v1.0.16 // indirect
+	github.com/luxfi/age v1.6.0 // indirect
+	github.com/luxfi/api v1.1.1 // indirect
 	github.com/luxfi/atomic v1.0.0 // indirect
 	github.com/luxfi/bft v0.1.5 // indirect
-	github.com/luxfi/compress v0.0.5 // indirect
-	github.com/luxfi/concurrent v0.0.3 // indirect
-	github.com/luxfi/container v0.0.4 // indirect
-	github.com/luxfi/corona v0.10.3 // indirect
+	github.com/luxfi/compress v0.1.1 // indirect
+	github.com/luxfi/concurrent v0.1.1 // indirect
+	github.com/luxfi/container v0.2.1 // indirect
+	github.com/luxfi/corona v0.10.4 // indirect
 	github.com/luxfi/crypto/ipa v1.2.4 // indirect
-	github.com/luxfi/fhe v1.8.2 // indirect
+	github.com/luxfi/fhe v1.11.1 // indirect
 	github.com/luxfi/lattice/v7 v7.1.4 // indirect
 	github.com/luxfi/mdns v0.1.1 // indirect
-	github.com/luxfi/mlwe v0.2.1 // indirect
-	github.com/luxfi/pq v1.0.3 // indirect
-	github.com/luxfi/proto v1.3.5 // indirect
-	github.com/luxfi/resource v0.0.1 // indirect
-	github.com/luxfi/threshold v1.9.9 // indirect
-	github.com/luxfi/zap v0.8.11 // indirect
+	github.com/luxfi/mlwe v0.3.0 // indirect
+	github.com/luxfi/pq v1.1.0 // indirect
+	github.com/luxfi/proto v1.4.2 // indirect
+	github.com/luxfi/resource v0.1.1 // indirect
+	github.com/luxfi/threshold v1.12.3 // indirect
+	github.com/luxfi/zap v1.2.6 // indirect
 	github.com/luxfi/zapdb v1.10.1 // indirect
 	github.com/miekg/dns v1.1.72 // indirect
 	github.com/mimoo/StrobeGo v0.0.0-20220103164710-9a04d6ca976b // indirect
@@ -187,7 +187,7 @@ require (
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/luxfi/formatting v1.0.1
+	github.com/luxfi/formatting v1.1.1
 	github.com/luxfi/mock v0.1.1 // indirect
 	github.com/luxfi/sampler v1.1.0 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
@@ -227,7 +227,7 @@ require (
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
+	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
