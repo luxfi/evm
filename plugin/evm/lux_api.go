@@ -83,7 +83,9 @@ func (api *EvmBackendAPI) SetBackend(_ context.Context, args SetBackendArgs) (*S
 	}
 
 	previous := parallel.ActiveBackend()
-	parallel.SetBackend(requested)
+	if err := parallel.SetBackend(requested); err != nil {
+		return nil, err
+	}
 	active := parallel.ActiveBackend()
 
 	log.Info("evm_setBackend", "previous", string(previous), "requested", args.Backend, "active", string(active))

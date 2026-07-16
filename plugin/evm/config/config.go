@@ -174,6 +174,18 @@ type Config struct {
 	AllowUnprotectedTxs      bool          `json:"allow-unprotected-txs"`
 	AllowUnprotectedTxHashes []common.Hash `json:"allow-unprotected-tx-hashes"`
 
+	// Block building
+	//
+	// MinBlockBuildInterval, when > 0, is the minimum wall-clock interval between
+	// locally built blocks — an opt-in, node-local override that enables SUB-SECOND
+	// block cadence (e.g. "250ms"). It decouples the block-build interval from the
+	// fee config's whole-second TargetBlockRate: the dynamic base-fee and
+	// block-gas-cost windows stay second-granular (header.Time is Unix seconds, a
+	// consensus-critical field), only the builder's pacing floor becomes sub-second.
+	// Zero (default) preserves the exact prior behavior (pace to
+	// parent.Time + TargetBlockRate seconds), so mainnet is byte-identical when unset.
+	MinBlockBuildInterval Duration `json:"min-block-build-interval"`
+
 	// Keystore Settings
 	KeystoreDirectory             string `json:"keystore-directory"` // both absolute and relative supported
 	KeystoreExternalSigner        string `json:"keystore-external-signer"`
