@@ -24,6 +24,7 @@ func TestNextBuildTime(t *testing.T) {
 		name          string
 		earliestBuild time.Time
 		lastBuildTime time.Time
+		minInterval   time.Duration // 0 = whole-second default; >0 = sub-second override
 		want          time.Time
 	}{
 		{
@@ -68,11 +69,32 @@ func TestNextBuildTime(t *testing.T) {
 			lastBuildTime: base,
 			want:          base.Add(minBlockBuildingRetryDelay),
 		},
+		{
+			// Sub-second override: with an earliestBuild already in the past (the
+			// busy-chain case, since minNextBuildTime returns tip-second + interval),
+			// pacing is exactly lastBuildTime + minInterval — 250ms, i.e. 4 blocks/s,
+			// which whole-second pacing could never reach.
+			name:          "sub-second override paces to lastBuildTime + interval",
+			earliestBuild: base.Add(-time.Second),
+			lastBuildTime: base,
+			minInterval:   250 * time.Millisecond,
+			want:          base.Add(250 * time.Millisecond),
+		},
+		{
+			// Sub-second override still respects a future earliestBuild floor: the
+			// fee-window earliest wins when it is later than lastBuild + interval, so
+			// the override can never build EARLIER than the fee floor demands.
+			name:          "sub-second override still respects a future earliestBuild",
+			earliestBuild: base.Add(2 * time.Second),
+			lastBuildTime: base,
+			minInterval:   250 * time.Millisecond,
+			want:          base.Add(2 * time.Second),
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := nextBuildTime(tt.earliestBuild, tt.lastBuildTime)
+			got := nextBuildTime(tt.earliestBuild, tt.lastBuildTime, tt.minInterval)
 			if !got.Equal(tt.want) {
 				t.Fatalf("nextBuildTime(%v, %v) = %v, want %v",
 					tt.earliestBuild, tt.lastBuildTime, got, tt.want)
@@ -90,14 +112,14 @@ func TestNextBuildTime_NeverEarlierThanTargetRate(t *testing.T) {
 	earliest := time.Unix(1_700_000_000, 0)
 	for _, deltaMs := range []int{-10_000, -100, -1, 0, 1, 100, 10_000} {
 		last := earliest.Add(time.Duration(deltaMs) * time.Millisecond)
-		got := nextBuildTime(earliest, last)
+		got := nextBuildTime(earliest, last, 0)
 		if got.Before(earliest) {
 			t.Fatalf("nextBuildTime scheduled %v BEFORE earliestBuild %v (lastBuildTime=%v) — would re-introduce the fee stall",
 				got, earliest, last)
 		}
 	}
 	// And the zero-value (first build) case must equal earliestBuild exactly.
-	if got := nextBuildTime(earliest, time.Time{}); !got.Equal(earliest) {
+	if got := nextBuildTime(earliest, time.Time{}, 0); !got.Equal(earliest) {
 		t.Fatalf("first-build nextBuildTime = %v, want earliestBuild %v", got, earliest)
 	}
 }

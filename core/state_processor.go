@@ -171,24 +171,30 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		// StatefulPrecompileHook is not yet exposed by luxfi/geth.
 		_ = predicateStorageSlots
 
-		// Try modular backend (revm/cevm) before default geth path.
+		// Modular backend (revm/cevm) path. Only active when a non-Go backend has
+		// been explicitly selected; the default Go EVM leaves txExec nil and skips
+		// this block entirely (byte-identical to the geth path). When a backend IS
+		// active it must handle the tx: CheckTxResult fails the block loudly if the
+		// selected backend errors or declines (returns no receipt), instead of
+		// silently falling through to the Go EVM and running a different EVM than
+		// the operator selected. Silent degradation is the real bug (LP-108).
 		if txExec != nil {
-			if backendReceipt, backendErr := txExec.ExecuteTransaction(
+			backendReceipt, backendErr := txExec.ExecuteTransaction(
 				p.config, header, tx, statedb, cfg, gp.Gas(),
-			); backendReceipt != nil {
-				if backendErr != nil {
-					return nil, nil, 0, fmt.Errorf("backend tx %d [%v]: %w", i, tx.Hash().Hex(), backendErr)
-				}
-				// Deduct gas consumed by the backend from the pool.
-				if err := gp.SubGas(backendReceipt.GasUsed); err != nil {
-					return nil, nil, 0, fmt.Errorf("backend tx %d [%v] gas overflow: %w", i, tx.Hash().Hex(), err)
-				}
-				*usedGas += backendReceipt.GasUsed
-				backendReceipt.CumulativeGasUsed = *usedGas
-				receipts = append(receipts, backendReceipt)
-				allLogs = append(allLogs, backendReceipt.Logs...)
-				continue
+			)
+			if err := parallel.CheckTxResult(txExec.Backend(), backendReceipt, backendErr); err != nil {
+				return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 			}
+			// backendReceipt is guaranteed non-nil. Deduct gas consumed by the
+			// backend from the pool.
+			if err := gp.SubGas(backendReceipt.GasUsed); err != nil {
+				return nil, nil, 0, fmt.Errorf("backend tx %d [%v] gas overflow: %w", i, tx.Hash().Hex(), err)
+			}
+			*usedGas += backendReceipt.GasUsed
+			backendReceipt.CumulativeGasUsed = *usedGas
+			receipts = append(receipts, backendReceipt)
+			allLogs = append(allLogs, backendReceipt.Logs...)
+			continue
 		}
 
 		receipt, err := applyTransaction(msg, p.config, gp, statedb, blockNumber, blockHash, header.Time, tx, usedGas, vmenv)

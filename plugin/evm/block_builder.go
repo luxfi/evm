@@ -53,6 +53,12 @@ type blockBuilder struct {
 	// but at least after a minimum delay of minBlockBuildingRetryDelay.
 	lastBuildTime time.Time
 
+	// minBuildInterval, when > 0, is the operator-configured minimum wall-clock
+	// interval between built blocks (config.MinBlockBuildInterval). It enables
+	// sub-second block cadence by replacing the default retry-floor delay in
+	// nextBuildTime. Zero (default) keeps the whole-second pacing behavior.
+	minBuildInterval time.Duration
+
 	// pendingTxs reports whether the mempool holds at least one buildable
 	// transaction. It is the single source of truth for needToBuild and is
 	// injectable so the wake path can be tested without a live txpool. Set by
@@ -62,10 +68,11 @@ type blockBuilder struct {
 
 func (vm *VM) NewBlockBuilder() *blockBuilder {
 	b := &blockBuilder{
-		ctx:          context.Background(),
-		txPool:       vm.txPool,
-		shutdownChan: vm.shutdownChan,
-		shutdownWg:   &vm.shutdownWg,
+		ctx:              context.Background(),
+		txPool:           vm.txPool,
+		shutdownChan:     vm.shutdownChan,
+		shutdownWg:       &vm.shutdownWg,
+		minBuildInterval: vm.config.MinBlockBuildInterval.Duration,
 	}
 	// Use empty filter to check if ANY pending transactions exist. The miner
 	// applies proper fee filters when building; a MinTip filter here would
@@ -181,7 +188,7 @@ func (b *blockBuilder) waitForEvent(ctx context.Context, earliestBuild time.Time
 	if err != nil {
 		return block.Message{}, err
 	}
-	timeUntilNextBuild := time.Until(nextBuildTime(earliestBuild, lastBuildTime))
+	timeUntilNextBuild := time.Until(nextBuildTime(earliestBuild, lastBuildTime, b.minBuildInterval))
 	if timeUntilNextBuild <= 0 {
 		return block.Message{Type: block.PendingTxs}, nil
 	}
@@ -199,18 +206,28 @@ func (b *blockBuilder) waitForEvent(ctx context.Context, earliestBuild time.Time
 //   - earliestBuild: parent.Time + TargetBlockRate — building before this raises
 //     the block's required fee, so a small-tip tx cannot cover it and the block
 //     is rejected by verifyBlockFee (the stall this pacing exists to prevent).
-//   - lastBuildTime + minBlockBuildingRetryDelay: a retry floor that keeps a
-//     failed BuildBlock from hot-looping once earliestBuild has already passed.
+//   - lastBuildTime + delay: a floor after the previous build. delay is the
+//     minBlockBuildingRetryDelay retry floor (anti hot-loop) by default, or the
+//     operator-configured minInterval when > 0 — the opt-in that enables
+//     sub-second block cadence by pacing off the real (wall-clock) last-build
+//     time, decoupled from the second-granular earliestBuild.
 //
 // A zero lastBuildTime (no block built this session yet) means only earliestBuild
 // applies. Pure function of its inputs (no clock read) so the pacing decision is
 // deterministically testable; the wall-clock comparison stays in waitForEvent.
-func nextBuildTime(earliestBuild, lastBuildTime time.Time) time.Time {
+func nextBuildTime(earliestBuild, lastBuildTime time.Time, minInterval time.Duration) time.Time {
 	if lastBuildTime.IsZero() {
 		return earliestBuild
 	}
-	if retry := lastBuildTime.Add(minBlockBuildingRetryDelay); retry.After(earliestBuild) {
-		return retry
+	// Sub-second override (minInterval>0) replaces the default retry floor, so the
+	// configured cadence is honored precisely relative to the last build. Unset
+	// keeps the whole-second behavior (delay == minBlockBuildingRetryDelay).
+	delay := minBlockBuildingRetryDelay
+	if minInterval > 0 {
+		delay = minInterval
+	}
+	if paced := lastBuildTime.Add(delay); paced.After(earliestBuild) {
+		return paced
 	}
 	return earliestBuild
 }
