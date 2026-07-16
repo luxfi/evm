@@ -103,6 +103,11 @@ func NewDefaultConfig() Config {
 		DatabaseType: badgerdbName,
 		// Additional settings with sensible defaults
 		AllowUnprotectedTxs: false,
+		// Block-build cadence override disabled by default: pace to the fee
+		// config's whole-second TargetBlockRate (byte-identical to prior
+		// behavior). Set > 0 (e.g. "250ms") to opt into sub-second block
+		// production, decoupled from the second-granular fee window.
+		MinBlockBuildInterval: timeToDuration(0),
 	}
 }
 

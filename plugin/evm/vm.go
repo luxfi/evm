@@ -1532,6 +1532,17 @@ func (vm *VM) minNextBuildTime() time.Time {
 	if header == nil {
 		return time.Time{}
 	}
+	// Sub-second block cadence (opt-in, node-local). When MinBlockBuildInterval is
+	// set, the earliest next build is the tip second plus that interval, decoupling
+	// the block-build cadence from the second-granular fee window: header.Time is
+	// Unix seconds (a consensus-critical field), so the dynamic base-fee and
+	// block-gas-cost windows stay second-granular and byte-identical. The precise
+	// sub-second pacing is then enforced by nextBuildTime off the real (wall-clock)
+	// last-build time; this earliest floor lands in the past on a busy chain, so it
+	// never delays a sub-second build. Unset (zero) keeps the exact prior behavior.
+	if iv := vm.config.MinBlockBuildInterval.Duration; iv > 0 {
+		return time.Unix(int64(header.Time), 0).Add(iv)
+	}
 	feeConfig, _, err := vm.blockChain.GetFeeConfigAt(header)
 	if err != nil {
 		return time.Time{}

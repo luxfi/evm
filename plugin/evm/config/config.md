@@ -63,6 +63,12 @@ Configuration is provided as a JSON object. All fields are optional unless other
 | `ws-cpu-refill-rate` | duration | Rate at which WebSocket CPU usage quota is refilled (0 = no limit) | `0` |
 | `ws-cpu-max-stored` | duration | Maximum stored WebSocket CPU usage quota (0 = no limit) | `0` |
 
+## Block Building
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `min-block-build-interval` | duration | Minimum wall-clock interval between locally built blocks. `0` (default) paces to the fee config's whole-second `targetBlockRate`, byte-identical to prior behavior. Set > 0 (e.g. `250ms`) to opt into **sub-second** block production; the builder's pacing floor becomes sub-second while the dynamic base-fee and block-gas-cost windows stay second-granular (block timestamps are Unix seconds). | `0` |
+
 ## Cache Configuration
 
 ### Trie Caches
