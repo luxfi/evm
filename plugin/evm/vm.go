@@ -687,6 +687,27 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 		// and `finalized`/warp would report a rebuilt (never-⅔-certified) block export-final. Single
 		// threaded at boot (no observer yet), so no lock needed here.
 		vm.reconcileQuasarWithAccept(lastHeight)
+
+		// FIX (v1.104.11): sync the IN-MEMORY consensus last-accepted to the imported tip.
+		// initializeChain -> initChainState (run BEFORE this import) built vm.State (the
+		// components/chain consensus wrapper) with LastAcceptedBlock = the pre-import genesis
+		// tip. importBlocksFromFile advanced core.BlockChain + acceptedBlockDB but NOT vm.State,
+		// so on this FIRST import boot the consensus engine reads genesis while the EVM head is
+		// the imported tip -> the proposervm wedges ("BuildBlock: preferred block not fetchable",
+		// preferred=empty id) until a restart re-runs initChainState off acceptedBlockDB. The
+		// admin_importChain RPC path runs on a LIVE node whose vm.State is already current, so
+		// only this startup path needs the sync. FAIL-CLOSED: a boot that cannot establish the
+		// imported tip stops loudly rather than serving consensus at a stale genesis.
+		if imported > 0 {
+			tip := chain.GetBlockByHash(lastHash)
+			if tip == nil {
+				return fmt.Errorf("startup import: imported tip %s (height %d) not found in blockchain", lastHash.Hex(), lastHeight)
+			}
+			if err := vm.State.SetLastAcceptedBlock(vm.newBlock(tip)); err != nil {
+				return fmt.Errorf("startup import: failed to sync consensus last-accepted to imported tip (height %d): %w", lastHeight, err)
+			}
+			log.Info("Startup import: consensus chain.State refreshed to imported tip", "height", lastHeight, "hash", lastHash.Hex())
+		}
 		log.Info("Startup import complete", "blocks", imported, "lastHash", lastHash.Hex(), "height", lastHeight)
 	}
 
