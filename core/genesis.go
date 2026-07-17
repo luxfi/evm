@@ -293,6 +293,18 @@ func SetupGenesisBlock(
 		return newcfg, stored, nil
 	}
 
+	// Recover a dropped extras.FeeConfig from the genesis config. Pre-fix DBs persisted the
+	// chain config WITHOUT extras.FeeConfig (the base ethrawdb.WriteChainConfig marshals only the
+	// embedded geth ChainConfig, and the custom accessor persisted only UpgradeConfig), so on
+	// resume the stored FeeConfig is empty — which reverts the whole dynamic-fee schedule
+	// (BlockGasCostStep, gasLimit, minBaseFee, …) to zero. Re-apply the genesis FeeConfig when the
+	// stored one is absent; the now-correctly-persisting WriteChainConfig below writes it back so
+	// subsequent restarts are clean. (The mainnet C-Chain BlockGasCostStep era-override lives in
+	// BlockChain.GetFeeConfigAt.)
+	if storedExtra := params.GetExtra(storedcfg); storedExtra.FeeConfig.GasLimit == nil {
+		storedExtra.FeeConfig = params.GetExtra(newcfg).FeeConfig
+	}
+
 	// Notes on the following line:
 	// - this is needed in coreth to handle the case where existing nodes do not
 	//   have the Berlin or London forks initialized by block number on disk.
