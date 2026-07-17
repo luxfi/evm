@@ -366,10 +366,46 @@ func (bc *BlockChain) SubscribeAcceptedTransactionEvent(ch chan<- NewTxsEvent) e
 	return bc.scope.Track(bc.txAcceptedFeed.Subscribe(ch))
 }
 
+// luxMainnetCChainID is the Lux mainnet C-Chain chainID (96369). The era-aware
+// BlockGasCostStep fallback is scoped strictly to it so it can never misfire on
+// testnet/devnet/L2s.
+var luxMainnetCChainID = big.NewInt(96369)
+
+// t36FeeStepDropTime is the raw block timestamp of the granite/v1.36.2 first mainnet
+// C-Chain block (1,085,252) at which the fleet-wide feeConfig persist bug dropped
+// BlockGasCostStep from 200000 to 0 across every restarted node. Replaying the C-Chain
+// byte-exactly requires the EFFECTIVE step to be 200000 while a block's PARENT timestamp
+// is before this instant, and 0 from it onward.
+//
+// This is a RAW timestamp gate, deliberately NOT config.IsGranite: replay/import configs
+// set graniteTimestamp=0, so IsGranite is true everywhere and would zero the step for the
+// whole chain. The 200000→0 drop was the persist bug at the fleet restart (which coincided
+// with granite), not granite fee semantics.
+const t36FeeStepDropTime = uint64(1783900524)
+
+// mainnetEraFeeConfig returns fc unchanged for every chain except the Lux mainnet C-Chain
+// (96369). For 96369 it overrides ONLY BlockGasCostStep (200000 before t36FeeStepDropTime,
+// 0 from it onward), preserving every other feeConfig field from the (now correctly
+// persisted) genesis config. The 200000 is explicit and independent of the persisted
+// config, so pinning the go-forward genesis step=0 does not break the pre-T_36 replay.
+func mainnetEraFeeConfig(chainID *big.Int, parentTime uint64, fc commontype.FeeConfig) commontype.FeeConfig {
+	if chainID == nil || chainID.Cmp(luxMainnetCChainID) != 0 {
+		return fc
+	}
+	out := fc // struct copy; other *big.Int fields shared read-only, only BlockGasCostStep is replaced
+	if parentTime >= t36FeeStepDropTime {
+		out.BlockGasCostStep = big.NewInt(0)
+	} else {
+		out.BlockGasCostStep = big.NewInt(200_000)
+	}
+	return out
+}
+
 // GetFeeConfigAt returns the fee configuration and the last changed block number at [parent].
 // If EVM is not activated, returns default fee config and nil block number.
 // If FeeManager is activated at [parent], returns the fee config in the precompile contract state.
-// Otherwise returns the fee config in the chain config.
+// Otherwise returns the fee config in the chain config (with the mainnet C-Chain era-aware
+// BlockGasCostStep applied — see mainnetEraFeeConfig).
 // Assumes that a valid configuration is stored when the precompile is activated.
 func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	config := params.GetExtra(bc.Config())
@@ -377,7 +413,7 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 		return params.DefaultFeeConfig, nil, nil
 	}
 	if !config.IsPrecompileEnabled(feemanager.ContractAddress, parent.Time) {
-		return config.FeeConfig, common.Big0, nil
+		return mainnetEraFeeConfig(bc.chainConfig.ChainID, parent.Time, config.FeeConfig), common.Big0, nil
 	}
 
 	// try to return it from the cache
