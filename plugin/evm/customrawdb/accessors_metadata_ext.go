@@ -120,16 +120,27 @@ func ReadAcceptorTip(db ethdb.KeyValueReader) (common.Hash, error) {
 // ReadChainConfig retrieves the consensus settings based on the given genesis hash.
 func ReadChainConfig(db ethdb.KeyValueReader, hash common.Hash) *params.ChainConfig {
 	config := ethrawdb.ReadChainConfig(db, hash)
+	if config == nil {
+		return nil
+	}
+	extra := params.GetExtra(config)
 
-	upgrade, _ := db.Get(upgradeConfigKey(hash))
-	if len(upgrade) == 0 {
-		return config
+	if upgrade, _ := db.Get(upgradeConfigKey(hash)); len(upgrade) > 0 {
+		if err := json.Unmarshal(upgrade, &extra.UpgradeConfig); err != nil {
+			log.Error("Invalid upgrade config JSON", "err", err)
+			return nil
+		}
 	}
 
-	extra := params.GetExtra(config)
-	if err := json.Unmarshal(upgrade, &extra.UpgradeConfig); err != nil {
-		log.Error("Invalid upgrade config JSON", "err", err)
-		return nil
+	// Restore extras.FeeConfig (the base round-trip drops it — see WriteChainConfig). Restored
+	// INDEPENDENTLY of UpgradeConfig so a config with no upgrades still recovers its FeeConfig.
+	// Absent for pre-fix DBs; the effective feeConfig then falls back to the chain-config value
+	// (and, for the mainnet C-Chain, the era-aware BlockGasCostStep override in GetFeeConfigAt).
+	if feeData, _ := db.Get(feeConfigKey(hash)); len(feeData) > 0 {
+		if err := json.Unmarshal(feeData, &extra.FeeConfig); err != nil {
+			log.Error("Invalid fee config JSON", "err", err)
+			return nil
+		}
 	}
 
 	return config
@@ -149,5 +160,16 @@ func WriteChainConfig(db ethdb.KeyValueWriter, hash common.Hash, config *params.
 	}
 	if err := db.Put(upgradeConfigKey(hash), data); err != nil {
 		log.Crit("Failed to store upgrade config", "err", err)
+	}
+
+	// Persist extras.FeeConfig explicitly. The base ethrawdb.WriteChainConfig marshals only
+	// the embedded geth ChainConfig (its MarshalJSON shadows the extras), so without this the
+	// FeeConfig is dropped and every restart reloads BlockGasCostStep=0 — the fleet-wide bug.
+	feeData, err := json.Marshal(extra.FeeConfig)
+	if err != nil {
+		log.Crit("Failed to JSON encode fee config", "err", err)
+	}
+	if err := db.Put(feeConfigKey(hash), feeData); err != nil {
+		log.Crit("Failed to store fee config", "err", err)
 	}
 }

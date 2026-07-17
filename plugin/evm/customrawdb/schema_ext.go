@@ -22,6 +22,12 @@ var (
 	acceptorTipKey = []byte("AcceptorTipKey")
 	// upgradeConfigPrefix prefixes upgrade bytes passed to the chain
 	upgradeConfigPrefix = []byte("upgrade-config-")
+	// feeConfigPrefix prefixes the persisted extras.FeeConfig. The base
+	// ethrawdb.WriteChainConfig marshals only the embedded geth ChainConfig (its
+	// MarshalJSON shadows the extras), and the custom accessor historically persisted
+	// only UpgradeConfig — so extras.FeeConfig was dropped on the persist/load round-trip
+	// (step reverted to 0 on every restart). This key persists it explicitly.
+	feeConfigPrefix = []byte("fee-config-")
 )
 
 // State sync progress keys and prefixes
@@ -63,6 +69,11 @@ var FirewoodScheme = "firewood"
 // upgradeConfigKey = upgradeConfigPrefix + hash
 func upgradeConfigKey(hash common.Hash) []byte {
 	return append(upgradeConfigPrefix, hash.Bytes()...)
+}
+
+// feeConfigKey = feeConfigPrefix + hash
+func feeConfigKey(hash common.Hash) []byte {
+	return append(feeConfigPrefix, hash.Bytes()...)
 }
 
 // blockGasCostPrefix is the prefix for storing BlockGasCost data
