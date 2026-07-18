@@ -47,8 +47,8 @@ func TestRLPImportZooMainnet(t *testing.T) {
 			stream = rlp.NewStream(file, 0)
 			var blocks []types.Block
 			if err := stream.Decode(&blocks); err == nil {
-				for i, b := range blocks {
-					verifyBlockDecode(t, &b, i)
+				for i := range blocks {
+					verifyBlockDecode(t, &blocks[i], i)
 				}
 				t.Logf("Decoded %d blocks from array format", len(blocks))
 				return
