@@ -541,7 +541,9 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	gasRefund := st.refundGas(rulesExtra.IsEVM)
 	fee := new(uint256.Int).SetUint64(st.gasUsed())
 	fee.Mul(fee, price)
-	st.state.AddBalance(st.evm.Context.Coinbase, fee, tracing.BalanceIncreaseRewardTransactionFee)
+	// Disburse the fee: full amount to the coinbase (legacy), or a deterministic
+	// 50/50 burn + fee-reward-vault split once the FeeSplit upgrade is active.
+	creditTxFee(st.state, st.evm.ChainConfig(), st.evm.Context.Coinbase, st.evm.Context.Time, fee)
 
 	return &ExecutionResult{
 		UsedGas:     st.gasUsed(),

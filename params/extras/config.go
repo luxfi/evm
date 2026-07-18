@@ -28,6 +28,16 @@ var (
 	// and legacy Subnet-EVM chains. New chains should use the LP-aligned address (0x16201).
 	LegacyWarpAddress = common.HexToAddress("0x0200000000000000000000000000000000000005")
 
+	// FeeRewardVault is the canonical, protocol-owned C-Chain account that accrues
+	// the validator (staking-reward) half of every transaction fee once the FeeSplit
+	// upgrade is active. Its balance is periodically exported, atomically, to the
+	// P-Chain fee-reward pool and paid out through the native staking-reward path
+	// (see the "Tx-fee 50/50 split" design in LLM.md). It is distinct from the
+	// BlackholeAddr (0x0100..00) used by legacy full-fee routing: the vault holds
+	// real, tracked balance destined for validators, whereas the burn half is never
+	// credited to any account (a true supply reduction).
+	FeeRewardVault = common.HexToAddress("0x0100000000000000000000000000000000000002")
+
 	DefaultFeeConfig = commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
 		TargetBlockRate: 2, // in seconds
@@ -159,8 +169,17 @@ type ChainConfig struct {
 
 	FeeConfig          commontype.FeeConfig `json:"feeConfig"`                    // Set the configuration for the dynamic fee algorithm
 	AllowFeeRecipients bool                 `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
-	GenesisPrecompiles Precompiles          `json:"-"`                            // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
-	UpgradeConfig      `json:"-"`           // Config specified in upgradeBytes (lux network upgrades or enable/disabling precompiles). Not serialized.
+
+	// FeeSplitTimestamp activates the transaction-fee 50/50 split (nil = never,
+	// 0 = genesis). When active, each transaction fee is divided deterministically:
+	// half is truly burned (never credited to any account, reducing supply) and half
+	// accrues to FeeRewardVault for the P-Chain staking-reward fold-in. This is an
+	// orthogonal fee-routing policy, intentionally NOT part of the NetworkUpgrades
+	// opcode-fork chain (it has no ordering relationship to EVM/Durango/Quasar/...).
+	// It supersedes legacy coinbase/RewardManager routing while active.
+	FeeSplitTimestamp  *uint64     `json:"feeSplitTimestamp,omitempty"`
+	GenesisPrecompiles Precompiles `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
+	UpgradeConfig      `json:"-"`  // Config specified in upgradeBytes (lux network upgrades or enable/disabling precompiles). Not serialized.
 
 	// AddressBook provides per-chain address overrides for precompile addresses.
 	// This allows historical chains (e.g., C-Chain) to use legacy addresses
@@ -191,6 +210,14 @@ func (c *ChainConfig) GetPrecompileAddress(configKey string) common.Address {
 	return common.Address{}
 }
 
+// IsFeeSplit returns whether [time] is at or after the FeeSplit activation
+// timestamp. When true, transaction fees are split 50/50 (burn + fee-reward
+// vault) instead of being credited wholesale to the coinbase. Deterministic:
+// depends only on the configured timestamp and the block time.
+func (c *ChainConfig) IsFeeSplit(time uint64) bool {
+	return isTimestampForked(c.FeeSplitTimestamp, time)
+}
+
 func (c *ChainConfig) CheckConfigCompatible(newConfig *ethparams.ChainConfig, headNumber *big.Int, headTimestamp uint64) *ethparams.ConfigCompatError {
 	if c == nil {
 		return nil
@@ -204,6 +231,12 @@ func (c *ChainConfig) CheckConfigCompatible(newConfig *ethparams.ChainConfig, he
 func (c *ChainConfig) checkConfigCompatible(newcfg *ChainConfig, headNumber *big.Int, headTimestamp uint64) *ethparams.ConfigCompatError {
 	if err := c.checkNetworkUpgradesCompatible(&newcfg.NetworkUpgrades, headTimestamp); err != nil {
 		return err
+	}
+	// FeeSplit is a standalone fee-routing fork (not in NetworkUpgrades); its
+	// activation time must not change once it would take effect, or nodes would
+	// diverge on fee disbursement and fork the chain.
+	if isForkTimestampIncompatible(c.FeeSplitTimestamp, newcfg.FeeSplitTimestamp, headTimestamp) {
+		return newTimestampCompatError("FeeSplit fork block timestamp", c.FeeSplitTimestamp, newcfg.FeeSplitTimestamp)
 	}
 	// Check that the precompiles on the new config are compatible with the existing precompile config.
 	if err := c.checkPrecompilesCompatible(newcfg.PrecompileUpgrades, headTimestamp); err != nil {
@@ -242,6 +275,7 @@ func (c *ChainConfig) Description() string {
 	banner += fmt.Sprintf("Fee Config: %s\n", string(feeBytes))
 
 	banner += fmt.Sprintf("Allow Fee Recipients: %v\n", c.AllowFeeRecipients)
+	banner += fmt.Sprintf("Fee Split (50/50 burn+stake): @%v (vault %s)\n", ptrToString(c.FeeSplitTimestamp), FeeRewardVault.Hex())
 
 	return banner
 }
