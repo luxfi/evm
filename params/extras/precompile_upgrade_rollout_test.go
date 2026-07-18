@@ -22,17 +22,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// luxMainnetLiveUpgradeJSON is the upgrade.json currently inlined in the
+// luxMainnetLiveUpgradeJSON mirrors the precompile activations in the
 // lux-mainnet StatefulSet startup script
-// (~/work/lux/universe/k8s/lux-mainnet/luxd-startup.yaml line 182). It is
-// the source-of-truth list of precompile activations active on every C-
-// Chain pod today. Every entry here MUST stay present (at the same
-// blockTimestamp) in the canonical upgrade.json shipped by luxfi/genesis,
-// otherwise luxd's checkPrecompileCompatible refuses to boot.
+// (~/work/lux/universe/k8s/lux-mainnet/luxd-startup.yaml). Every entry here
+// MUST stay present at the SAME blockTimestamp in the canonical upgrade.json
+// shipped by luxfi/genesis, or luxd's checkPrecompileCompatible refuses to boot.
 //
-// If this constant changes, the lux-mainnet StatefulSet manifest changed
-// out-of-band — sync it back to luxfi/genesis BEFORE shipping the new
-// luxd image, never the other way around.
+// These are forward-dated to the strict-PQ fork (1766708400 = Dec 25 2025
+// 16:20 PST), NOT blockTimestamp 0. Activating a precompile at 0 runs it
+// inside core.ApplyPrecompileActivations during Genesis.toBlock, mutates the
+// block-0 state root away from 0x2d1ceda…, and breaks RLP import (block-0 would
+// no longer hash to 0x3f4fa2a0…). The regenesis preserves block-0 by keeping
+// genesis clean (2-alloc) and forward-dating every precompile PAST the RLP tip
+// — so no replayed block ever sees them and history reproduces exactly. The
+// prior `blockTimestamp: 0` form of this fixture was stale (pre-forward-dating,
+// 2026-06-27) and did not match the deployed manifest. See state/CLAUDE.md
+// "RLP ↔ Genesis ↔ Upgrade" and genesis/configs/mainnet/upgrade.json.
+//
+// If this drifts from the deployed manifest, re-sync it — but NEVER by moving
+// an activation onto blockTimestamp 0; that is the import-wedge bug itself.
 const luxMainnetLiveUpgradeJSON = `{
   "networkUpgradeOverrides": {
     "durangoTimestamp": 0,
@@ -41,22 +49,22 @@ const luxMainnetLiveUpgradeJSON = `{
     "graniteTimestamp": 0
   },
   "precompileUpgrades": [
-    {"aiMiningConfig":   {"blockTimestamp": 0}},
-    {"blake3Config":     {"blockTimestamp": 0}},
-    {"cggmp21Verify":    {"blockTimestamp": 0}},
-    {"deadZeroConfig":   {"blockTimestamp": 0}},
-    {"deadConfig":       {"blockTimestamp": 0}},
-    {"deadFullConfig":   {"blockTimestamp": 0}},
-    {"routerConfig":     {"blockTimestamp": 0}},
-    {"fheConfig":        {"blockTimestamp": 0}},
-    {"frostVerify":      {"blockTimestamp": 0}},
-    {"graphConfig":      {"blockTimestamp": 0}},
-    {"hpkeConfig":       {"blockTimestamp": 0}},
-    {"mldsaVerify":      {"blockTimestamp": 0}},
-    {"mlkemConfig":      {"blockTimestamp": 0}},
-    {"ringConfig":       {"blockTimestamp": 0}},
-    {"slhdsaVerify":     {"blockTimestamp": 0}},
-    {"zkConfig":         {"blockTimestamp": 0}}
+    {"aiMiningConfig":   {"blockTimestamp": 1766708400}},
+    {"blake3Config":     {"blockTimestamp": 1766708400}},
+    {"cggmp21Verify":    {"blockTimestamp": 1766708400}},
+    {"deadZeroConfig":   {"blockTimestamp": 1766708400}},
+    {"deadConfig":       {"blockTimestamp": 1766708400}},
+    {"deadFullConfig":   {"blockTimestamp": 1766708400}},
+    {"routerConfig":     {"blockTimestamp": 1766708400}},
+    {"fheConfig":        {"blockTimestamp": 1766708400}},
+    {"frostVerify":      {"blockTimestamp": 1766708400}},
+    {"graphConfig":      {"blockTimestamp": 1766708400}},
+    {"hpkeConfig":       {"blockTimestamp": 1766708400}},
+    {"mldsaVerify":      {"blockTimestamp": 1766708400}},
+    {"mlkemConfig":      {"blockTimestamp": 1766708400}},
+    {"ringConfig":       {"blockTimestamp": 1766708400}},
+    {"slhdsaVerify":     {"blockTimestamp": 1766708400}},
+    {"zkConfig":         {"blockTimestamp": 1766708400}}
   ]
 }`
 
