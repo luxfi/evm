@@ -34,6 +34,7 @@ func TestChainConfigDescription(t *testing.T) {
 Upgrade Config: {}
 Fee Config: {}
 Allow Fee Recipients: false
+Fee Split \(50/50 burn\+stake\): @nil \(vault 0x0100000000000000000000000000000000000002\)
 $`,
 		},
 		"set": {
@@ -77,6 +78,7 @@ $`,
 Upgrade Config: {"networkUpgradeOverrides":{"evmTimestamp":13},"stateUpgrades":\[{"blockTimestamp":14,"accounts":{"0x0f00000000000000000000000000000000000000":{"code":"0x10"}}}\]}
 Fee Config: {"gasLimit":5,"targetBlockRate":6,"minBaseFee":7,"targetGas":8,"baseFeeChangeDenominator":9,"minBlockGasCost":10,"maxBlockGasCost":11,"blockGasCostStep":12}
 Allow Fee Recipients: true
+Fee Split \(50/50 burn\+stake\): @nil \(vault 0x0100000000000000000000000000000000000002\)
 $`,
 		},
 	}
