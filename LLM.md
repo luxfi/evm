@@ -103,6 +103,230 @@ addresses). Call `SetAllGenesisPrecompiles()` on the extras config to enable the
 state from being written. The fix ensures deterministic genesis because precompile
 configs are part of the chain config.
 
+## C-Chain Tx-Fee Routing — RewardManager → DAO Gov Safe (LIVE PATH)
+
+**Owner decision (supersedes the 50/50 below): 100% of every C-Chain tx fee accrues
+to the chain's DAO Gov Safe, DAO-governed and redirectable on-chain.** This decouples
+*collection* from *policy* — the DAO later decides burn / validators / treasury via
+governance, on-chain, without another node upgrade. Real money on a 2T supply — staged
+devnet→testnet→mainnet, never touch mainnet fee config without staged proof + owner go.
+
+### Mechanism — existing RewardManager precompile, NO new fee-path code
+The routing is stock C-Chain machinery, activated by config:
+- `rewardmanager` precompile at **0x10205** (`precompile/contracts/rewardmanager/`).
+- Activated via **precompileUpgrades** (`upgrade.json`) at a dated timestamp (coordinated
+  fork, NOT a genesis edit), gated so mainnet is inert until set.
+- `initialRewardConfig.rewardAddress = <DAO Gov Safe>` → `StoreRewardAddress`.
+  `adminAddresses = [<DAO Gov Safe>]` → the DAO can call `setRewardAddress` on-chain
+  anytime (the "continually governed / redirectable" requirement; role-gated at
+  `contract.go:195` — non-admin callers revert).
+- Routing path (all existing production code): `GetCoinbaseAt`
+  (`core/blockchain_reader.go:411`) reads `GetStoredRewardAddress` → sets
+  `header.Coinbase = reward address` → `core/state_transition.go:546` `creditTxFee`
+  credits the **full** fee to the coinbase. So 100% of the fee lands at the DAO Safe.
+- The 50/50 `creditTxFee`/`FeeSplitTimestamp` code (below) stays committed but **DORMANT**
+  (FeeSplitTimestamp nil ⇒ legacy full-fee-to-coinbase branch), so it is transparent to
+  RewardManager and available if the DAO ever wants an in-protocol split.
+
+### Proven (in-process, production code paths)
+`core/reward_manager_routing_test.go` — `TestRewardManagerRoutesFeesToDAOSafe`: with
+RewardManager active + reward = Lux DAO Gov Safe `0x8E29b816…`, the production
+`GetCoinbaseAt` returns the DAO Safe (NOT blackhole); a **real `setRewardAddress` tx
+from the admin** redirects routing to a new address live (observed via `GetCoinbaseAt`).
+Combined with `TestCreditTxFeeLegacy` (full fee → coinbase, FeeSplit off) this proves
+100% → reward address + on-chain DAO redirect. RewardManager's own suite
+(`precompile/contracts/rewardmanager/`) covers role-gating + storage.
+
+### LIVE DEVNET PROOF — COMPLETED (deployed 5-node devnet, chainId 96367)
+Cluster `do-sfo3-lux-k8s` ns `lux-devnet`, sts `luxd` (luxd-0..4, node v1.36.2 / evm
+v1.104.7 — RewardManager confirmed present, **no rebuild**). C-Chain RPC:
+`9650/v1/bc/C/rpc`. Config path: CM `luxd-chain-upgrades` key `cchain-upgrade.json`
+→ boot copies to `/data/configs/chains/C/upgrade.json`.
+
+- **Pre-req recovery**: the C-Chain was consensus-wedged (all 5 spamming `failed to
+  fetch preferred block`, heights split 72/89/109). Recovered by graceful pod-delete
+  rolling restart (sanctioned k8s, never pkill) → 5/5 reconverged.
+- **Activation**: appended `rewardManagerConfig` (blockTimestamp 1784057456,
+  admin=0x9011 EOA I control, initialRewardConfig.rewardAddress=DAO Safe 0x8E29) to
+  the CM (47→48 precompileUpgrades); rolling-restarted all 5 to load it.
+- **100% routing**: 5 fee txs (blocks 116-120) → reward `0x8E29` grew by
+  **2,730,000,000,105,000 wei == Σ fees exactly**; blackhole `0x0100..00` **flat**
+  (Δ0). tx e.g. `0x4d76afbd…`,`0x21ea8b4b…`,`0x4a660aa3…`,`0xdffca465…`,`0x31d9dea4…`.
+- **DAO redirect (on-chain)**: admin `setRewardAddress(0xEAbC…)` tx `0x67544986…`
+  status 0x1 @124 → `currentRewardAddress` 0x8E29→0xEAbC; next 4 txs → 0xEAbC grew by
+  **2,184,000,000,084,000 == Σ fees**, DAO Safe **flat**. Restored to DAO Safe
+  (tx `0x82f5bbd0…` status 0x1) — second admin-control demo.
+- **Determinism 5/5**: block 120 reward balance `0xba381304aac30` AND stateRoot
+  `0x09a05474…`; block 124 stateRoot `0x7a31669cc285…` — **identical across all 5
+  nodes**. Final: 5/5 converged @130, routing = DAO Safe.
+
+### Per-chain DAO reward addresses (read canonical from `~/work/lux/standard/deployments/org-safes/`)
+- **Lux C-Chain 96369** → DAO Gov Safe `0x8E29b816c6C35b13cE1ff68D33E245C2bda8ac3D`
+- **Zoo 200200** → DAO Safe `0x229599f227231d8C90fcF1a78589F5DC4b7A6962`
+- **Hanzo / Pars** → DAO Safes not yet in org-safes/ — STAGE before activation.
+Deployable `upgrade.json` templates: `~/work/lux/standard/deployments/rewardmanager/`
+(`lux-96369.json`, `zoo-200200.json`; `blockTimestamp` sentinel 9999999999 = inert until
+the operator sets the coordinated fork time).
+
+### Deployed-cluster config path (do-sfo3-lux-k8s)
+C-Chain upgrade schedule is delivered by a ConfigMap key `cchain-upgrade.json`, copied by
+the boot script to `/data/configs/chains/C/upgrade.json`:
+- **devnet** ns `lux-devnet`, http-port **9650**, CM `luxd-chain-upgrades`.
+- **testnet** ns `lux-testnet`, http-port **9640**, CM `luxd-startup`.
+- **mainnet** ns `lux-mainnet`, CM `luxd-startup`.
+sts `luxd` is `OnDelete`/`Parallel`, managed-by `lux-operator` (CM has no ownerRef → a
+direct `kubectl patch` persists across pod/node restarts). RPC path is `/v1/bc/C/rpc`.
+Activation: patch the CM's `cchain-upgrade.json` (append `rewardManagerConfig`), then a
+coordinated restart (`kubectl delete pod` one-at-a-time, or `scale 0→5`; **never pkill**).
+**Before the fork ts, verify all 5 nodes hold a byte-identical `/data/configs/chains/C/
+upgrade.json` (`sha256sum`)** — a per-node config mismatch is the ONLY fork risk. A live
+config check via `--wait=false` delete is unreliable (old pod lingers "ready"); confirm the
+NEW pod (config-presence grep) before proceeding.
+
+### Coordinated mainnet runbook (owner GO only — one change per chain)
+1. Append to the live CM `luxd-startup` key `cchain-upgrade.json`, at ONE dated future
+   `blockTimestamp`:
+   - `precompileUpgrades += rewardManagerConfig{ adminAddresses:[<DAO Safe>],
+     initialRewardConfig.rewardAddress:<DAO Safe> }`
+   - **Lux C 96369 only** also `stateUpgrades += stranded-LUX sweep` (below).
+   Templates: `~/work/lux/standard/deployments/rewardmanager/{lux-96369,zoo-200200}.json`
+   (+ `lux-96369-strandedlux-sweep.json`), `blockTimestamp` sentinel `9999999999` → set to GO time.
+2. Rolling restart all 5; verify all-5 `sha256` identical BEFORE the ts. Abort/reschedule if any differ.
+3. After the ts, drive a tx; verify on all 5: fee → DAO Safe, blackhole flat, identical roots.
+   Per chain: Lux C 96369 → `0x8E29b816c6C35b13cE1ff68D33E245C2bda8ac3D`; Zoo 200200 →
+   `0x229599f227231d8C90fcF1a78589F5DC4b7A6962`; Hanzo/Pars after their Safes are staged.
+
+### Stranded-LUX sweep — stateUpgrade is ADD-ONLY (design constraint)
+~3,778 LUX sit at the blackhole `0x0100…0000` (uncontrolled EOA, no key) on Lux C 96369
+(**Zoo/others: none**). A "move" is NOT directly expressible: `stateupgrade/state_upgrade.go`
+applies `balanceChange` via `state.AddBalance` (unsigned uint256) — it can CREDIT the DAO but
+**cannot DEBIT** 0x0100…00; a credit-only edit would MINT ~3778 LUX. Two correct options:
+- **(chosen, config-only) set-code sweeper**: `stateUpgrades` sets 22-byte runtime
+  `0x738e29b816c6c35b13ce1ff68d33e245c2bda8ac3dff` (`PUSH20 <DAO>; SELFDESTRUCT`) at
+  0x0100…00; then ONE permissionless tx to 0x0100…00 transfers its FULL balance to the DAO
+  (exact, deterministic, no mint, no rebuild; post-EIP-6780 selfdestruct just moves value).
+  Artifact: `deployments/rewardmanager/lux-96369-strandedlux-sweep.json`. Prove on devnet
+  (still holds ~1.1 LUX) before mainnet.
+- **(alt) signed-balanceChange**: a ~3-line luxfi/evm change (negative → `SubBalance`) makes
+  stateUpgrade a true move — but needs a node rebuild + redeploy (not config-only).
+Recommend DECOUPLING the sweep from the RewardManager activation (routing is proven +
+config-only; the sweep mechanism needs owner sign-off + a devnet dry-run).
+
+---
+## Tx-Fee 50/50 Split — burn + staking-reward fold (DORMANT option, NOT the live path)
+
+> Superseded as the live behavior by the RewardManager DAO routing above. This code is
+> committed but gated OFF (`FeeSplitTimestamp` nil everywhere) and kept as a ready option
+> if the DAO ever chooses an in-protocol burn+stake split. The P-Chain fold-in was NOT
+> built (design only). Original design follows.
+
+Owner decision (superseded): every C-Chain transaction fee is divided **50% true burn**
+(real supply reduction) + **50% folded into the P-Chain staking reward** (validators'
+returns grow from fee flow, unified into the native reward payout — NOT a separate
+C-Chain coinbase stream).
+
+### Current reality this replaces
+The C-Chain credits the **entire** fee (base fee + tip, EVM-mode accounting) to
+`block.Coinbase`, which defaults to the blackhole `0x0100…0000`
+(`core/state_transition.go` fee-credit site; coinbase forced to blackhole by
+`GetCoinbaseAt`). Nothing is burned; the fee just piles up in an uncontrolled EOA
+(~3,778 LUX stuck there). The intended split was never built. Note: geth's own
+`core/state_transition.go:569` is a *different* path used only by geth-direct
+chains — the C-Chain runs **evm's vendored** `core/state_transition.go`, so the
+split lives there.
+
+### Mechanism (the ONE seam, deterministic, config-gated)
+Single fee-disbursement site: `evm/core/state_transition.go` `execute()`. The
+per-tx credit is delegated to `creditTxFee` (`evm/core/fee_split.go`):
+
+- **Gate** — `extras.ChainConfig.FeeSplitTimestamp` (a *standalone* fee-routing
+  fork, sibling to `AllowFeeRecipients`; intentionally NOT in the `NetworkUpgrades`
+  opcode-fork chain — it is orthogonal to EVM/Durango/Quasar/… and has no ordering
+  relationship to them). `IsFeeSplit(time)` gates activation. A compatibility check
+  (`checkConfigCompatible`) freezes the activation time once effective, so a node
+  cannot silently reschedule it and fork.
+- **Split** — `fee` = `gasUsed × effectiveGasPrice` (a consensus value):
+  - `rewardShare = fee >> 1` (floor(fee/2)) → credited to `extras.FeeRewardVault`
+    (`0x0100…0002`), a protocol-owned account that holds real, tracked balance.
+  - `burnShare  = fee − rewardShare` (ceil(fee/2)) → **credited to no account**.
+    Never re-crediting it removes it from the account trie: the sum of all balances
+    (the supply) drops by exactly `burnShare`. This is a **true burn**, the same
+    mechanism as the EIP-1559 base-fee burn — NOT a transfer to a dead EOA (which
+    leaves supply unchanged). The odd wei on an odd fee goes to the burn.
+- **Legacy path unchanged** — when `FeeSplit` is inactive, the full fee goes to the
+  coinbase exactly as before.
+
+**Determinism**: `fee` is a consensus value; the split is pure uint256 integer math
+(one right shift) to a fixed address — every validator computes an identical
+post-state, so the handler cannot fork the chain. A running multi-node net that
+keeps finalizing *is* the determinism proof.
+
+### Conservation invariant
+Per tx (fee F): `Δ(Σ balances) = −burnShare`, `Δ(vault) = +rewardShare`,
+`rewardShare + burnShare = F`. Whole-system, after the vault is atomically exported
+to P-Chain and paid to validators (a *move*, not a mint):
+`total_supply_after = total_supply_before − Σ burnShare`. The reward half is
+supply-neutral (redistributed); the curve-based staking mint is orthogonal and
+unchanged. **No mint for the fee half ⇒ structurally impossible to double-mint.**
+
+### Implemented + PROVEN on real block execution (C-Chain half)
+Files: `evm/core/fee_split.go` (helper), `evm/core/state_transition.go` (seam),
+`evm/params/extras/config.go` (`FeeRewardVault`, `FeeSplitTimestamp`, `IsFeeSplit`,
+compat, description). Tests (all pass, `CGO_ENABLED=0 go test ./core/ ./params/extras/`):
+- `core/fee_split_test.go` — split math, conservation, odd-wei rule, determinism
+  (identical post-state root), legacy-path preserved.
+- `params/extras/fee_split_test.go` — activation-gate boundary + compat freeze.
+- `core/fee_split_block_test.go` — **end-to-end on produced+accepted blocks**:
+  10 LUX genesis, 5 transfers @ 21000 gas × 225 gwei ⇒
+  - blackhole `0x0100…0000` balance = **0** (stuck behavior replaced)
+  - vault `0x0100…0002` = **11,812,500,000,000,000 wei** (exactly 50%)
+  - **BURNED = 11,812,500,000,000,000 wei** — supply 10e18 → 9.9881875e18 (real decrease)
+  - burn == vault (exact 50/50 on even fees); sender debit == value + fee. Conservation exact.
+
+### P-Chain fold-in (designed; scoped — the larger, consensus-critical lift)
+The reward half must reach P-Chain validators as staking reward. Chosen model **R1
+(move, not mint)** — simplest correct, conservation by construction:
+1. **Periodic atomic export** of the `FeeRewardVault` balance C→P (Avalanche/Lux
+   shared-memory export/import — the native conservation-exact value-move; today
+   exports are user-initiated, so a *system-triggered* epoch export is new machinery:
+   a hook in the C-Chain `FinalizeAndAssemble`/atomic path emitting an export UTXO to
+   a canonical P-Chain fee-reward-pool address, draining the vault).
+2. **P-Chain fee-reward pool** — new persisted state (`vms/platformvm/state`:
+   `Get/SetFeeRewardPool`) funded by the import. (New persisted field ⇒ state
+   serialization/migration ⇒ consensus-critical; must be gated + migration-tested.)
+3. **Distribution** — at `RewardValidatorTx` commit
+   (`vms/platformvm/txs/executor/proposal_tx_executor.go` `rewardValidatorTx`, ~line
+   285 where `reward := validator.PotentialReward`), add the validator's pro-rata
+   share of the pool (deterministic: by stake-weight over the accrual epoch) to the
+   payout UTXO — unifying it into the native staking-reward path with no second mint.
+4. **Supply sync** — decrement P-Chain `currentSupply` by the epoch's burn `B` so the
+   reward curve (`vms/platformvm/reward/calculator.go`, driven by
+   `remainingSupply = SupplyCap − currentSupply`) sees true post-burn supply.
+
+Rejected alternative **R2 (burn-on-C + re-mint-on-P)**: same net supply, but needs a
+trustless cross-chain counter read and an exact burn==mint match (a double
+supply-touch = double-mint/loss risk). Violates "no double-mint, simplest correct".
+
+> Interpretation flag for owner: "unifies into the staking-reward **mint**" is
+> realized as unifying into the staking-reward **payout**, funded by moved fees, not
+> a second mint — the conservation-safe reading. Confirm before P-Chain build.
+
+### Rollout (gated — do NOT skip a stage)
+1. **Devnet 96367** — build the C-Chain plugin via **ARC CI** (never local docker),
+   deploy to the 5-validator devnet, set `feeSplitTimestamp` in the C-Chain upgrade
+   config to a near-future time. Send txs; verify via RPC on **all 5** nodes:
+   `eth_getBalance(0x0100…0002)` grows by Σfee/2; `eth_getBalance(0x0100…0000)` stays
+   flat; per-tx `gasUsed`+effective price ⇒ expected burn; identical state root /
+   block hash at each height across all 5 (determinism); capture before/after + tx
+   hashes. (Unit + block-level tests above already prove the invariants deterministically.)
+2. **Testnet** — same config, longer soak; confirm no fork, supply-decrease trend.
+3. **Mainnet 96369** — ONLY after owner go: add `feeSplitTimestamp` (future) to the
+   C-Chain upgrade config via a dated fork tx (not a genesis edit). Separate owner
+   decision: sweep vs. burn the ~3,778 LUX already stuck at `0x0100…0000`.
+
+Guardrails honored: luxfi packages only; patch-semver; ARC CI builds (local builds
+here were unit-tests only); deterministic; supply conserved exactly.
+
 ## Key Implementation Details
 
 ### Context Management
