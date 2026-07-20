@@ -237,6 +237,22 @@ func shadowApply(
 		if d := tx.Data(); len(d) > 0 {
 			t.Data = d
 		}
+		// EIP-2930 access list (nil for legacy txs). Carrying it lets cevm charge
+		// the intrinsic surcharge (2400/addr + 1900/key) and pre-warm the entries,
+		// so its gas_used — and thus the coinbase credit and keccak-MPT root —
+		// matches the Go EVM on an access-list-bearing fee block.
+		if al := tx.AccessList(); len(al) > 0 {
+			t.AccessList = make([]cevmbridge.AccessTuple, len(al))
+			for j := range al {
+				copy(t.AccessList[j].Address[:], al[j].Address[:])
+				if len(al[j].StorageKeys) > 0 {
+					t.AccessList[j].StorageKeys = make([][32]byte, len(al[j].StorageKeys))
+					for k := range al[j].StorageKeys {
+						copy(t.AccessList[j].StorageKeys[k][:], al[j].StorageKeys[k][:])
+					}
+				}
+			}
+		}
 		ctxs[i] = t
 	}
 

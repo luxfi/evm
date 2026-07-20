@@ -49,16 +49,25 @@ type Storage struct {
 	Value   [32]byte // big-endian slot value
 }
 
+// AccessTuple is one EIP-2930 access-list entry: an address the tx pre-declares
+// plus the storage keys of that address it pre-declares. Feeds cevm's intrinsic
+// gas surcharge (2400/addr + 1900/key) and EIP-2929 warm-set.
+type AccessTuple struct {
+	Address     [20]byte
+	StorageKeys [][32]byte // each 32-byte big-endian slot key
+}
+
 // Tx is one transaction to replay. Value and GasPrice are 32-byte big-endian.
 type Tx struct {
-	Sender    [20]byte
-	Recipient [20]byte // ignored when IsCreate
-	Value     [32]byte // big-endian
-	GasPrice  [32]byte // big-endian
-	GasLimit  uint64
-	Nonce     uint64
-	Data      []byte // calldata or init code
-	IsCreate  bool
+	Sender     [20]byte
+	Recipient  [20]byte // ignored when IsCreate
+	Value      [32]byte // big-endian
+	GasPrice   [32]byte // big-endian
+	GasLimit   uint64
+	Nonce      uint64
+	Data       []byte // calldata or init code
+	IsCreate   bool
+	AccessList []AccessTuple // EIP-2930 (nil/empty for legacy txs)
 }
 
 // BlockCtx is the block / transaction context. The 256-bit fields are 32-byte
