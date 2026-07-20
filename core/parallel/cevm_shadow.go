@@ -4,32 +4,50 @@
 package parallel
 
 // cevm_shadow.go wires the Lux C++ EVM (cevm) into the block executor as a
-// byte-exact SHADOW VERIFIER, not an applier.
+// consensus-SAFE, apply-then-verify GATED APPLIER (a strict superset of the
+// original byte-exact shadow verifier).
 //
 // The map proved two facts that lock this design:
 //   1. parallel.RegisterExecutor(e) makes core/state_processor.go route EVERY
 //      block through e.ExecuteBlock (no SetBackend needed).
 //   2. The CONSENSUS state root is taken from the GO statedb.IntermediateRoot()
-//      (block_validator.go), NOT from cevm's returned root. So cevm as the
-//      APPLIER would have to mutate the Go statedb via host callbacks (heavy,
-//      deferred). As a VERIFIER it needs none of that.
+//      (block_validator.go), NOT from cevm's returned root. So for cevm to be
+//      the APPLIER it must write its post-execution state into the Go statedb,
+//      after which block_validator recomputes IntermediateRoot over that
+//      written-back state — which must equal cevm's root (== header.Root).
 //
 // So this executor: (a) snapshots the pre-block Go state read-only, (b) replays
 // the block's transactions through cevm's real process_block over that snapshot
-// to get cevm's independent keccak-MPT root, (c) cross-checks that root against
-// header.Root (the post-state root the Go EVM produced when the block was
-// built), tallying agree/disagree/finalize-gap/declined counters, and then
-// ALWAYS returns (nil, nil) so the Go sequential path is the one that actually
-// applies the block. cevm never fabricates receipts and never touches the live
-// state — the suite stays correct while cevm's real MPT is checked on every
-// block it can represent.
+// to get cevm's independent keccak-MPT root + per-tx results + logs + a
+// POST-STATE DELTA (ABI v2), (c) cross-checks cevm's root against header.Root
+// (the post-state root the Go EVM produced when the block was built), tallying
+// agree/disagree/finalize-gap/declined counters.
 //
-// Root-only verification sidesteps BOTH known cevm gaps: it needs no logs (the
-// receipts gap) and no state write-back (the applier gap). The proven safe
-// subset (pure value transfers + non-reverting calls into existing code) yields
-// a byte-exact match; everything else (top-level CREATE, REVERT/OOG, EIP-2930
-// access lists, EIP-3529 refunds, or a state too large to snapshot) is tallied
-// as a decline/disagree and the Go EVM's root stands unchallenged.
+// When the roots AGREE, it PROMOTES to applier under a four-way safety gate:
+//   - write cevm's post-state delta into an ISOLATED COPY of the Go statedb;
+//   - compute that copy's IntermediateRoot(IsEIP158) and rebuild the receipts;
+//   - keep the writeback ONLY IF all four consensus quantities byte-match the
+//     header: state root, aggregate bloom, receipt-trie hash, and cumulative
+//     gas. Then apply the identical delta to the LIVE statedb and return the
+//     receipts — cevm has now EXECUTED the block and the Go EVM will NOT re-run
+//     it. If ANY of the four mismatches (or a tx was rejected, or a blob tx is
+//     present), the live statedb is NEVER touched and it returns (nil, nil) so
+//     the Go EVM applies. A wrong or incomplete delta can therefore never be
+//     committed — the gate is consensus-safe BY CONSTRUCTION.
+//
+// The trial writeback runs on statedb.Copy() (not the live statedb) precisely
+// because IntermediateRoot -> Finalise -> clearJournalAndRefund invalidates the
+// journal, which would make a post-hoc RevertToSnapshot unreliable. Verifying on
+// an isolated copy and only replaying onto the live statedb after a full match
+// sidesteps that entirely: on any mismatch there is nothing to revert.
+//
+// The proven safe subset (pure value transfers + non-reverting calls into
+// existing code) yields a byte-exact match and is APPLIED by cevm; everything
+// else (top-level CREATE, REVERT/OOG, EIP-158 empty-account divergence, EIP-2930
+// access lists, EIP-3529 refunds, withdrawals, or a state too large to snapshot)
+// is tallied as a decline/disagree/reverted-mismatch and the Go EVM applies it
+// unchallenged. Declined blocks fall through with the live state untouched, so
+// the suite stays correct.
 //
 // This file is intentionally NOT behind //go:build cevm: it always compiles and
 // always registers. When built without -tags cevm, cevmbridge.Enabled is false
@@ -42,12 +60,15 @@ import (
 
 	"github.com/holiman/uint256"
 
+	"github.com/luxfi/crypto"
 	"github.com/luxfi/evm/core/parallel/cevmbridge"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/geth/common"
+	"github.com/luxfi/geth/core/tracing"
 	"github.com/luxfi/geth/core/types"
 	"github.com/luxfi/geth/core/vm"
 	ethparams "github.com/luxfi/geth/params"
+	"github.com/luxfi/geth/trie"
 )
 
 // Snapshot caps. A block whose pre-state exceeds these is declined (counted as
@@ -68,9 +89,13 @@ var (
 	cevmDeclinedNoPreimage uint64 // an account address was unrecoverable (preimages off) — cannot seed cevm
 	cevmDeclinedTx         uint64 // a tx sender could not be recovered
 	cevmErrored            uint64 // cevm process_block failed / panicked
+	cevmApplied            uint64 // cevm APPLIED the block: four-way gate passed, receipts returned
+	cevmRevertedMismatch   uint64 // agreed on root but the gated writeback/gate failed → declined to Go
 )
 
-// ShadowStats is a snapshot of the cevm shadow-verifier counters.
+// ShadowStats is a snapshot of the cevm shadow-verifier / applier counters.
+// Invariant: Applied + RevertedMismatch == Agree — every agreeing block is put
+// through the four-way apply gate, which either applies it or declines to Go.
 type ShadowStats struct {
 	Processed          uint64
 	Agree              uint64
@@ -80,6 +105,8 @@ type ShadowStats struct {
 	DeclinedNoPreimage uint64
 	DeclinedTx         uint64
 	Errored            uint64
+	Applied            uint64
+	RevertedMismatch   uint64
 }
 
 // CevmShadowStats returns the current cevm shadow-verifier counters.
@@ -93,6 +120,8 @@ func CevmShadowStats() ShadowStats {
 		DeclinedNoPreimage: atomic.LoadUint64(&cevmDeclinedNoPreimage),
 		DeclinedTx:         atomic.LoadUint64(&cevmDeclinedTx),
 		Errored:            atomic.LoadUint64(&cevmErrored),
+		Applied:            atomic.LoadUint64(&cevmApplied),
+		RevertedMismatch:   atomic.LoadUint64(&cevmRevertedMismatch),
 	}
 }
 
@@ -101,6 +130,7 @@ func ResetCevmShadowStats() {
 	for _, p := range []*uint64{
 		&cevmProcessed, &cevmAgree, &cevmDisagree, &cevmFinalizeGap,
 		&cevmDeclinedTooLarge, &cevmDeclinedNoPreimage, &cevmDeclinedTx, &cevmErrored,
+		&cevmApplied, &cevmRevertedMismatch,
 	} {
 		atomic.StoreUint64(p, 0)
 	}
@@ -120,42 +150,51 @@ func init() {
 	}
 }
 
-// cevmShadowExecutor is a BlockExecutor that only ever verifies: it returns
-// (nil, nil) unconditionally so the Go sequential path applies the block.
+// cevmShadowExecutor is a BlockExecutor that verifies cevm's independent
+// keccak-MPT root against the header and, when they byte-match under the
+// four-way gate, APPLIES cevm's post-state into the live statedb and returns its
+// receipts; on any mismatch or decline reason it returns (nil, nil) so the Go
+// EVM applies the block, leaving the live statedb untouched.
 type cevmShadowExecutor struct{}
 
-// ExecuteBlock runs the cevm shadow cross-check and ALWAYS declines. It never
-// returns receipts or an error, so it can never break block processing — a
-// mismatch or an internal failure only moves a counter.
+// ExecuteBlock runs the cevm cross-check and, on a four-way byte-match, APPLIES
+// cevm's execution by writing its post-state delta into the live statedb and
+// returning the reconstructed receipts. On any mismatch, decline reason, or
+// internal failure it returns (nil, nil) with the live statedb untouched, so the
+// Go EVM applies the block — cevm can therefore never destabilise consensus.
 func (cevmShadowExecutor) ExecuteBlock(
 	config *ethparams.ChainConfig,
 	header *types.Header,
 	txs types.Transactions,
 	statedb *state.StateDB,
 	_ vm.Config,
-) ([]*types.Receipt, error) {
+) (receipts []*types.Receipt, err error) {
 	if !cevmbridge.Enabled || config == nil || header == nil || statedb == nil || len(txs) == 0 {
 		return nil, nil
 	}
-	// The verifier must NEVER destabilise consensus: any panic in the snapshot
-	// or bridge is swallowed and counted, and we still decline.
+	// A panic anywhere in the snapshot, bridge, or gate must NEVER destabilise
+	// consensus: swallow it, count it, and decline. All risky work (bridge cgo,
+	// trial writeback, root/receipt hashing) runs BEFORE the single live
+	// writeback, so a panic always leaves the live statedb pristine.
 	defer func() {
 		if r := recover(); r != nil {
 			atomic.AddUint64(&cevmErrored, 1)
+			receipts, err = nil, nil
 		}
 	}()
-	shadowVerify(config, header, txs, statedb)
-	return nil, nil
+	return shadowApply(config, header, txs, statedb), nil
 }
 
-// shadowVerify performs the read-only snapshot, cevm replay, and root
-// cross-check, updating exactly one counter.
-func shadowVerify(
+// shadowApply performs the read-only snapshot, cevm replay, and root
+// cross-check, updating exactly one verifier counter. When cevm's root
+// byte-matches header.Root it PROMOTES to applier via applyAgreedBlock, returning
+// cevm's receipts (block APPLIED by cevm) or nil (declined; the Go EVM applies).
+func shadowApply(
 	config *ethparams.ChainConfig,
 	header *types.Header,
 	txs types.Transactions,
 	statedb *state.StateDB,
-) {
+) []*types.Receipt {
 	// (a) Snapshot the pre-block state read-only. DumpToCollector iterates the
 	// trie at statedb's original (parent) root, which is exactly the pre-block
 	// state the block was applied to.
@@ -164,23 +203,26 @@ func shadowVerify(
 	switch {
 	case snap.tooLarge:
 		atomic.AddUint64(&cevmDeclinedTooLarge, 1)
-		return
+		return nil
 	case snap.missingAddr || snap.badBalance:
 		// Addresses come from trie-key preimages; without them cevm cannot be
 		// seeded (its leaf key is keccak256(addr)). Decline honestly.
 		atomic.AddUint64(&cevmDeclinedNoPreimage, 1)
-		return
+		return nil
 	}
 
-	// (b) Build the cevm tx array from the block's transactions.
+	// (b) Build the cevm tx array from the block's transactions, retaining each
+	// recovered sender for ContractAddress reconstruction on CREATE receipts.
 	signer := types.MakeSigner(config, header.Number, header.Time)
 	ctxs := make([]cevmbridge.Tx, len(txs))
+	froms := make([]common.Address, len(txs))
 	for i, tx := range txs {
 		from, err := types.Sender(signer, tx)
 		if err != nil {
 			atomic.AddUint64(&cevmDeclinedTx, 1)
-			return
+			return nil
 		}
+		froms[i] = from
 		var t cevmbridge.Tx
 		copy(t.Sender[:], from[:])
 		if to := tx.To(); to != nil {
@@ -198,29 +240,207 @@ func shadowVerify(
 		ctxs[i] = t
 	}
 
-	// (c) cevm's independent root over the same pre-state + txs.
+	// (c) cevm's independent root + per-tx results + logs + post-state delta over
+	// the same pre-state + txs.
 	res, err := cevmbridge.ProcessBlock(snap.accts, snap.storage, ctxs, blockCtx(config, header))
 	if err != nil || !res.OK {
 		atomic.AddUint64(&cevmErrored, 1)
-		return
+		return nil
 	}
 	atomic.AddUint64(&cevmProcessed, 1)
 
 	// (d) Cross-check against the root the Go EVM committed for this block.
-	if common.BytesToHash(res.StateRoot[:]) == header.Root {
-		atomic.AddUint64(&cevmAgree, 1)
-		return
+	if common.BytesToHash(res.StateRoot[:]) != header.Root {
+		// Known-alignment gap: cevm credits the coinbase per-tx (gas*gasPrice,
+		// which matches evm's full-fee-to-coinbase state_transition) but does NOT
+		// run engine.Finalize. On Lux that Finalize is a state no-op EXCEPT for
+		// EIP-4895 withdrawals, which move header.Root. Attribute such mismatches
+		// to the finalize gap rather than blaming cevm.
+		if header.WithdrawalsHash != nil && *header.WithdrawalsHash != types.EmptyWithdrawalsHash {
+			atomic.AddUint64(&cevmFinalizeGap, 1)
+		} else {
+			atomic.AddUint64(&cevmDisagree, 1)
+		}
+		return nil
 	}
-	// Known-alignment gap: cevm credits the coinbase per-tx (gas*gasPrice, which
-	// matches evm's full-fee-to-coinbase state_transition) but does NOT run
-	// engine.Finalize. On Lux that Finalize is a state no-op EXCEPT for
-	// EIP-4895 withdrawals, which move header.Root. Attribute such mismatches to
-	// the finalize gap rather than blaming cevm.
-	if header.WithdrawalsHash != nil && *header.WithdrawalsHash != types.EmptyWithdrawalsHash {
-		atomic.AddUint64(&cevmFinalizeGap, 1)
-		return
+	atomic.AddUint64(&cevmAgree, 1)
+
+	// Roots agree: promote to APPLIER under the four-way safety gate. On any
+	// mismatch the gate declines with the live statedb untouched (Go EVM applies).
+	receipts := applyAgreedBlock(config, header, txs, froms, statedb, res)
+	if receipts == nil {
+		atomic.AddUint64(&cevmRevertedMismatch, 1)
+		return nil
 	}
-	atomic.AddUint64(&cevmDisagree, 1)
+	atomic.AddUint64(&cevmApplied, 1)
+	return receipts
+}
+
+// applyAgreedBlock is entered ONLY when cevm's root already byte-matches
+// header.Root. It promotes cevm from verifier to APPLIER under the four-way
+// consensus gate — the identical quantities block_validator.ValidateState
+// checks: state root, aggregate bloom, receipt-trie hash, and cumulative gas.
+//
+// It reconstructs the receipts, replays cevm's post-state delta onto an ISOLATED
+// COPY of the statedb, and keeps the writeback ONLY IF all four byte-match the
+// header. On a full match it replays the identical delta onto the LIVE statedb
+// and returns the receipts (cevm has executed the block); on ANY mismatch — or an
+// unrepresentable block (blob tx, cevm-rejected tx, tx-result count skew) — it
+// returns nil WITHOUT touching the live statedb, so the Go EVM applies.
+//
+// The trial runs on statedb.Copy() rather than a Snapshot()/RevertToSnapshot()
+// pair because IntermediateRoot → Finalise → clearJournalAndRefund invalidates
+// the journal, making a post-IntermediateRoot revert unreliable. Verifying on a
+// deep copy leaves the live statedb pristine on every decline (nothing to
+// revert) and is consensus-safe by construction: a wrong or incomplete delta can
+// never reach the live state.
+func applyAgreedBlock(
+	config *ethparams.ChainConfig,
+	header *types.Header,
+	txs types.Transactions,
+	froms []common.Address,
+	statedb *state.StateDB,
+	res cevmbridge.Result,
+) []*types.Receipt {
+	n := len(txs)
+	// Unrepresentable-block pre-checks: decline before any state work.
+	if len(res.TxResults) != n {
+		return nil
+	}
+	for i := range txs {
+		if txs[i].Type() == types.BlobTxType {
+			return nil // blob receipts carry BlobGasUsed/Price we do not reconstruct
+		}
+		if res.TxResults[i].Rejected {
+			return nil // block includes a tx cevm deems non-includable
+		}
+	}
+
+	receipts := buildCevmReceipts(header, txs, froms, res)
+
+	// Trial writeback + verification on an isolated deep copy — the live statedb
+	// is NOT touched here.
+	trial := statedb.Copy()
+	writePostState(trial, res)
+	root := trial.IntermediateRoot(config.IsEIP158(header.Number))
+
+	// FOUR-WAY consensus gate. Any mismatch ⇒ decline; live statedb untouched.
+	if root != header.Root {
+		return nil
+	}
+	var rbloom types.Bloom
+	for _, r := range receipts {
+		b := types.CreateBloom(r)
+		for k := range rbloom {
+			rbloom[k] |= b[k]
+		}
+	}
+	if rbloom != header.Bloom {
+		return nil
+	}
+	if types.DeriveSha(types.Receipts(receipts), trie.NewStackTrie(nil)) != header.ReceiptHash {
+		return nil
+	}
+	if receipts[n-1].CumulativeGasUsed != header.GasUsed {
+		return nil
+	}
+
+	// All four byte-match: cevm's execution reproduces the header exactly. Replay
+	// the identical delta onto the LIVE statedb and hand back cevm's receipts —
+	// state_processor will NOT re-run the Go EVM for this block.
+	writePostState(statedb, res)
+	return receipts
+}
+
+// buildCevmReceipts reconstructs the block's receipts from cevm's per-tx results
+// + emitted logs, mirroring core/state_processor.go applyTransaction (post-
+// Byzantium: PostState=nil, Status from the per-tx flag, ContractAddress via
+// crypto.CreateAddress for CREATE, logs attached by tx index with a block-wide
+// running index, per-receipt Bloom). The result is gate-checked against the
+// header before any receipt is returned.
+func buildCevmReceipts(
+	header *types.Header,
+	txs types.Transactions,
+	froms []common.Address,
+	res cevmbridge.Result,
+) []*types.Receipt {
+	blockHash := header.Hash()
+	blockNum := header.Number
+	receipts := make([]*types.Receipt, len(txs))
+	var logIndex uint
+	for i, tx := range txs {
+		tr := res.TxResults[i]
+		r := &types.Receipt{
+			Type:              tx.Type(),
+			Status:            uint64(tr.Status),
+			CumulativeGasUsed: tr.CumulativeGasUsed,
+			TxHash:            tx.Hash(),
+			GasUsed:           tr.GasUsed,
+			BlockHash:         blockHash,
+			BlockNumber:       blockNum,
+			TransactionIndex:  uint(i),
+		}
+		if tx.To() == nil {
+			var from crypto.Address
+			copy(from[:], froms[i][:])
+			created := crypto.CreateAddress(from, tx.Nonce())
+			r.ContractAddress = common.BytesToAddress(created[:])
+		}
+		var txLogs []*types.Log
+		for k := range res.Logs {
+			lg := &res.Logs[k]
+			if lg.TxIndex != uint32(i) {
+				continue
+			}
+			l := &types.Log{
+				Address:        common.BytesToAddress(lg.Address[:]),
+				Topics:         make([]common.Hash, len(lg.Topics)),
+				Data:           append([]byte(nil), lg.Data...),
+				BlockNumber:    blockNum.Uint64(),
+				TxHash:         tx.Hash(),
+				TxIndex:        uint(i),
+				BlockHash:      blockHash,
+				BlockTimestamp: header.Time,
+				Index:          logIndex,
+			}
+			for t := range lg.Topics {
+				l.Topics[t] = common.BytesToHash(lg.Topics[t][:])
+			}
+			txLogs = append(txLogs, l)
+			logIndex++
+		}
+		r.Logs = txLogs
+		r.Bloom = types.CreateBloom(r)
+		receipts[i] = r
+	}
+	return receipts
+}
+
+// writePostState replays cevm's post-state DELTA onto sdb using ABSOLUTE setters.
+// It is the ONE writeback, applied first to an isolated Copy for verification
+// and, only after the four-way gate passes, to the live statedb — so the copy
+// and the live state receive byte-identical mutations. cevm emits ABSOLUTE post
+// values (SetNonce/SetBalance/SetCode/SetState), a Deleted flag for
+// selfdestructed accounts (Finalise drops the object and its storage under the
+// promoted deletion), and omits storage rows for deleted accounts.
+func writePostState(sdb *state.StateDB, res cevmbridge.Result) {
+	for i := range res.PostAccounts {
+		pa := &res.PostAccounts[i]
+		addr := common.BytesToAddress(pa.Address[:])
+		if pa.Deleted {
+			sdb.SelfDestruct(addr)
+			continue
+		}
+		sdb.SetNonce(addr, pa.Nonce, tracing.NonceChangeUnspecified)
+		sdb.SetBalance(addr, &uint256.Int{pa.Balance[0], pa.Balance[1], pa.Balance[2], pa.Balance[3]}, tracing.BalanceChangeUnspecified)
+		if pa.CodeChanged {
+			sdb.SetCode(addr, pa.Code, tracing.CodeChangeUnspecified)
+		}
+	}
+	for i := range res.PostStorage {
+		ps := &res.PostStorage[i]
+		sdb.SetState(common.BytesToAddress(ps.Address[:]), common.BytesToHash(ps.Key[:]), common.BytesToHash(ps.Value[:]))
+	}
 }
 
 // effectiveGasPrice mirrors evm/core/state_transition.go: the price used for the
