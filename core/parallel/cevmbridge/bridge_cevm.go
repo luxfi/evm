@@ -173,5 +173,84 @@ func ProcessBlock(accts []Account, storage []Storage, txs []Tx, ctx BlockCtx) (R
 			}
 		}
 	}
+
+	// --- logs (ABI v2) ---------------------------------------------------
+	// Marshal the emitted logs so the applier can rebuild receipt bloom +
+	// receipt-trie hash (statedb.GetLogs is empty when cevm — not the Go EVM —
+	// executed). Topics are flat n_topics*32 big-endian.
+	if n := int(r.n_logs); n > 0 && r.logs != nil {
+		clogs := unsafe.Slice((*C.cevm_pb_log)(unsafe.Pointer(r.logs)), n)
+		res.Logs = make([]Log, n)
+		for i := 0; i < n; i++ {
+			lg := Log{TxIndex: uint32(clogs[i].tx_index)}
+			for j := 0; j < 20; j++ {
+				lg.Address[j] = byte(clogs[i].address[j])
+			}
+			if nt := int(clogs[i].n_topics); nt > 0 && clogs[i].topics != nil {
+				tb := unsafe.Slice((*C.uint8_t)(unsafe.Pointer(clogs[i].topics)), nt*32)
+				lg.Topics = make([][32]byte, nt)
+				for t := 0; t < nt; t++ {
+					for b := 0; b < 32; b++ {
+						lg.Topics[t][b] = byte(tb[t*32+b])
+					}
+				}
+			}
+			if dl := int(clogs[i].data_len); dl > 0 && clogs[i].data != nil {
+				db := unsafe.Slice((*C.uint8_t)(unsafe.Pointer(clogs[i].data)), dl)
+				lg.Data = make([]byte, dl)
+				for b := 0; b < dl; b++ {
+					lg.Data[b] = byte(db[b])
+				}
+			}
+			res.Logs[i] = lg
+		}
+	}
+
+	// --- post-state account deltas (ABI v2) ------------------------------
+	if n := int(r.n_out_accts); n > 0 && r.out_accts != nil {
+		ca := unsafe.Slice((*C.cevm_pb_out_account)(unsafe.Pointer(r.out_accts)), n)
+		res.PostAccounts = make([]PostAccount, n)
+		for i := 0; i < n; i++ {
+			pa := PostAccount{
+				Nonce:       uint64(ca[i].nonce),
+				Deleted:     ca[i].deleted != 0,
+				CodeChanged: ca[i].code_changed != 0,
+			}
+			for j := 0; j < 20; j++ {
+				pa.Address[j] = byte(ca[i].address[j])
+			}
+			for j := 0; j < 4; j++ {
+				pa.Balance[j] = uint64(ca[i].balance[j])
+			}
+			for j := 0; j < 32; j++ {
+				pa.CodeHash[j] = byte(ca[i].code_hash[j])
+			}
+			if cl := int(ca[i].code_len); cl > 0 && ca[i].code != nil {
+				cb := unsafe.Slice((*C.uint8_t)(unsafe.Pointer(ca[i].code)), cl)
+				pa.Code = make([]byte, cl)
+				for b := 0; b < cl; b++ {
+					pa.Code[b] = byte(cb[b])
+				}
+			}
+			res.PostAccounts[i] = pa
+		}
+	}
+
+	// --- post-state storage deltas (ABI v2) ------------------------------
+	if n := int(r.n_out_storage); n > 0 && r.out_storage != nil {
+		cs := unsafe.Slice((*C.cevm_pb_out_storage)(unsafe.Pointer(r.out_storage)), n)
+		res.PostStorage = make([]PostStorage, n)
+		for i := 0; i < n; i++ {
+			var ps PostStorage
+			for j := 0; j < 20; j++ {
+				ps.Address[j] = byte(cs[i].address[j])
+			}
+			for j := 0; j < 32; j++ {
+				ps.Key[j] = byte(cs[i].key[j])
+				ps.Value[j] = byte(cs[i].value[j])
+			}
+			res.PostStorage[i] = ps
+		}
+	}
 	return res, nil
 }
