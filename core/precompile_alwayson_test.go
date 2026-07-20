@@ -1,6 +1,13 @@
 // Copyright (C) 2025-2026, Lux Industries Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// Excluded under -tags cevm: imports precompile/registry, which transitively
+// pulls luxfi/precompile/dex -> luxfi/dex/pkg/dex whose cgo file #includes the
+// (absent) dex_gpu.h header — breaking the CGO_ENABLED=1 build the cevm shadow
+// verifier needs. Precompile test, not a block-execution test; still runs in
+// every non-cevm build. Orthogonal blocker, not a cevm regression.
+//go:build !cevm
+
 package core
 
 import (
