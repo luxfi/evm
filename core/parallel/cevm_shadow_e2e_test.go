@@ -66,19 +66,40 @@ func TestCevmShadowVerifiesRealBlocks(t *testing.T) {
 	}
 	defer chain.Stop()
 
-	// Generate real blocks of pure value transfers (the proven safe subset).
-	// gasLimit == 21000 so gasUsed == gasLimit (no refund ambiguity); gasPrice
-	// == baseFee so the effective price is exactly baseFee; full fee -> coinbase
-	// matches cevm's per-tx coinbase credit.
-	const nBlocks = 3
+	// Generate MANY real blocks of pure value transfers (the proven safe
+	// subset) so the agreement sample is substantial, not a token N=3. Each
+	// block carries several transfers from key1 to deterministically-distinct
+	// fresh recipients (created by the transfer — the state layer's create-on-
+	// transfer path is part of the proven N-transfer parity). gasLimit == 21000
+	// so gasUsed == gasLimit (no refund ambiguity); gasPrice == baseFee so the
+	// effective price is exactly baseFee; full fee -> coinbase matches cevm's
+	// per-tx coinbase credit. The blocks flow through the REAL StateProcessor
+	// (InsertChain -> Process -> parallel.DefaultExecutor().ExecuteBlock), so
+	// this is genuine block execution, not a synthetic fixture.
+	const (
+		nBlocks   = 256
+		txper     = 3
+		startBal  = 1000
+	)
+	var nonce uint64
 	blocks, _, err := core.GenerateChain(gspec.Config, chain.Genesis(), engine, db, nBlocks, 10, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(coinbase)
-		tx := types.NewTransaction(uint64(i), to, big.NewInt(int64(1000+i)), 21000, big.NewInt(legacy.BaseFee), nil)
-		signed, serr := types.SignTx(tx, signer, key1)
-		if serr != nil {
-			t.Fatalf("SignTx: %v", serr)
+		for j := 0; j < txper; j++ {
+			// Distinct fresh recipient per tx: address = keccak-free, derived
+			// from (block, j) so every transfer touches a unique new account.
+			var rcpt common.Address
+			rcpt[0] = 0x11
+			rcpt[18] = byte(i)
+			rcpt[19] = byte(j)
+			tx := types.NewTransaction(nonce, rcpt, big.NewInt(int64(startBal+i*txper+j)), 21000, big.NewInt(legacy.BaseFee), nil)
+			signed, serr := types.SignTx(tx, signer, key1)
+			if serr != nil {
+				t.Fatalf("SignTx: %v", serr)
+			}
+			b.AddTx(signed)
+			nonce++
 		}
-		b.AddTx(signed)
+		_ = to
 	})
 	if err != nil {
 		t.Fatalf("GenerateChain: %v", err)
@@ -90,11 +111,11 @@ func TestCevmShadowVerifiesRealBlocks(t *testing.T) {
 	}
 	s := parallel.CevmShadowStats()
 
-	t.Logf("cevm shadow stats over %d real blocks: %+v", nBlocks, s)
+	t.Logf("cevm shadow stats over %d real blocks (%d txs): %+v", nBlocks, nBlocks*txper, s)
 
-	// Every block carried exactly one pure transfer over a fully-snapshottable
-	// pre-state with preimages on, so cevm must have PROCESSED every block and
-	// AGREED byte-exactly with the Go EVM root on each.
+	// Every block carried pure transfers over a fully-snapshottable pre-state
+	// with preimages on, so cevm must have PROCESSED every block and AGREED
+	// byte-exactly with the Go EVM root on each.
 	if s.DeclinedNoPreimage > 0 {
 		t.Fatalf("verifier declined %d blocks for missing preimages — genesis/state preimages not available", s.DeclinedNoPreimage)
 	}
@@ -109,5 +130,6 @@ func TestCevmShadowVerifiesRealBlocks(t *testing.T) {
 	if s.Disagree != 0 {
 		t.Fatalf("cevm disagreed on %d blocks", s.Disagree)
 	}
-	t.Logf("PASS: cevm real-MPT root byte-matched the Go EVM header.Root on all %d blocks", s.Agree)
+	t.Logf("PASS: cevm real-MPT root byte-matched the Go EVM header.Root on ALL %d/%d real blocks (%d transfers)",
+		s.Agree, s.Processed, nBlocks*txper)
 }
