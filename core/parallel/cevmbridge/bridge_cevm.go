@@ -108,6 +108,38 @@ func ProcessBlock(accts []Account, storage []Storage, txs []Tx, ctx BlockCtx) (R
 		if t.IsCreate {
 			cTxs[i].is_create = 1
 		}
+
+		// --- EIP-2930 access list (may be nil) ---------------------------
+		// The tuple array and each tuple's flattened key buffer are allocated
+		// in C memory: cTxs is Go memory passed to C, and cgo forbids it from
+		// containing Go pointers — so access_list / storage_keys must point at
+		// C allocations (freed on return alongside the data payloads).
+		if nal := len(t.AccessList); nal > 0 {
+			tupBytes := C.size_t(nal) * C.size_t(unsafe.Sizeof(C.cevm_pb_access_tuple{}))
+			tupMem := C.malloc(tupBytes)
+			frees = append(frees, tupMem)
+			tuples := unsafe.Slice((*C.cevm_pb_access_tuple)(tupMem), nal)
+			for j := range t.AccessList {
+				at := &t.AccessList[j]
+				for b := 0; b < 20; b++ {
+					tuples[j].address[b] = C.uint8_t(at.Address[b])
+				}
+				tuples[j].storage_keys = nil
+				tuples[j].n_storage_keys = 0
+				if nk := len(at.StorageKeys); nk > 0 {
+					flat := make([]byte, nk*32)
+					for k := range at.StorageKeys {
+						copy(flat[k*32:(k+1)*32], at.StorageKeys[k][:])
+					}
+					kp := C.CBytes(flat)
+					frees = append(frees, kp)
+					tuples[j].storage_keys = (*C.uint8_t)(kp)
+					tuples[j].n_storage_keys = C.uint32_t(nk)
+				}
+			}
+			cTxs[i].access_list = (*C.cevm_pb_access_tuple)(tupMem)
+			cTxs[i].n_access_list = C.uint32_t(nal)
+		}
 	}
 
 	// --- context ---------------------------------------------------------
