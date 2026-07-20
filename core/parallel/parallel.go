@@ -27,13 +27,14 @@ var (
 	mu          sync.RWMutex
 	executor    BlockExecutor
 	accelerator GPUAccelerator
-	txExecutors map[EVMBackend]TransactionExecutor
-	activeBack  EVMBackend = GoEVM
-)
-
-func init() {
+	// txExecutors is initialized at declaration (not in init()) so it exists
+	// before ANY package init() runs. Backend files register from their own
+	// init() (e.g. backend_cevm.go under -tags cevm), and Go orders init()
+	// funcs alphabetically by filename — backend_cevm.go precedes parallel.go,
+	// so an init()-time map creation would be too late and panic on a nil map.
 	txExecutors = make(map[EVMBackend]TransactionExecutor)
-}
+	activeBack  = GoEVM
+)
 
 // RegisterExecutor sets the parallel block executor.
 func RegisterExecutor(e BlockExecutor) {
