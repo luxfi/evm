@@ -40,8 +40,10 @@ func TestProcessBlockGoldenRoots(t *testing.T) {
 		{1000, "57b7250733ad7f7a1be82d7f1e8d385496b00d2bb93a553b6730dd83dd020099"},
 	}
 
-	if ABIVersion() != 1 {
-		t.Fatalf("unexpected ABI version %d (want 1)", ABIVersion())
+	// ABI v2 adds the post-state delta export (out_accts / out_storage) used by
+	// the applier; the golden roots below are unchanged across v1→v2.
+	if ABIVersion() != 2 {
+		t.Fatalf("unexpected ABI version %d (want 2)", ABIVersion())
 	}
 
 	for _, c := range cases {
