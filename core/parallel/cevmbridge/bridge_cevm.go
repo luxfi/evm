@@ -386,4 +386,7 @@ func StateRoot(h uint64) [32]byte {
 }
 
 // StateFree releases the resident StateDB behind h (no-op on an unknown handle).
-func StateFree(h uint64) { C.cevm_state_free(C.uint64_t(h)) }
+func StateFree(h uint64) {
+	C.cevm_state_free(C.uint64_t(h)) // free the C++ StateDB (stops faulting through the store)
+	freeLazyResources(h)             // then release a lazy handle's retained store + cgo.Handle (no-op otherwise)
+}

@@ -19,6 +19,7 @@ package cevmbridge
 /*
 #cgo CFLAGS: -I/Users/z/work/luxcpp/cevm/lib/evm
 #include <stdint.h>
+#include <stdlib.h>
 #include "state/go_process_block.h"
 
 // Forward declarations of the Go trampolines (defined via //export in
@@ -45,6 +46,8 @@ import (
 	"errors"
 	"fmt"
 	"runtime/cgo"
+	"sync"
+	"unsafe"
 
 	"github.com/luxfi/database"
 )
@@ -95,4 +98,67 @@ func StateLoadFrom(db database.Database) (uint64, error) {
 		return 0, errors.New("cevmbridge: cevm_state_load failed (no/corrupt persisted state, or reloaded root != persisted root)")
 	}
 	return uint64(h), nil
+}
+
+// lazyResources holds the per-handle backing a LAZY (store-backed) StateDB needs to
+// keep alive: unlike a full reseed — which touches the store only during the load
+// call — a lazy handle faults leaves and sub-tries in from the store on every later
+// StateApplyBlock, so both the cgo.Handle (the ctx the C++ callbacks target) AND the
+// cevm_kv_store struct itself must outlive the handle. StateFree releases them.
+type lazyResource struct {
+	handle cgo.Handle
+	store  *C.cevm_kv_store // C-heap, so its pointer stays valid for the handle's life
+}
+
+var (
+	lazyMu        sync.Mutex
+	lazyResources = map[uint64]lazyResource{}
+)
+
+// StateLoadFromLazy creates a NEW resident cevm StateDB from db WITHOUT reseeding:
+// the account trie is store-backed at the persisted root and reads/writes fault
+// leaves + storage sub-tries in on demand, so RAM is bounded to the touched working
+// set, not the whole state — the mainnet-scale block-apply path. StateApplyBlock on
+// the returned handle produces the FULL state root paged. The handle MUST be
+// released with StateFree (which frees the retained store + cgo.Handle).
+func StateLoadFromLazy(db database.Database) (uint64, error) {
+	if db == nil {
+		return 0, ErrNilStore
+	}
+	st := &kvStore{db: db}
+	handle := cgo.NewHandle(st)
+
+	// The store must outlive the C++ handle (it faults through it on every apply),
+	// so it lives on the C heap, not as a Go local that goes out of scope here.
+	var tmpl C.cevm_kv_store
+	store := (*C.cevm_kv_store)(C.malloc(C.size_t(unsafe.Sizeof(tmpl))))
+	*store = C.cevmbridge_make_store(C.uintptr_t(handle))
+
+	h := uint64(C.cevm_state_load_lazy(store))
+	if h == 0 {
+		handle.Delete()
+		C.free(unsafe.Pointer(store))
+		return 0, errors.New("cevmbridge: cevm_state_load_lazy failed (no/corrupt persisted meta)")
+	}
+
+	lazyMu.Lock()
+	lazyResources[h] = lazyResource{handle: handle, store: store}
+	lazyMu.Unlock()
+	return h, nil
+}
+
+// freeLazyResources releases the store + cgo.Handle retained for a lazy handle. A
+// no-op for a non-lazy handle. Called by StateFree AFTER cevm_state_free, so the
+// C++ side has stopped faulting through the store before it is freed.
+func freeLazyResources(h uint64) {
+	lazyMu.Lock()
+	r, ok := lazyResources[h]
+	if ok {
+		delete(lazyResources, h)
+	}
+	lazyMu.Unlock()
+	if ok {
+		r.handle.Delete()
+		C.free(unsafe.Pointer(r.store))
+	}
 }
