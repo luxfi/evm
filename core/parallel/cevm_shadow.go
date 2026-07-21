@@ -16,12 +16,23 @@ package parallel
 //      after which block_validator recomputes IntermediateRoot over that
 //      written-back state — which must equal cevm's root (== header.Root).
 //
-// So this executor: (a) snapshots the pre-block Go state read-only, (b) replays
-// the block's transactions through cevm's real process_block over that snapshot
-// to get cevm's independent keccak-MPT root + per-tx results + logs + a
-// POST-STATE DELTA (ABI v2), (c) cross-checks cevm's root against header.Root
-// (the post-state root the Go EVM produced when the block was built), tallying
+// So this executor: (a) keeps a RESIDENT cevm StateDB per chain (held C-side
+// behind an opaque handle) and dumps + seeds the pre-block Go state into it only
+// ONCE per sync — the first block for a chain, or a resync after a drift — NOT
+// every block; (b) applies each block's transactions against that resident state
+// (no dump on the in-sync path) through cevm's real process_block, whose
+// incremental commit() re-hashes only the O(changed) paths, to get cevm's
+// independent keccak-MPT root + per-tx results + logs + a POST-STATE DELTA (ABI
+// v2); (c) cross-checks cevm's root against header.Root (the post-state root the
+// Go EVM produced when the block was built), tallying
 // agree/disagree/finalize-gap/declined counters.
+//
+// The resident state is what kills the per-block full-state dump (the
+// declined-too-large decline at scale): across N blocks cevm dumps the full
+// state ~ONCE, not N times. Correctness is unchanged — the resident root is
+// verified against the header at every height, and on any mismatch the resident
+// is re-seeded from the (correct) Go state and the block is declined to the Go
+// EVM, so a drifted resident can never commit wrong state.
 //
 // When the roots AGREE, it PROMOTES to applier under a four-way safety gate:
 //   - write cevm's post-state delta into an ISOLATED COPY of the Go statedb;
@@ -56,6 +67,7 @@ package parallel
 
 import (
 	"math/big"
+	"sync"
 	"sync/atomic"
 
 	"github.com/holiman/uint256"
@@ -71,9 +83,13 @@ import (
 	"github.com/luxfi/geth/trie"
 )
 
-// Snapshot caps. A block whose pre-state exceeds these is declined (counted as
-// declined-too-large) rather than risk an unbounded dump on live chains — the
-// shadow verifier is a correctness harness, not a mainnet path.
+// Seed caps. The resident path dumps the full pre-state only on a SEED/RESYNC
+// (not every block), so these bound that one dump: a chain whose state exceeds
+// them cannot be seeded and is declined (declined-too-large) rather than risk an
+// unbounded dump. Because seeds are rare (~once per chain), this cap no longer
+// fires per block the way the old dump-every-block shadow did — that is the
+// declined-too-large fix. As the SOLE mainnet engine cevm would drop the cap
+// entirely and own disk-backed state; here it stays a bounded correctness harness.
 const (
 	maxShadowAccounts = 200_000
 	maxShadowStorage  = 1_000_000
@@ -91,6 +107,14 @@ var (
 	cevmErrored            uint64 // cevm process_block failed / panicked
 	cevmApplied            uint64 // cevm APPLIED the block: four-way gate passed, receipts returned
 	cevmRevertedMismatch   uint64 // agreed on root but the gated writeback/gate failed → declined to Go
+
+	// Resident-applier counters. The applier holds a PERSISTENT cevm StateDB per
+	// chain and applies each block against it (no per-block dump). These measure
+	// the declined-too-large-killer: full-state seeds should be ~1 (genesis + rare
+	// resyncs), NOT N.
+	cevmResidentApplied uint64 // blocks applied via the resident handle (subset of Applied)
+	cevmResidentSeeds   uint64 // full-state dumps+seeds into the resident StateDB (initial + resyncs)
+	cevmResidentReseeds uint64 // subset of seeds that were drift RESYNCS (not the first seed)
 )
 
 // ShadowStats is a snapshot of the cevm shadow-verifier / applier counters.
@@ -107,6 +131,10 @@ type ShadowStats struct {
 	Errored            uint64
 	Applied            uint64
 	RevertedMismatch   uint64
+	// Resident-applier metrics.
+	ResidentApplied uint64
+	ResidentSeeds   uint64 // full-state seeds (the declined-too-large-killer number)
+	ResidentReseeds uint64
 }
 
 // CevmShadowStats returns the current cevm shadow-verifier counters.
@@ -122,18 +150,25 @@ func CevmShadowStats() ShadowStats {
 		Errored:            atomic.LoadUint64(&cevmErrored),
 		Applied:            atomic.LoadUint64(&cevmApplied),
 		RevertedMismatch:   atomic.LoadUint64(&cevmRevertedMismatch),
+		ResidentApplied:    atomic.LoadUint64(&cevmResidentApplied),
+		ResidentSeeds:      atomic.LoadUint64(&cevmResidentSeeds),
+		ResidentReseeds:    atomic.LoadUint64(&cevmResidentReseeds),
 	}
 }
 
-// ResetCevmShadowStats zeroes the counters (test helper).
+// ResetCevmShadowStats zeroes the counters and frees any resident cevm StateDB
+// handles (test helper). Clearing the resident registry makes each test start
+// from a clean "first block seeds once" state, independent of prior tests.
 func ResetCevmShadowStats() {
 	for _, p := range []*uint64{
 		&cevmProcessed, &cevmAgree, &cevmDisagree, &cevmFinalizeGap,
 		&cevmDeclinedTooLarge, &cevmDeclinedNoPreimage, &cevmDeclinedTx, &cevmErrored,
 		&cevmApplied, &cevmRevertedMismatch,
+		&cevmResidentApplied, &cevmResidentSeeds, &cevmResidentReseeds,
 	} {
 		atomic.StoreUint64(p, 0)
 	}
+	resetResidents()
 }
 
 // CevmShadowEnabled reports whether the real cevm bridge is linked (-tags cevm).
@@ -185,42 +220,193 @@ func (cevmShadowExecutor) ExecuteBlock(
 	return shadowApply(config, header, txs, statedb), nil
 }
 
-// shadowApply performs the read-only snapshot, cevm replay, and root
-// cross-check, updating exactly one verifier counter. When cevm's root
-// byte-matches header.Root it PROMOTES to applier via applyAgreedBlock, returning
-// cevm's receipts (block APPLIED by cevm) or nil (declined; the Go EVM applies).
+// residentState tracks the PERSISTENT cevm StateDB for one chain: its opaque
+// handle and whether that resident state is known-good at a given block height.
+// The handle is created once and reused; the resident state advances one block
+// at a time as the applier applies blocks, and is re-seeded (a full-state dump)
+// only on the first block or after a drift/decline knocks it out of sync.
+type residentState struct {
+	handle     uint64
+	haveHandle bool   // handle allocated (StateCreate called)
+	everSeeded bool   // at least one full-state seed has happened (first seed vs resync)
+	synced     bool   // resident state is verified-good at `height`
+	height     uint64 // block number the resident state currently holds (post-block)
+}
+
+var (
+	residentMu sync.Mutex
+	residents  = map[string]*residentState{}
+)
+
+// getResident returns the per-chain resident state (keyed by chain ID), creating
+// the entry and lazily its cevm handle on first use. Block execution is serial
+// per chain, so the returned *residentState is mutated without a lock by the
+// single in-flight ExecuteBlock; only the registry map is guarded here.
+func getResident(config *ethparams.ChainConfig) *residentState {
+	key := "?"
+	if config != nil && config.ChainID != nil {
+		key = config.ChainID.String()
+	}
+	residentMu.Lock()
+	defer residentMu.Unlock()
+	rs := residents[key]
+	if rs == nil {
+		rs = &residentState{}
+		residents[key] = rs
+	}
+	if !rs.haveHandle {
+		rs.handle = cevmbridge.StateCreate()
+		rs.haveHandle = true
+	}
+	return rs
+}
+
+// resetResidents frees all resident cevm StateDB handles and clears the registry
+// (test helper, called by ResetCevmShadowStats).
+func resetResidents() {
+	residentMu.Lock()
+	defer residentMu.Unlock()
+	for _, rs := range residents {
+		if rs.haveHandle {
+			cevmbridge.StateFree(rs.handle)
+		}
+	}
+	residents = map[string]*residentState{}
+}
+
+// shadowApply cross-checks cevm's independent keccak-MPT root against the header
+// and, on a byte-match under the four-way gate, APPLIES cevm's post-state into
+// the live Go statedb. It runs cevm against a RESIDENT StateDB held C-side per
+// chain, so state lives ACROSS blocks: the pre-block Go state is dumped and
+// seeded into cevm only ONCE per sync (the first block for a chain, or a resync
+// after a drift/decline), NOT every block. On the common in-sync path it applies
+// the block against the resident tries with NO dump — cevm's incremental commit()
+// then costs O(changed), not O(state). Every outcome updates exactly one verifier
+// counter; a wrong resident root is caught by the root check (disagree) and the
+// four-way apply gate, so a drifted resident can never commit wrong state — it
+// only forces a resync on the next block.
 func shadowApply(
 	config *ethparams.ChainConfig,
 	header *types.Header,
 	txs types.Transactions,
 	statedb *state.StateDB,
 ) []*types.Receipt {
-	// (a) Snapshot the pre-block state read-only. DumpToCollector iterates the
-	// trie at statedb's original (parent) root, which is exactly the pre-block
-	// state the block was applied to.
-	snap := &shadowSnapshot{maxAccts: maxShadowAccounts, maxStorage: maxShadowStorage}
-	statedb.DumpToCollector(snap, &state.DumpConfig{})
-	switch {
-	case snap.tooLarge:
-		atomic.AddUint64(&cevmDeclinedTooLarge, 1)
-		return nil
-	case snap.missingAddr || snap.badBalance:
-		// Addresses come from trie-key preimages; without them cevm cannot be
-		// seeded (its leaf key is keccak256(addr)). Decline honestly.
-		atomic.AddUint64(&cevmDeclinedNoPreimage, 1)
+	rs := getResident(config)
+
+	// Executed blocks have Number >= 1, so `parent` is the height cevm's resident
+	// state must already hold to apply this block without a full reseed.
+	var number, parent uint64
+	if header.Number != nil {
+		number = header.Number.Uint64()
+		if number > 0 {
+			parent = number - 1
+		}
+	}
+
+	// (a) (Re)seed the resident StateDB when it is not already at the parent
+	// height. This is the ONLY full-state dump — once per sync, not per block.
+	// DumpToCollector iterates the trie at statedb's original (parent) root, which
+	// is exactly the pre-block state the block was applied to.
+	if !rs.synced || rs.height != parent {
+		snap := &shadowSnapshot{maxAccts: maxShadowAccounts, maxStorage: maxShadowStorage}
+		statedb.DumpToCollector(snap, &state.DumpConfig{})
+		switch {
+		case snap.tooLarge:
+			atomic.AddUint64(&cevmDeclinedTooLarge, 1)
+			rs.synced = false
+			return nil
+		case snap.missingAddr || snap.badBalance:
+			// Addresses come from trie-key preimages; without them cevm cannot be
+			// seeded (its leaf key is keccak256(addr)). Decline honestly.
+			atomic.AddUint64(&cevmDeclinedNoPreimage, 1)
+			rs.synced = false
+			return nil
+		}
+		cevmbridge.StateSeed(rs.handle, snap.accts, snap.storage)
+		atomic.AddUint64(&cevmResidentSeeds, 1)
+		if rs.everSeeded {
+			atomic.AddUint64(&cevmResidentReseeds, 1)
+		}
+		rs.everSeeded = true
+		rs.synced = true
+		rs.height = parent // resident now holds the parent state
+	}
+
+	// (b) Build the cevm tx array, retaining each recovered sender for
+	// ContractAddress reconstruction on CREATE receipts.
+	ctxs, froms, ok := buildCevmTxs(config, header, txs)
+	if !ok {
+		atomic.AddUint64(&cevmDeclinedTx, 1)
+		rs.synced = false // Go will apply this block; resident falls behind → resync next
 		return nil
 	}
 
-	// (b) Build the cevm tx array from the block's transactions, retaining each
-	// recovered sender for ContractAddress reconstruction on CREATE receipts.
+	// Pessimistically flag the resident out-of-sync BEFORE the apply: any error,
+	// panic, or root mismatch below then forces a resync next block. It is
+	// re-marked synced only after cevm's root is verified against the header.
+	rs.synced = false
+
+	// (c) Apply the block against the RESIDENT StateDB (no reseed): cevm's new
+	// root + per-tx results + logs + post-state delta (from the commit change-set).
+	res, err := cevmbridge.StateApplyBlock(rs.handle, ctxs, blockCtx(config, header))
+	if err != nil || !res.OK {
+		atomic.AddUint64(&cevmErrored, 1)
+		return nil
+	}
+	atomic.AddUint64(&cevmProcessed, 1)
+
+	// (d) Cross-check cevm's resident root against the root the Go EVM committed.
+	if common.BytesToHash(res.StateRoot[:]) != header.Root {
+		// Known-alignment gap: cevm credits the coinbase per-tx (gas*gasPrice,
+		// which matches evm's full-fee-to-coinbase state_transition) but does NOT
+		// run engine.Finalize. On Lux that Finalize is a state no-op EXCEPT for
+		// EIP-4895 withdrawals, which move header.Root. Attribute such mismatches
+		// to the finalize gap rather than blaming cevm.
+		if header.WithdrawalsHash != nil && *header.WithdrawalsHash != types.EmptyWithdrawalsHash {
+			atomic.AddUint64(&cevmFinalizeGap, 1)
+		} else {
+			atomic.AddUint64(&cevmDisagree, 1)
+		}
+		// cevm's resident state advanced to a NON-matching state → stays unsynced,
+		// so the next block re-seeds from the (correct) Go state.
+		return nil
+	}
+	atomic.AddUint64(&cevmAgree, 1)
+
+	// Roots agree: promote to APPLIER under the four-way safety gate. On any
+	// mismatch the gate declines with the live statedb untouched (Go EVM applies).
+	receipts := applyAgreedBlock(config, header, txs, froms, statedb, res)
+	if receipts == nil {
+		atomic.AddUint64(&cevmRevertedMismatch, 1)
+		// The root agreed, so cevm's resident state IS correct at this height; the
+		// decline was only a receipt-reconstruction gap and the Go EVM reaches the
+		// identical state, so the resident stays in sync.
+		rs.synced = true
+		rs.height = number
+		return nil
+	}
+	atomic.AddUint64(&cevmApplied, 1)
+	atomic.AddUint64(&cevmResidentApplied, 1)
+	rs.synced = true
+	rs.height = number // resident verified at height N
+	return receipts
+}
+
+// buildCevmTxs converts the block's transactions into the cevm bridge tx array,
+// returning the recovered senders (for CREATE-receipt ContractAddress
+// reconstruction) and ok=false if any sender is unrecoverable.
+func buildCevmTxs(
+	config *ethparams.ChainConfig,
+	header *types.Header,
+	txs types.Transactions,
+) (ctxs []cevmbridge.Tx, froms []common.Address, ok bool) {
 	signer := types.MakeSigner(config, header.Number, header.Time)
-	ctxs := make([]cevmbridge.Tx, len(txs))
-	froms := make([]common.Address, len(txs))
+	ctxs = make([]cevmbridge.Tx, len(txs))
+	froms = make([]common.Address, len(txs))
 	for i, tx := range txs {
 		from, err := types.Sender(signer, tx)
 		if err != nil {
-			atomic.AddUint64(&cevmDeclinedTx, 1)
-			return nil
+			return nil, nil, false
 		}
 		froms[i] = from
 		var t cevmbridge.Tx
@@ -255,41 +441,7 @@ func shadowApply(
 		}
 		ctxs[i] = t
 	}
-
-	// (c) cevm's independent root + per-tx results + logs + post-state delta over
-	// the same pre-state + txs.
-	res, err := cevmbridge.ProcessBlock(snap.accts, snap.storage, ctxs, blockCtx(config, header))
-	if err != nil || !res.OK {
-		atomic.AddUint64(&cevmErrored, 1)
-		return nil
-	}
-	atomic.AddUint64(&cevmProcessed, 1)
-
-	// (d) Cross-check against the root the Go EVM committed for this block.
-	if common.BytesToHash(res.StateRoot[:]) != header.Root {
-		// Known-alignment gap: cevm credits the coinbase per-tx (gas*gasPrice,
-		// which matches evm's full-fee-to-coinbase state_transition) but does NOT
-		// run engine.Finalize. On Lux that Finalize is a state no-op EXCEPT for
-		// EIP-4895 withdrawals, which move header.Root. Attribute such mismatches
-		// to the finalize gap rather than blaming cevm.
-		if header.WithdrawalsHash != nil && *header.WithdrawalsHash != types.EmptyWithdrawalsHash {
-			atomic.AddUint64(&cevmFinalizeGap, 1)
-		} else {
-			atomic.AddUint64(&cevmDisagree, 1)
-		}
-		return nil
-	}
-	atomic.AddUint64(&cevmAgree, 1)
-
-	// Roots agree: promote to APPLIER under the four-way safety gate. On any
-	// mismatch the gate declines with the live statedb untouched (Go EVM applies).
-	receipts := applyAgreedBlock(config, header, txs, froms, statedb, res)
-	if receipts == nil {
-		atomic.AddUint64(&cevmRevertedMismatch, 1)
-		return nil
-	}
-	atomic.AddUint64(&cevmApplied, 1)
-	return receipts
+	return ctxs, froms, true
 }
 
 // applyAgreedBlock is entered ONLY when cevm's root already byte-matches

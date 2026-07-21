@@ -21,6 +21,13 @@ package cevmbridge
 // The preamble only includes the C ABI header (pure C, extern "C"); the C++
 // symbols it pulls resolve from the linked archives, so -lc++ is required and
 // not duplicated (this is a C cgo package — cgo does not auto-add libc++ here).
+//
+// Two entry families share one marshalling pipeline (the marshal* / unmarshal*
+// helpers below):
+//   - STATELESS: ProcessBlock -> cevm_process_block (fresh StateDB per call).
+//   - RESIDENT:  StateCreate/StateSeed/StateApplyBlock/StateRoot/StateFree ->
+//     the cevm_state_* handle ABI (a PERSISTENT StateDB held C-side, so state
+//     lives across blocks and no per-block dump crosses the FFI boundary).
 
 /*
 #cgo CFLAGS: -I/Users/z/work/luxcpp/cevm/lib/evm
@@ -41,83 +48,90 @@ const Enabled = true
 // ABIVersion returns the ABI version compiled into the linked cevm library.
 func ABIVersion() uint32 { return uint32(C.cevm_pb_abi_version()) }
 
-// ProcessBlock seeds a cevm StateDB from accts+storage, replays txs through a
-// real evmc_create_cevm() VM, and returns the real MPT state_root + per-tx
-// status/gas. It is a pure function: it does not touch any Go state.
-func ProcessBlock(accts []Account, storage []Storage, txs []Tx, ctx BlockCtx) (Result, error) {
-	// C buffers allocated for code/data payloads; freed on return.
-	var frees []unsafe.Pointer
-	defer func() {
-		for _, p := range frees {
-			C.free(p)
-		}
-	}()
+// cAlloc accumulates C heap allocations (code/data/access-list payloads that
+// cgo forbids inside Go-memory structs) so they can be freed after the call.
+type cAlloc struct{ ptrs []unsafe.Pointer }
 
-	// --- accounts --------------------------------------------------------
-	cAccts := make([]C.cevm_pb_acct, len(accts))
+func (c *cAlloc) free() {
+	for _, p := range c.ptrs {
+		C.free(p)
+	}
+}
+
+// bytes copies b into C memory tracked for free-on-return.
+func (c *cAlloc) bytes(b []byte) unsafe.Pointer {
+	p := C.CBytes(b)
+	c.ptrs = append(c.ptrs, p)
+	return p
+}
+
+// --- Go -> C marshalling (shared by the stateless + resident paths) ------
+
+func marshalAccts(accts []Account, ca *cAlloc) []C.cevm_pb_acct {
+	c := make([]C.cevm_pb_acct, len(accts))
 	for i := range accts {
 		a := &accts[i]
 		for j := 0; j < 20; j++ {
-			cAccts[i].address[j] = C.uint8_t(a.Address[j])
+			c[i].address[j] = C.uint8_t(a.Address[j])
 		}
-		cAccts[i].nonce = C.uint64_t(a.Nonce)
+		c[i].nonce = C.uint64_t(a.Nonce)
 		for j := 0; j < 4; j++ {
-			cAccts[i].balance[j] = C.uint64_t(a.Balance[j])
+			c[i].balance[j] = C.uint64_t(a.Balance[j])
 		}
 		if len(a.Code) > 0 {
-			p := C.CBytes(a.Code)
-			frees = append(frees, p)
-			cAccts[i].code = (*C.uint8_t)(p)
-			cAccts[i].code_len = C.uint32_t(len(a.Code))
+			c[i].code = (*C.uint8_t)(ca.bytes(a.Code))
+			c[i].code_len = C.uint32_t(len(a.Code))
 		}
 	}
+	return c
+}
 
-	// --- storage ---------------------------------------------------------
-	cStor := make([]C.cevm_pb_storage, len(storage))
+func marshalStorage(storage []Storage) []C.cevm_pb_storage {
+	c := make([]C.cevm_pb_storage, len(storage))
 	for i := range storage {
 		s := &storage[i]
 		for j := 0; j < 20; j++ {
-			cStor[i].address[j] = C.uint8_t(s.Address[j])
+			c[i].address[j] = C.uint8_t(s.Address[j])
 		}
 		for j := 0; j < 32; j++ {
-			cStor[i].key[j] = C.uint8_t(s.Key[j])
-			cStor[i].value[j] = C.uint8_t(s.Value[j])
+			c[i].key[j] = C.uint8_t(s.Key[j])
+			c[i].value[j] = C.uint8_t(s.Value[j])
 		}
 	}
+	return c
+}
 
-	// --- transactions ----------------------------------------------------
-	cTxs := make([]C.cevm_pb_tx, len(txs))
+func marshalTxs(txs []Tx, ca *cAlloc) []C.cevm_pb_tx {
+	c := make([]C.cevm_pb_tx, len(txs))
 	for i := range txs {
 		t := &txs[i]
 		for j := 0; j < 20; j++ {
-			cTxs[i].sender[j] = C.uint8_t(t.Sender[j])
-			cTxs[i].recipient[j] = C.uint8_t(t.Recipient[j])
+			c[i].sender[j] = C.uint8_t(t.Sender[j])
+			c[i].recipient[j] = C.uint8_t(t.Recipient[j])
 		}
 		for j := 0; j < 32; j++ {
-			cTxs[i].value[j] = C.uint8_t(t.Value[j])
-			cTxs[i].gas_price[j] = C.uint8_t(t.GasPrice[j])
+			c[i].value[j] = C.uint8_t(t.Value[j])
+			c[i].gas_price[j] = C.uint8_t(t.GasPrice[j])
 		}
-		cTxs[i].gas_limit = C.uint64_t(t.GasLimit)
-		cTxs[i].nonce = C.uint64_t(t.Nonce)
+		c[i].gas_limit = C.uint64_t(t.GasLimit)
+		c[i].nonce = C.uint64_t(t.Nonce)
 		if len(t.Data) > 0 {
-			p := C.CBytes(t.Data)
-			frees = append(frees, p)
-			cTxs[i].data = (*C.uint8_t)(p)
-			cTxs[i].data_len = C.uint32_t(len(t.Data))
+			c[i].data = (*C.uint8_t)(ca.bytes(t.Data))
+			c[i].data_len = C.uint32_t(len(t.Data))
 		}
 		if t.IsCreate {
-			cTxs[i].is_create = 1
+			c[i].is_create = 1
 		}
 
 		// --- EIP-2930 access list (may be nil) ---------------------------
 		// The tuple array and each tuple's flattened key buffer are allocated
-		// in C memory: cTxs is Go memory passed to C, and cgo forbids it from
+		// in C memory: c is Go memory passed to C, and cgo forbids it from
 		// containing Go pointers — so access_list / storage_keys must point at
 		// C allocations (freed on return alongside the data payloads).
 		if nal := len(t.AccessList); nal > 0 {
 			tupBytes := C.size_t(nal) * C.size_t(unsafe.Sizeof(C.cevm_pb_access_tuple{}))
 			tupMem := C.malloc(tupBytes)
-			frees = append(frees, tupMem)
+			ca.ptrs = append(ca.ptrs, tupMem)
 			tuples := unsafe.Slice((*C.cevm_pb_access_tuple)(tupMem), nal)
 			for j := range t.AccessList {
 				at := &t.AccessList[j]
@@ -131,56 +145,39 @@ func ProcessBlock(accts []Account, storage []Storage, txs []Tx, ctx BlockCtx) (R
 					for k := range at.StorageKeys {
 						copy(flat[k*32:(k+1)*32], at.StorageKeys[k][:])
 					}
-					kp := C.CBytes(flat)
-					frees = append(frees, kp)
-					tuples[j].storage_keys = (*C.uint8_t)(kp)
+					tuples[j].storage_keys = (*C.uint8_t)(ca.bytes(flat))
 					tuples[j].n_storage_keys = C.uint32_t(nk)
 				}
 			}
-			cTxs[i].access_list = (*C.cevm_pb_access_tuple)(tupMem)
-			cTxs[i].n_access_list = C.uint32_t(nal)
+			c[i].access_list = (*C.cevm_pb_access_tuple)(tupMem)
+			c[i].n_access_list = C.uint32_t(nal)
 		}
 	}
+	return c
+}
 
-	// --- context ---------------------------------------------------------
-	var cCtx C.cevm_pb_ctx
+func marshalCtx(ctx BlockCtx) C.cevm_pb_ctx {
+	var c C.cevm_pb_ctx
 	for j := 0; j < 20; j++ {
-		cCtx.coinbase[j] = C.uint8_t(ctx.Coinbase[j])
+		c.coinbase[j] = C.uint8_t(ctx.Coinbase[j])
 	}
-	cCtx.block_number = C.int64_t(ctx.BlockNumber)
-	cCtx.block_timestamp = C.int64_t(ctx.BlockTime)
-	cCtx.block_gas_limit = C.int64_t(ctx.BlockGasLimit)
+	c.block_number = C.int64_t(ctx.BlockNumber)
+	c.block_timestamp = C.int64_t(ctx.BlockTime)
+	c.block_gas_limit = C.int64_t(ctx.BlockGasLimit)
 	for j := 0; j < 32; j++ {
-		cCtx.chain_id[j] = C.uint8_t(ctx.ChainID[j])
-		cCtx.block_base_fee[j] = C.uint8_t(ctx.BaseFee[j])
-		cCtx.prev_randao[j] = C.uint8_t(ctx.PrevRandao[j])
-		cCtx.blob_base_fee[j] = C.uint8_t(ctx.BlobBaseFee[j])
+		c.chain_id[j] = C.uint8_t(ctx.ChainID[j])
+		c.block_base_fee[j] = C.uint8_t(ctx.BaseFee[j])
+		c.prev_randao[j] = C.uint8_t(ctx.PrevRandao[j])
+		c.blob_base_fee[j] = C.uint8_t(ctx.BlobBaseFee[j])
 	}
-	cCtx.revision = C.uint8_t(ctx.Revision)
+	c.revision = C.uint8_t(ctx.Revision)
+	return c
+}
 
-	var (
-		txPtr   *C.cevm_pb_tx
-		acctPtr *C.cevm_pb_acct
-		storPtr *C.cevm_pb_storage
-	)
-	if len(cTxs) > 0 {
-		txPtr = &cTxs[0]
-	}
-	if len(cAccts) > 0 {
-		acctPtr = &cAccts[0]
-	}
-	if len(cStor) > 0 {
-		storPtr = &cStor[0]
-	}
+// --- C -> Go unmarshalling (shared) --------------------------------------
+// Reads the result's heap arrays; the CALLER owns freeing r via C.cevm_pb_free.
 
-	r := C.cevm_process_block(
-		txPtr, C.uint32_t(len(cTxs)),
-		acctPtr, C.uint32_t(len(cAccts)),
-		storPtr, C.uint32_t(len(cStor)),
-		&cCtx,
-	)
-	defer C.cevm_pb_free(&r)
-
+func unmarshalResult(r C.cevm_pb_result) (Result, error) {
 	var res Result
 	res.ABIVersion = uint32(r.abi_version)
 	res.OK = r.ok != 0
@@ -189,7 +186,7 @@ func ProcessBlock(accts []Account, storage []Storage, txs []Tx, ctx BlockCtx) (R
 		res.StateRoot[j] = byte(r.state_root[j])
 	}
 	if r.ok == 0 {
-		return res, fmt.Errorf("cevmbridge: cevm_process_block returned ok=0")
+		return res, fmt.Errorf("cevmbridge: cevm returned ok=0")
 	}
 	if n := int(r.n_tx_results); n > 0 && r.tx_results != nil {
 		cres := unsafe.Slice((*C.cevm_pb_txresult)(unsafe.Pointer(r.tx_results)), n)
@@ -286,3 +283,107 @@ func ProcessBlock(accts []Account, storage []Storage, txs []Tx, ctx BlockCtx) (R
 	}
 	return res, nil
 }
+
+// ProcessBlock (STATELESS) seeds a FRESH cevm StateDB from accts+storage, replays
+// txs through a real evmc_create_cevm() VM, and returns the real MPT state_root +
+// per-tx status/gas + logs + post-state delta. It is a pure function: it does not
+// touch any Go state, and rebuilds the whole StateDB from the seed each call.
+func ProcessBlock(accts []Account, storage []Storage, txs []Tx, ctx BlockCtx) (Result, error) {
+	var ca cAlloc
+	defer ca.free()
+
+	cAccts := marshalAccts(accts, &ca)
+	cStor := marshalStorage(storage)
+	cTxs := marshalTxs(txs, &ca)
+	cCtx := marshalCtx(ctx)
+
+	var (
+		txPtr   *C.cevm_pb_tx
+		acctPtr *C.cevm_pb_acct
+		storPtr *C.cevm_pb_storage
+	)
+	if len(cTxs) > 0 {
+		txPtr = &cTxs[0]
+	}
+	if len(cAccts) > 0 {
+		acctPtr = &cAccts[0]
+	}
+	if len(cStor) > 0 {
+		storPtr = &cStor[0]
+	}
+
+	r := C.cevm_process_block(
+		txPtr, C.uint32_t(len(cTxs)),
+		acctPtr, C.uint32_t(len(cAccts)),
+		storPtr, C.uint32_t(len(cStor)),
+		&cCtx,
+	)
+	defer C.cevm_pb_free(&r)
+	return unmarshalResult(r)
+}
+
+// --- Resident (stateful) handle API --------------------------------------
+
+// StateCreate allocates a resident cevm StateDB and returns its opaque non-zero
+// handle. Free it with StateFree when the chain is torn down.
+func StateCreate() uint64 { return uint64(C.cevm_state_create()) }
+
+// StateSeed (re)seeds the resident StateDB behind handle h from accts+storage and
+// commits to establish its base root. A reseed FULLY RESETS the handle's state —
+// this is the one full-state dump per sync (genesis or a drift resync).
+func StateSeed(h uint64, accts []Account, storage []Storage) {
+	var ca cAlloc
+	defer ca.free()
+
+	cAccts := marshalAccts(accts, &ca)
+	cStor := marshalStorage(storage)
+
+	var (
+		acctPtr *C.cevm_pb_acct
+		storPtr *C.cevm_pb_storage
+	)
+	if len(cAccts) > 0 {
+		acctPtr = &cAccts[0]
+	}
+	if len(cStor) > 0 {
+		storPtr = &cStor[0]
+	}
+	C.cevm_state_seed(C.uint64_t(h),
+		acctPtr, C.uint32_t(len(cAccts)),
+		storPtr, C.uint32_t(len(cStor)))
+}
+
+// StateApplyBlock replays txs against the RESIDENT StateDB behind h (NO reseed),
+// returning the new MPT root + per-tx + logs + post-state delta. The resident
+// tries make commit() incremental, so this is O(changed), not O(state), and no
+// full-state dump crosses the FFI boundary.
+func StateApplyBlock(h uint64, txs []Tx, ctx BlockCtx) (Result, error) {
+	var ca cAlloc
+	defer ca.free()
+
+	cTxs := marshalTxs(txs, &ca)
+	cCtx := marshalCtx(ctx)
+
+	var txPtr *C.cevm_pb_tx
+	if len(cTxs) > 0 {
+		txPtr = &cTxs[0]
+	}
+	r := C.cevm_state_apply_block(C.uint64_t(h), txPtr, C.uint32_t(len(cTxs)), &cCtx)
+	defer C.cevm_pb_free(&r)
+	return unmarshalResult(r)
+}
+
+// StateRoot returns the current resident MPT root behind h (all-zero on an
+// unknown handle). Used for sync checks.
+func StateRoot(h uint64) [32]byte {
+	var buf [32]C.uint8_t
+	C.cevm_state_root(C.uint64_t(h), &buf[0])
+	var root [32]byte
+	for j := 0; j < 32; j++ {
+		root[j] = byte(buf[j])
+	}
+	return root
+}
+
+// StateFree releases the resident StateDB behind h (no-op on an unknown handle).
+func StateFree(h uint64) { C.cevm_state_free(C.uint64_t(h)) }
