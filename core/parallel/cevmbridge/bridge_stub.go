@@ -5,6 +5,8 @@
 
 package cevmbridge
 
+import "github.com/luxfi/database"
+
 // Enabled reports whether the real C++ EVM bridge is linked. It is false in the
 // default build; build with -tags cevm to link the cevm libs and get the real
 // process_block path.
@@ -39,3 +41,17 @@ func StateRoot(_ uint64) [32]byte { return [32]byte{} }
 
 // StateFree is a no-op in the non-cevm build.
 func StateFree(_ uint64) {}
+
+// ErrNilStore mirrors the cevm-build sentinel so callers compile identically.
+var ErrNilStore = ErrDisabled
+
+// StatePersist declines with ErrDisabled in the non-cevm build (no resident
+// state to persist).
+func StatePersist(_ uint64, _ database.Database) (int, error) {
+	return 0, ErrDisabled
+}
+
+// StateLoadFrom declines with ErrDisabled in the non-cevm build.
+func StateLoadFrom(_ database.Database) (uint64, error) {
+	return 0, ErrDisabled
+}
