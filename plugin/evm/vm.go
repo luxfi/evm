@@ -34,6 +34,7 @@ import (
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/core"
+	"github.com/luxfi/evm/core/parallel"
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/eth"
 	"github.com/luxfi/evm/eth/ethconfig"
@@ -83,6 +84,7 @@ import (
 
 	"github.com/luxfi/consensus/engine/chain/block"
 	consensusmockable "github.com/luxfi/consensus/utils/timer/mockable"
+	"github.com/luxfi/database/prefixdb"
 	"github.com/luxfi/database/versiondb"
 	"github.com/luxfi/filesystem/perms"
 	"github.com/luxfi/ids"
@@ -363,6 +365,16 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	}
 	if err := vm.config.Validate(); err != nil {
 		return err
+	}
+
+	// Opt-in: give cevm its own disk-backed resident state so the C-Chain lazy-loads
+	// a checkpoint at startup (bounded RAM) instead of dumping the full Go state into
+	// cevm. Isolated under a "cevmstate" key prefix; registered before chain init so
+	// it is in place for the first block. Inert unless built with -tags cevm, and
+	// safe by construction — a missing/stale checkpoint falls back to the Go-dump
+	// seed and every root is still verified (see core/parallel/cevm_resident_store.go).
+	if vm.config.CevmResidentStore {
+		parallel.SetCevmResidentStore(prefixdb.New([]byte("cevmstate"), db))
 	}
 
 	// The 0x9999 native DEX is ALWAYS-ON (live since the Dec 25 2025 precompile activation).
