@@ -16,15 +16,33 @@ package cevmbridge
 // UNCHANGED and stays CPU-only — this file is gated behind the extra `cevmgpu`
 // tag, so it never affects the CPU-only bridge.
 //
-// The GPU archives are the build-phase5b Metal-ON build (LUX_CEVM_ENABLE_METAL
-// =ON) of the SAME cevm source tree that build-mpt's state libs were built
-// from. A link-level symbol audit (nm) confirms every evm:: core/state/
-// precompile symbol the GPU archives reference is satisfied by build-mpt's
-// libs, and the evm::gpu::* symbols resolve among the four archives
-// themselves. The only externally-provided symbols are Metal/Foundation
-// framework symbols (MTLCreateSystemDefaultDevice, MTLCompileOptions,
-// CFRetain/CFRelease, …) — hence exactly two `-framework` flags; no
-// MetalPerformanceShaders and no luxgpu are referenced by these archives.
+// The GPU archives are the build-mpt-gpu Metal-ON build (LUX_CEVM_ENABLE_METAL
+// =ON) — CO-BUILT from the SAME current cevm source tree AND the SAME Conan
+// deps as build-mpt's state libs (build-mpt-gpu references build-mpt's own
+// generators/conan_toolchain.cmake, so crypto/bls/intx/zap-core/nlohmann_json
+// are byte-identical; the GPU backend luxgpu_core_static is compiled from the
+// in-tree luxcpp/gpu at project version 0.5.2 — the same version build-mpt
+// reports). This CLOSES the prior ABI-layout risk: the earlier linkage used
+// build-phase5b (Apr/May, project version 0.2.0) archives against Jul
+// build-mpt (0.5.2) state libs — nm-clean but era-skewed. The two are now the
+// same era by construction. A link-level symbol audit (nm) confirms every
+// evm:: core/state/precompile symbol the GPU archives reference is satisfied
+// by build-mpt's libs, and the evm::gpu::* symbols resolve among the four
+// archives themselves. The only externally-provided symbols are
+// Metal/Foundation framework symbols (MTLCreateSystemDefaultDevice,
+// MTLCompileOptions, CFRetain/CFRelease, …) — hence exactly two `-framework`
+// flags; no MetalPerformanceShaders and no luxgpu are referenced by these
+// archives.
+//
+// Rebuild recipe (mac, Metal toolchain-free — ObjC++ host libs link without
+// `xcrun metal`; shaders compile at runtime):
+//   export LUXCPP_PREFIX=/opt/homebrew PKG_CONFIG_PATH=/opt/homebrew/lib/pkgconfig \
+//          DYLD_LIBRARY_PATH=/opt/homebrew/lib SDKROOT=$(xcrun --show-sdk-path)
+//   cmake -S /Users/z/work/luxcpp/cevm -B /Users/z/work/luxcpp/cevm/build-mpt-gpu \
+//     -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DLUX_CEVM_ENABLE_METAL=ON \
+//     -DCMAKE_TOOLCHAIN_FILE=/Users/z/work/luxcpp/cevm/build-mpt/build/Release/generators/conan_toolchain.cmake
+//   cmake --build /Users/z/work/luxcpp/cevm/build-mpt-gpu \
+//     --target evm-gpu evm-metal-hosts evm-kernel-metal evm-gpu-state -j8
 //
 // SCOPE — BUILD + LINK ONLY. Metal shaders compile at RUNTIME
 // (newLibraryWithSource), and MTLCreateSystemDefaultDevice() returns nil in a
@@ -37,7 +55,7 @@ package cevmbridge
 
 /*
 #cgo CFLAGS: -I/Users/z/work/luxcpp/cevm/lib/evm/gpu
-#cgo LDFLAGS: /Users/z/work/luxcpp/cevm/build-phase5b/lib/evm/libevm-gpu.a /Users/z/work/luxcpp/cevm/build-phase5b/lib/evm/libevm-metal-hosts.a /Users/z/work/luxcpp/cevm/build-phase5b/lib/evm/libevm-kernel-metal.a /Users/z/work/luxcpp/cevm/build-phase5b/lib/evm/libevm-gpu-state.a -framework Metal -framework Foundation
+#cgo LDFLAGS: /Users/z/work/luxcpp/cevm/build-mpt-gpu/lib/evm/libevm-gpu.a /Users/z/work/luxcpp/cevm/build-mpt-gpu/lib/evm/libevm-metal-hosts.a /Users/z/work/luxcpp/cevm/build-mpt-gpu/lib/evm/libevm-kernel-metal.a /Users/z/work/luxcpp/cevm/build-mpt-gpu/lib/evm/libevm-gpu-state.a -framework Metal -framework Foundation
 #include "go_bridge.h"
 */
 import "C"
