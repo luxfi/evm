@@ -55,3 +55,8 @@ func StatePersist(_ uint64, _ database.Database) (int, error) {
 func StateLoadFrom(_ database.Database) (uint64, error) {
 	return 0, ErrDisabled
 }
+
+// StateLoadFromLazy declines with ErrDisabled in the non-cevm build.
+func StateLoadFromLazy(_ database.Database) (uint64, error) {
+	return 0, ErrDisabled
+}

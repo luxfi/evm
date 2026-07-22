@@ -139,6 +139,14 @@ type Config struct {
 	SnapshotWait   bool `json:"snapshot-wait"`
 	SnapshotVerify bool `json:"snapshot-verification-enabled"`
 
+	// CevmResidentStore opts the C-Chain into cevm-owned disk-backed resident state
+	// (build-tag `cevm` only): the resident cevm StateDB checkpoints to a dedicated
+	// KV and lazy-loads it at startup (bounded RAM) instead of a full Go-state dump.
+	// Default false. Safe by construction — if no checkpoint is durable/available the
+	// applier falls back to the Go-dump seed and still verifies every root, so this
+	// can only affect performance, never correctness. Inert in the non-cevm build.
+	CevmResidentStore bool `json:"cevm-resident-store"`
+
 	// Pruning Settings
 	Pruning                         bool    `json:"pruning-enabled"`                    // If enabled, trie roots are only persisted every 4096 blocks
 	AcceptorQueueLimit              int     `json:"accepted-queue-limit"`               // Maximum blocks to queue before blocking during acceptance

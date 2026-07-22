@@ -255,8 +255,14 @@ func getResident(config *ethparams.ChainConfig) *residentState {
 		residents[key] = rs
 	}
 	if !rs.haveHandle {
-		rs.handle = cevmbridge.StateCreate()
-		rs.haveHandle = true
+		// Resume from a persisted checkpoint (bounded-RAM lazy load) if one exists —
+		// e.g. just after a node restart — before falling back to a fresh handle that
+		// gets seeded from the full Go-state dump. No-op unless the VM registered a
+		// store AND a checkpoint is present (see cevm_resident_store.go).
+		if !tryLazyLoadCheckpoint(rs) {
+			rs.handle = cevmbridge.StateCreate()
+			rs.haveHandle = true
+		}
 	}
 	return rs
 }
@@ -383,12 +389,14 @@ func shadowApply(
 		// identical state, so the resident stays in sync.
 		rs.synced = true
 		rs.height = number
+		persistCheckpoint(rs)
 		return nil
 	}
 	atomic.AddUint64(&cevmApplied, 1)
 	atomic.AddUint64(&cevmResidentApplied, 1)
 	rs.synced = true
 	rs.height = number // resident verified at height N
+	persistCheckpoint(rs) // durable, bounded-cadence checkpoint (no-op unless a store is registered)
 	return receipts
 }
 
