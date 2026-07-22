@@ -367,16 +367,6 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 		return err
 	}
 
-	// Opt-in: give cevm its own disk-backed resident state so the C-Chain lazy-loads
-	// a checkpoint at startup (bounded RAM) instead of dumping the full Go state into
-	// cevm. Isolated under a "cevmstate" key prefix; registered before chain init so
-	// it is in place for the first block. Inert unless built with -tags cevm, and
-	// safe by construction — a missing/stale checkpoint falls back to the Go-dump
-	// seed and every root is still verified (see core/parallel/cevm_resident_store.go).
-	if vm.config.CevmResidentStore {
-		parallel.SetCevmResidentStore(prefixdb.New([]byte("cevmstate"), db))
-	}
-
 	// The 0x9999 native DEX is ALWAYS-ON (live since the Dec 25 2025 precompile activation).
 	// There is no value-activation GATE to bind here: a swap's fail-closed controls (real-
 	// asset registry admission, the live-code verifier, the per-swap min-out / price floor,
@@ -432,6 +422,19 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	// Initialize the database
 	if err := vm.initializeDBs(db); err != nil {
 		return fmt.Errorf("failed to initialize databases: %w", err)
+	}
+
+	// Opt-in: give cevm its own disk-backed resident state so the C-Chain lazy-loads
+	// a checkpoint at startup (bounded RAM) instead of dumping the full Go state into
+	// cevm. Registered here — after initializeDBs sets vm.db (the RAW durable base,
+	// standalone-DB-aware) and before chain init — over a "cevmstate"-prefixed sub-DB.
+	// vm.db is a DIRECT-durable store (NOT the versiondb), the same pattern warpDB /
+	// validatorsDB use for state that need not commit atomically with the block, so
+	// checkpoints persist on write and survive a restart. Inert unless built with
+	// -tags cevm; safe by construction — a missing/stale checkpoint falls back to the
+	// Go-dump seed and every root is still verified (see cevm_resident_store.go).
+	if vm.config.CevmResidentStore {
+		parallel.SetCevmResidentStore(prefixdb.New([]byte("cevmstate"), vm.db))
 	}
 
 	if vm.config.InspectDatabase {
