@@ -1,0 +1,58 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "index",
+        "type": "uint32"
+      }
+    ],
+    "name": "getVerifiedStakeWeight",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bytes20",
+            "name": "nodeID",
+            "type": "bytes20"
+          },
+          {
+            "internalType": "address",
+            "name": "voter",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "authEpoch",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "pChainHeight",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint256",
+            "name": "weight",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalWeight",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct StakeWeight",
+        "name": "stakeWeight",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bool",
+        "name": "valid",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
