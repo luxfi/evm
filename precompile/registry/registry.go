@@ -12,6 +12,7 @@ import (
 	_ "github.com/luxfi/evm/precompile/contracts/feemanager"
 	_ "github.com/luxfi/evm/precompile/contracts/nativeminter"
 	_ "github.com/luxfi/evm/precompile/contracts/rewardmanager"
+	_ "github.com/luxfi/evm/precompile/contracts/stakeweight"
 	_ "github.com/luxfi/evm/precompile/contracts/txallowlist"
 	_ "github.com/luxfi/evm/precompile/contracts/warp"
 
