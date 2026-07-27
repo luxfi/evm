@@ -32,7 +32,7 @@ struct StakeWeight {
  * authorised `voter` to speak for it? A ballot that overstates any of those
  * returns valid=false with a zeroed struct.
  *
- * A consuming contract owes three checks, and the precompile deliberately does
+ * A consuming contract owes four checks, and the precompile deliberately does
  * not make them for you — they are policy, not fact:
  *
  *   1. `valid` is true.
@@ -42,8 +42,12 @@ struct StakeWeight {
  *      was created. This is what stops a voter picking a favourable snapshot,
  *      and it is why `sw.totalWeight` is a safe denominator: every ballot in a
  *      proposal reports the same one.
+ *   4. `!hasVoted[proposalId][sw.nodeID]`, then set it. A ballot is replayable
+ *      by construction — the same bytes verify every time — so the ONLY thing
+ *      stopping a validator counting its weight twice is this flag, keyed by
+ *      nodeID and not by address.
  *
- * Plus a fourth if authorisations should be revocable: keep
+ * Plus a fifth if authorisations should be revocable: keep
  * `lastEpoch[nodeID]`, reject `sw.authEpoch < lastEpoch[nodeID]`, and raise it
  * on a greater one. A validator rotates its voting address by signing a higher
  * epoch. No registry, no admin, nobody who can revoke on its behalf.
