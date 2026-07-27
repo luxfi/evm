@@ -28,16 +28,6 @@ var (
 	// and legacy Subnet-EVM chains. New chains should use the LP-aligned address (0x16201).
 	LegacyWarpAddress = common.HexToAddress("0x0200000000000000000000000000000000000005")
 
-	// FeeRewardVault is the canonical, protocol-owned C-Chain account that accrues
-	// the validator (staking-reward) half of every transaction fee once the FeeSplit
-	// upgrade is active. Its balance is periodically exported, atomically, to the
-	// P-Chain fee-reward pool and paid out through the native staking-reward path
-	// (see the "Tx-fee 50/50 split" design in LLM.md). It is distinct from the
-	// BlackholeAddr (0x0100..00) used by legacy full-fee routing: the vault holds
-	// real, tracked balance destined for validators, whereas the burn half is never
-	// credited to any account (a true supply reduction).
-	FeeRewardVault = common.HexToAddress("0x0100000000000000000000000000000000000002")
-
 	DefaultFeeConfig = commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
 		TargetBlockRate: 2, // in seconds
@@ -173,10 +163,13 @@ type ChainConfig struct {
 	// FeeSplitTimestamp activates the transaction-fee 50/50 split (nil = never,
 	// 0 = genesis). When active, each transaction fee is divided deterministically:
 	// half is truly burned (never credited to any account, reducing supply) and half
-	// accrues to FeeRewardVault for the P-Chain staking-reward fold-in. This is an
-	// orthogonal fee-routing policy, intentionally NOT part of the NetworkUpgrades
-	// opcode-fork chain (it has no ordering relationship to EVM/Durango/Quasar/...).
-	// It supersedes legacy coinbase/RewardManager routing while active.
+	// is credited to the configured coinbase — i.e. to whatever the RewardManager
+	// precompile currently points at, exactly as the full fee is when the split is
+	// inactive. The split changes HOW MUCH is kept; it never changes WHERE the kept
+	// part goes, so it composes with RewardManager instead of superseding it.
+	// This is an orthogonal fee-routing policy, intentionally NOT part of the
+	// NetworkUpgrades opcode-fork chain (it has no ordering relationship to
+	// EVM/Durango/Quasar/...).
 	FeeSplitTimestamp  *uint64     `json:"feeSplitTimestamp,omitempty"`
 	GenesisPrecompiles Precompiles `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
 	UpgradeConfig      `json:"-"`  // Config specified in upgradeBytes (lux network upgrades or enable/disabling precompiles). Not serialized.
@@ -275,7 +268,7 @@ func (c *ChainConfig) Description() string {
 	banner += fmt.Sprintf("Fee Config: %s\n", string(feeBytes))
 
 	banner += fmt.Sprintf("Allow Fee Recipients: %v\n", c.AllowFeeRecipients)
-	banner += fmt.Sprintf("Fee Split (50/50 burn+stake): @%v (vault %s)\n", ptrToString(c.FeeSplitTimestamp), FeeRewardVault.Hex())
+	banner += fmt.Sprintf("Fee Split (burn 50%% / reward 50%% to the configured coinbase): @%v\n", ptrToString(c.FeeSplitTimestamp))
 
 	return banner
 }
@@ -508,6 +501,11 @@ func (c *ChainConfig) Verify() error {
 	agoUpgrades := upgrade.Config{}
 	if err := c.verifyNetworkUpgrades(agoUpgrades); err != nil {
 		return fmt.Errorf("invalid network upgrades: %w", err)
+	}
+
+	// Verify the fee split has a governed destination for the half it keeps.
+	if err := c.verifyFeeSplit(); err != nil {
+		return fmt.Errorf("invalid fee split: %w", err)
 	}
 
 	return nil
