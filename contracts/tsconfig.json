@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "outDir": "./dist/",
-    "baseUrl": ".",
     "module": "commonjs",
     "target": "es2020",
     "typeRoots": ["./typings/**", "./node_modules/@types"],
@@ -9,6 +8,11 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    "paths": {
+      "*": [
+        "./*"
+      ]
+    },
   },
   "exclude": ["node_modules", "artifacts", "cache"],
   "typeAcquisition": {
