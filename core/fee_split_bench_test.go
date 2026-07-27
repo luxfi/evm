@@ -24,7 +24,8 @@ import (
 //	Legacy      : the shipped dormant path — GetExtra + IsFeeSplit branch, then
 //	              the same AddBalance. (Legacy − RawBaseline) == the seam overhead
 //	              every mainnet tx pays today.
-//	Split       : the active split path — vault credit + (uncredited) burn.
+//	Split       : the active split path — a shift, then the same AddBalance to the
+//	              same configured coinbase; the remainder is left uncredited (burn).
 func benchFeeStateDB(b *testing.B) *state.StateDB {
 	b.Helper()
 	sdb, err := state.New(types.EmptyRootHash, state.NewDatabaseForTesting())
