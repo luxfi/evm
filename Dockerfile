@@ -13,8 +13,8 @@ WORKDIR /build
 # Copy luxd directory if present (for manual CI case, which uses local dependency)
 COPY go.mod go.sum luxd* ./
 ENV GONOSUMCHECK=github.com/luxfi/*
-ENV GONOSUMDB=github.com/luxfi/*
-ENV GONOPROXY=github.com/luxfi/*
+ENV GONOSUMDB=github.com/lux-private/*
+ENV GONOPROXY=github.com/lux-private/*
 ENV GOFLAGS=-mod=mod
 # Download lux dependencies using go mod
 RUN --mount=type=cache,target=/root/.cache/go-build \
