@@ -33,7 +33,7 @@ const (
 
 var (
 	// Mainnet-shaped numbers, measured 2026-07 from
-	// platform.getCurrentValidators on https://api.lux.network/ext/bc/P:
+	// platform.getCurrentValidators on https://api.lux.network/v1/bc/P:
 	// 5 validators, each weight 5e17 nLUX, total 2.5e18.
 	mainnetVdrWeight   uint64 = 500_000_000_000_000_000
 	mainnetTotalWeight uint64 = 2_500_000_000_000_000_000

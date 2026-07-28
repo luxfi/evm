@@ -18,7 +18,7 @@ import (
 )
 
 // Read-only fork of Lux mainnet (chain ID 96369). Captured from
-// platform.getCurrentValidators on https://api.lux.network/ext/bc/P while
+// platform.getCurrentValidators on https://api.lux.network/v1/bc/P while
 // C-chain eth_blockNumber was 0x10c1cf. Nothing here writes to mainnet; the
 // production validator set is used purely as fixture state.
 //
