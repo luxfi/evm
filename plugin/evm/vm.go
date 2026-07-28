@@ -693,37 +693,52 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 		}
 		imported, lastHash, lastHeight, err := importBlocksFromFile(chain, vm.config.ImportChainData, persistAccepted)
 		if err != nil {
-			return fmt.Errorf("startup import failed: %w", err)
-		}
-		// A startup import can leave the accept tip below a persisted EXPORT-FINAL (Quasar) height.
-		// reconcile AFTER it — the boot reconcile in initializeChain ran BEFORE this import (against
-		// the pre-import tip), and importBlocksFromFile (unlike admin_importChain) does not reconcile
-		// itself — so without this a stale export height would survive an --import-chain-data rewind
-		// and `finalized`/warp would report a rebuilt (never-⅔-certified) block export-final. Single
-		// threaded at boot (no observer yet), so no lock needed here.
-		vm.reconcileQuasarWithAccept(lastHeight)
+			// IDEMPOTENCY GUARD: the production pod spec keeps --import-chain-data SET, so
+			// every restart and every kill-rejoin re-enters this path. Once the chain is
+			// already at/above the file's tip, importBlocksFromFile imports 0 blocks and
+			// returns a "nothing to import" error (see isNothingToImportError) — that is
+			// SUCCESS on a re-run, not a fatal boot error. Without this guard the C-Chain
+			// fails to initialise on EVERY restart of an already-imported node.
+			// On this skip path chain.State was already restored to the correct tip by
+			// initChainState (it read the persisted acceptedBlockDB on this boot), so
+			// nothing more is needed; and reconcileQuasarWithAccept must NOT run with
+			// lastHeight==0, which would wrongly reset the export frontier.
+			if !isNothingToImportError(err, chain.CurrentBlock().Number.Uint64()) {
+				return fmt.Errorf("startup import failed: %w", err)
+			}
+			log.Info("Startup import: chain already at/above import tip; nothing to import (idempotent skip)",
+				"path", vm.config.ImportChainData, "currentHeight", chain.CurrentBlock().Number.Uint64())
+		} else {
+			// A startup import can leave the accept tip below a persisted EXPORT-FINAL (Quasar) height.
+			// reconcile AFTER it — the boot reconcile in initializeChain ran BEFORE this import (against
+			// the pre-import tip), and importBlocksFromFile (unlike admin_importChain) does not reconcile
+			// itself — so without this a stale export height would survive an --import-chain-data rewind
+			// and `finalized`/warp would report a rebuilt (never-⅔-certified) block export-final. Single
+			// threaded at boot (no observer yet), so no lock needed here.
+			vm.reconcileQuasarWithAccept(lastHeight)
 
-		// FIX (v1.104.11): sync the IN-MEMORY consensus last-accepted to the imported tip.
-		// initializeChain -> initChainState (run BEFORE this import) built vm.State (the
-		// components/chain consensus wrapper) with LastAcceptedBlock = the pre-import genesis
-		// tip. importBlocksFromFile advanced core.BlockChain + acceptedBlockDB but NOT vm.State,
-		// so on this FIRST import boot the consensus engine reads genesis while the EVM head is
-		// the imported tip -> the proposervm wedges ("BuildBlock: preferred block not fetchable",
-		// preferred=empty id) until a restart re-runs initChainState off acceptedBlockDB. The
-		// admin_importChain RPC path runs on a LIVE node whose vm.State is already current, so
-		// only this startup path needs the sync. FAIL-CLOSED: a boot that cannot establish the
-		// imported tip stops loudly rather than serving consensus at a stale genesis.
-		if imported > 0 {
-			tip := chain.GetBlockByHash(lastHash)
-			if tip == nil {
-				return fmt.Errorf("startup import: imported tip %s (height %d) not found in blockchain", lastHash.Hex(), lastHeight)
+			// FIX (v1.104.11): sync the IN-MEMORY consensus last-accepted to the imported tip.
+			// initializeChain -> initChainState (run BEFORE this import) built vm.State (the
+			// components/chain consensus wrapper) with LastAcceptedBlock = the pre-import genesis
+			// tip. importBlocksFromFile advanced core.BlockChain + acceptedBlockDB but NOT vm.State,
+			// so on this FIRST import boot the consensus engine reads genesis while the EVM head is
+			// the imported tip -> the proposervm wedges ("BuildBlock: preferred block not fetchable",
+			// preferred=empty id) until a restart re-runs initChainState off acceptedBlockDB. The
+			// admin_importChain RPC path runs on a LIVE node whose vm.State is already current, so
+			// only this startup path needs the sync. FAIL-CLOSED: a boot that cannot establish the
+			// imported tip stops loudly rather than serving consensus at a stale genesis.
+			if imported > 0 {
+				tip := chain.GetBlockByHash(lastHash)
+				if tip == nil {
+					return fmt.Errorf("startup import: imported tip %s (height %d) not found in blockchain", lastHash.Hex(), lastHeight)
+				}
+				if err := vm.State.SetLastAcceptedBlock(vm.newBlock(tip)); err != nil {
+					return fmt.Errorf("startup import: failed to sync consensus last-accepted to imported tip (height %d): %w", lastHeight, err)
+				}
+				log.Info("Startup import: consensus chain.State refreshed to imported tip", "height", lastHeight, "hash", lastHash.Hex())
 			}
-			if err := vm.State.SetLastAcceptedBlock(vm.newBlock(tip)); err != nil {
-				return fmt.Errorf("startup import: failed to sync consensus last-accepted to imported tip (height %d): %w", lastHeight, err)
-			}
-			log.Info("Startup import: consensus chain.State refreshed to imported tip", "height", lastHeight, "hash", lastHash.Hex())
+			log.Info("Startup import complete", "blocks", imported, "lastHash", lastHash.Hex(), "height", lastHeight)
 		}
-		log.Info("Startup import complete", "blocks", imported, "lastHash", lastHash.Hex(), "height", lastHeight)
 	}
 
 	// Start continuous profiler in a goroutine with recovery
@@ -749,6 +764,28 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 		SyncableInterval: vm.config.StateSyncCommitInterval,
 	})
 	return vm.initializeStateSyncClient(lastAcceptedHeight)
+}
+
+// isNothingToImportError reports whether err from importBlocksFromFile means the chain was already
+// at/above the file's tip on a re-run (idempotent), as opposed to a genuine import failure. The
+// production pod spec keeps --import-chain-data SET, so every restart and every kill-rejoin
+// re-enters the startup import path on an already-imported chain; treating that "nothing to
+// import" result as fatal takes the C-Chain down on every subsequent boot.
+//
+// importBlocksFromFile yields one of two messages when every block in the file is already present:
+//   - "no blocks imported"      — the RLP includes genesis (block 0), which is skipped, so the
+//     outer loop reaches the totalImported==0 return.
+//   - "no blocks found in file" — the RLP has no genesis; every block is skipped before it is
+//     counted, so the inner loop returns early.
+//
+// Both are idempotent ONLY when the chain already holds accepted content (curHead > 0). On a fresh
+// chain (curHead == 0) the SAME messages mean a genuinely empty/corrupt file and MUST stay fatal.
+func isNothingToImportError(err error, curHead uint64) bool {
+	if err == nil || curHead == 0 {
+		return false
+	}
+	m := err.Error()
+	return strings.Contains(m, "no blocks imported") || strings.Contains(m, "no blocks found in file")
 }
 
 func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte, airdropFile string, genesisAllocFile string) (*core.Genesis, error) {
