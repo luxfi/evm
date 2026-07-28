@@ -25,7 +25,7 @@ require (
 	github.com/luxfi/filesystem v0.0.1
 	github.com/luxfi/geth v1.20.1
 	github.com/luxfi/go-bip39 v1.1.2
-	github.com/luxfi/gpu v1.0.1
+	github.com/luxfi/gpu v1.1.2
 	github.com/luxfi/ids v1.3.2
 	github.com/luxfi/log v1.4.3
 	github.com/luxfi/math v1.5.1
