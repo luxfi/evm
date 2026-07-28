@@ -2189,7 +2189,7 @@ func golangBindings(t *testing.T, overload bool) {
 			filteredEnv = append(filteredEnv, entry)
 		}
 	}
-	goEnv = append(filteredEnv, "GOWORK=off", "GOPRIVATE=github.com/luxfi/*")
+	goEnv = append(filteredEnv, "GOWORK=off", "GOPRIVATE=github.com/lux-private/*")
 	moder.Env = goEnv
 	if out, err := moder.CombinedOutput(); err != nil {
 		t.Fatalf("failed to convert binding test to modules: %v\n%s", err, out)
