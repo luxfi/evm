@@ -428,6 +428,8 @@ github.com/luxfi/vm v1.2.6 h1:nJuy62YEBxfX2X65ujmqyeFaFoVj8A2ZQ4i4qpyD5dQ=
 github.com/luxfi/vm v1.2.6/go.mod h1:TCCg4lDcQFCjxaxfXnxPIrpRSVAyyf2ucT4A4w654Hg=
 github.com/luxfi/vm v1.3.1 h1:U2Bv7IDRFv8JtjUARfY53ZnOPRB2iPrPHSMDCQ+T0Js=
 github.com/luxfi/vm v1.3.1/go.mod h1:6YR/uFV2FoofmogQShv+HM7V8alz5rbrQYjp5w0bNVA=
+github.com/luxfi/vm v1.3.3 h1:BEBamD9VUcPG8mtL2Ga0Us1lTQ+ubaZqng/PZjNqzPc=
+github.com/luxfi/vm v1.3.3/go.mod h1:v2XjW0yymxHwy1xPsSz338s0J8nRqOIb6RiDf0wUEgk=
 github.com/luxfi/warp v1.23.0 h1:lVPnEG3pj3YjYK6VZaNLKsCPheEEQINMgSZobwG2xDo=
 github.com/luxfi/warp v1.23.0/go.mod h1:4a6ZqXSsQVpm1nl1Q5i6SYPjDcdHvPyEoj4M9pvrIHE=
 github.com/luxfi/warp v1.24.1 h1:9F+z6fy4sxmXp+3LlR9m3TiZ8Dfthh+s5KOeewSJL30=
@@ -740,6 +742,7 @@ google.golang.org/protobuf v1.26.0-rc.1/go.mod h1:jlhhOSvTdKEhbULTjvd4ARK9grFBp0
 google.golang.org/protobuf v1.26.0/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=
 google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
 google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
+google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af h1:+5/Sw3GsDNlEmu7TfklWKPdQ0Ykja5VEmq2i817+jbI=
 google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=
