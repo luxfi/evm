@@ -7,10 +7,11 @@ echo "Setting up CI environment..."
 echo "Go version:"
 go version
 
-# Configure GOPRIVATE for all luxfi packages
+# Only genuinely-private modules bypass the proxy: everything else in luxfi is
+# public, and GOPRIVATE would disable checksum verification for it.
 # shellcheck disable=SC2125 # The asterisk is intentional Go module syntax, not a glob
-export GOPRIVATE='github.com/luxfi/*'
-export GONOSUMDB='github.com/luxfi/*'
+export GOPRIVATE='github.com/lux-private/*'
+export GONOSUMDB='github.com/lux-private/*'
 
 # Configure git to use GITHUB_TOKEN for authentication
 if [ -n "$GITHUB_TOKEN" ]; then
