@@ -53,14 +53,14 @@ In EVM, we provide a pre-configured file [hardhat.config.ts](https://github.com/
 The HardHat config file includes a single network configuration: `local`. `local` defaults to using the following values for the RPC URL and the Chain ID:
 
 ```js
-var local_rpc_uri = process.env.RPC_URI || "http://127.0.0.1:9650/ext/bc/C/rpc";
+var local_rpc_uri = process.env.RPC_URI || "http://127.0.0.1:9650/v1/bc/C/rpc";
 var local_chain_id = process.env.CHAIN_ID || 99999;
 ```
 
 You can use this network configuration by providing the environment variables and specifying the `--network` flag, as EVM does in its testing suite:
 
 ```bash
-RPC_URI=http://127.0.0.1:9650/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc CHAIN_ID=77777 npx hardhat test --network local
+RPC_URI=http://127.0.0.1:9650/v1/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc CHAIN_ID=77777 npx hardhat test --network local
 ```
 
 Alternatively, you can copy and paste the `local` network configuration to create a new network configuration for your own local testing. For example, you can copy and paste the `local` network configuration to create your own network and fill in the required details:
@@ -69,7 +69,7 @@ Alternatively, you can copy and paste the `local` network configuration to creat
 {
   "networks": {
     "mynetwork": {
-      "url": "http://127.0.0.1:9650/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc",
+      "url": "http://127.0.0.1:9650/v1/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc",
       "chainId": 33333,
       "accounts": [
         "derive from MNEMONIC index 0 or set TREASURY_PRIVATE_KEY env var",
@@ -103,6 +103,6 @@ You can define custom hardhat tasks in [tasks.ts](https://github.com/luxfi/lux-s
 
 Tests are written for a local network which runs a EVM Blockchain.
 
-E.g `RPC_URI=http://127.0.0.1:9650/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc CHAIN_ID=77777 npx hardhat test --network local`.
+E.g `RPC_URI=http://127.0.0.1:9650/v1/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc CHAIN_ID=77777 npx hardhat test --network local`.
 
 EVM must activate any precompiles used in the test in the genesis.

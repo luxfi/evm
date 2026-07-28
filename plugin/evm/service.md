@@ -32,7 +32,7 @@ curl -X POST --data '{
         "latest"
     ],
     "id": 1
-}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/rpc
+}' -H 'content-type:application/json;' 127.0.0.1:9650/v1/bc/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/rpc
 ```
 
 **Example Response:**
@@ -78,7 +78,7 @@ curl -X POST --data '{
     "id"     :1,
     "method" :"eth_getChainConfig",
     "params" :[]
-}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/Nvqcm33CX2XABS62iZsAcVUkavfnzp1Sc5k413wn5Nrf7Qjt7/rpc
+}' -H 'content-type:application/json;' 127.0.0.1:9650/v1/bc/Nvqcm33CX2XABS62iZsAcVUkavfnzp1Sc5k413wn5Nrf7Qjt7/rpc
 ```
 
 **Example Response:**
@@ -168,7 +168,7 @@ curl -X POST --data '{
     "method": "eth_getActivePrecompilesAt",
     "params": [],
     "id": 1
-}'  -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/Nvqcm33CX2XABS62iZsAcVUkavfnzp1Sc5k413wn5Nrf7Qjt7/rpc
+}'  -H 'content-type:application/json;' 127.0.0.1:9650/v1/bc/Nvqcm33CX2XABS62iZsAcVUkavfnzp1Sc5k413wn5Nrf7Qjt7/rpc
 ```
 
 **Example Response:**
@@ -216,7 +216,7 @@ curl -X POST --data '{
     "method": "eth_getActiveRulesAt",
     "params": [],
     "id": 1
-}'  -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/Nvqcm33CX2XABS62iZsAcVUkavfnzp1Sc5k413wn5Nrf7Qjt7/rpc
+}'  -H 'content-type:application/json;' 127.0.0.1:9650/v1/bc/Nvqcm33CX2XABS62iZsAcVUkavfnzp1Sc5k413wn5Nrf7Qjt7/rpc
 ```
 
 **Example Response:**
@@ -261,7 +261,7 @@ curl -X POST --data '{
 
 This API retrieves the list of current validators for the Subnet/L1. It provides detailed information about each validator, including their ID, status, weight, connection, and uptime.
 
-URL: `http://<server-uri>/ext/bc/<blockchainID>/validators`
+URL: `http://<server-uri>/v1/bc/<blockchainID>/validators`
 
 **Signature:**
 
@@ -281,7 +281,7 @@ curl -X POST --data '{
         "nodeIDs": []
     },
     "id": 1
-}'  -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/C49rHzk3vLr1w9Z8sY7scrZ69TU4WcD2pRS6ZyzaSn9xA2U9F/validators
+}'  -H 'content-type:application/json;' 127.0.0.1:9650/v1/bc/C49rHzk3vLr1w9Z8sY7scrZ69TU4WcD2pRS6ZyzaSn9xA2U9F/validators
 ```
 
 **Example Response:**

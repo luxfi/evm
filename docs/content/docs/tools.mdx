@@ -40,18 +40,18 @@ module.exports = {
   },
   networks: {
     luxevm: {
-      url: "http://localhost:9650/ext/bc/C/rpc",
+      url: "http://localhost:9650/v1/bc/C/rpc",
       chainId: 43112,
       accounts: [process.env.PRIVATE_KEY],
       gasPrice: 25000000000,
     },
     luxMainnet: {
-      url: "https://api.lux.network/ext/bc/C/rpc",
+      url: "https://api.lux.network/v1/bc/C/rpc",
       chainId: 96369,
       accounts: [process.env.PRIVATE_KEY],
     },
     luxTestnet: {
-      url: "https://api.testnet.lux.network/ext/bc/C/rpc",
+      url: "https://api.lux-test.network/v1/bc/C/rpc",
       chainId: 96370,
       accounts: [process.env.PRIVATE_KEY],
     },
@@ -90,7 +90,7 @@ npx hardhat run scripts/deploy.js --network luxevm
 npx hardhat verify --network luxevm CONTRACT_ADDRESS "Constructor Arg"
 
 # Start local node (fork)
-npx hardhat node --fork http://localhost:9650/ext/bc/C/rpc
+npx hardhat node --fork http://localhost:9650/v1/bc/C/rpc
 ```
 
 ### Foundry
@@ -116,9 +116,9 @@ optimizer_runs = 200
 evm_version = "cancun"
 
 [rpc_endpoints]
-luxevm = "http://localhost:9650/ext/bc/C/rpc"
-luxMainnet = "https://api.lux.network/ext/bc/C/rpc"
-luxTestnet = "https://api.testnet.lux.network/ext/bc/C/rpc"
+luxevm = "http://localhost:9650/v1/bc/C/rpc"
+luxMainnet = "https://api.lux.network/v1/bc/C/rpc"
+luxTestnet = "https://api.lux-test.network/v1/bc/C/rpc"
 
 [etherscan]
 luxevm = { key = "${EXPLORER_API_KEY}", url = "https://explorer.lux.network/api" }
@@ -192,7 +192,7 @@ Configure MetaMask for Lux EVM:
 | Network | Mainnet | Testnet | Local |
 |---------|---------|---------|-------|
 | Name | Lux Mainnet | Lux Testnet | Lux Local |
-| RPC URL | https://api.lux.network/ext/bc/C/rpc | https://api.testnet.lux.network/ext/bc/C/rpc | http://localhost:9650/ext/bc/C/rpc |
+| RPC URL | https://api.lux.network/v1/bc/C/rpc | https://api.lux-test.network/v1/bc/C/rpc | http://localhost:9650/v1/bc/C/rpc |
 | Chain ID | 96369 | 96370 | 43112 |
 | Symbol | LUX | LUX | LUX |
 | Explorer | https://explorer.lux.network | https://explorer.testnet.lux.network | - |
@@ -212,7 +212,7 @@ async function addLuxNetwork() {
           symbol: "LUX",
           decimals: 18,
         },
-        rpcUrls: ["https://api.lux.network/ext/bc/C/rpc"],
+        rpcUrls: ["https://api.lux.network/v1/bc/C/rpc"],
         blockExplorerUrls: ["https://explorer.lux.network"],
       },
     ],
@@ -238,7 +238,7 @@ const luxMainnet = {
   },
   rpcUrls: {
     default: {
-      http: ["https://api.lux.network/ext/bc/C/rpc"],
+      http: ["https://api.lux.network/v1/bc/C/rpc"],
     },
   },
   blockExplorers: {
@@ -263,7 +263,7 @@ import { ethers } from "ethers";
 
 // Connect to Lux EVM
 const provider = new ethers.JsonRpcProvider(
-  "http://localhost:9650/ext/bc/C/rpc"
+  "http://localhost:9650/v1/bc/C/rpc"
 );
 
 // Create wallet
@@ -296,7 +296,7 @@ const luxMainnet = {
     symbol: "LUX",
   },
   rpcUrls: {
-    default: { http: ["https://api.lux.network/ext/bc/C/rpc"] },
+    default: { http: ["https://api.lux.network/v1/bc/C/rpc"] },
   },
   blockExplorers: {
     default: { name: "Explorer", url: "https://explorer.lux.network" },
@@ -338,7 +338,7 @@ const hash = await walletClient.writeContract({
 const Web3 = require("web3");
 
 // Connect to Lux EVM
-const web3 = new Web3("http://localhost:9650/ext/bc/C/rpc");
+const web3 = new Web3("http://localhost:9650/v1/bc/C/rpc");
 
 // Add account
 const account = web3.eth.accounts.privateKeyToAccount(privateKey);
@@ -363,10 +363,10 @@ const tx = await contract.methods.setValue("New Value").send({
 
 ```bash
 # Start local Lux EVM fork
-anvil --fork-url http://localhost:9650/ext/bc/C/rpc --chain-id 43112
+anvil --fork-url http://localhost:9650/v1/bc/C/rpc --chain-id 43112
 
 # With specific block
-anvil --fork-url http://localhost:9650/ext/bc/C/rpc --fork-block-number 1000000
+anvil --fork-url http://localhost:9650/v1/bc/C/rpc --fork-block-number 1000000
 ```
 
 ### Cast (CLI Tool)
@@ -529,7 +529,7 @@ curl -X POST --data '{
   "method":"debug_traceTransaction",
   "params":["0x...", {"tracer": "callTracer"}],
   "id":1
-}' http://localhost:9650/ext/bc/C/rpc
+}' http://localhost:9650/v1/bc/C/rpc
 
 # Get storage at slot
 curl -X POST --data '{
@@ -537,7 +537,7 @@ curl -X POST --data '{
   "method":"eth_getStorageAt",
   "params":["0xcontract", "0x0", "latest"],
   "id":1
-}' http://localhost:9650/ext/bc/C/rpc
+}' http://localhost:9650/v1/bc/C/rpc
 ```
 
 ## CI/CD Integration
