@@ -818,7 +818,7 @@ This analysis examines the deployment process for Zoo and SPC subnets, identifyi
 lux-node --track-subnets=<subnet-id>
 
 # Verify blockchain registration
-curl -X POST http://localhost:9650/ext/info -d '{
+curl -X POST http://localhost:9650/v1/info -d '{
   "jsonrpc":"2.0",
   "id":1,
   "method":"info.getBlockchainID",
@@ -1059,7 +1059,7 @@ lux l2 deploy zoo \
   --local
 
 # 4. Verify RPC is responding
-curl -X POST http://localhost:9650/ext/bc/zoo/rpc \
+curl -X POST http://localhost:9650/v1/bc/zoo/rpc \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}'
 ```
@@ -1068,7 +1068,7 @@ curl -X POST http://localhost:9650/ext/bc/zoo/rpc \
 
 ```bash
 # 1. Connect to running node's admin API
-curl -X POST http://localhost:9650/ext/bc/zoo/admin \
+curl -X POST http://localhost:9650/v1/bc/zoo/admin \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc":"2.0",
@@ -1084,12 +1084,12 @@ curl -X POST http://localhost:9650/ext/bc/zoo/admin \
 
 ```bash
 # Check block height
-curl -X POST http://localhost:9650/ext/bc/zoo/rpc \
+curl -X POST http://localhost:9650/v1/bc/zoo/rpc \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}'
 
 # Check specific block
-curl -X POST http://localhost:9650/ext/bc/zoo/rpc \
+curl -X POST http://localhost:9650/v1/bc/zoo/rpc \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc":"2.0",
@@ -1237,7 +1237,7 @@ Setting `cancunTime: null` in genesis doesn't help because the EVM code still ch
 
 Successfully imported 799 blocks from Zoo chain (200200) after these fixes:
 ```bash
-curl -X POST http://127.0.0.1:9630/ext/bc/<zoo-id>/admin \
+curl -X POST http://127.0.0.1:9630/v1/bc/<zoo-id>/admin \
   -d '{"jsonrpc":"2.0","id":1,"method":"admin.importChain","params":{"file":"/path/to/zoo-mainnet-200200.rlp"}}'
 
 # Response:
