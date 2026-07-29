@@ -170,7 +170,22 @@ type ChainConfig struct {
 	// This is an orthogonal fee-routing policy, intentionally NOT part of the
 	// NetworkUpgrades opcode-fork chain (it has no ordering relationship to
 	// EVM/Durango/Quasar/...).
-	FeeSplitTimestamp  *uint64     `json:"feeSplitTimestamp,omitempty"`
+	FeeSplitTimestamp *uint64 `json:"feeSplitTimestamp,omitempty"`
+
+	// GovernanceTimestamp activates validator-stake parameter governance
+	// (nil = never, 0 = genesis). When active, the node tallies the signal each
+	// block carries in header.Nonce over each EpochLength window and, on a
+	// supermajority, writes the agreed value into the ParamRegistry account —
+	// after which GetFeeConfigAt resolves that value instead of the compiled-in
+	// one. See package gov.
+	//
+	// Like FeeSplit this is an orthogonal policy fork with no ordering
+	// relationship to the EVM/Durango/Quasar opcode chain, so it is
+	// deliberately NOT part of NetworkUpgrades. It is consensus-critical all the
+	// same: two nodes disagreeing on when tallying starts would disagree on a
+	// state root, so checkConfigCompatible pins it once it can take effect.
+	GovernanceTimestamp *uint64 `json:"governanceTimestamp,omitempty"`
+
 	GenesisPrecompiles Precompiles `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
 	UpgradeConfig      `json:"-"`  // Config specified in upgradeBytes (lux network upgrades or enable/disabling precompiles). Not serialized.
 
@@ -211,6 +226,15 @@ func (c *ChainConfig) IsFeeSplit(time uint64) bool {
 	return isTimestampForked(c.FeeSplitTimestamp, time)
 }
 
+// IsGovernance returns whether [time] is at or after the validator-stake
+// governance activation timestamp. When true, the node counts the signal in
+// each block's header.Nonce and resolves governed parameters from the
+// ParamRegistry. Deterministic: depends only on the configured timestamp and
+// the block time.
+func (c *ChainConfig) IsGovernance(time uint64) bool {
+	return isTimestampForked(c.GovernanceTimestamp, time)
+}
+
 func (c *ChainConfig) CheckConfigCompatible(newConfig *ethparams.ChainConfig, headNumber *big.Int, headTimestamp uint64) *ethparams.ConfigCompatError {
 	if c == nil {
 		return nil
@@ -230,6 +254,12 @@ func (c *ChainConfig) checkConfigCompatible(newcfg *ChainConfig, headNumber *big
 	// diverge on fee disbursement and fork the chain.
 	if isForkTimestampIncompatible(c.FeeSplitTimestamp, newcfg.FeeSplitTimestamp, headTimestamp) {
 		return newTimestampCompatError("FeeSplit fork block timestamp", c.FeeSplitTimestamp, newcfg.FeeSplitTimestamp)
+	}
+	// Governance is likewise a standalone fork. Moving its activation after it
+	// could have tallied an epoch would make two nodes write different registry
+	// values into the same block, i.e. fork the chain.
+	if isForkTimestampIncompatible(c.GovernanceTimestamp, newcfg.GovernanceTimestamp, headTimestamp) {
+		return newTimestampCompatError("Governance fork block timestamp", c.GovernanceTimestamp, newcfg.GovernanceTimestamp)
 	}
 	// Check that the precompiles on the new config are compatible with the existing precompile config.
 	if err := c.checkPrecompilesCompatible(newcfg.PrecompileUpgrades, headTimestamp); err != nil {

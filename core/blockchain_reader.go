@@ -35,6 +35,7 @@ import (
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/core/state"
 	"github.com/luxfi/evm/core/state/snapshot"
+	"github.com/luxfi/evm/gov"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/plugin/evm/customrawdb"
 	"github.com/luxfi/evm/precompile/contracts/feemanager"
@@ -371,12 +372,28 @@ func (bc *BlockChain) SubscribeAcceptedTransactionEvent(ch chan<- NewTxsEvent) e
 // If FeeManager is activated at [parent], returns the fee config in the precompile contract state.
 // Otherwise returns the fee config in the chain config.
 // Assumes that a valid configuration is stored when the precompile is activated.
+// The two sources compose and neither is required:
+//
+//	FeeManager governed  where the value comes from
+//	----------- -------- ---------------------------------------------------
+//	no          no       the chain config (today's mainnet)
+//	yes         no       FeeManager storage, written by its allowlist admins
+//	no          yes      ParamRegistry, written by validator supermajority
+//	yes         yes      FeeManager storage, then the registry on top
+//
+// Governance is deliberately usable WITHOUT FeeManager. FeeManager's read seam
+// is what makes a fee parameter governable at all, but its write path is gated
+// on allowlist.AdminAddresses — a permissioned key. Reusing the seam while
+// declining the allowlist is what lets a parameter be changed by stake with no
+// admin anywhere in the picture.
 func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	config := params.GetExtra(bc.Config())
 	if !config.IsEVM(parent.Time) {
 		return params.DefaultFeeConfig, nil, nil
 	}
-	if !config.IsPrecompileEnabled(feemanager.ContractAddress, parent.Time) {
+	feeManagerOn := config.IsPrecompileEnabled(feemanager.ContractAddress, parent.Time)
+	governanceOn := config.IsGovernance(parent.Time)
+	if !feeManagerOn && !governanceOn {
 		return config.FeeConfig, common.Big0, nil
 	}
 
@@ -390,19 +407,32 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 		return commontype.EmptyFeeConfig, nil, err
 	}
 
-	storedFeeConfig := feemanager.GetStoredFeeConfig(stateDB)
-	// this should not return an invalid fee config since it's assumed that
-	// StoreFeeConfig returns an error when an invalid fee config is attempted to be stored.
-	// However an external stateDB call can modify the contract state.
-	// This check is added to add a defense in-depth.
-	if err := storedFeeConfig.Verify(); err != nil {
-		return commontype.EmptyFeeConfig, nil, err
+	feeConfig := config.FeeConfig
+	lastChangedAt := common.Big0
+	if feeManagerOn {
+		feeConfig = feemanager.GetStoredFeeConfig(stateDB)
+		// this should not return an invalid fee config since it's assumed that
+		// StoreFeeConfig returns an error when an invalid fee config is attempted to be stored.
+		// However an external stateDB call can modify the contract state.
+		// This check is added to add a defense in-depth.
+		if err := feeConfig.Verify(); err != nil {
+			return commontype.EmptyFeeConfig, nil, err
+		}
+		lastChangedAt = feemanager.GetFeeConfigLastChangedAt(stateDB)
 	}
-	lastChangedAt := feemanager.GetFeeConfigLastChangedAt(stateDB)
-	cacheable := &cacheableFeeConfig{feeConfig: storedFeeConfig, lastChangedAt: lastChangedAt}
+	if governanceOn {
+		// Resolve keeps [feeConfig] as-is if the governed combination would not
+		// verify, so no vote can halt header verification.
+		feeConfig, _ = gov.Resolve(feeConfig, gov.StateBackedReader{State: stateDB})
+		if at := gov.ReadScalar(stateDB, gov.SlotLastAppliedBlock); at != 0 {
+			lastChangedAt = new(big.Int).SetUint64(at)
+		}
+	}
+
+	cacheable := &cacheableFeeConfig{feeConfig: feeConfig, lastChangedAt: lastChangedAt}
 	// add it to the cache
 	bc.feeConfigCache.Add(parent.Root, cacheable)
-	return storedFeeConfig, lastChangedAt, nil
+	return feeConfig, lastChangedAt, nil
 }
 
 // GetCoinbaseAt returns the configured coinbase address at [parent].

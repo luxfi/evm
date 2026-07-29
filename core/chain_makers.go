@@ -37,6 +37,7 @@ import (
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/consensus"
 	"github.com/luxfi/evm/core/state"
+	"github.com/luxfi/evm/gov"
 	"github.com/luxfi/evm/params"
 	"github.com/luxfi/evm/plugin/evm/header"
 	"github.com/luxfi/geth/common"
@@ -297,12 +298,16 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 
 	genblock := func(i int, parent *types.Block, triedb *triedb.Database, statedb *state.StateDB) (*types.Block, types.Receipts, error) {
 		b := &BlockGen{i: i, cm: cm, parent: parent, statedb: statedb, engine: engine}
+		cm.govState = statedb // parent's post-state; makeHeader resolves governed params from it
 		b.header = cm.makeHeader(parent, gap, statedb, b.engine)
 
 		blockContext := NewBlockContext(b.header.Number, b.header.Time)
 		err := ApplyUpgrades(config, &parent.Header().Time, blockContext, statedb)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to configure precompiles %w", err)
+		}
+		if err := ApplyGovernance(config, cm, parent.Header(), b.header.Number.Uint64(), b.header.Time, statedb); err != nil {
+			return nil, nil, fmt.Errorf("failed to apply governance %w", err)
 		}
 
 		// Execute any user modifications to the block
@@ -440,6 +445,10 @@ type chainMaker struct {
 	chain       []*types.Block
 	chainByHash map[common.Hash]*types.Block
 	receipts    []types.Receipts
+
+	// govState is the parent's post-state for the block currently being made.
+	// Set by genblock, read only by GetFeeConfigAt.
+	govState gov.StateReader
 }
 
 // Config returns the chain configuration
@@ -523,8 +532,21 @@ func (cm *chainMaker) GetBlock(hash common.Hash, number uint64) *types.Block {
 	return cm.blockByNumber(number)
 }
 
+// GetFeeConfigAt mirrors BlockChain.GetFeeConfigAt for governed values, so a
+// generated chain builds headers against the same fee schedule a real node
+// would verify them against. Without this a test chain would keep emitting the
+// pre-vote gas limit and its own InsertChain would reject it — which is the
+// correct behaviour of the node, but makes the generator useless past an epoch
+// boundary.
+//
+// [cm.govState] is the parent's post-state, set by genblock immediately before
+// makeHeader, which is exactly the state BlockChain reads at parent.Root.
 func (cm *chainMaker) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
-	return params.GetExtra(cm.config).FeeConfig, nil, nil
+	feeConfig := params.GetExtra(cm.config).FeeConfig
+	if cm.govState != nil && params.GetExtra(cm.config).IsGovernance(parent.Time) {
+		feeConfig, _ = gov.Resolve(feeConfig, gov.StateBackedReader{State: cm.govState})
+	}
+	return feeConfig, nil, nil
 }
 
 func (cm *chainMaker) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {

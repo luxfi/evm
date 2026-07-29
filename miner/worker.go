@@ -229,6 +229,12 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 		log.Error("failed to configure precompiles mining new block", "parent", parent.Hash(), "number", header.Number, "timestamp", header.Time, "err", err)
 		return nil, err
 	}
+	// The builder must settle the same epoch the verifier will, or the block it
+	// produces carries a state root no other node agrees with.
+	if err := core.ApplyGovernance(w.chainConfig, w.chain, parent, header.Number.Uint64(), header.Time, env.state); err != nil {
+		log.Error("failed to apply governance mining new block", "parent", parent.Hash(), "number", header.Number, "err", err)
+		return nil, err
+	}
 
 	// Retrieve the pending transactions pre-filtered by the 1559/4844 dynamic fees
 	filter := txpool.PendingFilter{

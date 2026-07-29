@@ -89,6 +89,13 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		log.Error("failed to configure precompiles processing block", "hash", block.Hash(), "number", block.NumberU64(), "timestamp", block.Time(), "err", err)
 		return nil, nil, 0, err
 	}
+	// Settle any epoch of validator signalling that this block closes. A
+	// separate concern from upgrade activation and kept separate: upgrades are
+	// scheduled by config, this is decided by the validator set.
+	if err := ApplyGovernance(p.config, p.bc, parent, block.NumberU64(), block.Time(), statedb); err != nil {
+		log.Error("failed to apply governance processing block", "hash", block.Hash(), "number", block.NumberU64(), "err", err)
+		return nil, nil, 0, err
+	}
 
 	var (
 		context = NewEVMBlockContext(header, p.bc, nil)
