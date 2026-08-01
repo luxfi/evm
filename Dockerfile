@@ -5,7 +5,8 @@
 ARG LUXD_NODE_IMAGE="invalid-image"
 
 # ============= Compilation Stage ================
-FROM --platform=$BUILDPLATFORM golang:1.26.4-bookworm AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.5-bookworm AS builder
+ENV GOTOOLCHAIN=auto
 
 WORKDIR /build
 
