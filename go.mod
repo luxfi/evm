@@ -33,7 +33,7 @@ require (
 	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.8.1
 	github.com/luxfi/p2p v1.22.1
-	github.com/luxfi/precompile v0.19.3
+	github.com/luxfi/precompile v0.19.5
 	github.com/luxfi/runtime v1.3.1
 	github.com/luxfi/sys v0.1.0
 	github.com/luxfi/timer v1.1.1
@@ -42,7 +42,7 @@ require (
 	github.com/luxfi/utils v1.3.1
 	github.com/luxfi/validators v1.3.1
 	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.3.3
+	github.com/luxfi/vm v1.3.6
 	github.com/luxfi/warp v1.24.1
 	github.com/mattn/go-colorable v0.1.15
 	github.com/mattn/go-isatty v0.0.22
@@ -112,9 +112,9 @@ require (
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/luxfi/accel v1.2.4 // indirect
+	github.com/luxfi/accel v1.3.1 // indirect
 	github.com/luxfi/age v1.6.0 // indirect
-	github.com/luxfi/api v1.1.1 // indirect
+	github.com/luxfi/api v1.1.3 // indirect
 	github.com/luxfi/atomic v1.0.0 // indirect
 	github.com/luxfi/bft v0.1.5 // indirect
 	github.com/luxfi/compress v0.1.1 // indirect
