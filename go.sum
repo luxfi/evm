@@ -389,6 +389,8 @@ github.com/luxfi/precompile v0.19.5 h1:Re8u4LHt7roeZ+xd3D1PKshqNn09UnND+4ORMPGgU
 github.com/luxfi/precompile v0.19.5/go.mod h1:QRUEgAYgEuUl1fUJ0HBJVsiS9mG0CPdcbs2Cw4G50Lg=
 github.com/luxfi/precompile v0.19.7 h1:cafBuAgcooPv4oqUa1znciywhHza3kvebDuueKQvQvI=
 github.com/luxfi/precompile v0.19.7/go.mod h1:QRUEgAYgEuUl1fUJ0HBJVsiS9mG0CPdcbs2Cw4G50Lg=
+github.com/luxfi/precompile v0.19.8 h1:7VD+AE/EWI+95EmHs6aWQX2E4fIwJsqGszGIftalNNQ=
+github.com/luxfi/precompile v0.19.8/go.mod h1:QRUEgAYgEuUl1fUJ0HBJVsiS9mG0CPdcbs2Cw4G50Lg=
 github.com/luxfi/proto v1.3.5 h1:AW11rnu5xyvB7beyowoiY9uIffLOF3+eMR/a3EkK2c8=
 github.com/luxfi/proto v1.3.5/go.mod h1:ixTofGpdW1rTYr+wgTuBhAsgBv8GnWYHMLWbPNEdm7M=
 github.com/luxfi/proto v1.4.2/go.mod h1:vwVkrC9ghhuCL8bluA59+G5jaD6WuqiDyd1iKh7yzOE=
