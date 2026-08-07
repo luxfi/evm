@@ -2053,9 +2053,16 @@ func (vm *VM) stageDexAtomic(b *Block) (map[ids.ID]*atomic.Requests, atomic.Shar
 		return nil, nil, cerr // malformed staged op -> fatal.
 	}
 	// STAGE the advanced marker into the versiondb in-memory layer (acceptedBlockDB ->
-	// versiondb). Block.Accept snapshots versiondb into a batch and passes it to
-	// sm.Apply(reqs, batch), so this marker write and the shared-memory mutation commit
-	// in ONE atomic database write.
+	// versiondb). Block.Accept COMMITS that layer — carrying this marker — and only THEN
+	// calls sm.Apply(reqs). Two separate writes, not one: a database batch cannot cross
+	// the plugin's process boundary, so atomiczap refuses one outright
+	// (ErrBatchUnsupported) and the single-write form would make every block that settles
+	// a swap a fatal Accept.
+	//
+	// So the marker lands BEFORE the shared-memory mutation it accounts for, deliberately:
+	// a crash in that window SKIPS an op rather than replaying one, and only the skip is
+	// recoverable. That argument is made in full at Block.Accept — read it before
+	// reordering these writes or restoring a batch argument to Apply.
 	var buf [8]byte
 	binary.BigEndian.PutUint64(buf[:], toSeq)
 	if perr := vm.acceptedBlockDB.Put(dexAtomicSeqKey, buf[:]); perr != nil {
