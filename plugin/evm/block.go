@@ -97,30 +97,64 @@ func (b *Block) Accept(context.Context) error {
 		return fmt.Errorf("failed to put %s as the last accepted block: %w", blkID, err)
 	}
 
-	// SINGLE cross-domain commit point. When there are staged atomic ops, snapshot the
-	// versiondb (which now holds the advanced dexAtomicSeqKey marker AND lastAcceptedKey)
-	// into a batch and hand it to sm.Apply(reqs, batch): the atomic layer commits the
-	// shared-memory mutation and our batch in ONE database write (the platformvm acceptor
-	// pattern, mirrored from chains/dexvm commitAtomic). So the marker advance and the SM
-	// mutation are all-or-nothing — a crash between them is impossible, closing the
-	// re-apply -> duplicate-Put -> chain-halt window. With no atomic ops we take the plain
-	// versiondb.Commit() path unchanged.
+	// COMMIT THE STATE, THEN APPLY. The versiondb commit (carrying the advanced
+	// dexAtomicSeqKey marker AND lastAcceptedKey) lands FIRST; the shared-memory
+	// mutation follows as its own write.
+	//
+	// WHY NOT ONE ATOMIC WRITE. Handing our batch to sm.Apply is the in-process
+	// platformvm acceptor pattern, and it is simply unavailable here: the C-Chain EVM
+	// is an out-of-process plugin, its SharedMemory is the ZAP client, and a database
+	// batch cannot cross a process boundary — atomiczap.Apply refuses one outright
+	// (ErrBatchUnsupported). Passing it unconditionally, as this code did, turns EVERY
+	// block that stages an atomic op into a FATAL Accept: the seam would halt the chain
+	// on the first swap it ever settled.
+	//
+	// WHY THIS ORDER AND NOT THE REVERSE. Without a shared batch, exactly-once is
+	// unreachable; the choice is at-most-once (commit first: an op can be SKIPPED on a
+	// crash in the window between the two writes) or at-least-once (apply first: an op
+	// can be REPLAYED). Replay is not survivable here and is not made survivable by any
+	// property of the transport: the shared-memory layer's SetValue returns
+	// errDuplicatePut for a key already present, which is a FATAL Accept — the chain
+	// halt this seam has already caused — and, worse, a Put replayed after the peer has
+	// consumed the object RE-CREATES it, letting the peer be funded twice. A skip has no
+	// such edge:
+	//
+	//   - a skipped C->D Put   : the taker's principal stays locked on C and D never
+	//                            sees the intent; reclaimIntent refunds it once the
+	//                            deadline passes (every intent carries a finite one by
+	//                            construction — defaultedReclaimDeadline). Bounded
+	//                            liveness loss, no value created or destroyed.
+	//   - a skipped D->C Remove: the object lingers in shared memory, but C's replay
+	//                            guard for a consumed object is EVM STATE
+	//                            (isSettlementConsumed), committed above — not the
+	//                            Remove. It can never be consumed twice. Inert garbage.
+	//
+	// So the failure mode of this ordering is recoverable and the failure mode of the
+	// other is a halt or a double-spend. The window itself is the microseconds between
+	// two writes on the accept path.
+	//
+	// STATED HONESTLY, THE RESIDUAL: a skipped Put leaves THIS node's shared memory
+	// short one object that its peers hold, so its D-Chain cannot verify a block that
+	// imports that intent and will stall on it until an operator re-applies. That is a
+	// single-node wedge, not a network fork and not a value leak. Closing the window
+	// entirely needs exactly-once across the process boundary, which needs a typed,
+	// exported duplicate-operation error on atomic.SharedMemory that survives the ZAP
+	// wire — then the flush could apply first and tolerate replays. Matching an
+	// unexported error by string across an RPC boundary ON THE MONEY PATH is not a
+	// trade worth making, so the simple ordering stands until that error exists.
+	//
+	// An Apply that ERRORS (as opposed to a crash) stays FATAL deliberately: a node
+	// that cannot mutate shared memory must stop rather than run on with a divergent
+	// view of it.
+	if err := vm.versiondb.Commit(); err != nil {
+		return fmt.Errorf("failed to commit accepted state for %s: %w", blkID, err)
+	}
 	if len(atomicReqs) > 0 && atomicSM != nil {
-		batch, berr := vm.versiondb.CommitBatch()
-		if berr != nil {
-			return fmt.Errorf("dex atomic commit batch for %s: %w", blkID, berr)
-		}
-		if aerr := atomicSM.Apply(atomicReqs, batch); aerr != nil {
+		if aerr := atomicSM.Apply(atomicReqs); aerr != nil {
 			return fmt.Errorf("dex atomic shared-memory apply for %s: %w", blkID, aerr)
 		}
-		// The batch (marker + lastAccepted + any other versiondb writes) was written by
-		// Apply; clear the in-memory layer so the deferred Abort and future Commits see a
-		// clean db (the versiondb.Commit() defer-Abort discipline).
-		vm.versiondb.Abort()
-		return nil
 	}
-
-	return b.vm.versiondb.Commit()
+	return nil
 }
 
 // handlePrecompileAccept calls Accept on any logs generated with an active precompile address that implements

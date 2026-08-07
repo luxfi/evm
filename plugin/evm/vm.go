@@ -1155,6 +1155,11 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		consensusCtx = runtime.WithContext(vm.ctx, vm.runtime)
 	}
 	vm.blockChain.SetConsensusContext(consensusCtx)
+	// Prove the 0x9999 ship rule at VERIFY. Execution binds cross-chain settlements to
+	// the object bytes the transaction carried (so the block replays identically on a
+	// syncing node); this hook is what proves those bytes are the object shared memory
+	// actually holds, rejecting the block when they are not. See dex_atomic_verify.go.
+	vm.installDexAtomicImportVerifier()
 	vm.miner = vm.eth.Miner()
 	lastAccepted := vm.blockChain.LastAcceptedBlock()
 	debugLog("initializeChain: lastAccepted block number=%d", lastAccepted.NumberU64())

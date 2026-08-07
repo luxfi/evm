@@ -309,6 +309,11 @@ type BlockChain struct {
 
 	consensusCtx context.Context // Consensus context carrying chain identity (transport for the geth precompile boundary + warp); bound from the chain Runtime before reprocess, upgraded with SharedMemory by SetConsensusContext
 
+	// atomicImportVerifier authenticates a block's DECLARED cross-chain object
+	// consumptions against shared memory, at verify time. Installed by the VM (which
+	// owns the bootstrap gate); nil disables the check. See SetAtomicImportVerifier.
+	atomicImportVerifier AtomicImportVerifier
+
 	db           ethdb.Database   // Low level persistent database to store final content in
 	snaps        *snapshot.Tree   // Snapshot tree for fast trie leaf access
 	triedb       *triedb.Database // The database handler for maintaining trie nodes.
@@ -815,6 +820,25 @@ func (bc *BlockChain) SetConsensusContext(ctx context.Context) {
 // after SetConsensusContext the cross-chain SharedMemory) read at the geth precompile boundary.
 func (bc *BlockChain) ConsensusContext() context.Context {
 	return bc.consensusCtx
+}
+
+// AtomicImportVerifier authenticates the cross-chain object consumptions a block
+// DECLARES in its logs against the peer chain's atomic shared memory. Returning an
+// error makes the block INVALID (verification fails and the block is rejected) —
+// which is the whole point: execution can no longer read shared memory without
+// making the block unreplayable, so the read moved here, where a mismatch costs the
+// producer a block instead of forking a receipt root.
+//
+// It is installed by the VM because the VM owns the engine-state gate: a
+// bootstrapping node must skip the check (it may not have applied the exporting
+// chain's block yet), exactly as the shared-memory layer requires of any chain that
+// consumes cross-chain state.
+type AtomicImportVerifier func(block *types.Block, logs []*types.Log) error
+
+// SetAtomicImportVerifier installs the cross-chain import authentication hook. It is
+// called once at VM initialization, before any block is verified.
+func (bc *BlockChain) SetAtomicImportVerifier(v AtomicImportVerifier) {
+	bc.atomicImportVerifier = v
 }
 
 // loadLastState loads the last known chain state from the database. This method
@@ -1836,6 +1860,29 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 		return err
 	}
 	vtime := time.Since(vstart)
+
+	// CROSS-CHAIN IMPORT AUTHENTICATION. A block may DECLARE, in its logs, that it
+	// consumed atomic shared-memory objects exported by a peer chain (the 0x9999 C<->D
+	// settlement seam). Execution binds value to the object bytes the TRANSACTION
+	// carried — it never reads shared memory, which is what makes the block replay
+	// byte-identically on a bootstrapping node. Proving those bytes are the real
+	// recorded object is therefore a BLOCK rule, and this is where it is enforced: a
+	// declaration that does not match shared memory REJECTS THE BLOCK rather than
+	// diverging a receipt.
+	//
+	// It runs on BOTH verify paths (writes=true from consensus, writes=false from the
+	// producer verifying its own block), so a forged import is refused before it is
+	// ever proposed. The hook is installed by the VM, which owns the engine-state gate
+	// — during bootstrap the read MUST be skipped, because a syncing node legitimately
+	// has not yet applied the peer chain's export (the same constraint the shared-memory
+	// layer documents on RemoveValue). Nil hook (no VM installed / no shared memory)
+	// disables the check.
+	if bc.atomicImportVerifier != nil {
+		if err := bc.atomicImportVerifier(block, logs); err != nil {
+			bc.reportBlock(block, receipts, err)
+			return err
+		}
+	}
 
 	// Metrics for per-operation StateDB timing (AccountReads, StorageReads, etc.)
 	// are not exposed by the current luxfi/geth StateDB and are omitted here.
