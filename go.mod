@@ -33,7 +33,7 @@ require (
 	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.8.1
 	github.com/luxfi/p2p v1.22.1
-	github.com/luxfi/precompile v0.19.6
+	github.com/luxfi/precompile v0.19.7
 	github.com/luxfi/runtime v1.3.1
 	github.com/luxfi/sys v0.1.0
 	github.com/luxfi/timer v1.1.1
