@@ -79,6 +79,15 @@ func (b *Block) Accept(context.Context) error {
 		return fmt.Errorf("chain could not accept %s: %w", blkID, err)
 	}
 
+	// Tell the builder which head is now accepted. It waits for the transaction pool
+	// to reset onto this same hash before building again — without that it spins,
+	// assembling against a pool that still lists what this block just mined.
+	vm.builderLock.Lock()
+	if vm.builder != nil {
+		vm.builder.setChainHeadHash(b.ethBlock.Hash())
+	}
+	vm.builderLock.Unlock()
+
 	// DEX native C<->D atomic seam: stage this block's atomic ops (0x9999
 	// SubmitSwapIntent C->D Puts / ImportSettlement D->C Removes) for flush to shared
 	// memory. The flush window is derived from CONSENSUS STATE (parent staged-seq ->
