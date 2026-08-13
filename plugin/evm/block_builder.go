@@ -11,6 +11,7 @@ import (
 	"github.com/luxfi/consensus/engine/chain/block"
 	"github.com/luxfi/evm/core"
 	"github.com/luxfi/evm/core/txpool"
+	"github.com/luxfi/geth/common"
 	log "github.com/luxfi/log"
 )
 
@@ -58,6 +59,13 @@ type blockBuilder struct {
 	// injectable so the wake path can be tested without a live txpool. Set by
 	// NewBlockBuilder to poll the real pool.
 	pendingTxs func() bool
+
+	// chainHeadHash and mempoolHeadHash are the two views of "which block are we
+	// building on top of": the chain's accepted head, and the head the transaction
+	// pool has finished resetting to. They differ for the window between a block
+	// being accepted and the pool reorganising onto it.
+	chainHeadHash   common.Hash
+	mempoolHeadHash common.Hash
 }
 
 func (vm *VM) NewBlockBuilder() *blockBuilder {
@@ -84,6 +92,47 @@ func (b *blockBuilder) handleGenerateBlock() {
 	b.lastBuildTime = time.Now()
 }
 
+// pendingPoolUpdate reports that the transaction pool has NOT yet caught up to the
+// chain's head — a block was accepted and the pool is still reorganising onto it.
+//
+// Building in that window is what spins. The pool still lists the transactions the
+// new block just mined, so needToBuild says "there is work"; the miner then assembles
+// against the NEW head, finds nothing left to include, and returns an empty block,
+// which the anti-empty policy discards. Nothing has changed, so the builder is woken
+// again immediately, and again — measured on lux-devnet 2026-08-13 as 948 discarded
+// builds in ten minutes on a HEALTHY chain, one node spinning continuously.
+//
+// The two hashes converge as soon as the pool finishes its reset, which is why
+// waiting on them costs nothing in the steady state.
+func (b *blockBuilder) pendingPoolUpdate() bool {
+	return b.chainHeadHash != b.mempoolHeadHash
+}
+
+// setChainHeadHash records the accepted head. Called by the VM on accept.
+func (b *blockBuilder) setChainHeadHash(hash common.Hash) {
+	b.buildBlockLock.Lock()
+	defer b.buildBlockLock.Unlock()
+
+	b.chainHeadHash = hash
+	if b.pendingPoolUpdate() {
+		return
+	}
+	b.pendingSignal.Broadcast()
+}
+
+// setMempoolHeadHash records the head the pool has reset to. Called from the pool's
+// own reorg event, which is the only thing that knows when the reset finished.
+func (b *blockBuilder) setMempoolHeadHash(hash common.Hash) {
+	b.buildBlockLock.Lock()
+	defer b.buildBlockLock.Unlock()
+
+	b.mempoolHeadHash = hash
+	if b.pendingPoolUpdate() {
+		return
+	}
+	b.pendingSignal.Broadcast()
+}
+
 // needToBuild returns true if there are outstanding transactions to be issued
 // into a block.
 func (b *blockBuilder) needToBuild() bool {
@@ -106,6 +155,11 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 	txSubmitChan := make(chan core.NewTxsEvent)
 	b.txPool.SubscribeTransactions(txSubmitChan, true)
 
+	// The pool announces the head it has reset to. Without this the builder never
+	// learns the pool caught up, so pendingPoolUpdate would latch on forever.
+	reorgChan := make(chan core.NewTxPoolReorgEvent)
+	reorgSub := b.txPool.SubscribeNewReorgEvent(reorgChan)
+
 	// Bounded-wake backstop: guarantees a parked builder re-polls the mempool
 	// even if a tx-submit notification is ever delivered to no waiter.
 	b.startPendingTxPoll()
@@ -125,7 +179,14 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 			case <-txSubmitChan:
 				log.Trace("New tx detected, trying to generate a block")
 				b.signalCanBuild()
+			case event := <-reorgChan:
+				if event.Head == nil {
+					log.Warn("nil head in tx pool reorg event")
+					continue
+				}
+				b.setMempoolHeadHash(event.Head.Hash())
 			case <-b.shutdownChan:
+				reorgSub.Unsubscribe()
 				return
 			}
 		}
@@ -232,7 +293,7 @@ func (b *blockBuilder) waitForNeedToBuild(ctx context.Context) (time.Time, error
 
 	b.buildBlockLock.Lock()
 	defer b.buildBlockLock.Unlock()
-	for !b.needToBuild() {
+	for !b.needToBuild() || b.pendingPoolUpdate() {
 		// Check if context is cancelled
 		select {
 		case <-ctx.Done():
