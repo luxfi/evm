@@ -1662,6 +1662,27 @@ func (vm *VM) BuildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nod
 	return vm.buildBlockWithContext(ctx, consensusCtx)
 }
 
+// proposeEmptyBuild reports whether a just-assembled block carrying NO transactions
+// should still be proposed.
+//
+// The C-Chain is demand-driven: a proposer does not manufacture blocks nobody asked
+// for. But "the assembled block is empty" answers a different question than "there is
+// no demand", and treating them as one is what halts a chain. If the pool holds
+// executable transactions and assembly still produced none, that is an assembly bug —
+// and refusing to build makes it PERMANENT, because no block means no nonce advances,
+// so the pending transaction is never mined, so the pool never drains, so nothing can
+// ever restore the condition under which a block would be built.
+//
+// Measured on lux-devnet 2026-08-11: the chain stopped for 41 hours holding ONE
+// executable transaction, with two proposers logging errEmptyBlock ~2000x per six
+// hours and 7,100 consecutive traffic-generator failures queued behind it.
+//
+// So the pool decides. Nothing pending is genuine idleness and the block is discarded;
+// anything pending means the chain must advance, whatever assembly managed to collect.
+func proposeEmptyBuild(poolPending int, automining bool) bool {
+	return automining || poolPending > 0
+}
+
 // buildBlock builds a block to be wrapped by ChainState
 func (vm *VM) buildBlock(ctx context.Context) (nodeblock.Block, error) {
 	return vm.buildBlockWithContext(ctx, nil)
@@ -1693,8 +1714,30 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nod
 	// only on real demand. The check lives ONLY on this build path so a consensus-FINALIZED empty
 	// block still Accepts (finality overrides anti-spam — see block_verification.go). Fail before
 	// the verify+state work below to avoid touching the triedb for a block we will not propose.
-	if len(block.Transactions()) == 0 && !vm.config.EnableAutomining {
-		return nil, errEmptyBlock
+	//
+	// ASK THE POOL, NOT THE BLOCK. An empty assembled block means one of two very
+	// different things and refusing both is what halts a chain: either there is no
+	// demand — correct to refuse, that is the whole policy — or there IS demand this
+	// proposer failed to assemble. The second is a bug, and declining to build makes it
+	// PERMANENT: no block, so no nonce advances, so the pending transaction is never
+	// mined, so the pool never drains — nothing can restore the condition that would let
+	// a block be built. Measured on lux-devnet 2026-08-11: the chain stopped for 41h
+	// holding ONE executable transaction, two proposers logging errEmptyBlock ~2000x per
+	// six hours, and 7,100 consecutive traffic-generator failures queued behind it.
+	//
+	// So refuse only when the POOL agrees there is nothing to do. If the pool holds
+	// executable transactions and assembly still produced none, build: the chain
+	// advances, the mismatch is logged where somebody can see it, and liveness stops
+	// depending on the assembly path being correct.
+	if len(block.Transactions()) == 0 {
+		pending, _ := vm.txPool.Stats()
+		if !proposeEmptyBuild(pending, vm.config.EnableAutomining) {
+			return nil, errEmptyBlock
+		}
+		if pending > 0 {
+			log.Warn("assembled an empty block while the pool holds executable transactions - building anyway to keep the chain live",
+				"pending", pending, "height", blk.Height())
+		}
 	}
 
 	// Verify is called on a non-wrapped block here, such that this
