@@ -42,7 +42,7 @@ require (
 	github.com/luxfi/utils v1.3.1
 	github.com/luxfi/validators v1.3.1
 	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.3.8
+	github.com/luxfi/vm v1.3.9
 	github.com/luxfi/warp v1.24.1
 	github.com/mattn/go-colorable v0.1.15
 	github.com/mattn/go-isatty v0.0.22
