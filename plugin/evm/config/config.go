@@ -347,6 +347,13 @@ func (c *Config) SetDefaults(txPoolConfig TxPoolConfig) {
 	c.LogJSONFormat = defaultLogJSONFormat
 	c.MaxOutboundActiveRequests = defaultMaxOutboundActiveRequests
 	c.PopulateMissingTriesParallelism = defaultPopulateMissingTriesParallelism
+	// State sync is on. It is how a node with a deep gap rejoins, and there is no
+	// posture in which the right answer is to refuse it and re-execute instead —
+	// so it is not a choice an operator has to make, or remember to write into a
+	// per-chain file that most deployments do not have at all. The bound is
+	// StateSyncMinBlocks, which is inside the mechanism: a gap smaller than that
+	// replays and never reaches this path.
+	c.StateSyncEnabled = true
 	c.StateSyncServerTrieCache = defaultStateSyncServerTrieCache
 	c.StateSyncCommitInterval = defaultSyncableCommitInterval
 	c.StateSyncMinBlocks = defaultStateSyncMinBlocks
