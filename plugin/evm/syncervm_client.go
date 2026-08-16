@@ -160,7 +160,14 @@ func (client *stateSyncerClient) acceptSyncSummary(proposedSummary message.SyncS
 		// Skip syncing if the blockchain is not significantly ahead of local state,
 		// since bootstrapping would be faster.
 		// (Also ensures we don't sync to a height prior to local state.)
-		if client.lastAcceptedHeight+client.stateSyncMinBlocks > proposedSummary.Height() {
+		//
+		// That trade only exists while bootstrapping can actually run. It replays
+		// blocks against the state under them, so a node missing the state at its
+		// own head cannot replay at all — it fails to materialize the very next
+		// block and stops there, whatever the gap. Skipping on a small gap then
+		// declines the one mechanism that could repair it and leaves the node
+		// stuck for good. So the threshold applies to nodes that have a choice.
+		if client.canReplayLocally() && client.lastAcceptedHeight+client.stateSyncMinBlocks > proposedSummary.Height() {
 			log.Info(
 				"last accepted too close to most recent syncable block, skipping state sync",
 				"lastAccepted", client.lastAcceptedHeight,
@@ -369,3 +376,25 @@ func (client *stateSyncerClient) updateVMMarkers() error {
 
 // Error returns a non-nil error if one occurred during the sync.
 func (client *stateSyncerClient) Error() error { return client.stateSyncErr }
+
+// canReplayLocally reports whether this node holds the state its own head is
+// built on, which is what bootstrapping needs to execute the next block. Without
+// it there is nothing to replay from and state sync is the only way back.
+//
+// A chain that cannot be read answers no: an unproven measurement is not a
+// passing one, and the cost of being wrong here is a sync that was not strictly
+// necessary, against a node that can never recover.
+func (client *stateSyncerClient) canReplayLocally() bool {
+	if client.chain == nil {
+		return false
+	}
+	bc := client.chain.BlockChain()
+	if bc == nil {
+		return false
+	}
+	head := bc.CurrentBlock()
+	if head == nil {
+		return false
+	}
+	return bc.HasState(head.Root)
+}
