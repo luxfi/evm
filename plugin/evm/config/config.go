@@ -60,7 +60,14 @@ const (
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
 	defaultDBType               = "badgerdb"
 	defaultValidatorAPIEnabled  = true
-	defaultAdminAPIEnabled      = true
+
+	// The admin API is off unless a node is told to serve it. admin_importChain
+	// rewrites the chain from a file on disk, so anything that can reach the RPC
+	// port can replace history; that is a capability a node should hold only while
+	// someone is using it, not one it carries because an import was once
+	// convenient. A node doing a restore sets admin-api-enabled in its chain
+	// config for as long as the restore takes.
+	defaultAdminAPIEnabled = false
 
 	// RPC batch limits
 	defaultBatchRequestLimit    = 1000
