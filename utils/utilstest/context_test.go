@@ -16,12 +16,12 @@ func TestNewTestConsensusContext(t *testing.T) {
 	// Test that NewTestConsensusContext creates a context with validator state
 	consensusCtx := NewTestConsensusContext(t)
 
-	// Extract validator state from context using consensus.GetValidatorState
-	validatorState := consensus.GetValidatorState(consensusCtx)
+	// Extract validator state through the EVM consensus helper.
+	validatorState := consensus.GetValidator(consensusCtx)
 	require.NotNil(t, validatorState)
 
 	// Test that we can call GetValidatorSet without panicking
-	validators, err := validatorState.GetValidatorSet(0, ids.Empty)
+	validators, err := validatorState.GetValidatorSet(context.Background(), 0, ids.Empty)
 	require.NoError(t, err)
 	require.NotNil(t, validators)
 

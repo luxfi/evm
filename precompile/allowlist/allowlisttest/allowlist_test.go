@@ -45,6 +45,11 @@ func (d *dummyConfigurator) MakeConfig() precompileconfig.Config {
 	return &dummyConfig{}
 }
 
+func (d *dummyConfigurator) MakeGenesisConfig() precompileconfig.Config {
+	var zero uint64
+	return &dummyConfig{Upgrade: precompileconfig.Upgrade{BlockTimestamp: &zero}}
+}
+
 func (d *dummyConfigurator) Configure(
 	chainConfig precompileconfig.ChainConfig,
 	precompileConfig precompileconfig.Config,
