@@ -53,9 +53,28 @@ func (vm *VM) newBlock(ethBlock *types.Block) *Block {
 // ID implements the chain.Block interface
 func (b *Block) ID() ids.ID { return b.id }
 
+// alreadyAccepted reports whether this exact execution block is the VM's durable
+// consensus tip. A proposer wrapper may legitimately change while carrying the
+// same inner EVM block (for example, catch-up adopts a quorum-certified wrapper
+// after an older node accepted a locally proposed wrapper). Re-executing that
+// already accepted block is both unnecessary and, after pruning its parent state,
+// impossible. The block hash commits the full execution result, so equality with
+// the VM's accepted tip is the only safe idempotency key.
+func (b *Block) alreadyAccepted() bool {
+	return b != nil && b.vm != nil && b.vm.State != nil &&
+		b.vm.State.LastAcceptedBlockInternal().ID() == b.ID()
+}
+
 // Accept implements the chain.Block interface
 func (b *Block) Accept(context.Context) error {
 	vm := b.vm
+	if b.alreadyAccepted() {
+		// The execution state, accepted pointer, receipts, precompile effects and
+		// atomic markers for this exact hash are already durable. Replaying Accept
+		// would duplicate those side effects; the outer proposer wrapper is the only
+		// layer that still needs to advance.
+		return nil
+	}
 
 	// Although returning an error from Accept is considered fatal, it is good
 	// practice to cleanup the batch we were modifying in the case of an error.
@@ -341,6 +360,14 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 // Enforces that the predicates are valid within [predicateContext].
 // Writes the block details to disk and the state to the trie manager iff writes=true.
 func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writes bool) error {
+	if b.alreadyAccepted() {
+		// Catch-up can receive a different, quorum-certified proposer wrapper around
+		// the exact EVM block this node already accepted. Its parent state may have
+		// been pruned, so InsertBlockManual cannot re-execute it. Hash equality with
+		// the VM's durable accepted tip proves this execution result was already
+		// verified and committed; only the outer wrapper remains to be certified.
+		return nil
+	}
 	if predicateContext.ProposerVMBlockCtx != nil {
 		log.Debug("Verifying block with context", "block", b.ID(), "height", b.Height())
 	} else {
