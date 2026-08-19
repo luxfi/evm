@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/luxfi/consensus"
 	"github.com/luxfi/ids"
+	"github.com/luxfi/runtime"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,8 +16,8 @@ func TestNewTestConsensusContext(t *testing.T) {
 	// Test that NewTestConsensusContext creates a context with validator state
 	consensusCtx := NewTestConsensusContext(t)
 
-	// Extract validator state through the EVM consensus helper.
-	validatorState := consensus.GetValidator(consensusCtx)
+	// Extract validator state through the runtime context used in production.
+	validatorState := runtime.GetValidatorState(consensusCtx)
 	require.NotNil(t, validatorState)
 
 	// Test that we can call GetValidatorSet without panicking
