@@ -36,11 +36,11 @@ const (
 // u16 version does not equal [Version]. Preserved as an exported sentinel
 // for callers that switch on it.
 var (
-	ErrUnknownVersion       = errors.New("unknown wire version")
-	ErrCantUnpackVersion    = errors.New("couldn't unpack version")
-	ErrCantPackVersion      = errors.New("couldn't pack version")
-	ErrUnsupportedType      = errors.New("unsupported message type")
-	ErrMaxSliceLenExceeded  = errors.New("max message size exceeded")
+	ErrUnknownVersion      = errors.New("unknown wire version")
+	ErrCantUnpackVersion   = errors.New("couldn't unpack version")
+	ErrCantPackVersion     = errors.New("couldn't pack version")
+	ErrUnsupportedType     = errors.New("unsupported message type")
+	ErrMaxSliceLenExceeded = errors.New("max message size exceeded")
 )
 
 // Manager is the surface every wire-touching peer of this package needs.

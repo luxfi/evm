@@ -13,9 +13,9 @@ import (
 // TestRecoverV_LegacyValid verifies valid legacy V values (27, 28).
 func TestRecoverV_LegacyValid(t *testing.T) {
 	tests := []struct {
-		v       uint64
-		wantID  uint8
-		wantOK  bool
+		v      uint64
+		wantID uint8
+		wantOK bool
 	}{
 		{27, 0, true},
 		{28, 1, true},

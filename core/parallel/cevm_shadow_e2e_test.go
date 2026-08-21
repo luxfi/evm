@@ -77,9 +77,9 @@ func TestCevmShadowVerifiesRealBlocks(t *testing.T) {
 	// (InsertChain -> Process -> parallel.DefaultExecutor().ExecuteBlock), so
 	// this is genuine block execution, not a synthetic fixture.
 	const (
-		nBlocks   = 256
-		txper     = 3
-		startBal  = 1000
+		nBlocks  = 256
+		txper    = 3
+		startBal = 1000
 	)
 	var nonce uint64
 	blocks, _, err := core.GenerateChain(gspec.Config, chain.Genesis(), engine, db, nBlocks, 10, func(i int, b *core.BlockGen) {

@@ -201,8 +201,8 @@ func TestDexSettle_PrecompileOverride_GatedByActivation(t *testing.T) {
 func TestDexSettle_PrecompileOverride_NoGlobalRace(t *testing.T) {
 	cfg := params.WithExtra(&params.ChainConfig{}, &extras.ChainConfig{})
 
-	a := &LuxPrecompileOverrider{chainConfig: cfg, timestamp: activation}          // activation-block replay
-	b := &LuxPrecompileOverrider{chainConfig: cfg, timestamp: activation + 1 << 30} // later block / eth_call
+	a := &LuxPrecompileOverrider{chainConfig: cfg, timestamp: activation}         // activation-block replay
+	b := &LuxPrecompileOverrider{chainConfig: cfg, timestamp: activation + 1<<30} // later block / eth_call
 
 	const iters = 2000
 	done := make(chan struct{})
