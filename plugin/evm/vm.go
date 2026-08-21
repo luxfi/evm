@@ -168,6 +168,7 @@ var (
 	errNilBlockGasCostEVM            = errors.New("nil blockGasCost is invalid after EVM activation")
 	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
 	errInitializingLogger            = errors.New("failed to initialize logger")
+	errBlockBuildingNotReady         = errors.New("block building is not ready")
 	errShuttingDownVM                = errors.New("shutting down VM")
 )
 
@@ -1673,6 +1674,17 @@ func (vm *VM) buildBlock(ctx context.Context) (nodeblock.Block, error) {
 }
 
 func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nodeblock.Context) (nodeblock.Block, error) {
+	vm.builderLock.Lock()
+	builder := vm.builder
+	vm.builderLock.Unlock()
+	if builder == nil {
+		// BuildBlock can race bootstrap completion when the outer consensus
+		// engine is recovering historical blocks. Mining is not initialized
+		// until onNormalOperationsStarted, so fail closed instead of generating
+		// work and dereferencing a nil builder after the fact.
+		return nil, errBlockBuildingNotReady
+	}
+
 	if proposerVMBlockCtx != nil {
 		log.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
 	} else {
@@ -1684,7 +1696,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *nod
 	}
 
 	block, err := vm.miner.GenerateBlock(predicateCtx)
-	vm.builder.handleGenerateBlock()
+	builder.handleGenerateBlock()
 	if err != nil {
 		return nil, err
 	}
