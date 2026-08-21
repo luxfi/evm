@@ -17,7 +17,7 @@ require (
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.3.1
 	github.com/luxfi/chains v1.7.33
-	github.com/luxfi/consensus v1.36.72
+	github.com/luxfi/consensus v1.36.73
 	github.com/luxfi/constants v1.6.2
 	github.com/luxfi/crypto v1.20.5
 	github.com/luxfi/database v1.21.5
