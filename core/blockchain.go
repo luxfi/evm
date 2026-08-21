@@ -906,7 +906,14 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 	// reprocessState is necessary to ensure that the last accepted state is
 	// available. The state may not be available if it was not committed due
 	// to an unclean shutdown.
-	if repairedMissingHead {
+	// v1.104.47 repaired the stale head pointer before this state-suffix repair
+	// existed. Such a node no longer presents a missing head on its next restart,
+	// but the live failure leaves one deterministic fingerprint: the accepted tip
+	// is immediately before the commit boundary whose processing block was
+	// deleted. Re-run the same bounded repair for that already-rewound shape.
+	boundaryRepair := bc.cacheConfig.CommitInterval > 0 &&
+		(bc.lastAccepted.NumberU64()+1)%bc.cacheConfig.CommitInterval == 0
+	if repairedMissingHead || boundaryRepair {
 		// A legacy reject could leave more than stale head pointers behind. In
 		// hash-scheme pruning mode the rejected processing block may have crossed
 		// a commit boundary and garbage-collected descendants of the accepted
@@ -920,7 +927,8 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 		// Every transition is validated against its historical header and the
 		// final accepted root is force-committed, making this both deterministic
 		// and restart-safe. This runs only after the exact legacy-damage signature
-		// (head pointer names a missing block body) has been observed.
+		// (head pointer names a missing block body, or a prior release already
+		// rewound it at the affected commit boundary) has been observed.
 		if err := bc.rebuildAcceptedStateAfterHeadRepair(bc.lastAccepted); err != nil {
 			return fmt.Errorf("could not rebuild accepted state after repairing missing processing head: %w", err)
 		}
