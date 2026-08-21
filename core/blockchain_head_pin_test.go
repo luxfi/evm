@@ -480,3 +480,81 @@ func TestHeadPin_RestartAtNonBoundary(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, insertAccept(t, restarted, extra[0]), "cannot build H+1 after restart at non-boundary head")
 }
+
+// TestRejectCanonicalProcessingHead_RewindsDurableHead proves a rejected H+1
+// processing block cannot leave the on-disk head pointer aimed at its deleted
+// body. This is the devnet restart failure: H was accepted, H+1 became the
+// canonical processing head, consensus rejected H+1, and loadLastState later
+// failed with "could not load head block".
+func TestRejectCanonicalProcessingHead_RewindsDurableHead(t *testing.T) {
+	gspec := &Genesis{Config: params.TestChainConfig}
+	_, chain, _, err := GenerateChainWithGenesis(gspec, dummy.NewCoinbaseFaker(), 2, 10, nil)
+	require.NoError(t, err)
+
+	db := rawdb.NewMemoryDatabase()
+	cfg := headPinConfig()
+	bc, err := createBlockChain(db, cfg, gspec, common.Hash{})
+	require.NoError(t, err)
+
+	require.NoError(t, insertAccept(t, bc, chain[0]))
+	accepted := chain[0]
+	processing := chain[1]
+	require.NoError(t, bc.InsertBlock(processing))
+	require.Equal(t, processing.Hash(), bc.CurrentHeader().Hash(), "processing block must be the pre-reject head")
+	require.Equal(t, processing.Hash(), rawdb.ReadHeadBlockHash(db), "durable pre-reject head mismatch")
+
+	require.NoError(t, bc.Reject(processing))
+	require.Equal(t, accepted.Hash(), bc.CurrentHeader().Hash(), "reject must rewind the in-memory head")
+	require.Equal(t, accepted.Hash(), rawdb.ReadHeadBlockHash(db), "reject must rewind the durable head before deleting the block")
+	require.Nil(t, bc.GetBlockByHash(processing.Hash()), "rejected processing body must be deleted")
+	bc.Stop()
+
+	restarted, err := createBlockChain(db, cfg, gspec, accepted.Hash())
+	require.NoError(t, err, "restart followed a stale head pointer to the rejected block")
+	defer restarted.Stop()
+	require.Equal(t, accepted.Hash(), restarted.CurrentHeader().Hash())
+}
+
+// TestLoadLastState_RepairsMissingProcessingHead reproduces a database already
+// damaged by an older release: the processing head pointer and canonical index
+// name H+1, its block body has been deleted, and the independent consensus
+// pointer still names accepted H. Startup must recover exactly to H.
+func TestLoadLastState_RepairsMissingProcessingHead(t *testing.T) {
+	gspec := &Genesis{Config: params.TestChainConfig}
+	_, chain, _, err := GenerateChainWithGenesis(gspec, dummy.NewCoinbaseFaker(), 2, 10, nil)
+	require.NoError(t, err)
+
+	db := rawdb.NewMemoryDatabase()
+	cfg := headPinConfig()
+	bc, err := createBlockChain(db, cfg, gspec, common.Hash{})
+	require.NoError(t, err)
+
+	require.NoError(t, insertAccept(t, bc, chain[0]))
+	accepted := chain[0]
+	processing := chain[1]
+	require.NoError(t, bc.InsertBlock(processing))
+	require.Equal(t, processing.Hash(), rawdb.ReadHeadBlockHash(db))
+	bc.Stop()
+
+	// Model the legacy Reject ordering: delete the canonical processing block
+	// while leaving both durable head markers and its canonical assignment.
+	batch := db.NewBatch()
+	rawdb.DeleteBlock(batch, processing.Hash(), processing.NumberU64())
+	require.NoError(t, batch.Write())
+	require.Equal(t, processing.Hash(), rawdb.ReadHeadBlockHash(db))
+	require.Equal(t, processing.Hash(), rawdb.ReadCanonicalHash(db, processing.NumberU64()))
+	require.Nil(t, rawdb.ReadBlock(db, processing.Hash(), processing.NumberU64()))
+
+	restarted, err := createBlockChain(db, cfg, gspec, accepted.Hash())
+	require.NoError(t, err)
+	defer restarted.Stop()
+	require.Equal(t, accepted.Hash(), restarted.CurrentHeader().Hash())
+	require.Equal(t, accepted.Hash(), rawdb.ReadHeadBlockHash(db))
+	require.Equal(t, accepted.Hash(), rawdb.ReadHeadHeaderHash(db))
+	require.Equal(t, common.Hash{}, rawdb.ReadCanonicalHash(db, processing.NumberU64()))
+
+	// The repaired database is not merely readable: it can extend and accept the
+	// next block normally after startup.
+	require.NoError(t, insertAccept(t, restarted, processing))
+	require.Equal(t, processing.Hash(), restarted.LastConsensusAcceptedBlock().Hash())
+}
