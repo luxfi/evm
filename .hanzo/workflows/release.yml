@@ -1,0 +1,28 @@
+name: Release
+
+# The EVM tag is the plugin source consumed by node's single image build. It
+# does not publish a second Docker image: node clones this exact tag, builds the
+# plugin, checks node/plugin API agreement, and publishes the deployable image.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: [lux-build-linux-amd64]
+    timeout-minutes: 60
+    env:
+      GOWORK: off
+      CGO_ENABLED: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go test ./... -count=1
+      - run: ./scripts/build.sh
+      - run: test -x build/evm
