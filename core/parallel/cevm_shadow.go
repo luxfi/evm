@@ -395,7 +395,7 @@ func shadowApply(
 	atomic.AddUint64(&cevmApplied, 1)
 	atomic.AddUint64(&cevmResidentApplied, 1)
 	rs.synced = true
-	rs.height = number // resident verified at height N
+	rs.height = number    // resident verified at height N
 	persistCheckpoint(rs) // durable, bounded-cadence checkpoint (no-op unless a store is registered)
 	return receipts
 }

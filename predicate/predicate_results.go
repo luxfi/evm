@@ -25,9 +25,9 @@ const (
 )
 
 var (
-	errShortBuffer  = errors.New("predicate: short buffer")
-	errBadVersion   = errors.New("predicate: invalid version")
-	errTooLarge     = errors.New("predicate: results exceed MaxResultsSize")
+	errShortBuffer = errors.New("predicate: short buffer")
+	errBadVersion  = errors.New("predicate: invalid version")
+	errTooLarge    = errors.New("predicate: results exceed MaxResultsSize")
 )
 
 // TxResults is a map of results for each precompile address to the resulting byte array.

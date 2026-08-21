@@ -100,6 +100,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, 
 //   - later block (parentTimestamp != nil): crossed iff
 //     *parentTimestamp < ActivationTime <= blockTimestamp — the single transition where
 //     the precompile turns on during history replay.
+//
 // The marker is therefore written exactly once, deterministically, on every node. An
 // AlwaysOn module's Configurator is NOT invoked (a system precompile has no activating
 // config; all params resolve at runtime from the consensus context) — only the marker.

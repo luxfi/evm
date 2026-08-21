@@ -32,8 +32,8 @@ const cevmCkptHeightKey = "cevm-ckpt-height"
 
 var (
 	cevmStoreMu      sync.Mutex
-	cevmStateStore   database.Database // registered by the VM; nil => disk-backed residency off
-	cevmCkptInterval uint64 = 4096     // checkpoint every N blocks (0 disables checkpointing)
+	cevmStateStore   database.Database        // registered by the VM; nil => disk-backed residency off
+	cevmCkptInterval uint64            = 4096 // checkpoint every N blocks (0 disables checkpointing)
 )
 
 // SetCevmResidentStore registers the durable KV the cevm resident StateDB persists

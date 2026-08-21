@@ -15,9 +15,9 @@ package parallel
 import (
 	"math/big"
 
+	"github.com/luxfi/crypto/secp256k1"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/types"
-	"github.com/luxfi/crypto/secp256k1"
 	luxgpu "github.com/luxfi/gpu"
 )
 
