@@ -15,6 +15,7 @@ import (
 	"github.com/luxfi/geth/core/types"
 	ethparams "github.com/luxfi/geth/params"
 	"github.com/luxfi/geth/trie"
+	gethtriedb "github.com/luxfi/geth/triedb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -556,5 +557,122 @@ func TestLoadLastState_RepairsMissingProcessingHead(t *testing.T) {
 	// The repaired database is not merely readable: it can extend and accept the
 	// next block normally after startup.
 	require.NoError(t, insertAccept(t, restarted, processing))
+	require.Equal(t, processing.Hash(), restarted.LastConsensusAcceptedBlock().Hash())
+}
+
+// TestLoadLastState_RepairsPartialAcceptedTrieAtCommitBoundary models the exact
+// live devnet failure at 16,384: accepted H is one block before the 4,096-block
+// commit boundary, a canonical processing H+1 was deleted by a legacy Reject,
+// and accepted H's hash trie retained its root node but lost a descendant.
+// OpenTrie/HasState therefore reports a false positive and only executing H+1
+// discovers the damage. Startup repair must force-reexecute the accepted suffix
+// from the prior durable boundary, commit it, and then accept the same H+1 bytes.
+func TestLoadLastState_RepairsPartialAcceptedTrieAtCommitBoundary(t *testing.T) {
+	sender, recipient := headPinFixtures()
+	key, err := crypto.HexToECDSA(senderHexKey)
+	require.NoError(t, err)
+
+	alloc := types.GenesisAlloc{
+		sender:    {Balance: new(big.Int).Mul(big.NewInt(1_000), big.NewInt(params.Ether))},
+		recipient: {Balance: big.NewInt(1)},
+	}
+	// Force a multi-level state trie so a non-root hashed descendant can be
+	// removed while the accepted root node remains readable.
+	for i := int64(0); i < 32; i++ {
+		alloc[common.BigToAddress(big.NewInt(10_000+i))] = types.Account{Balance: big.NewInt(i + 1)}
+	}
+	gspec := &Genesis{Config: params.TestChainConfig, Alloc: alloc}
+	signer := types.LatestSigner(params.TestChainConfig)
+	_, chain, _, err := GenerateChainWithGenesis(gspec, dummy.NewCoinbaseFaker(), 4, 10, func(_ int, gen *BlockGen) {
+		tx, signErr := types.SignTx(types.NewTransaction(
+			gen.TxNonce(sender), recipient, big.NewInt(1), ethparams.TxGas,
+			big.NewInt(225_000_000_000), nil,
+		), signer, key)
+		require.NoError(t, signErr)
+		gen.AddTx(tx)
+	})
+	require.NoError(t, err)
+
+	db := rawdb.NewMemoryDatabase()
+	cfg := headPinConfigWith(4, 32)
+	bc, err := createBlockChain(db, cfg, gspec, common.Hash{})
+	require.NoError(t, err)
+	for _, block := range chain[:3] {
+		require.NoError(t, insertAccept(t, bc, block))
+	}
+	accepted := chain[2]   // H=3, immediately before the commit boundary
+	processing := chain[3] // H+1=4, the deleted canonical processing head
+	require.NoError(t, bc.InsertBlock(processing))
+	require.Equal(t, processing.Hash(), rawdb.ReadHeadBlockHash(db))
+
+	collectHashes := func(root common.Hash) map[common.Hash]struct{} {
+		tr, trieErr := trie.New(trie.TrieID(root), bc.triedb)
+		require.NoError(t, trieErr)
+		it, trieErr := tr.NodeIterator(nil)
+		require.NoError(t, trieErr)
+		hashes := make(map[common.Hash]struct{})
+		for it.Next(true) {
+			if hash := it.Hash(); hash != (common.Hash{}) {
+				hashes[hash] = struct{}{}
+			}
+		}
+		require.NoError(t, it.Error())
+		return hashes
+	}
+	acceptedHashes := collectHashes(accepted.Root())
+	genesisHashes := collectHashes(bc.Genesis().Root())
+	bc.Stop() // cleanly persists accepted H, after H+1 was only processing
+
+	// Model the old delete-before-rewind ordering while retaining its canonical
+	// assignment and both head markers.
+	batch := db.NewBatch()
+	rawdb.DeleteBlock(batch, processing.Hash(), processing.NumberU64())
+	require.NoError(t, batch.Write())
+	require.Equal(t, processing.Hash(), rawdb.ReadHeadBlockHash(db))
+	require.Equal(t, processing.Hash(), rawdb.ReadCanonicalHash(db, processing.NumberU64()))
+
+	var missingChild common.Hash
+	for hash := range acceptedHashes {
+		if hash == accepted.Root() {
+			continue
+		}
+		if _, sharedWithGenesis := genesisHashes[hash]; sharedWithGenesis {
+			continue
+		}
+		if rawdb.HasLegacyTrieNode(db, hash) {
+			missingChild = hash
+			break
+		}
+	}
+	require.NotEqual(t, common.Hash{}, missingChild, "test needs a persisted non-genesis descendant")
+	require.True(t, rawdb.HasLegacyTrieNode(db, accepted.Root()), "accepted root node must remain present")
+	rawdb.DeleteLegacyTrieNode(db, missingChild)
+	require.False(t, rawdb.HasLegacyTrieNode(db, missingChild))
+
+	// Prove the HasState false-positive shape: a fresh trie database accepts the
+	// root, but walking the trie fails on the deleted descendant.
+	probe := gethtriedb.NewDatabase(db, nil)
+	_, err = probe.NodeReader(accepted.Root())
+	require.NoError(t, err, "root-only availability check must pass")
+	corruptTrie, err := trie.New(trie.TrieID(accepted.Root()), probe)
+	require.NoError(t, err)
+	it, err := corruptTrie.NodeIterator(nil)
+	require.NoError(t, err)
+	for it.Next(true) {
+	}
+	require.Error(t, it.Error(), "full traversal must expose the missing descendant")
+	require.NoError(t, probe.Close())
+
+	restarted, err := createBlockChain(db, cfg, gspec, accepted.Hash())
+	require.NoError(t, err, "startup must rebuild the partially persisted accepted trie")
+	defer restarted.Stop()
+	require.Equal(t, accepted.Hash(), restarted.CurrentHeader().Hash())
+	require.Equal(t, common.Hash{}, rawdb.ReadCanonicalHash(db, processing.NumberU64()))
+
+	repairedState, err := restarted.StateAt(accepted.Root())
+	require.NoError(t, err)
+	_ = repairedState.GetBalance(sender)
+	require.NoError(t, repairedState.Error(), "rebuilt accepted trie must be complete for execution reads")
+	require.NoError(t, insertAccept(t, restarted, processing), "same boundary block bytes must verify after repair")
 	require.Equal(t, processing.Hash(), restarted.LastConsensusAcceptedBlock().Hash())
 }
