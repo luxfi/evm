@@ -849,6 +849,14 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 		return bc.loadGenesisState()
 	}
 
+	// The consensus-owned accepted pointer is the durable recovery anchor. Load
+	// it before the optimistic processing head so a crash after rejecting a
+	// processing block can be repaired even if the old head body was deleted.
+	bc.lastAccepted = bc.GetBlockByHash(lastAcceptedHash)
+	if bc.lastAccepted == nil {
+		return fmt.Errorf("could not load last accepted block %s", lastAcceptedHash.Hex())
+	}
+
 	// Restore the last known head block
 	head := rawdb.ReadHeadBlockHash(bc.db)
 	if head == (common.Hash{}) {
@@ -857,7 +865,21 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 	// Make sure the entire head block is available
 	headBlock := bc.GetBlockByHash(head)
 	if headBlock == nil {
-		return fmt.Errorf("could not load head block %s", head.Hex())
+		// Older releases could delete a rejected canonical processing block
+		// without first rewinding the head markers. Recover only from the exact
+		// block authenticated by the consensus last-accepted pointer; never guess
+		// another ancestor or silently fall back to genesis.
+		log.Warn("[HEAD-POINTER-REPAIR] processing head body is missing; recovering from last accepted block",
+			"missingHead", head,
+			"accepted", bc.lastAccepted.Hash(),
+			"acceptedHeight", bc.lastAccepted.NumberU64(),
+		)
+		if err := bc.deleteCanonicalHashesAbove(bc.lastAccepted.NumberU64()); err != nil {
+			return fmt.Errorf("could not remove canonical assignments above repaired head %s:%d: %w",
+				bc.lastAccepted.Hash(), bc.lastAccepted.NumberU64(), err)
+		}
+		bc.writeHeadBlock(bc.lastAccepted)
+		headBlock = bc.lastAccepted
 	}
 	// Everything seems to be fine, set as the head block
 	bc.currentBlock.Store(headBlock.Header())
@@ -874,13 +896,7 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 	log.Info("Loaded most recent local header", "number", currentHeader.Number, "hash", currentHeader.Hash(), "age", common.PrettyAge(time.Unix(int64(currentHeader.Time), 0)))
 	log.Info("Loaded most recent local full block", "number", headBlock.Number(), "hash", headBlock.Hash(), "age", common.PrettyAge(time.Unix(int64(headBlock.Time()), 0)))
 
-	// Otherwise, set the last accepted block and perform a re-org.
-	bc.lastAccepted = bc.GetBlockByHash(lastAcceptedHash)
-	if bc.lastAccepted == nil {
-		return fmt.Errorf("could not load last accepted block")
-	}
-
-	// This ensures that the head block is updated to the last accepted block on startup
+	// This ensures that the head block is updated to the last accepted block on startup.
 	if err := bc.setPreference(bc.lastAccepted); err != nil {
 		return fmt.Errorf("failed to set preference to last accepted block while loading last state: %w", err)
 	}
@@ -973,6 +989,34 @@ func (bc *BlockChain) writeHeadBlock(block *types.Block) {
 	// Update all in-memory chain markers in the last step
 	bc.hc.SetCurrentHeader(block.Header())
 	bc.currentBlock.Store(block.Header())
+}
+
+// deleteCanonicalHashesAbove removes stale canonical number assignments above
+// a retained head. It is shared by normal reorgs and startup head-pointer repair
+// so both paths leave the same durable canonical index shape.
+func (bc *BlockChain) deleteCanonicalHashesAbove(head uint64) error {
+	// Chunk writes to avoid BadgerDB ErrTxnTooBig for large rewinds.
+	const indexBatchSize = 1000
+	batch := bc.db.NewBatch()
+	batchCount := 0
+	for height := head + 1; ; height++ {
+		if rawdb.ReadCanonicalHash(bc.db, height) == (common.Hash{}) {
+			break
+		}
+		rawdb.DeleteCanonicalHash(batch, height)
+		batchCount++
+		if batchCount >= indexBatchSize {
+			if err := batch.Write(); err != nil {
+				return err
+			}
+			batch = bc.db.NewBatch()
+			batchCount = 0
+		}
+	}
+	if batchCount > 0 {
+		return batch.Write()
+	}
+	return nil
 }
 
 // ValidateCanonicalChain confirms a canonical chain is well-formed.
@@ -1590,6 +1634,32 @@ func (bc *BlockChain) Reject(block *types.Block) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
 
+	// A processing block may be the current canonical head even though consensus
+	// later rejects it. Deleting that block without first moving the durable head
+	// markers leaves ReadHeadBlockHash pointing at a body that no longer exists;
+	// the next restart then fails in loadLastState with "could not load head
+	// block". If the rejected block is canonical at its height, rewind the full
+	// processing head to the retained parent before deleting any data. This also
+	// removes canonical assignments for descendants of the rejected block.
+	if bc.GetCanonicalHash(block.NumberU64()) == block.Hash() {
+		if block.NumberU64() == 0 {
+			return errors.New("cannot reject the canonical genesis block")
+		}
+		if block.NumberU64() <= bc.lastAccepted.NumberU64() {
+			return fmt.Errorf("cannot reject canonical block %s:%d at or below last accepted height %d",
+				block.Hash(), block.NumberU64(), bc.lastAccepted.NumberU64())
+		}
+		parent := bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
+		if parent == nil {
+			return fmt.Errorf("cannot reject canonical block %s:%d: parent %s is unavailable",
+				block.Hash(), block.NumberU64(), block.ParentHash())
+		}
+		if err := bc.setPreference(parent); err != nil {
+			return fmt.Errorf("cannot rewind canonical head before rejecting %s:%d: %w",
+				block.Hash(), block.NumberU64(), err)
+		}
+	}
+
 	// Reject Trie
 	if err := bc.stateManager.RejectTrie(block); err != nil {
 		return fmt.Errorf("unable to reject trie: %w", err)
@@ -2061,36 +2131,10 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 		bc.writeHeadBlock(newChain[i])
 	}
 
-	// Delete any canonical number assignments above the new head
-	// Use chunked batches to avoid BadgerDB ErrTxnTooBig when many blocks are present
-	// (e.g., after RLP import of large chains).
-	const indexBatchSize = 1000
-	indexesBatch := bc.db.NewBatch()
-	batchCount := 0
-
-	// Use the height of [newHead] to determine which canonical hashes to remove
-	// in case the new chain is shorter than the old chain, in which case
-	// there may be hashes set on the canonical chain that were invalidated
-	// but not yet overwritten by the re-org.
-	for i := newHead.NumberU64() + 1; ; i++ {
-		hash := rawdb.ReadCanonicalHash(bc.db, i)
-		if hash == (common.Hash{}) {
-			break
-		}
-		rawdb.DeleteCanonicalHash(indexesBatch, i)
-		batchCount++
-		if batchCount >= indexBatchSize {
-			if err := indexesBatch.Write(); err != nil {
-				log.Crit("Failed to delete useless indexes", "err", err)
-			}
-			indexesBatch = bc.db.NewBatch()
-			batchCount = 0
-		}
-	}
-	if batchCount > 0 {
-		if err := indexesBatch.Write(); err != nil {
-			log.Crit("Failed to delete useless indexes", "err", err)
-		}
+	// Use the height of [newHead] to remove assignments invalidated when
+	// rewinding to a shorter chain.
+	if err := bc.deleteCanonicalHashesAbove(newHead.NumberU64()); err != nil {
+		return fmt.Errorf("failed to delete canonical assignments above %d: %w", newHead.NumberU64(), err)
 	}
 
 	// Send out events for logs from the old canon chain, and 'reborn'
