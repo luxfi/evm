@@ -125,9 +125,10 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 	defer close(indexer.closed)
 	// Listening to chain events and manipulate the transaction indexes.
 	var (
-		stop     chan struct{} // Non-nil if background routine is active.
-		done     chan struct{} // Non-nil if background routine is active.
-		lastHead uint64        // The latest announced chain head (whose tx indexes are assumed created)
+		stop        chan struct{} // Non-nil if background routine is active.
+		done        chan struct{} // Non-nil if background routine is active.
+		lastHead    uint64        // The latest announced chain head (whose tx indexes are assumed created)
+		runningHead uint64        // The head number being processed in background.
 
 		headCh = make(chan ChainEvent)
 		sub    = chain.SubscribeChainAcceptedEvent(headCh)
@@ -138,18 +139,22 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 	}
 	defer sub.Unsubscribe()
 
+	// startRun launches the background unindexing task.
+	startRun := func(newHead uint64) {
+		stop = make(chan struct{})
+		done = make(chan struct{})
+		runningHead = newHead
+		indexer.chain.wg.Add(1)
+		go indexer.lockedRun(runningHead, stop, done)
+	}
+
 	log.Info("Initialized transaction unindexer", "limit", indexer.limit)
 
 	// Launch the initial processing if chain is not empty (head != genesis).
 	// This step is useful in these scenarios that chain has no progress.
 	if head := indexer.chain.CurrentBlock(); head != nil && head.Number.Uint64() > indexer.limit {
-		stop = make(chan struct{})
-		done = make(chan struct{})
 		lastHead = head.Number.Uint64()
-		indexer.chain.wg.Add(1)
-		go func() {
-			indexer.lockedRun(head.Number.Uint64(), stop, done)
-		}()
+		startRun(lastHead)
 	}
 	for {
 		select {
@@ -160,17 +165,17 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 			}
 
 			if done == nil {
-				stop = make(chan struct{})
-				done = make(chan struct{})
-				indexer.chain.wg.Add(1)
-				go func() {
-					indexer.lockedRun(headNum, stop, done)
-				}()
+				startRun(headNum)
 			}
-			lastHead = head.Block.NumberU64()
+			lastHead = headNum
 		case <-done:
 			stop = nil
 			done = nil
+			// If a newer head arrived while the last run was active, schedule
+			// another pass instead of silently leaving the tail behind.
+			if runningHead < lastHead {
+				startRun(lastHead)
+			}
 		case ch := <-indexer.progress:
 			ch <- indexer.report(lastHead, rawdb.ReadTxIndexTail(indexer.db))
 		case ch := <-indexer.term:
