@@ -80,5 +80,7 @@ fi
 # to pass this flag to all child processes spawned by the shell.
 export CGO_CFLAGS="-O2 -D__BLST_PORTABLE__"
 
-# CGO_ENABLED is required for multi-arch builds.
-export CGO_ENABLED=1
+# Native release builds may opt into the C++/GPU backends. Preserve an
+# explicit caller choice so the canonical pure-Go plugin build does not pull
+# platform headers that are intentionally absent from the release runner.
+export CGO_ENABLED="${CGO_ENABLED:-1}"
