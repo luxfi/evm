@@ -11,6 +11,12 @@ on:
 permissions:
   contents: read
 
+# A corrective plugin tag replaces one still being verified. Only the newest
+# immutable source tag needs to consume the release runner.
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: [lux-build-linux-amd64]
