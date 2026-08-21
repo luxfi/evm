@@ -1,0 +1,5 @@
+self-hosted-runner:
+  labels:
+    - amd64
+    - lux-build-amd64
+    - lux-build-linux-amd64
