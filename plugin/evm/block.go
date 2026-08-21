@@ -53,16 +53,35 @@ func (vm *VM) newBlock(ethBlock *types.Block) *Block {
 // ID implements the chain.Block interface
 func (b *Block) ID() ids.ID { return b.id }
 
-// alreadyAccepted reports whether this exact execution block is the VM's durable
-// consensus tip. A proposer wrapper may legitimately change while carrying the
-// same inner EVM block (for example, catch-up adopts a quorum-certified wrapper
-// after an older node accepted a locally proposed wrapper). Re-executing that
-// already accepted block is both unnecessary and, after pruning its parent state,
-// impossible. The block hash commits the full execution result, so equality with
-// the VM's accepted tip is the only safe idempotency key.
+// alreadyAccepted reports whether this exact execution block is on the VM's
+// durable accepted canonical chain. A proposer wrapper may legitimately change
+// while carrying the same inner EVM block (for example, catch-up adopts a
+// quorum-certified wrapper after an older node accepted a locally proposed
+// wrapper). Re-executing an already accepted historical block is both unnecessary
+// and, after pruning its parent state, impossible.
+//
+// The height bound is essential. GetCanonicalHash also contains preferred blocks
+// above the accepted floor, so hash equality alone would let a merely processing
+// block skip Verify/Accept. At or below LastConsensusAcceptedBlock, however, the
+// canonical hash is the VM's own durable execution decision. Exact hash equality
+// is therefore the safe idempotency key for both the tip and its history.
 func (b *Block) alreadyAccepted() bool {
-	return b != nil && b.vm != nil && b.vm.State != nil &&
-		b.vm.State.LastAcceptedBlockInternal().ID() == b.ID()
+	if b == nil || b.vm == nil || b.ethBlock == nil {
+		return false
+	}
+	// Keep the cheap tip check usable by small/embedder VMs that only provide the
+	// chain.State wrapper (and by the focused unit test below).
+	if b.vm.State != nil && b.vm.State.LastAcceptedBlockInternal().ID() == b.ID() {
+		return true
+	}
+	if b.vm.blockChain == nil {
+		return false
+	}
+	lastAccepted := b.vm.blockChain.LastConsensusAcceptedBlock()
+	if lastAccepted == nil || b.ethBlock.NumberU64() > lastAccepted.NumberU64() {
+		return false
+	}
+	return b.vm.blockChain.GetCanonicalHash(b.ethBlock.NumberU64()) == b.ethBlock.Hash()
 }
 
 // Accept implements the chain.Block interface
@@ -70,9 +89,10 @@ func (b *Block) Accept(context.Context) error {
 	vm := b.vm
 	if b.alreadyAccepted() {
 		// The execution state, accepted pointer, receipts, precompile effects and
-		// atomic markers for this exact hash are already durable. Replaying Accept
-		// would duplicate those side effects; the outer proposer wrapper is the only
-		// layer that still needs to advance.
+		// atomic markers for this exact hash are already durable. This includes a
+		// historical canonical block below the current tip. Replaying Accept would
+		// duplicate those side effects; the outer proposer wrapper is the only layer
+		// that still needs to advance.
 		return nil
 	}
 
@@ -362,10 +382,10 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writes bool) error {
 	if b.alreadyAccepted() {
 		// Catch-up can receive a different, quorum-certified proposer wrapper around
-		// the exact EVM block this node already accepted. Its parent state may have
-		// been pruned, so InsertBlockManual cannot re-execute it. Hash equality with
-		// the VM's durable accepted tip proves this execution result was already
-		// verified and committed; only the outer wrapper remains to be certified.
+		// an exact EVM block this node already accepted. Its parent state may have
+		// been pruned, so InsertBlockManual cannot re-execute it. Canonical hash
+		// equality at or below the durable accepted tip proves this execution result
+		// was already verified and committed; only the outer wrapper remains.
 		return nil
 	}
 	if predicateContext.ProposerVMBlockCtx != nil {
