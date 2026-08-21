@@ -864,6 +864,7 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 	}
 	// Make sure the entire head block is available
 	headBlock := bc.GetBlockByHash(head)
+	repairedMissingHead := false
 	if headBlock == nil {
 		// Older releases could delete a rejected canonical processing block
 		// without first rewinding the head markers. Recover only from the exact
@@ -880,6 +881,7 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 		}
 		bc.writeHeadBlock(bc.lastAccepted)
 		headBlock = bc.lastAccepted
+		repairedMissingHead = true
 	}
 	// Everything seems to be fine, set as the head block
 	bc.currentBlock.Store(headBlock.Header())
@@ -904,7 +906,98 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 	// reprocessState is necessary to ensure that the last accepted state is
 	// available. The state may not be available if it was not committed due
 	// to an unclean shutdown.
+	if repairedMissingHead {
+		// A legacy reject could leave more than stale head pointers behind. In
+		// hash-scheme pruning mode the rejected processing block may have crossed
+		// a commit boundary and garbage-collected descendants of the accepted
+		// parent's trie while leaving the root node itself on disk. HasState only
+		// proves that root node can be opened; it cannot prove all descendants are
+		// present, so the normal reprocessState fast path would incorrectly skip
+		// recovery and the next block would fail part-way through execution with a
+		// bare "not found".
+		//
+		// Rebuild the accepted suffix from the preceding durable commit boundary.
+		// Every transition is validated against its historical header and the
+		// final accepted root is force-committed, making this both deterministic
+		// and restart-safe. This runs only after the exact legacy-damage signature
+		// (head pointer names a missing block body) has been observed.
+		if err := bc.rebuildAcceptedStateAfterHeadRepair(bc.lastAccepted); err != nil {
+			return fmt.Errorf("could not rebuild accepted state after repairing missing processing head: %w", err)
+		}
+	}
 	return bc.reprocessState(bc.lastAccepted, 2*bc.cacheConfig.CommitInterval)
+}
+
+// rebuildAcceptedStateAfterHeadRepair force-reexecutes the accepted suffix from
+// the preceding on-disk commit boundary. It intentionally does not use HasState
+// for the target: a partially persisted hash trie can contain its root node while
+// missing a descendant, which is indistinguishable from a complete trie through
+// OpenTrie alone.
+func (bc *BlockChain) rebuildAcceptedStateAfterHeadRepair(target *types.Block) error {
+	if target == nil || target.NumberU64() == 0 {
+		return nil
+	}
+	interval := bc.cacheConfig.CommitInterval
+	if interval == 0 {
+		return errors.New("cannot rebuild accepted state with zero commit interval")
+	}
+
+	targetHeight := target.NumberU64()
+	startHeight := targetHeight - targetHeight%interval
+	// If the accepted target itself is a commit boundary, begin at the prior
+	// boundary so the target is still re-executed and proven complete.
+	if startHeight == targetHeight && startHeight >= interval {
+		startHeight -= interval
+	}
+	start := bc.GetBlockByNumber(startHeight)
+	if start == nil {
+		return fmt.Errorf("durable commit-boundary block %d is unavailable", startHeight)
+	}
+
+	log.Warn("[HEAD-STATE-REPAIR] rebuilding accepted state from durable commit boundary",
+		"fromHeight", startHeight,
+		"toHeight", targetHeight,
+		"blocks", targetHeight-startHeight,
+		"acceptedHash", target.Hash(),
+		"acceptedRoot", target.Root(),
+	)
+
+	parent := start
+	var previousRoot common.Hash
+	for height := startHeight + 1; height <= targetHeight; height++ {
+		current := bc.GetBlockByNumber(height)
+		if current == nil {
+			return fmt.Errorf("accepted canonical block %d is unavailable", height)
+		}
+		root, err := bc.reprocessBlock(parent, current)
+		if err != nil {
+			return fmt.Errorf("failed to re-execute accepted block %s:%d: %w", current.Hash(), height, err)
+		}
+		if root != current.Root() {
+			return fmt.Errorf("re-executed root %s != accepted header root %s for block %s:%d",
+				root, current.Root(), current.Hash(), height)
+		}
+		if previousRoot != (common.Hash{}) && previousRoot != root {
+			if err := bc.triedb.Dereference(previousRoot); err != nil {
+				return fmt.Errorf("failed to release intermediate rebuilt root %s at height %d: %w",
+					previousRoot, height-1, err)
+			}
+		}
+		previousRoot = root
+		parent = current
+	}
+	if previousRoot == (common.Hash{}) {
+		return errors.New("accepted-state rebuild did not execute any blocks")
+	}
+	if err := bc.triedb.Commit(previousRoot, true); err != nil {
+		return fmt.Errorf("failed to commit rebuilt accepted root %s: %w", previousRoot, err)
+	}
+	log.Warn("[HEAD-STATE-REPAIR] rebuilt and committed accepted state",
+		"height", targetHeight,
+		"hash", target.Hash(),
+		"root", previousRoot,
+	)
+	return nil
 }
 
 func (bc *BlockChain) loadGenesisState() error {
@@ -1903,7 +1996,8 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	defer bc.flattenLock.Unlock()
 	statedb, err := state.New(parent.Root, bc.stateCache, bc.snaps)
 	if err != nil {
-		return err
+		return fmt.Errorf("insert block %s:%d: initialize parent state %s: %w",
+			block.Hash(), block.NumberU64(), parent.Root, err)
 	}
 	blockStateInitTimer.Inc(time.Since(substart).Milliseconds())
 
@@ -1916,6 +2010,10 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	receipts, logs, usedGas, err := bc.processor.Process(block, parent, statedb, bc.vmConfig)
 	if serr := statedb.Error(); serr != nil {
 		log.Error("statedb error encountered", "err", serr, "number", block.Number(), "hash", block.Hash())
+		err := fmt.Errorf("insert block %s:%d: execute against parent state %s: %w",
+			block.Hash(), block.NumberU64(), parent.Root, serr)
+		bc.reportBlock(block, receipts, err)
+		return err
 	}
 	if err != nil {
 		bc.reportBlock(block, receipts, err)

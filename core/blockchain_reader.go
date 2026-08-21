@@ -28,6 +28,7 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/luxfi/constants"
@@ -391,6 +392,12 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 	}
 
 	storedFeeConfig := feemanager.GetStoredFeeConfig(stateDB)
+	if err := stateDB.Error(); err != nil {
+		return commontype.EmptyFeeConfig, nil, fmt.Errorf(
+			"failed to read fee-manager state at parent %s (root %s): %w",
+			parent.Hash(), parent.Root, err,
+		)
+	}
 	// this should not return an invalid fee config since it's assumed that
 	// StoreFeeConfig returns an error when an invalid fee config is attempted to be stored.
 	// However an external stateDB call can modify the contract state.
@@ -432,6 +439,12 @@ func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool,
 		return common.Address{}, false, err
 	}
 	rewardAddress, feeRecipients := rewardmanager.GetStoredRewardAddress(stateDB)
+	if err := stateDB.Error(); err != nil {
+		return common.Address{}, false, fmt.Errorf(
+			"failed to read reward-manager state at parent %s (root %s): %w",
+			parent.Hash(), parent.Root, err,
+		)
+	}
 
 	cacheable := &cacheableCoinbaseConfig{coinbaseAddress: rewardAddress, allowFeeRecipients: feeRecipients}
 	bc.coinbaseConfigCache.Add(parent.Root, cacheable)
