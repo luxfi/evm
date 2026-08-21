@@ -32,8 +32,10 @@
 package extras_e2e_test
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -46,35 +48,21 @@ import (
 	_ "github.com/luxfi/evm/precompile/registry"
 )
 
-// canonicalMainnetUpgradeV46 is the byte-for-byte vendored copy of
-// luxfi/genesis configs/mainnet/upgrade.json at the v46 precompile-set
-// freeze. Layout (46 entries, monotonic by blockTimestamp):
-//   - 17 already-live precompiles pinned to blockTimestamp:0 — these are
-//     active at block 0 on the running mainnet (see the UPGRADE_JSON in
-//     luxfi/universe k8s/lux-mainnet/luxd-startup.yaml). They MUST stay at
-//     0 so a relaunch from genesis treats them as already-applied and
-//     checkPrecompileCompatible does not refuse boot.
-//   - warpConfig disable@1766708399 then re-enable@1766708400 (PQ warp
-//     params at the strict-PQ fork; both strictly after genesis time).
-//   - 7 bls12381 family @1766708400.
-//   - 20 forward-dated @1782864000 (Quasar Edition activation; strictly
-//     after the strict-PQ gate so every classical primitive is gated).
-// The dead dexConfig 0x9010 key was removed when node v1.30.27 dropped
-// that precompile (its config key is no longer registered → it would
-// brick the C-Chain on boot). Vendoring it removes runtime CWD-walking
-// and makes this regression-proof hermetic in CI runners that clone only
-// luxfi/evm.
+// canonicalMainnetUpgrade is the byte-for-byte vendored copy of
+// luxfi/genesis configs/mainnet/upgrade.json. Vendoring it removes runtime
+// CWD-walking and makes this regression proof hermetic in CI runners that
+// clone only luxfi/evm. A workspace drift test keeps the copy synchronized.
 //
 // Sync contract: if luxfi/genesis configs/mainnet/upgrade.json changes,
 // regenerate this file:
 //
-//	cp ../../../../genesis/configs/mainnet/upgrade.json mainnet_upgrade_v46.json
+//	cp ../../../../genesis/configs/mainnet/upgrade.json mainnet_upgrade.json
 //
 // The TestVendoredFixtureMatchesCanonical guard (build-tag: requires the
 // sibling genesis checkout) detects drift before merge.
 //
-//go:embed mainnet_upgrade_v46.json
-var canonicalMainnetUpgradeV46 []byte
+//go:embed mainnet_upgrade.json
+var canonicalMainnetUpgrade []byte
 
 // TestMainnetUpgradeJSON_UnmarshalsAgainstRegistry is the end-to-end
 // regression gate from Red's MEDIUM (vector 9) finding. It enforces
@@ -198,11 +186,8 @@ func TestMainnetUpgradeJSON_RegistryRejectsUnregisteredKey(t *testing.T) {
 	}
 }
 
-// TestRegressionProof_SimulatedFortyNineEntryCanonicalFails is the
-// explicit regression proof requested in Red's MEDIUM (vector 9)
-// remediation. It simulates a pre-patch oversized canonical by
-// extending the current 45-entry canonical with three unregistered
-// keys and asserts the parser refuses the result.
+// TestRegressionProof_SimulatedUnregisteredEntriesFail extends the canonical
+// schedule with unregistered keys and asserts the parser refuses it.
 //
 // Concretely: if a future regression introduces any unregistered
 // precompile config key into the canonical upgrade.json (a module
@@ -217,24 +202,20 @@ func TestMainnetUpgradeJSON_RegistryRejectsUnregisteredKey(t *testing.T) {
 // which luxfi/precompile v0.5.38 now registers — see the history note on
 // TestMainnetUpgradeJSON_RegistryRejectsUnregisteredKey. Sentinels keep
 // the rejection contract decoupled from real-module registration churn.
-func TestRegressionProof_SimulatedFortyNineEntryCanonicalFails(t *testing.T) {
+func TestRegressionProof_SimulatedUnregisteredEntriesFail(t *testing.T) {
 	raw := readCanonicalMainnetUpgradeJSONRaw(t)
 
 	// Sanity-check: the post-patch canonical accepted as-is.
 	var ok extras.UpgradeConfig
 	require.NoError(t, json.Unmarshal(raw, &ok),
-		"post-patch canonical (45 entries) must parse cleanly — see TestMainnetUpgradeJSON_UnmarshalsAgainstRegistry",
+		"canonical upgrade schedule must parse cleanly — see TestMainnetUpgradeJSON_UnmarshalsAgainstRegistry",
 	)
-	require.Lenf(t, ok.PrecompileUpgrades, 46,
-		"canonical entry count drifted: this regression-proof test was authored against 46 entries "+
-			"(17 live-at-block-0 pinned to blockTimestamp:0 + warpConfig disable@1766708399 + "+
-			"warpConfig re-enable@1766708400 + 7 bls12381 family@1766708400 + 20 forward-dated@1782864000, "+
-			"after the dead dexConfig 0x9010 key was removed). If the canonical count legitimately "+
-			"changed, update this assertion alongside.",
+	require.Lenf(t, ok.PrecompileUpgrades, 49,
+		"canonical entry count drifted; synchronize the fixture with luxfi/genesis and review the change",
 	)
 
-	// Build a "pre-patch" 49-entry probe by injecting three
-	// guaranteed-unregistered sentinel keys at a forward-date (46 + 3 = 49).
+	// Inject three guaranteed-unregistered sentinel keys into the canonical
+	// schedule. The parser must reject the first unknown key.
 	var asObj map[string]any
 	require.NoError(t, json.Unmarshal(raw, &asObj))
 	upgrades, _ := asObj["precompileUpgrades"].([]any)
@@ -247,12 +228,12 @@ func TestRegressionProof_SimulatedFortyNineEntryCanonicalFails(t *testing.T) {
 	probe, err := json.Marshal(asObj)
 	require.NoError(t, err)
 
-	// The pre-patch 49-entry shape MUST fail the parser.
+	// The augmented schedule MUST fail the parser.
 	var bad extras.UpgradeConfig
 	err = json.Unmarshal(probe, &bad)
 	require.Errorf(t, err,
-		"simulated 49-entry canonical (the pre-patch shape Red flagged in vector 8) was accepted by the parser — the regression guard is broken. "+
-			"Expected one of the injected unregistered sentinel keys to be rejected as 'unknown precompile config'.",
+		"canonical schedule with injected unregistered entries was accepted — the regression guard is broken. "+
+			"Expected one of the injected keys to be rejected as 'unknown precompile config'.",
 	)
 	require.Containsf(t, err.Error(), "unknown precompile config",
 		"expected the canonical 'unknown precompile config' error class, got: %v", err,
@@ -261,7 +242,7 @@ func TestRegressionProof_SimulatedFortyNineEntryCanonicalFails(t *testing.T) {
 
 // readCanonicalMainnetUpgradeJSONRaw returns the vendored canonical
 // mainnet upgrade.json. The fixture is embedded at build time via
-// //go:embed (see canonicalMainnetUpgradeV46) so the test is hermetic
+// //go:embed (see canonicalMainnetUpgrade) so the test is hermetic
 // in CI runners that clone only luxfi/evm — closing Red round-2 vector
 // V12 (silent t.Skip on relative-path miss).
 //
@@ -270,10 +251,39 @@ func TestRegressionProof_SimulatedFortyNineEntryCanonicalFails(t *testing.T) {
 // next to the embed directive.
 func readCanonicalMainnetUpgradeJSONRaw(t *testing.T) []byte {
 	t.Helper()
-	if len(canonicalMainnetUpgradeV46) == 0 {
+	if len(canonicalMainnetUpgrade) == 0 {
 		// The embed directive guarantees the file is present at build
 		// time; a zero-length read here would be a build-system bug.
-		t.Fatal("embedded canonical mainnet upgrade.json is empty — //go:embed mainnet_upgrade_v46.json failed at build time")
+		t.Fatal("embedded canonical mainnet upgrade.json is empty — //go:embed mainnet_upgrade.json failed at build time")
 	}
-	return canonicalMainnetUpgradeV46
+	return canonicalMainnetUpgrade
+}
+
+// TestVendoredFixturesMatchCanonicalWorkspace catches stale embedded fixtures
+// whenever evm and genesis are checked out as siblings. Standalone module CI
+// still exercises the embedded files through the parsing tests above.
+func TestVendoredFixturesMatchCanonicalWorkspace(t *testing.T) {
+	tests := []struct {
+		name    string
+		fixture []byte
+		path    string
+	}{
+		{"mainnet", canonicalMainnetUpgrade, "../../../genesis/configs/mainnet/upgrade.json"},
+		{"testnet", canonicalTestnetUpgrade, "../../../genesis/configs/testnet/upgrade.json"},
+	}
+
+	found := false
+	for _, test := range tests {
+		canonical, err := os.ReadFile(test.path)
+		if os.IsNotExist(err) {
+			continue
+		}
+		require.NoError(t, err)
+		found = true
+		require.Truef(t, bytes.Equal(test.fixture, canonical),
+			"%s embedded upgrade fixture drifted from %s", test.name, test.path)
+	}
+	if !found {
+		t.Skip("sibling luxfi/genesis checkout not present")
+	}
 }

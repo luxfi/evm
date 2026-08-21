@@ -1,0 +1,390 @@
+{
+  "networkUpgradeOverrides": {
+    "evmTimestamp": 0,
+    "durangoTimestamp": 0,
+    "quasarTimestamp": 0,
+    "fortunaTimestamp": 0,
+    "graniteTimestamp": 0
+  },
+  "precompileUpgrades": [
+    {
+      "aiMiningConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "blake3Config": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "cggmp21Verify": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "deadZeroConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "deadConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "deadFullConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "routerConfig": {
+        "blockTimestamp": 1766708400,
+        "v3QuoterAddress": "0x0000000000000000000000000000000000000000",
+        "v3FactoryAddress": "0x0000000000000000000000000000000000000000",
+        "v2RouterAddress": "0x0000000000000000000000000000000000000000",
+        "v2FactoryAddress": "0x0000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "fheConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "frostVerify": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "graphConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "hpkeConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "mldsaVerify": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "mlkemConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "ringConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "slhdsaVerify": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "zkConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381G1AddConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381G1MulConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381G1MSMConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381G2AddConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381G2MulConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381G2MSMConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bls12381PairingConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "warpConfig": {
+        "blockTimestamp": 1766708400,
+        "quorumNumerator": 67,
+        "requirePrimaryNetworkSigners": true
+      }
+    },
+    {
+      "dexPositionManagerConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "dexStateViewConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "dexQuoterConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "dexSettleConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "pulsarVerify": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "magnetarVerify": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "p3qVerify": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "coronaThreshold": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "hqcEncapsulate": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "curve25519Config": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "x25519Config": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "sr25519Verify": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "babyjubjubConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "pedersenConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "poseidonConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "pastaConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "xwingConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "computeMarketConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "bridgeRegistrarConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "stableSwapConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "vrfConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "attestationConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "anchorConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "fixedPointMathConfig": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "rewardManagerConfig": {
+        "blockTimestamp": 1766708400,
+        "adminAddresses": [
+          "0x9011E888251AB053B7bD1cdB598Db4f9DEd94714"
+        ],
+        "initialRewardConfig": {
+          "rewardAddress": "0x8E29b816c6C35b13cE1ff68D33E245C2bda8ac3D"
+        }
+      }
+    }
+  ],
+  "stateUpgrades": [
+    {
+      "blockTimestamp": 1766708400,
+      "accounts": {
+        "0x80bBc7C4C7a59C899D1B37BC14539A22D5830a84": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000003": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0xD173926A10A0C4eCd3A51B1422270b65Df0551c1": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000001": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0xeac0a50112b5ee20cc18e42ba4d37777012afd0d": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000001": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0xaa6a41cacb18bed5b98059a5fa30f9dbabe0cc64": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000001": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0xdf1de693c31e2a5eb869c329529623556b20abf3": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce212"
+          }
+        },
+        "0x8031e9b0d02a792cfefaa2bdca6e1289d385426f": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce212"
+          }
+        },
+        "0x79608e442d046ea6d3125931a33ce971ad99c6f9": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce212"
+          }
+        },
+        "0xa85eb8e163f4d70bfc43a4f3fcc9a8dfc42b1ae4": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce212"
+          }
+        },
+        "0x724f4ef0400386fc8c1011788af733bd367ac00f": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce212"
+          }
+        },
+        "0x3569c06a80c148d7b4b67f8a06125f6d59774243": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce212"
+          }
+        },
+        "0x60E0a8167FC13dE89348978860466C9ceC24B9ba": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0x1E48D32a4F5e9f08DB9aE4959163300FaF8A6C8e": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0x848Cff46eb323f323b6Bbe1Df274E40793d7f2c2": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0x5E5290f350352768bD2bfC59c2DA15DD04A7cB88": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0x26B40f650156C7EbF9e087Dd0dca181Fe87625B7": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0x6EdcF3645DeF09DB45050638c41157D8B9FEa1cf": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0x28BfC5DD4B7E15659e41190983e5fE3df1132bB9": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0x3078847F879A33994cDa2Ec1540ca52b5E0eE2e5": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0x8B982132d639527E8a0eAAD385f97719af8f5e04": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0x3141b94b89691009b950c96e97Bff48e0C543E3C": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0x0e4bd0dd67c15DECFbBBDBbE07Fc9d51D737693D": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0xf5a313885832d4fc71d1ef80115197c4479b58c8": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        },
+        "0x1af00a2590a834d14f4a8a26d1b03ebba8cf7961": {
+          "storage": {
+            "0x0000000000000000000000000000000000000000000000000000000000000005": "0x00000000000000000000000051284dc2133e8d3a8e213dca6a6fa768cfdfcce2"
+          }
+        }
+      }
+    }
+  ]
+}
