@@ -96,7 +96,7 @@ func TestUpstreamParamsValues(t *testing.T) {
 		"DefaultBaseFeeChangeDenominator":   {param: ethparams.DefaultBaseFeeChangeDenominator, want: 8},
 		"DefaultElasticityMultiplier":       {param: ethparams.DefaultElasticityMultiplier, want: 2},
 		"InitialBaseFee":                    {param: ethparams.InitialBaseFee, want: 1000000000},
-		"MaxCodeSize":                       {param: ethparams.MaxCodeSize, want: 65536},     // Lux raises code size to 64KB (Ethereum: 24576)
+		"MaxCodeSize":                       {param: ethparams.MaxCodeSize, want: 65536},         // Lux raises code size to 64KB (Ethereum: 24576)
 		"MaxInitCodeSize":                   {param: ethparams.MaxInitCodeSize, want: 2 * 65536}, // 2x MaxCodeSize
 		"EcrecoverGas":                      {param: ethparams.EcrecoverGas, want: uint64(3000)},
 		"Sha256BaseGas":                     {param: ethparams.Sha256BaseGas, want: uint64(60)},

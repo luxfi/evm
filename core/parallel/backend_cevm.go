@@ -43,10 +43,10 @@ func (c *cevmExecutor) Backend() EVMBackend { return CppEVM }
 // wired. The cgo bridge at github.com/luxfi/chains/evm/cevm exposes
 // ExecuteBlock([]Transaction) — a block-batch interface — but
 // TransactionExecutor is per-tx. To complete the wiring requires:
-//   * an accumulator that buffers per-tx work and submits at block close
-//   * receipt reconstruction from the BlockResult ordered output
-//   * EIP-2929 warm-set seeding from the StateDB
-//   * parity test against Go EVM Block-STM
+//   - an accumulator that buffers per-tx work and submits at block close
+//   - receipt reconstruction from the BlockResult ordered output
+//   - EIP-2929 warm-set seeding from the StateDB
+//   - parity test against Go EVM Block-STM
 //
 // Until that adapter lands, ExecuteTransaction returns (nil, nil)
 // — the documented "this backend declines; use Go EVM" contract that

@@ -37,7 +37,7 @@ func (b *consensusCtxBackend) Engine() consensus.Engine { return nil }
 func (b *consensusCtxBackend) HeaderByNumber(context.Context, rpc.BlockNumber) (*types.Header, error) {
 	return nil, nil
 }
-func (b *consensusCtxBackend) ChainConfig() *params.ChainConfig { return params.TestChainConfig }
+func (b *consensusCtxBackend) ChainConfig() *params.ChainConfig  { return params.TestChainConfig }
 func (b *consensusCtxBackend) ConsensusContext() context.Context { return b.consensusCtx }
 
 // bareCtxBackend implements ChainContextBackend but does NOT expose a consensus
@@ -54,8 +54,8 @@ func (bareCtxBackend) ChainConfig() *params.ChainConfig { return params.TestChai
 func TestChainContextConsensusContextReturnsBackendRuntime(t *testing.T) {
 	rt := &runtime.Runtime{
 		NetworkID: 1337,
-		ChainID: ids.ID{0x42},
-		CChainID: ids.ID{0x42},
+		ChainID:   ids.ID{0x42},
+		CChainID:  ids.ID{0x42},
 	}
 	backendCtx := runtime.WithContext(context.Background(), rt)
 	// A DISTINCT request context with no runtime — the value the buggy path returned.

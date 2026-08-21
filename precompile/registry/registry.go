@@ -19,14 +19,14 @@ import (
 	// ============================================
 	// LP-4200 Unified PQCrypto Block (0x012201..0x012208)
 	// ============================================
-	_ "github.com/luxfi/precompile/mlkem"    // 0x012201 ML-KEM key encapsulation (FIPS 203)
-	_ "github.com/luxfi/precompile/mldsa"    // 0x012202 ML-DSA signature verification (FIPS 204)
-	_ "github.com/luxfi/precompile/slhdsa"   // 0x012203 SLH-DSA stateless hash signatures (FIPS 205)
+	_ "github.com/luxfi/precompile/mldsa"  // 0x012202 ML-DSA signature verification (FIPS 204)
+	_ "github.com/luxfi/precompile/mlkem"  // 0x012201 ML-KEM key encapsulation (FIPS 203)
+	_ "github.com/luxfi/precompile/slhdsa" // 0x012203 SLH-DSA stateless hash signatures (FIPS 205)
 	// 0x012204 Pulsar (Module-LWE threshold FIPS 204) imported below under Threshold
-	_ "github.com/luxfi/precompile/p3q"      // 0x012205 P3Q — LP-218 Post-Quantum Pulsar Proof — Solidity-callable Pulsar verifier
+	_ "github.com/luxfi/precompile/p3q" // 0x012205 P3Q — LP-218 Post-Quantum Pulsar Proof — Solidity-callable Pulsar verifier
 	// 0x012206 Corona (Ring-LWE threshold) imported below under Threshold
-	_ "github.com/luxfi/precompile/magnetar" // 0x012207 Magnetar (public-DKG MPC threshold SLH-DSA, FIPS 205 byte-equal)
 	_ "github.com/luxfi/precompile/hqc"      // 0x012208 HQC (code-based KEM, family-disjoint backup)
+	_ "github.com/luxfi/precompile/magnetar" // 0x012207 Magnetar (public-DKG MPC threshold SLH-DSA, FIPS 205 byte-equal)
 	_ "github.com/luxfi/precompile/starkfri" // 0x012220 STARK-FRI strict-PQ STARK verifier (formerly misnamed P3Q at 0x012205)
 
 	// ============================================
@@ -42,8 +42,8 @@ import (
 	// Threshold Signatures (0x0800-0x08FF)
 	// ============================================
 	_ "github.com/luxfi/precompile/cggmp21" // CGGMP21 threshold ECDSA
-	_ "github.com/luxfi/precompile/frost"   // FROST threshold Schnorr
 	_ "github.com/luxfi/precompile/corona"  // 0x012206 Corona (Ring-LWE threshold, FIPS-equivalent)
+	_ "github.com/luxfi/precompile/frost"   // FROST threshold Schnorr
 	_ "github.com/luxfi/precompile/pulsar"  // 0x012204 Pulsar (Module-LWE threshold FIPS 204)
 
 	// ============================================
@@ -61,8 +61,8 @@ import (
 	// AI Mining (0x0300-0x03FF)
 	// ============================================
 	_ "github.com/luxfi/precompile/ai"            // AI mining + atomic cross-chain mint (0x0300..00)
-	_ "github.com/luxfi/precompile/modelregistry" // Versioned model-commitment registry (0x0300..02)
 	_ "github.com/luxfi/precompile/inference"     // Deterministic on-chain int8 inference (0x0300..03)
+	_ "github.com/luxfi/precompile/modelregistry" // Versioned model-commitment registry (0x0300..02)
 
 	// ============================================
 	// DEX (LP-9xxx) - QuantumSwap Native DEX
@@ -92,22 +92,22 @@ import (
 	// upgrade.json — without this the parser rejects the activation with
 	// "unknown precompile config".
 	// ============================================
-	_ "github.com/luxfi/precompile/attestation"  // attestationConfig
-	_ "github.com/luxfi/precompile/babyjubjub"   // babyjubjubConfig
-	_ "github.com/luxfi/precompile/bls12381"     // bls12381{G1,G2}{Add,Mul,MSM}Config + bls12381PairingConfig
-	_ "github.com/luxfi/precompile/bridge"       // bridgeRegistrarConfig
-	_ "github.com/luxfi/precompile/compute"      // computeMarketConfig
-	_ "github.com/luxfi/precompile/curve25519"   // curve25519Config
-	_ "github.com/luxfi/precompile/ed25519"      // ed25519Config
-	_ "github.com/luxfi/precompile/math"         // fixedPointMathConfig
-	_ "github.com/luxfi/precompile/pasta"        // pastaConfig
-	_ "github.com/luxfi/precompile/pedersen"     // pedersenConfig
-	_ "github.com/luxfi/precompile/poseidon"     // poseidonConfig
-	_ "github.com/luxfi/precompile/sr25519"      // sr25519Verify
-	_ "github.com/luxfi/precompile/stableswap"   // stableSwapConfig
-	_ "github.com/luxfi/precompile/vrf"          // vrfConfig
-	_ "github.com/luxfi/precompile/x25519"       // x25519Config
-	_ "github.com/luxfi/precompile/xwing"        // xwingConfig
+	_ "github.com/luxfi/precompile/attestation" // attestationConfig
+	_ "github.com/luxfi/precompile/babyjubjub"  // babyjubjubConfig
+	_ "github.com/luxfi/precompile/bls12381"    // bls12381{G1,G2}{Add,Mul,MSM}Config + bls12381PairingConfig
+	_ "github.com/luxfi/precompile/bridge"      // bridgeRegistrarConfig
+	_ "github.com/luxfi/precompile/compute"     // computeMarketConfig
+	_ "github.com/luxfi/precompile/curve25519"  // curve25519Config
+	_ "github.com/luxfi/precompile/ed25519"     // ed25519Config
+	_ "github.com/luxfi/precompile/math"        // fixedPointMathConfig
+	_ "github.com/luxfi/precompile/pasta"       // pastaConfig
+	_ "github.com/luxfi/precompile/pedersen"    // pedersenConfig
+	_ "github.com/luxfi/precompile/poseidon"    // poseidonConfig
+	_ "github.com/luxfi/precompile/sr25519"     // sr25519Verify
+	_ "github.com/luxfi/precompile/stableswap"  // stableSwapConfig
+	_ "github.com/luxfi/precompile/vrf"         // vrfConfig
+	_ "github.com/luxfi/precompile/x25519"      // x25519Config
+	_ "github.com/luxfi/precompile/xwing"       // xwingConfig
 )
 
 // LP-ALIGNED ADDRESSING (LP-9015):
