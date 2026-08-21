@@ -29,6 +29,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: false
       - run: go test ./... -count=1
 
   generated:
@@ -39,6 +40,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: false
       - run: go mod tidy
       - run: git diff --exit-code
 
@@ -50,6 +52,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: false
       - name: Formatting
         run: |
           unformatted=$(gofmt -l .)
