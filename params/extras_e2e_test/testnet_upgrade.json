@@ -4,8 +4,7 @@
     "durangoTimestamp": 0,
     "quasarTimestamp": 0,
     "fortunaTimestamp": 0,
-    "graniteTimestamp": 0,
-    "strictPQTimestamp": 1766708400
+    "graniteTimestamp": 0
   },
   "precompileUpgrades": [
     {
@@ -43,8 +42,8 @@
         "blockTimestamp": 0,
         "v3QuoterAddress": "0x0000000000000000000000000000000000000000",
         "v3FactoryAddress": "0x0000000000000000000000000000000000000000",
-        "v2RouterAddress": "0x0000000000000000000000000000000000009999",
-        "v2FactoryAddress": "0x0000000000000000000000000000000000009999"
+        "v2RouterAddress": "0x0000000000000000000000000000000000000000",
+        "v2FactoryAddress": "0x0000000000000000000000000000000000000000"
       }
     },
     {
@@ -78,11 +77,6 @@
       }
     },
     {
-      "pqcryptoConfig": {
-        "blockTimestamp": 0
-      }
-    },
-    {
       "ringConfig": {
         "blockTimestamp": 0
       }
@@ -98,16 +92,28 @@
       }
     },
     {
-      "warpConfig": {
-        "blockTimestamp": 1766708399,
-        "disable": true
+      "pulsarVerify": {
+        "blockTimestamp": 1766708400
       }
     },
     {
-      "warpConfig": {
-        "blockTimestamp": 1766708400,
-        "quorumNumerator": 67,
-        "requirePrimaryNetworkSigners": true
+      "magnetarVerify": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "p3qVerify": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "coronaThreshold": {
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "hqcEncapsulate": {
+        "blockTimestamp": 1766708400
       }
     },
     {
@@ -146,103 +152,89 @@
       }
     },
     {
-      "pulsarVerify": {
-        "blockTimestamp": 1782864000
-      }
-    },
-    {
-      "magnetarVerify": {
-        "blockTimestamp": 1782864000
-      }
-    },
-    {
-      "p3qVerify": {
-        "blockTimestamp": 1782864000
-      }
-    },
-    {
-      "coronaThreshold": {
-        "blockTimestamp": 1782864000
-      }
-    },
-    {
-      "hqcEncapsulate": {
-        "blockTimestamp": 1782864000
-      }
-    },
-    {
       "curve25519Config": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "x25519Config": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "sr25519Verify": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "babyjubjubConfig": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "pedersenConfig": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "poseidonConfig": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "pastaConfig": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "xwingConfig": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "computeMarketConfig": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "bridgeRegistrarConfig": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "stableSwapConfig": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "vrfConfig": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "attestationConfig": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "anchorConfig": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
       }
     },
     {
       "fixedPointMathConfig": {
-        "blockTimestamp": 1782864000
+        "blockTimestamp": 1766708400
+      }
+    },
+    {
+      "rewardManagerConfig": {
+        "blockTimestamp": 1766708400,
+        "adminAddresses": [
+          "0x9011E888251AB053B7bD1cdB598Db4f9DEd94714"
+        ],
+        "initialRewardConfig": {
+          "rewardAddress": "0xEAbCC110fAcBfebabC66Ad6f9E7B67288e720B59"
+        }
       }
     }
   ],
