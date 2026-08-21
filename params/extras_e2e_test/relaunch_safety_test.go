@@ -54,15 +54,13 @@ const (
 	testnetCChainGenesisTime uint64 = 0x67259912 // 1730517266 = 2024-11-02 03:14:26 UTC
 )
 
-// liveAtBlockZero is the exact set of precompile config keys that the
-// running mainnet AND testnet C-Chains have active at block 0. Source of
-// truth: the UPGRADE_JSON heredoc in luxfi/universe
-// k8s/lux-{mainnet,testnet}/luxd-startup.yaml (both carry these 17 at
-// blockTimestamp:0). warpConfig is NOT in this set: it is declared in the
-// genesis chainConfig itself (cchain.json config.warpConfig), not in
-// upgrade.json's precompileUpgrades, so it is handled by the genesis path
-// rather than the upgrade schedule.
-var liveAtBlockZero = map[string]bool{
+// Mainnet deliberately keeps every upgrade entry after its genesis timestamp
+// so replaying the imported history reproduces the original block-0 root.
+var mainnetLiveAtBlockZero = map[string]bool{}
+
+// Testnet was launched with these precompiles active at block 0. Its relaunch
+// schedule must continue to pin exactly this set to timestamp zero.
+var testnetLiveAtBlockZero = map[string]bool{
 	"aiMiningConfig": true,
 	"blake3Config":   true,
 	"cggmp21Verify":  true,
@@ -82,16 +80,16 @@ var liveAtBlockZero = map[string]bool{
 }
 
 func TestMainnetUpgradeJSON_RelaunchSafe(t *testing.T) {
-	assertRelaunchSafe(t, readCanonicalMainnetUpgradeJSONRaw(t), mainnetCChainGenesisTime)
+	assertRelaunchSafe(t, readCanonicalMainnetUpgradeJSONRaw(t), mainnetCChainGenesisTime, mainnetLiveAtBlockZero)
 }
 
 func TestTestnetUpgradeJSON_RelaunchSafe(t *testing.T) {
-	assertRelaunchSafe(t, readCanonicalTestnetUpgradeJSONRaw(t), testnetCChainGenesisTime)
+	assertRelaunchSafe(t, readCanonicalTestnetUpgradeJSONRaw(t), testnetCChainGenesisTime, testnetLiveAtBlockZero)
 }
 
 // assertRelaunchSafe parses the canonical upgrade.json and proves the
 // relaunch-safety invariant using the node's own IsForkTransition predicate.
-func assertRelaunchSafe(t *testing.T, raw []byte, genesisTime uint64) {
+func assertRelaunchSafe(t *testing.T, raw []byte, genesisTime uint64, liveAtBlockZero map[string]bool) {
 	t.Helper()
 
 	var cfg extras.UpgradeConfig

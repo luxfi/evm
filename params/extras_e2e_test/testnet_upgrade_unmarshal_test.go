@@ -1,7 +1,7 @@
 // Copyright (C) 2019-2026, Lux Industries, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// Testnet-side regression gate. Mirrors mainnet_upgrade_v46.json's
+// Testnet-side regression gate. Mirrors mainnet_upgrade.json's
 // upgrade_unmarshal_test.go (task #99) for the Lux primary testnet
 // C-Chain upgrade schedule. The mainnet test wouldn't catch a testnet
 // drift because the canonical fixture vendored there is only mainnet;
@@ -25,28 +25,17 @@ import (
 	_ "github.com/luxfi/evm/precompile/registry"
 )
 
-// canonicalTestnetUpgradeV47 is the byte-for-byte vendored copy of
-// luxfi/genesis configs/testnet/upgrade.json at the v47 precompile-set
-// freeze. Layout (44 entries, monotonic by blockTimestamp):
-//   - 17 already-live precompiles pinned to blockTimestamp:0 — these are
-//     active at block 0 on the running testnet (see the UPGRADE_JSON in
-//     luxfi/universe k8s/lux-testnet/luxd-startup.yaml). They MUST stay at
-//     0 so a relaunch from genesis treats them as already-applied and
-//     checkPrecompileCompatible does not refuse boot.
-//   - 27 net-new safe-subset cryptography precompiles forward-dated to the
-//     strict-PQ timestamp 1766708400 (strictly after testnet genesis time
-//     1730517266), so the strict-PQ gate is in force when they activate.
-// Unlike mainnet there is no separate Quasar-Edition tier — testnet
-// front-loads its net-new activations to the strict-PQ fork because it's
-// the experimentation lane.
+// canonicalTestnetUpgrade is the byte-for-byte vendored copy of
+// luxfi/genesis configs/testnet/upgrade.json. A workspace drift test keeps
+// this hermetic copy synchronized.
 //
 // Sync contract: if luxfi/genesis configs/testnet/upgrade.json changes,
 // regenerate this file:
 //
-//	cp ../../../../genesis/configs/testnet/upgrade.json testnet_upgrade_v47.json
+//	cp ../../../../genesis/configs/testnet/upgrade.json testnet_upgrade.json
 //
-//go:embed testnet_upgrade_v47.json
-var canonicalTestnetUpgradeV47 []byte
+//go:embed testnet_upgrade.json
+var canonicalTestnetUpgrade []byte
 
 // TestTestnetUpgradeJSON_UnmarshalsAgainstRegistry mirrors the mainnet
 // regression gate. Every key in the canonical testnet upgrade.json
@@ -87,8 +76,8 @@ func TestTestnetUpgradeJSON_UnmarshalsAgainstRegistry(t *testing.T) {
 // testnet upgrade.json. Mirrors the mainnet helper.
 func readCanonicalTestnetUpgradeJSONRaw(t *testing.T) []byte {
 	t.Helper()
-	if len(canonicalTestnetUpgradeV47) == 0 {
-		t.Fatal("embedded canonical testnet upgrade.json is empty — //go:embed testnet_upgrade_v47.json failed at build time")
+	if len(canonicalTestnetUpgrade) == 0 {
+		t.Fatal("embedded canonical testnet upgrade.json is empty — //go:embed testnet_upgrade.json failed at build time")
 	}
-	return canonicalTestnetUpgradeV47
+	return canonicalTestnetUpgrade
 }
