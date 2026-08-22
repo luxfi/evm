@@ -953,6 +953,12 @@ func parseGenesis(ctx context.Context, genesisBytes []byte, upgradeBytes []byte,
 				}
 			}
 
+			if val, ok := configData["feeSplitTimestamp"]; ok {
+				if ts, ok := val.(float64); ok {
+					configExtra.FeeSplitTimestamp = utils.NewUint64(uint64(ts))
+				}
+			}
+
 			// Parse genesis precompiles from config JSON
 			// They are stored at the top level of config, not under "genesisPrecompiles"
 			for _, module := range modules.RegisteredModules() {

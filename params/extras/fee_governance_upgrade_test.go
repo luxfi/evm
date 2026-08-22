@@ -15,11 +15,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// luxDAOGovSafe is the Lux DAO governance Safe on C-Chain 96369. It is what
-// "the DAO controls this" has to mean concretely: an address that appears as
-// adminAddresses in the upgrade file and can therefore send the precompile's
-// admin transactions.
-const luxDAOGovSafe = "0x8E29b816c6C35b13cE1ff68D33E245C2bda8ac3D"
+// luxDAOSafe is the deterministic CREATE2 DAO Safe on C-Chain 96369 that
+// receives the reward half of every fee. In this fragment it is also the
+// precompile admin, so "the DAO controls this" is concrete: an address that
+// appears as adminAddresses and can send the precompile's admin transactions.
+const luxDAOSafe = "0xF66B025b46844AFA5d6df54cf0C00E1583cE1abA"
 
 // feeGovernanceUpgradeJSON is the exact text an operator adds to
 // precompileUpgrades in a network's upgrade.json to put both fee precompiles
@@ -39,17 +39,17 @@ const feeGovernanceUpgradeJSON = `{
     {
       "rewardManagerConfig": {
         "blockTimestamp": 1785715200,
-        "adminAddresses": ["0x8E29b816c6C35b13cE1ff68D33E245C2bda8ac3D"],
+        "adminAddresses": ["0xF66B025b46844AFA5d6df54cf0C00E1583cE1abA"],
         "initialRewardConfig": {
           "allowFeeRecipients": false,
-          "rewardAddress": "0x8E29b816c6C35b13cE1ff68D33E245C2bda8ac3D"
+          "rewardAddress": "0xF66B025b46844AFA5d6df54cf0C00E1583cE1abA"
         }
       }
     },
     {
       "feeManagerConfig": {
         "blockTimestamp": 1785715200,
-        "adminAddresses": ["0x8E29b816c6C35b13cE1ff68D33E245C2bda8ac3D"]
+        "adminAddresses": ["0xF66B025b46844AFA5d6df54cf0C00E1583cE1abA"]
       }
     }
   ]
@@ -64,7 +64,7 @@ const feeGovernanceUpgradeJSON = `{
 // Subnet-EVM 0x0200..03 / 0x0200..04 that an eth_getCode probe would naturally
 // reach for; probing those two proves nothing about this build.
 func TestFeeGovernanceUpgradeParsesWithDAOAsAdmin(t *testing.T) {
-	dao := common.HexToAddress(luxDAOGovSafe)
+	dao := common.HexToAddress(luxDAOSafe)
 	const activation = uint64(1_785_715_200)
 
 	var upgrades UpgradeConfig
