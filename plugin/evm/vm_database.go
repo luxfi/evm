@@ -20,6 +20,7 @@ import (
 	evmdatabase "github.com/luxfi/evm/plugin/evm/database"
 	"github.com/luxfi/geth/common"
 	"github.com/luxfi/geth/core/rawdb"
+	"github.com/luxfi/geth/ethdb"
 	"github.com/luxfi/ids"
 	log "github.com/luxfi/log"
 	metrics "github.com/luxfi/metric"
@@ -103,7 +104,12 @@ func (vm *VM) initializeDBs(avaDB luxdatabase.Database) error {
 	}
 	// Use NewNested rather than New so that the structure of the database
 	// remains the same regardless of the provided baseDB type.
-	vm.chaindb = rawdb.NewDatabase(evmdatabase.WrapDatabase(prefixdb.NewNested(ethDBPrefix, db)))
+	chainKV := evmdatabase.WrapDatabase(prefixdb.NewNested(ethDBPrefix, db))
+	chaindb, err := openChainDatabase(chainKV, vm.config)
+	if err != nil {
+		return err
+	}
+	vm.chaindb = chaindb
 	vm.versiondb = versiondb.New(db)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.versiondb)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.versiondb)
@@ -118,6 +124,29 @@ func (vm *VM) initializeDBs(avaDB luxdatabase.Database) error {
 	// set to a prefixDB with the prefix [validatorsDBPrefix]
 	vm.validatorsDB = prefixdb.New(validatorsDBPrefix, db)
 	return nil
+}
+
+// openChainDatabase wraps the chain's key-value store in the ethdb.Database the
+// EVM works against.
+//
+// Without an ancient directory that is the store itself, and every block the
+// node has ever accepted stays in it. With one, blocks older than the freeze
+// threshold live in an append-only store on that path instead: the node that
+// owns the directory writes them there and drops its own copies, and nodes that
+// share the directory read history from it rather than each keeping a copy. On
+// a machine running many nodes that is the difference between one copy of the
+// chain and one per node.
+func openChainDatabase(kv ethdb.KeyValueStore, cfg config.Config) (ethdb.Database, error) {
+	if cfg.AncientDir == "" {
+		return rawdb.NewDatabase(kv), nil
+	}
+	log.Info("Using an ancient store for chain history",
+		"dir", cfg.AncientDir, "shared", cfg.AncientShared, "hot-blocks", cfg.FreezeThreshold)
+	return rawdb.Open(kv, rawdb.OpenOptions{
+		Ancient:         cfg.AncientDir,
+		AncientShared:   cfg.AncientShared,
+		FreezeThreshold: cfg.FreezeThreshold,
+	})
 }
 
 func (vm *VM) inspectDatabases() error {
