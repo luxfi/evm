@@ -5,6 +5,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -76,6 +77,11 @@ const (
 	estimatedBlockAcceptPeriod        = 2 * time.Second
 	defaultHistoricalProofQueryWindow = uint64(24 * time.Hour / estimatedBlockAcceptPeriod)
 	defaultStateHistory               = uint64(32)
+
+	// defaultFreezeThreshold is how many recent blocks stay in the chain
+	// database when an ancient store is configured and nobody said otherwise.
+	// It matches luxd's --cchain-freeze-threshold default.
+	defaultFreezeThreshold = uint64(90_000)
 )
 
 type PBool bool
@@ -283,6 +289,15 @@ type Config struct {
 	DatabasePath          string `json:"database-path"`
 	DatabaseReadOnly      bool   `json:"database-read-only"`
 
+	// Ancient store. Set AncientDir and blocks older than FreezeThreshold move
+	// out of the chain database into an append-only store on that path. A node
+	// that sets AncientShared reads a store another node writes instead of
+	// keeping its own, which is how many nodes on one machine come to hold one
+	// copy of history between them. Set by luxd's --cchain-ancient flags.
+	AncientDir      string `json:"ancient-dir"`
+	AncientShared   bool   `json:"ancient-shared"`
+	FreezeThreshold uint64 `json:"freeze-threshold"`
+
 	// Database Scheme
 	StateScheme string `json:"state-scheme"`
 
@@ -368,6 +383,7 @@ func (c *Config) SetDefaults(txPoolConfig TxPoolConfig) {
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
 	c.DatabaseType = defaultDBType
+	c.FreezeThreshold = defaultFreezeThreshold
 	c.ValidatorsAPIEnabled = defaultValidatorAPIEnabled
 	c.AdminAPIEnabled = defaultAdminAPIEnabled
 	c.HistoricalProofQueryWindow = defaultHistoricalProofQueryWindow
@@ -419,6 +435,26 @@ func (c *Config) Validate() error {
 
 	if c.PushGossipPercentStake < 0 || c.PushGossipPercentStake > 1 {
 		return fmt.Errorf("push-gossip-percent-stake is %f but must be in the range [0, 1]", c.PushGossipPercentStake)
+	}
+	if err := c.validateAncient(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// validateAncient holds the ancient store to combinations that describe a real
+// arrangement of nodes on a machine.
+func (c *Config) validateAncient() error {
+	if c.AncientDir == "" {
+		if c.AncientShared {
+			return errors.New("ancient-shared needs ancient-dir")
+		}
+		return nil
+	}
+	// Sharing means reading a store another node writes. Writing to it from two
+	// nodes at once would interleave two chains into one append-only file.
+	if c.FreezeThreshold == 0 {
+		return errors.New("freeze-threshold must be at least 1: the block being built needs its parent in the chain database")
 	}
 	return nil
 }
