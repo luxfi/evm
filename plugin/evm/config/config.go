@@ -451,8 +451,6 @@ func (c *Config) validateAncient() error {
 		}
 		return nil
 	}
-	// Sharing means reading a store another node writes. Writing to it from two
-	// nodes at once would interleave two chains into one append-only file.
 	if c.FreezeThreshold == 0 {
 		return errors.New("freeze-threshold must be at least 1: the block being built needs its parent in the chain database")
 	}
