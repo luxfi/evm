@@ -243,6 +243,18 @@ Configuration is provided as a JSON object. All fields are optional unless other
 | `inspect-database` | bool | Inspect database on startup | `false` |
 | `state-scheme` | string |  EXPERIMENTAL: specifies the database scheme to store state data; can be one of `hash` or `firewood` | `hash` | 
 
+## Ancient Store
+
+Blocks the chain will never rewrite can live in an append-only store on their own
+path instead of in the chain database. One node writes the store and any number
+read it at the same time, so a machine running several nodes holds one copy of
+history rather than one copy per node. luxd's `--cchain-ancient` flags set these.
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `ancient-dir` | string | Path to the ancient store. Empty leaves all history in the chain database | - |
+| `freeze-threshold` | uint64 | Recent blocks kept in the chain database before they move to the store; at least 1 | `90000` |
+
 ## Transaction Indexing
 
 | Option | Type | Description | Default |
