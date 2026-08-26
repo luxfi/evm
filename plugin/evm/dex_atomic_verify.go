@@ -14,12 +14,12 @@ import (
 // a C balance can be credited by a cross-chain settlement ONLY by consuming a real
 // atomic object the peer chain exported.
 //
-// WHY IT LIVES HERE AND NOT IN EXECUTION. The rule used to be enforced inside EVM
-// execution, by reading the object out of shared memory while the matching Remove
-// landed at block accept. Those two facts cannot both hold: a node re-executing that
-// block afterwards — bootstrapping, state-syncing, re-tracing an archive call —
-// found the object already consumed, computed a reverted receipt where the network
-// had computed a successful one, and died with `invalid receipt root hash`. The seam
+// WHY IT LIVES HERE AND NOT IN EXECUTION. Enforcing it inside EVM execution would mean
+// reading the object out of shared memory while the matching Remove lands at block
+// accept, and those two cannot both hold: execution has to be a function of the block
+// alone, or a node re-executing it later — bootstrapping, state-syncing, re-tracing an
+// archive call — finds the object already consumed and computes a different receipt
+// from the one the network agreed. The seam
 // settled live and wedged every node that tried to sync past it.
 //
 // So execution now binds value to the object bytes the TRANSACTION carried (a pure
