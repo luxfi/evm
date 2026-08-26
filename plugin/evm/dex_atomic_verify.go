@@ -19,8 +19,8 @@ import (
 // accept, and those two cannot both hold: execution has to be a function of the block
 // alone, or a node re-executing it later — bootstrapping, state-syncing, re-tracing an
 // archive call — finds the object already consumed and computes a different receipt
-// from the one the network agreed. The seam
-// settled live and wedged every node that tried to sync past it.
+// from the one the network agreed, and a receipt root that disagrees stops that
+// node where it stands.
 //
 // So execution now binds value to the object bytes the TRANSACTION carried (a pure
 // function of the block, replayable forever) and DECLARES the consumption in a log.
