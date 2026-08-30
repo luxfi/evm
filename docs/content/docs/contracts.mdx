@@ -15,7 +15,7 @@ Deploy and interact with Solidity smart contracts on the Lux EVM with full Ether
 const { ethers } = require("ethers");
 
 // Connect to Lux EVM
-const provider = new ethers.JsonRpcProvider("http://localhost:9650/v1/bc/C/rpc");
+const provider = new ethers.JsonRpcProvider("http://localhost:9650/v1/chain/C/rpc");
 const wallet = new ethers.Wallet(privateKey, provider);
 
 // Deploy contract
@@ -55,7 +55,7 @@ npx hardhat run scripts/deploy.js --network luxevm
 ```bash
 # Deploy with forge
 forge create src/MyContract.sol:MyContract \
-  --rpc-url http://localhost:9650/v1/bc/C/rpc \
+  --rpc-url http://localhost:9650/v1/chain/C/rpc \
   --private-key $PRIVATE_KEY \
   --constructor-args "Constructor Arg"
 ```
@@ -63,7 +63,7 @@ forge create src/MyContract.sol:MyContract \
 ```bash
 # Deploy with script
 forge script script/Deploy.s.sol:DeployScript \
-  --rpc-url http://localhost:9650/v1/bc/C/rpc \
+  --rpc-url http://localhost:9650/v1/chain/C/rpc \
   --broadcast \
   --private-key $PRIVATE_KEY
 ```
@@ -181,7 +181,7 @@ abstract contract UUPSUpgradeable {
 module.exports = {
   networks: {
     luxevm: {
-      url: "http://localhost:9650/v1/bc/C/rpc",
+      url: "http://localhost:9650/v1/chain/C/rpc",
       chainId: 43112,
     },
   },

@@ -120,7 +120,7 @@ Once the tag is created, you need to test it on the Testnet testnet both locally
             "method": "platform.getBlockchains",
             "params": {},
             "id": 1
-        }'  https://api.lux-test.network/v1/bc/P | \
+        }'  https://api.lux-test.network/v1/chain/P | \
         jq -r '.result.blockchains[] | select(.subnetID=="7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5") |  "\(.name)\nBlockchain id: \(.id)\nVM id: \(.vmID)\n"'
         ```
 
@@ -140,7 +140,7 @@ Once the tag is created, you need to test it on the Testnet testnet both locally
             "method": "platform.getBlockchains",
             "params": {},
             "id": 1
-        }'  https://api.lux-test.network/v1/bc/P | \
+        }'  https://api.lux-test.network/v1/chain/P | \
         jq -r '.result.blockchains[] | select(.subnetID=="i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK") |  "\(.name)\nBlockchain id: \(.id)\nVM id: \(.vmID)\n"'
         ```
 
@@ -241,7 +241,7 @@ Once the tag is created, you need to test it on the Testnet testnet both locally
             "method": "eth_blockNumber",
             "params": [],
             "id": 1
-        }' localhost:9650/v1/bc/2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY/rpc
+        }' localhost:9650/v1/chain/2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY/rpc
         ```
 
     - Echo:
@@ -252,7 +252,7 @@ Once the tag is created, you need to test it on the Testnet testnet both locally
             "method": "eth_blockNumber",
             "params": [],
             "id": 1
-        }' localhost:9650/v1/bc/98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp/rpc
+        }' localhost:9650/v1/chain/98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp/rpc
         ```
 
 #### Canary deployment

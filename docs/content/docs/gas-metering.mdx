@@ -373,7 +373,7 @@ curl -X POST --data '{
     "method":"eth_gasPrice",
     "params":[],
     "id":1
-}' http://localhost:9650/v1/bc/C/rpc
+}' http://localhost:9650/v1/chain/C/rpc
 
 # Get fee history
 curl -X POST --data '{
@@ -381,7 +381,7 @@ curl -X POST --data '{
     "method":"eth_feeHistory",
     "params":[10, "latest", [25, 50, 75]],
     "id":1
-}' http://localhost:9650/v1/bc/C/rpc
+}' http://localhost:9650/v1/chain/C/rpc
 ```
 
 ### Gas Profiling
