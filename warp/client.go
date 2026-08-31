@@ -29,7 +29,7 @@ type client struct {
 
 // NewClient returns a Client for interacting with EVM [chain]
 func NewClient(uri, chain string) (Client, error) {
-	innerClient, err := rpc.Dial(fmt.Sprintf("%s/v1/bc/%s/rpc", uri, chain))
+	innerClient, err := rpc.Dial(fmt.Sprintf("%s/v1/chain/%s/rpc", uri, chain))
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial client. err: %w", err)
 	}
