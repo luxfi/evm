@@ -31,7 +31,7 @@ func TestNewClientRequestsV1Paths(t *testing.T) {
 	}
 
 	got := <-seen
-	if want := "/v1/chain/C/admin"; got != want {
+	if want := "/v1/bc/C/admin"; got != want {
 		t.Fatalf("admin endpoint = %q, want %q", got, want)
 	}
 	if strings.Contains(got, "/ext/") {
@@ -41,7 +41,7 @@ func TestNewClientRequestsV1Paths(t *testing.T) {
 	if _, err := c.GetCurrentValidators(context.Background(), nil); err != nil {
 		t.Fatalf("GetCurrentValidators: %v", err)
 	}
-	if got, want := <-seen, "/v1/chain/C/validators"; got != want {
+	if got, want := <-seen, "/v1/bc/C/validators"; got != want {
 		t.Fatalf("validators endpoint = %q, want %q", got, want)
 	}
 }
@@ -61,7 +61,7 @@ func TestNewClientUsesChainArgument(t *testing.T) {
 	if err := NewClient(srv.URL, chainID).StartCPUProfiler(context.Background()); err != nil {
 		t.Fatalf("StartCPUProfiler: %v", err)
 	}
-	if got, want := <-seen, "/v1/chain/"+chainID+"/admin"; got != want {
+	if got, want := <-seen, "/v1/bc/"+chainID+"/admin"; got != want {
 		t.Fatalf("endpoint = %q, want %q", got, want)
 	}
 }
