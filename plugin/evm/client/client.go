@@ -49,7 +49,7 @@ type client struct {
 
 // NewClient returns a Client for interacting with EVM [chain]
 func NewClient(uri, chain string) Client {
-	requestUri := fmt.Sprintf("%s/v1/chain/%s", uri, chain)
+	requestUri := fmt.Sprintf("%s/v1/bc/%s", uri, chain)
 	return NewClientWithURL(requestUri)
 }
 

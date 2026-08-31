@@ -91,7 +91,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 			if !validatorIDs.Contains(nodeURI.NodeID) {
 				continue
 			}
-			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/v1/chain/%s/rpc", nodeURI.URI, blockchainID))
+			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/v1/bc/%s/rpc", nodeURI.URI, blockchainID))
 		}
 		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")
 		require.NoError(os.Setenv("RPC_ENDPOINTS", commaSeparatedRPCEndpoints))
