@@ -30,7 +30,7 @@ func FuzzPackMintNativeCoinEqualTest(f *testing.F) {
 	f.Add(testAddrBytes, abi.MaxUint256.Bytes())
 	f.Add(testAddrBytes, new(big.Int).Sub(abi.MaxUint256, common.Big1).Bytes())
 	f.Add(testAddrBytes, new(big.Int).Add(abi.MaxUint256, common.Big1).Bytes())
-	f.Add(constants.BlackholeAddr.Bytes(), common.Big2.Bytes())
+	f.Add(common.Address(constants.BlackholeAddr).Bytes(), common.Big2.Bytes())
 	f.Fuzz(func(t *testing.T, b []byte, bigIntBytes []byte) {
 		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
 		doCheckOutputs := bigIntVal.Cmp(abi.MaxUint256) <= 0
@@ -43,7 +43,7 @@ func FuzzPackMintNativeCoinEqualTest(f *testing.F) {
 }
 
 func TestUnpackMintNativeCoinInput(t *testing.T) {
-	testInputBytes, err := PackMintNativeCoin(constants.BlackholeAddr, common.Big2)
+	testInputBytes, err := PackMintNativeCoin(common.Address(constants.BlackholeAddr), common.Big2)
 	require.NoError(t, err)
 	// exclude 4 bytes for function selector
 	testInputBytes = testInputBytes[4:]
@@ -83,7 +83,7 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			strictMode:     false,
 			expectedErr:    "",
 			expectedOldErr: ErrInvalidLen.Error(),
-			expectedAddr:   constants.BlackholeAddr,
+			expectedAddr:   common.Address(constants.BlackholeAddr),
 			expectedAmount: common.Big2,
 		},
 		{
@@ -97,7 +97,7 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			name:           "input with extra bytes (not divisible by 32)",
 			input:          append(testInputBytes, make([]byte, 33)...),
 			strictMode:     false,
-			expectedAddr:   constants.BlackholeAddr,
+			expectedAddr:   common.Address(constants.BlackholeAddr),
 			expectedAmount: common.Big2,
 			expectedOldErr: ErrInvalidLen.Error(),
 		},

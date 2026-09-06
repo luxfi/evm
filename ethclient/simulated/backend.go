@@ -119,7 +119,7 @@ func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config,
 		Alloc:    alloc,
 	}
 	ethConf.AllowUnfinalizedQueries = true
-	ethConf.Miner.Etherbase = constants.BlackholeAddr
+	ethConf.Miner.Etherbase = common.Address(constants.BlackholeAddr)
 	ethConf.Miner.TestOnlyAllowDuplicateBlocks = true
 	ethConf.TxPool.NoLocals = true
 	// Use hash scheme for simulated backend to avoid pathdb flattening issues

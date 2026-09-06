@@ -551,7 +551,7 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 		vm.ethConfig.Miner.Etherbase = address
 	} else {
 		log.Info("Config has not specified any coinbase address. Defaulting to the blackhole address.")
-		vm.ethConfig.Miner.Etherbase = constants.BlackholeAddr
+		vm.ethConfig.Miner.Etherbase = common.Address(constants.BlackholeAddr)
 	}
 
 	vm.chainConfig = g.Config

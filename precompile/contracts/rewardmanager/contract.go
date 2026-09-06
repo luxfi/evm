@@ -75,7 +75,7 @@ func EnableAllowFeeRecipients(stateDB contract.StateDB) {
 
 // DisableFeeRewards disables rewards and burns them by sending to Blackhole Address.
 func DisableFeeRewards(stateDB contract.StateDB) {
-	stateDB.SetState(ContractAddress, rewardAddressStorageKey, common.BytesToHash(constants.BlackholeAddr.Bytes()))
+	stateDB.SetState(ContractAddress, rewardAddressStorageKey, common.BytesToHash(common.Address(constants.BlackholeAddr).Bytes()))
 }
 
 func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
