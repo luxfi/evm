@@ -20,7 +20,7 @@ import (
 	"github.com/luxfi/evm/utils/utilstest"
 	"github.com/luxfi/ids"
 	consensuscontext "github.com/luxfi/runtime"
-	agoUtils "github.com/luxfi/utils"
+	agoUtils "github.com/luxfi/util"
 	validators "github.com/luxfi/validators"
 	"github.com/luxfi/validators/validatorstest"
 	"github.com/luxfi/vm/chain"

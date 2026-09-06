@@ -39,7 +39,7 @@ require (
 	github.com/luxfi/timer v1.1.1
 	github.com/luxfi/trace v1.2.1
 	github.com/luxfi/upgrade v1.0.3
-	github.com/luxfi/utils v1.3.1
+	github.com/luxfi/util v1.3.4
 	github.com/luxfi/validators v1.3.1
 	github.com/luxfi/version v1.0.1
 	github.com/luxfi/vm v1.3.14
@@ -131,6 +131,7 @@ require (
 	github.com/luxfi/proto v1.4.2 // indirect
 	github.com/luxfi/resource v0.1.1 // indirect
 	github.com/luxfi/threshold v1.12.6 // indirect
+	github.com/luxfi/utils v1.3.1 // indirect
 	github.com/luxfi/zap v1.2.6 // indirect
 	github.com/luxfi/zapdb v1.10.6 // indirect
 	github.com/miekg/dns v1.1.72 // indirect

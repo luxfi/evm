@@ -14,7 +14,7 @@ import (
 	"github.com/luxfi/database/memdb"
 	"github.com/luxfi/evm/plugin/evm/validators/state/interfaces"
 	"github.com/luxfi/ids"
-	"github.com/luxfi/utils/wrappers"
+	"github.com/luxfi/util/wrappers"
 )
 
 func TestState(t *testing.T) {
