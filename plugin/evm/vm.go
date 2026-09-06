@@ -99,7 +99,7 @@ import (
 
 	"github.com/luxfi/database"
 	luxJSON "github.com/luxfi/evm/utils/json"
-	luxUtils "github.com/luxfi/utils"
+	luxUtil "github.com/luxfi/util"
 )
 
 var (
@@ -309,7 +309,7 @@ type VM struct {
 	// Metrics
 	sdkMetrics metric.Registry
 
-	bootstrapped luxUtils.Atomic[bool]
+	bootstrapped luxUtil.Atomic[bool]
 
 	stateSyncDone chan struct{}
 
@@ -325,7 +325,7 @@ type VM struct {
 	// Initialize only sets these if nil so they can be overridden in tests
 	p2pValidators      *p2p.Validators
 	ethTxGossipHandler p2p.Handler
-	ethTxPushGossiper  luxUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
+	ethTxPushGossiper  luxUtil.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
 
 	validatorsManager interfaces.Manager

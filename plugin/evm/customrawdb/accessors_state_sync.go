@@ -10,7 +10,7 @@ import (
 	ethrawdb "github.com/luxfi/geth/core/rawdb"
 	"github.com/luxfi/geth/ethdb"
 	log "github.com/luxfi/log"
-	"github.com/luxfi/utils/wrappers"
+	"github.com/luxfi/util/wrappers"
 )
 
 // ReadSyncRoot reads the root corresponding to the main trie of an in-progress
