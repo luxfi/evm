@@ -418,14 +418,14 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
 	configExtra := params.GetExtra(bc.Config())
 	if !configExtra.IsEVM(parent.Time) {
-		return constants.BlackholeAddr, false, nil
+		return common.Address(constants.BlackholeAddr), false, nil
 	}
 
 	if !configExtra.IsPrecompileEnabled(rewardmanager.ContractAddress, parent.Time) {
 		if configExtra.AllowFeeRecipients {
 			return common.Address{}, true, nil
 		} else {
-			return constants.BlackholeAddr, false, nil
+			return common.Address(constants.BlackholeAddr), false, nil
 		}
 	}
 

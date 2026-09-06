@@ -47,7 +47,7 @@ func TestInsertSortedByAddress(t *testing.T) {
 func TestRegisterModuleInvalidAddresses(t *testing.T) {
 	// Test the blockhole address cannot be registered
 	m := Module{
-		Address: constants.BlackholeAddr,
+		Address: common.Address(constants.BlackholeAddr),
 	}
 	err := RegisterModule(m)
 	require.ErrorContains(t, err, "overlaps with blackhole address")

@@ -210,7 +210,7 @@ var (
 			AfterHook: func(t testing.TB, state *state.StateDB) {
 				address, isFeeRecipients := GetStoredRewardAddress(state)
 				require.False(t, isFeeRecipients)
-				require.Equal(t, constants.BlackholeAddr, address)
+				require.Equal(t, common.Address(constants.BlackholeAddr), address)
 
 				logs := state.Logs()
 				assertRewardsDisabled(t, logs, allowlisttest.TestManagerAddr)
@@ -231,7 +231,7 @@ var (
 			AfterHook: func(t testing.TB, state *state.StateDB) {
 				address, isFeeRecipients := GetStoredRewardAddress(state)
 				require.False(t, isFeeRecipients)
-				require.Equal(t, constants.BlackholeAddr, address)
+				require.Equal(t, common.Address(constants.BlackholeAddr), address)
 
 				logs := state.Logs()
 				assertRewardsDisabled(t, logs, allowlisttest.TestEnabledAddr)

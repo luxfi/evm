@@ -528,5 +528,5 @@ func (cm *chainMaker) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 }
 
 func (cm *chainMaker) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
-	return constants.BlackholeAddr, params.GetExtra(cm.config).AllowFeeRecipients, nil
+	return common.Address(constants.BlackholeAddr), params.GetExtra(cm.config).AllowFeeRecipients, nil
 }

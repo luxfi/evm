@@ -68,7 +68,7 @@ func RegisterModule(stm Module) error {
 	address := stm.Address
 	key := stm.ConfigKey
 
-	if address == constants.BlackholeAddr {
+	if address == common.Address(constants.BlackholeAddr) {
 		return fmt.Errorf("address %s overlaps with blackhole address", address)
 	}
 	if !ReservedAddress(address) {
