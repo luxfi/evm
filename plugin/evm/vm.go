@@ -681,18 +681,7 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	if vm.config.ImportChainData != "" {
 		log.Info("Auto-importing chain data at startup", "path", vm.config.ImportChainData)
 		chain := vm.eth.BlockChain()
-		persistAccepted := func(hash common.Hash, height uint64) error {
-			var blkID ids.ID
-			copy(blkID[:], hash[:])
-			if err := vm.acceptedBlockDB.Put(lastAcceptedKey, blkID[:]); err != nil {
-				return fmt.Errorf("failed to update acceptedBlockDB: %w", err)
-			}
-			if err := vm.versiondb.Commit(); err != nil {
-				return fmt.Errorf("failed to commit versiondb: %w", err)
-			}
-			return nil
-		}
-		imported, lastHash, lastHeight, err := importBlocksFromFile(chain, vm.config.ImportChainData, persistAccepted)
+		imported, lastHash, lastHeight, err := importBlocksFromFile(chain, vm.config.ImportChainData, importBatch(vm.config.ImportChainBatch), vm.persistAcceptedBlock)
 		if err != nil {
 			// IDEMPOTENCY GUARD: the production pod spec keeps --import-chain-data SET, so
 			// every restart and every kill-rejoin re-enters this path. Once the chain is

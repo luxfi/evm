@@ -46,11 +46,27 @@ type ImportChainResult struct {
 	Message        string `json:"message,omitempty"`
 }
 
+// defaultImportBatch is how many blocks admin_importChain reads and inserts per
+// round when the caller names no size. 2500 was the hardcoded value; it is a
+// default now because the right number depends on the machine -- a host with
+// memory to spare amortises one InsertChain call over far more blocks.
+const defaultImportBatch = 2500
+
 // ImportChain imports a blockchain from a local file.
 // State is committed periodically during import for restart-safety.
+// blocks is how many blocks to read and insert per round; omit it for
+// defaultImportBatch. A larger round costs proportionally more memory to hold
+// the decoded blocks and amortises one InsertChain call over more of them.
 // RPC: admin_importChain
-func (api *AdminAPI) ImportChain(ctx context.Context, file string) (*ImportChainResult, error) {
-	log.Info("admin_importChain called", "file", file)
+func (api *AdminAPI) ImportChain(ctx context.Context, file string, blocks *int) (*ImportChainResult, error) {
+	batch := defaultImportBatch
+	if blocks != nil {
+		batch = *blocks
+	}
+	if batch < 1 {
+		return nil, fmt.Errorf("blocks per round must be at least 1, got %d", batch)
+	}
+	log.Info("admin_importChain called", "file", file, "blocksPerRound", batch)
 
 	api.vm.vmLock.Lock()
 	defer api.vm.vmLock.Unlock()
@@ -69,19 +85,7 @@ func (api *AdminAPI) ImportChain(ctx context.Context, file string) (*ImportChain
 	// Import blocks with periodic state commits. acceptedBlockDB is updated
 	// atomically with each state commit so there's no crash window where
 	// state is persisted but acceptedBlockDB is stale.
-	persistAccepted := func(hash common.Hash, height uint64) error {
-		var blkID ids.ID
-		copy(blkID[:], hash[:])
-		if err := api.vm.acceptedBlockDB.Put(lastAcceptedKey, blkID[:]); err != nil {
-			return fmt.Errorf("failed to update acceptedBlockDB: %w", err)
-		}
-		if err := api.vm.versiondb.Commit(); err != nil {
-			return fmt.Errorf("failed to commit versiondb: %w", err)
-		}
-		return nil
-	}
-
-	totalImported, lastHash, lastHeight, err := importBlocksFromFile(chain, file, persistAccepted)
+	totalImported, lastHash, lastHeight, err := importBlocksFromFile(chain, file, batch, api.vm.persistAcceptedBlock)
 	if err != nil {
 		return nil, fmt.Errorf("import failed: %w", err)
 	}
@@ -486,12 +490,38 @@ func (api *AdminAPI) GetVMConfig(ctx context.Context) (interface{}, error) {
 	return &api.vm.config, nil
 }
 
+// importBatch resolves a configured blocks-per-round to the value the importer
+// should use. Zero means "unset", which is the default.
+func importBatch(configured int) int {
+	if configured > 0 {
+		return configured
+	}
+	return defaultImportBatch
+}
+
+// persistAcceptedBlock records an imported block as the last accepted one, and
+// commits, so state on disk and the accepted marker advance together and a
+// restart resumes from the same place. Both importers -- the admin RPC and the
+// --import-chain-data startup path -- hand this to importBlocksFromFile; it is
+// the only definition.
+func (vm *VM) persistAcceptedBlock(hash common.Hash, height uint64) error {
+	var blkID ids.ID
+	copy(blkID[:], hash[:])
+	if err := vm.acceptedBlockDB.Put(lastAcceptedKey, blkID[:]); err != nil {
+		return fmt.Errorf("failed to update acceptedBlockDB: %w", err)
+	}
+	if err := vm.versiondb.Commit(); err != nil {
+		return fmt.Errorf("failed to commit versiondb: %w", err)
+	}
+	return nil
+}
+
 // importBlocksFromFile imports blocks from an RLP-encoded file.
 // It commits state to disk every CommitInterval blocks to ensure restart-safety.
 // afterCommit is called after each state commit with the latest block hash and height,
 // allowing the caller to persist metadata (e.g. acceptedBlockDB) atomically with state.
 // Returns (blocksImported, lastBlockHash, lastBlockHeight, error).
-func importBlocksFromFile(chain *core.BlockChain, file string, afterCommit func(common.Hash, uint64) error) (int, common.Hash, uint64, error) {
+func importBlocksFromFile(chain *core.BlockChain, file string, batch int, afterCommit func(common.Hash, uint64) error) (int, common.Hash, uint64, error) {
 	// Ensure genesis state is accessible before import
 	if err := chain.EnsureGenesisState(); err != nil {
 		return 0, common.Hash{}, 0, fmt.Errorf("failed to ensure genesis state: %w", err)
@@ -511,7 +541,7 @@ func importBlocksFromFile(chain *core.BlockChain, file string, afterCommit func(
 	}
 
 	stream := rlp.NewStream(reader, 0)
-	blocks := make([]*types.Block, 0, 2500)
+	blocks := make([]*types.Block, 0, batch)
 	totalParsed := 0
 	totalImported := 0
 	skippedGenesis := false
