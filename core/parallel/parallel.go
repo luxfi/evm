@@ -1,16 +1,6 @@
 // Copyright (C) 2025-2026, Lux Industries Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// Package parallel defines interfaces for optional parallel block execution
-// and GPU acceleration in the Lux EVM.
-//
-// No build tags required. GPU acceleration is auto-detected at init time:
-//   - darwin + CGo: Metal GPU via gpu_bridge.go
-//   - linux + CGo + CUDA: NVIDIA GPU (future)
-//   - otherwise: CPU sequential (zero overhead)
-//
-// The registration pattern allows platform-specific init() functions
-// to register GPU backends without import cycles.
 package parallel
 
 import (
@@ -27,13 +17,6 @@ var (
 	mu          sync.RWMutex
 	executor    BlockExecutor
 	accelerator GPUAccelerator
-	// txExecutors is initialized at declaration (not in init()) so it exists
-	// before ANY package init() runs. Backend files register from their own
-	// init() (e.g. backend_cevm.go under -tags cevm), and Go orders init()
-	// funcs alphabetically by filename — backend_cevm.go precedes parallel.go,
-	// so an init()-time map creation would be too late and panic on a nil map.
-	txExecutors = make(map[EVMBackend]TransactionExecutor)
-	activeBack  = GoEVM
 )
 
 // RegisterExecutor sets the parallel block executor.
@@ -48,64 +31,6 @@ func RegisterGPU(g GPUAccelerator) {
 	mu.Lock()
 	defer mu.Unlock()
 	accelerator = g
-}
-
-// RegisterTransactionExecutor registers a per-tx executor for a given backend.
-// Call from init() in backend packages (e.g., revmbackend, cevmbackend).
-func RegisterTransactionExecutor(backend EVMBackend, e TransactionExecutor) {
-	mu.Lock()
-	defer mu.Unlock()
-	txExecutors[backend] = e
-}
-
-// SetBackend selects the active EVM backend.
-// Use AutoEVM to select the best available.
-func SetBackend(backend EVMBackend) {
-	mu.Lock()
-	defer mu.Unlock()
-	if backend == AutoEVM {
-		// Priority: CppEVM > RustEVM > GoEVM
-		for _, b := range []EVMBackend{CppEVM, RustEVM, GoEVM} {
-			if _, ok := txExecutors[b]; ok {
-				activeBack = b
-				return
-			}
-		}
-		activeBack = GoEVM
-	} else {
-		activeBack = backend
-	}
-}
-
-// ActiveBackend returns the currently selected EVM backend.
-func ActiveBackend() EVMBackend {
-	mu.RLock()
-	defer mu.RUnlock()
-	return activeBack
-}
-
-// AvailableBackends returns all registered backend names.
-func AvailableBackends() []EVMBackend {
-	mu.RLock()
-	defer mu.RUnlock()
-	backends := make([]EVMBackend, 0, len(txExecutors)+1)
-	backends = append(backends, GoEVM) // always available
-	for b := range txExecutors {
-		if b != GoEVM {
-			backends = append(backends, b)
-		}
-	}
-	return backends
-}
-
-// DefaultTransactionExecutor returns the tx executor for the active backend.
-func DefaultTransactionExecutor() TransactionExecutor {
-	mu.RLock()
-	defer mu.RUnlock()
-	if e, ok := txExecutors[activeBack]; ok {
-		return e
-	}
-	return nil // GoEVM uses native geth path, no TransactionExecutor needed
 }
 
 // DefaultExecutor returns the registered parallel executor,

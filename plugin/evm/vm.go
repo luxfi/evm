@@ -34,7 +34,6 @@ import (
 	"github.com/luxfi/evm/commontype"
 	"github.com/luxfi/evm/consensus/dummy"
 	"github.com/luxfi/evm/core"
-	"github.com/luxfi/evm/core/parallel"
 	"github.com/luxfi/evm/core/txpool"
 	"github.com/luxfi/evm/eth"
 	"github.com/luxfi/evm/eth/ethconfig"
@@ -84,7 +83,6 @@ import (
 
 	"github.com/luxfi/consensus/engine/chain/block"
 	consensusmockable "github.com/luxfi/consensus/utils/timer/mockable"
-	"github.com/luxfi/database/prefixdb"
 	"github.com/luxfi/database/versiondb"
 	"github.com/luxfi/filesystem/perms"
 	"github.com/luxfi/ids"
@@ -423,19 +421,6 @@ func (vm *VM) Initialize(ctx context.Context, init block.Init) error {
 	// Initialize the database
 	if err := vm.initializeDBs(db); err != nil {
 		return fmt.Errorf("failed to initialize databases: %w", err)
-	}
-
-	// Opt-in: give cevm its own disk-backed resident state so the C-Chain lazy-loads
-	// a checkpoint at startup (bounded RAM) instead of dumping the full Go state into
-	// cevm. Registered here — after initializeDBs sets vm.db (the RAW durable base,
-	// standalone-DB-aware) and before chain init — over a "cevmstate"-prefixed sub-DB.
-	// vm.db is a DIRECT-durable store (NOT the versiondb), the same pattern warpDB /
-	// validatorsDB use for state that need not commit atomically with the block, so
-	// checkpoints persist on write and survive a restart. Inert unless built with
-	// -tags cevm; safe by construction — a missing/stale checkpoint falls back to the
-	// Go-dump seed and every root is still verified (see cevm_resident_store.go).
-	if vm.config.CevmResidentStore {
-		parallel.SetCevmResidentStore(prefixdb.New([]byte("cevmstate"), vm.db))
 	}
 
 	if vm.config.InspectDatabase {
@@ -1934,12 +1919,6 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		enabledAPIs = append(enabledAPIs, "validators")
 		log.Info("CreateHandlers validators API handler created successfully")
 	}
-
-	// Register evm namespace (evm_backend, evm_backends, evm_setBackend)
-	if err := handler.RegisterName("evm", NewEvmBackendAPI(vm)); err != nil {
-		return nil, fmt.Errorf("failed to register evm backend API: %w", err)
-	}
-	enabledAPIs = append(enabledAPIs, "lux")
 
 	if vm.config.WarpAPIEnabled {
 		warpSDKClient := vm.Network.NewClient(luxwarp.SignatureHandlerID)
