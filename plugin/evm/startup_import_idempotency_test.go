@@ -47,7 +47,7 @@ func TestStartupImportIdempotency_AlreadyAtTip(t *testing.T) {
 	// RLP WITH genesis (blocks 0..tip): genesis is skipped, all others already present ->
 	// importBlocksFromFile falls through to the totalImported==0 "no blocks imported" return.
 	withGenesis := writeChainRLP(t, chain, 0, tip)
-	imported, _, _, err := importBlocksFromFile(chain, withGenesis, nil)
+	imported, _, _, err := importBlocksFromFile(chain, withGenesis, defaultImportBatch, nil)
 	require.Equal(t, 0, imported)
 	require.Error(t, err)
 	require.Truef(t, isNothingToImportError(err, curHead),
@@ -56,7 +56,7 @@ func TestStartupImportIdempotency_AlreadyAtTip(t *testing.T) {
 	// RLP WITHOUT genesis (blocks 1..tip): every block is skipped before it is counted ->
 	// the inner loop returns "no blocks found in file".
 	withoutGenesis := writeChainRLP(t, chain, 1, tip)
-	imported, _, _, err = importBlocksFromFile(chain, withoutGenesis, nil)
+	imported, _, _, err = importBlocksFromFile(chain, withoutGenesis, defaultImportBatch, nil)
 	require.Equal(t, 0, imported)
 	require.Error(t, err)
 	require.Truef(t, isNothingToImportError(err, curHead),

@@ -116,6 +116,12 @@ type Config struct {
 	// admin_importChain RPC but runs at startup. Used by luxd's --import-chain-data flag.
 	ImportChainData string `json:"import-chain-data"`
 
+	// ImportChainBatch is how many blocks the startup import reads and inserts
+	// per round. Zero means defaultImportBatch. The right number is a property
+	// of the machine, not of the chain: a host with memory to spare amortises
+	// one InsertChain call over far more blocks.
+	ImportChainBatch int `json:"import-chain-batch"`
+
 	// GenesisAllocFile is a path to a JSON file containing additional genesis allocations.
 	// This allows bypassing P-chain transaction size limits for large genesis states.
 	// The file should contain a JSON object with address-to-account mappings.

@@ -23,7 +23,7 @@ require (
 	github.com/luxfi/database v1.21.5
 	github.com/luxfi/dex v1.14.2
 	github.com/luxfi/filesystem v0.0.1
-	github.com/luxfi/geth v1.20.2
+	github.com/luxfi/geth v1.20.3
 	github.com/luxfi/go-bip39 v1.2.0
 	github.com/luxfi/gpu v1.1.2
 	github.com/luxfi/ids v1.3.2

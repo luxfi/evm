@@ -290,6 +290,8 @@ github.com/luxfi/formatting v1.1.1 h1:MJhVXIPh1dbysvYEjtaEA/Z0FUTiI7n0DwOF54FS08
 github.com/luxfi/formatting v1.1.1/go.mod h1:zhBWp6fLZduhpiAdPgVDdPVOyhw4FvwRUksF6+xKQCE=
 github.com/luxfi/geth v1.20.2 h1:XwNVyIpb4ip4wy/SsQS8fHdVEVlmsvLNwGPykFDvutw=
 github.com/luxfi/geth v1.20.2/go.mod h1:5vJMlOrSvz4ORC+fe16k+i0CUqTadmiFi9ldAHb5TE4=
+github.com/luxfi/geth v1.20.3 h1:EvDQxTm5QnfYhaX7y9d7/WU99Qz4t6UfMmk0TB/npok=
+github.com/luxfi/geth v1.20.3/go.mod h1:5vJMlOrSvz4ORC+fe16k+i0CUqTadmiFi9ldAHb5TE4=
 github.com/luxfi/go-bip39 v1.2.0 h1:fx3pFuSGawCG4In6pA4OLLStqbgIqD1j8EygFskoHzY=
 github.com/luxfi/go-bip39 v1.2.0/go.mod h1:if+2OVbG4k4jKIuBt/Rse1KV1kgWQM5j5xFbUtwbNtc=
 github.com/luxfi/gpu v1.1.2 h1:xQupCMqb8L18WoBaMcTzVGP8856Nkhc+CkmqKzMw9nI=
