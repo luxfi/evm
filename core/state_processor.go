@@ -118,9 +118,8 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
 
-	// Parallel execution path: when built with -tags parallel and a
-	// BlockExecutor is registered (e.g., from evmgpu), try parallel
-	// execution first. Falls through to sequential on (nil, nil) return.
+	// Parallel execution path: when a BlockExecutor is registered, try it
+	// first. Falls through to sequential on (nil, nil) return.
 	if parallelReceipts, parallelErr := parallel.DefaultExecutor().ExecuteBlock(
 		p.config, header, block.Transactions(), statedb, cfg,
 	); parallelReceipts != nil || parallelErr != nil {
@@ -145,13 +144,6 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 	}
 
 	// Sequential execution path (default, or fallback from parallel).
-	//
-	// If a modular EVM backend (revm, cevm) is registered, dispatch
-	// through it instead of the default geth interpreter.
-	txExec := parallel.DefaultTransactionExecutor()
-	if txExec != nil {
-		log.Info("EVM backend", "active", parallel.ActiveBackend(), "available", parallel.AvailableBackends())
-	}
 	for i, tx := range block.Transactions() {
 		msg, err := TransactionToMessage(tx, signer, header.BaseFee)
 		if err != nil {
@@ -170,26 +162,6 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		}
 		// StatefulPrecompileHook is not yet exposed by luxfi/geth.
 		_ = predicateStorageSlots
-
-		// Try modular backend (revm/cevm) before default geth path.
-		if txExec != nil {
-			if backendReceipt, backendErr := txExec.ExecuteTransaction(
-				p.config, header, tx, statedb, cfg, gp.Gas(),
-			); backendReceipt != nil {
-				if backendErr != nil {
-					return nil, nil, 0, fmt.Errorf("backend tx %d [%v]: %w", i, tx.Hash().Hex(), backendErr)
-				}
-				// Deduct gas consumed by the backend from the pool.
-				if err := gp.SubGas(backendReceipt.GasUsed); err != nil {
-					return nil, nil, 0, fmt.Errorf("backend tx %d [%v] gas overflow: %w", i, tx.Hash().Hex(), err)
-				}
-				*usedGas += backendReceipt.GasUsed
-				backendReceipt.CumulativeGasUsed = *usedGas
-				receipts = append(receipts, backendReceipt)
-				allLogs = append(allLogs, backendReceipt.Logs...)
-				continue
-			}
-		}
 
 		receipt, err := applyTransaction(msg, p.config, gp, statedb, blockNumber, blockHash, header.Time, tx, usedGas, vmenv)
 		if err != nil {
