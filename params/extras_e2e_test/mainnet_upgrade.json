@@ -127,13 +127,6 @@
       }
     },
     {
-      "warpConfig": {
-        "blockTimestamp": 1766708400,
-        "quorumNumerator": 67,
-        "requirePrimaryNetworkSigners": true
-      }
-    },
-    {
       "dexPositionManagerConfig": {
         "blockTimestamp": 1766708400
       }
@@ -260,7 +253,7 @@
           "0x9011E888251AB053B7bD1cdB598Db4f9DEd94714"
         ],
         "initialRewardConfig": {
-          "rewardAddress": "0x8E29b816c6C35b13cE1ff68D33E245C2bda8ac3D"
+          "rewardAddress": "0xF66B025b46844AFA5d6df54cf0C00E1583cE1abA"
         }
       }
     }
