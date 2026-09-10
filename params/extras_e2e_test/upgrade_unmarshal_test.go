@@ -210,7 +210,7 @@ func TestRegressionProof_SimulatedUnregisteredEntriesFail(t *testing.T) {
 	require.NoError(t, json.Unmarshal(raw, &ok),
 		"canonical upgrade schedule must parse cleanly — see TestMainnetUpgradeJSON_UnmarshalsAgainstRegistry",
 	)
-	require.Lenf(t, ok.PrecompileUpgrades, 49,
+	require.Lenf(t, ok.PrecompileUpgrades, 48,
 		"canonical entry count drifted; synchronize the fixture with luxfi/genesis and review the change",
 	)
 

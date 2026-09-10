@@ -132,17 +132,36 @@ func TestMainnetUpgradeJSON_PrecompileTimestampsAreMonotonic(t *testing.T) {
 }
 
 // TestMainnetUpgradeJSON_WarpRequiresPrimaryNetworkSigners enforces the
-// Warp policy from red-review finding #8: the canonical upgrade.json must
-// schedule warp so that, once the strict-PQ fork lands, every cross-chain
-// warp message is signed by primary-network validators (not just a subnet
-// quorum).
+// Warp policy from red-review finding #8: every cross-chain warp message must
+// be signed by primary-network validators, not just a subnet quorum.
 //
-// Warp lives in the genesis chainConfig with the classical-era policy. The
-// upgrade schedule contains one replacement at the strict-PQ fork with the
-// hardened signer policy. Keeping a single entry avoids two competing ways
-// to describe the same activation.
-func TestMainnetUpgradeJSON_WarpRequiresPrimaryNetworkSigners(t *testing.T) {
-	const strictPQ uint64 = 1766708400
+// The rule is read off the GENESIS declaration, because that is where it now
+// lives. It used to be scheduled as an upgrade entry as well, and luxfi/genesis
+// 336c946 removed that entry: the EVM refuses to initialise when a live
+// precompile is re-declared with a different rule, since a second declaration
+// is permitted only in order to disable it. A rule that holds from block zero
+// belongs in the block-zero declaration.
+//
+// So this test asserts both halves of that decision — the policy is true where
+// it is declared, and it is declared exactly once.
+func TestMainnetWarpRequiresPrimaryNetworkSigners(t *testing.T) {
+	var chain struct {
+		Config struct {
+			WarpConfig *struct {
+				BlockTimestamp               uint64 `json:"blockTimestamp"`
+				QuorumNumerator              uint64 `json:"quorumNumerator"`
+				RequirePrimaryNetworkSigners bool   `json:"requirePrimaryNetworkSigners"`
+			} `json:"warpConfig"`
+		} `json:"config"`
+	}
+	require.NoError(t, json.Unmarshal(readCanonicalMainnetCChainJSONRaw(t), &chain))
+
+	warp := chain.Config.WarpConfig
+	require.NotNil(t, warp, "the mainnet C-chain genesis must declare warpConfig")
+	require.Equal(t, uint64(67), warp.QuorumNumerator, "warpConfig quorumNumerator must be 67")
+	require.True(t, warp.RequirePrimaryNetworkSigners,
+		"warpConfig.requirePrimaryNetworkSigners must be true on lux-mainnet — every cross-chain warp message MUST be signed by primary-network validators (red-review finding #8)",
+	)
 
 	raw := readCanonicalMainnetUpgradeJSONRaw(t)
 
@@ -151,43 +170,13 @@ func TestMainnetUpgradeJSON_WarpRequiresPrimaryNetworkSigners(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(raw, &doc))
 
-	var (
-		foundWarp bool
-		warpCount int
-	)
 	for i, entry := range doc.PrecompileUpgrades {
-		warpRaw, ok := entry["warpConfig"]
-		if !ok {
-			continue
-		}
-		warpCount++
-		var warp struct {
-			BlockTimestamp               uint64 `json:"blockTimestamp"`
-			Disable                      bool   `json:"disable"`
-			QuorumNumerator              uint64 `json:"quorumNumerator"`
-			RequirePrimaryNetworkSigners bool   `json:"requirePrimaryNetworkSigners"`
-		}
-		require.NoError(t, json.Unmarshal(warpRaw, &warp))
-
-		// Every warp upgrade entry must be strictly after genesis time —
-		// rescheduling the genesis warp into the (0, genesisTime] window is
-		// the relaunch fork hazard.
-		require.Greaterf(t, warp.BlockTimestamp, uint64(0),
-			"warpConfig upgrade entry at index %d has blockTimestamp 0 — warp is declared in the genesis chainConfig; an upgrade entry pinned to 0 would collide with the genesis warp and fail verifyPrecompileUpgrades",
+		_, ok := entry["warpConfig"]
+		require.Falsef(t, ok,
+			"upgrade.json entry %d re-declares warpConfig. Warp is live from genesis, and the EVM admits a second declaration of a live precompile only when it disables one (params/extras/precompile_upgrade.go: \"disable should be [true]\"), so a re-declaration carrying a different rule refuses to initialise. The policy belongs in the genesis declaration, which is what this test reads.",
 			i,
 		)
-		foundWarp = true
-		require.False(t, warp.Disable, "the canonical warp activation must not be disabled")
-		require.Equalf(t, strictPQ, warp.BlockTimestamp,
-			"warpConfig must activate at the strict-PQ fork (%d), got %d", strictPQ, warp.BlockTimestamp,
-		)
-		require.Equal(t, uint64(67), warp.QuorumNumerator, "warpConfig quorumNumerator must be 67")
-		require.Truef(t, warp.RequirePrimaryNetworkSigners,
-			"warpConfig.requirePrimaryNetworkSigners must be true on lux-mainnet — every cross-chain warp message MUST be signed by primary-network validators (red-review finding #8)",
-		)
 	}
-	require.True(t, foundWarp, "warpConfig entry with the PQ signer policy must be present")
-	require.Equal(t, 1, warpCount, "canonical upgrade.json must contain exactly one warpConfig entry")
 }
 
 // readPrecompileUpgradeTimestamps decodes the precompileUpgrades array
@@ -219,23 +208,36 @@ func readPrecompileUpgradeTimestamps(t *testing.T, raw []byte) map[string]uint64
 	return out
 }
 
-// readCanonicalMainnetUpgradeJSONRaw returns the canonical upgrade.json
-// bytes. The test resolves the file via the relative path from
-// evm/params/extras up to genesis/configs/mainnet — both luxfi/evm and
-// luxfi/genesis live in the same `~/work/lux` worktree on CI runners.
+// readCanonicalMainnetCChainJSONRaw returns the canonical C-chain genesis
+// bytes, resolved the same way as upgrade.json beside it.
+func readCanonicalMainnetCChainJSONRaw(t *testing.T) []byte {
+	t.Helper()
+	return readCanonicalMainnetFile(t, "cchain.json")
+}
+
+// readCanonicalMainnetUpgradeJSONRaw returns the canonical upgrade.json bytes.
 func readCanonicalMainnetUpgradeJSONRaw(t *testing.T) []byte {
+	t.Helper()
+	return readCanonicalMainnetFile(t, "upgrade.json")
+}
+
+// readCanonicalMainnetFile resolves a file in luxfi/genesis configs/mainnet by
+// relative path from evm/params/extras — both repos live in the same `~/work/lux`
+// worktree on CI runners. Missing means the checkout is not beside this one, which
+// is a reason to skip and never a reason to fail.
+func readCanonicalMainnetFile(t *testing.T, name string) []byte {
 	t.Helper()
 	candidates := []string{
 		// luxfi/evm running standalone, sibling luxfi/genesis checkout.
-		"../../../../genesis/configs/mainnet/upgrade.json",
+		"../../../../genesis/configs/mainnet/" + name,
 		// monorepo layout (e.g. when both repos are inside the same root).
-		"../../../genesis/configs/mainnet/upgrade.json",
+		"../../../genesis/configs/mainnet/" + name,
 	}
 	for _, candidate := range candidates {
 		if data, err := os.ReadFile(candidate); err == nil {
 			return data
 		}
 	}
-	t.Skipf("canonical mainnet upgrade.json not reachable from cwd — looked in %v; run from a worktree that contains luxfi/genesis alongside luxfi/evm", candidates)
+	t.Skipf("canonical mainnet %s not reachable from cwd — looked in %v; run from a worktree that contains luxfi/genesis alongside luxfi/evm", name, candidates)
 	return nil
 }
