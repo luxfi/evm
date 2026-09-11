@@ -284,8 +284,8 @@ github.com/luxfi/crypto/ipa v1.2.4 h1:6xfwhI9/HrcDkF3Ti5/NxsNQIWbwYDJmRSNIHRQ/xf
 github.com/luxfi/crypto/ipa v1.2.4/go.mod h1:43J6f6rcfUMrZt4cQectMOZb6Ps+fAEj8ZTPC3Kk+gE=
 github.com/luxfi/database v1.21.5 h1:ZKSD5FfpDJzKhLzMusZMtJt64AhS8AAGgTYkdiDFH8c=
 github.com/luxfi/database v1.21.5/go.mod h1:xyzYWICv/QEu+l/42jdaQtClF8/hPTiQywn+xsM7CtQ=
-github.com/luxfi/dex v1.14.2 h1:SAm8UuyItXy9U7Gshi/HwNiXOZq1UIILxwuh8dMt41w=
-github.com/luxfi/dex v1.14.2/go.mod h1:wYWQmwospvdKBWQ6OJMXb8I+kfgEtE46R1rD8H7vHCQ=
+github.com/luxfi/dex v1.14.37 h1:ydzPz7L3QzzL48njEiWC6cMwizn2Bp+mjDQz1EVv/vM=
+github.com/luxfi/dex v1.14.37/go.mod h1:G6bzUpNQ2cvgWZVMh1OYNFFu7KbldA1TPsXRyu8JqT8=
 github.com/luxfi/dkg v0.3.5 h1:s2L2mMQaz+n9m0b0ghvoV5VZNxiwb2z4WrGugvK0udY=
 github.com/luxfi/dkg v0.3.5/go.mod h1:M+WH7GFRN+YUD851Rlnumdp0Md98kplNN8pVx65U8I8=
 github.com/luxfi/fhe v1.11.1 h1:fDTpXhWrqgtrmgvu/tOkDt4A5omJ6cU6u/wrRMBC6lc=
@@ -294,8 +294,6 @@ github.com/luxfi/filesystem v0.0.1 h1:VZ6xMFKaAPBW/ddlMsDnI2G0VU1lV5rYaVcW5d+KwE
 github.com/luxfi/filesystem v0.0.1/go.mod h1:OQVSU6XNwqrr1AI+MqkID2taHUclx7NYmmr3svgttec=
 github.com/luxfi/formatting v1.1.1 h1:MJhVXIPh1dbysvYEjtaEA/Z0FUTiI7n0DwOF54FS08c=
 github.com/luxfi/formatting v1.1.1/go.mod h1:zhBWp6fLZduhpiAdPgVDdPVOyhw4FvwRUksF6+xKQCE=
-github.com/luxfi/geth v1.20.2 h1:XwNVyIpb4ip4wy/SsQS8fHdVEVlmsvLNwGPykFDvutw=
-github.com/luxfi/geth v1.20.2/go.mod h1:5vJMlOrSvz4ORC+fe16k+i0CUqTadmiFi9ldAHb5TE4=
 github.com/luxfi/geth v1.20.3 h1:EvDQxTm5QnfYhaX7y9d7/WU99Qz4t6UfMmk0TB/npok=
 github.com/luxfi/geth v1.20.3/go.mod h1:5vJMlOrSvz4ORC+fe16k+i0CUqTadmiFi9ldAHb5TE4=
 github.com/luxfi/go-bip39 v1.2.0 h1:fx3pFuSGawCG4In6pA4OLLStqbgIqD1j8EygFskoHzY=
