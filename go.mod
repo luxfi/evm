@@ -16,8 +16,8 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.3.1
-	github.com/luxfi/chains v1.7.33
-	github.com/luxfi/consensus v1.36.73
+	github.com/luxfi/chains v1.7.38
+	github.com/luxfi/consensus v1.36.81
 	github.com/luxfi/constants v1.6.2
 	github.com/luxfi/crypto v1.20.5
 	github.com/luxfi/database v1.21.5
@@ -33,7 +33,7 @@ require (
 	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.8.1
 	github.com/luxfi/p2p v1.22.1
-	github.com/luxfi/precompile v0.19.8
+	github.com/luxfi/precompile v0.19.21
 	github.com/luxfi/runtime v1.3.1
 	github.com/luxfi/sys v0.1.0
 	github.com/luxfi/timer v1.1.1
@@ -42,7 +42,7 @@ require (
 	github.com/luxfi/util v1.3.4
 	github.com/luxfi/validators v1.3.1
 	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.3.14
+	github.com/luxfi/vm v1.3.16
 	github.com/luxfi/warp v1.24.1
 	github.com/mattn/go-colorable v0.1.15
 	github.com/mattn/go-isatty v0.0.22
@@ -114,7 +114,7 @@ require (
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/luxfi/accel v1.3.1 // indirect
+	github.com/luxfi/accel v1.3.2 // indirect
 	github.com/luxfi/age v1.6.0 // indirect
 	github.com/luxfi/api v1.1.9 // indirect
 	github.com/luxfi/atomic v1.0.0 // indirect
@@ -127,7 +127,7 @@ require (
 	github.com/luxfi/lattice/v7 v7.1.4 // indirect
 	github.com/luxfi/mdns v0.1.1 // indirect
 	github.com/luxfi/mlwe v0.3.0 // indirect
-	github.com/luxfi/pq v1.1.0 // indirect
+	github.com/luxfi/pq v1.1.2 // indirect
 	github.com/luxfi/proto v1.4.2 // indirect
 	github.com/luxfi/resource v0.1.1 // indirect
 	github.com/luxfi/threshold v1.12.6 // indirect

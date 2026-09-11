@@ -7,7 +7,8 @@ package registry
 // Force imports of each precompile to ensure each precompile's init function runs and registers itself
 // with the registry.
 import (
-	// Chain-integrated precompiles (stay in evm)
+	// The chain-integrated precompiles. These hold chain state and configure the
+	// chain itself, so they live here rather than in the standalone suite.
 	_ "github.com/luxfi/evm/precompile/contracts/deployerallowlist"
 	_ "github.com/luxfi/evm/precompile/contracts/feemanager"
 	_ "github.com/luxfi/evm/precompile/contracts/nativeminter"
@@ -16,98 +17,21 @@ import (
 	_ "github.com/luxfi/evm/precompile/contracts/txallowlist"
 	_ "github.com/luxfi/evm/precompile/contracts/warp"
 
-	// ============================================
-	// LP-4200 Unified PQCrypto Block (0x012201..0x012208)
-	// ============================================
-	_ "github.com/luxfi/precompile/mldsa"  // 0x012202 ML-DSA signature verification (FIPS 204)
-	_ "github.com/luxfi/precompile/mlkem"  // 0x012201 ML-KEM key encapsulation (FIPS 203)
-	_ "github.com/luxfi/precompile/slhdsa" // 0x012203 SLH-DSA stateless hash signatures (FIPS 205)
-	// 0x012204 Pulsar (Module-LWE threshold FIPS 204) imported below under Threshold
-	_ "github.com/luxfi/precompile/p3q" // 0x012205 P3Q — LP-218 Post-Quantum Pulsar Proof — Solidity-callable Pulsar verifier
-	// 0x012206 Corona (Ring-LWE threshold) imported below under Threshold
-	_ "github.com/luxfi/precompile/hqc"      // 0x012208 HQC (code-based KEM, family-disjoint backup)
-	_ "github.com/luxfi/precompile/magnetar" // 0x012207 Magnetar (public-DKG MPC threshold SLH-DSA, FIPS 205 byte-equal)
-	_ "github.com/luxfi/precompile/starkfri" // 0x012220 STARK-FRI strict-PQ STARK verifier (formerly misnamed P3Q at 0x012205)
-
-	// ============================================
-	// Privacy/Encryption (0x0700-0x07FF)
-	// ============================================
-	// REMOVED: ecies -- secret keys in calldata are public on-chain
-	_ "github.com/luxfi/precompile/anchor" // On-chain checkpoint anchoring (LP-7200)
-	_ "github.com/luxfi/precompile/fhe"    // Fully Homomorphic Encryption
-	_ "github.com/luxfi/precompile/hpke"   // HPKE seal (public-key encrypt only)
-	_ "github.com/luxfi/precompile/ring"   // Ring signature verify only
-
-	// ============================================
-	// Threshold Signatures (0x0800-0x08FF)
-	// ============================================
-	_ "github.com/luxfi/precompile/cggmp21" // CGGMP21 threshold ECDSA
-	_ "github.com/luxfi/precompile/corona"  // 0x012206 Corona (Ring-LWE threshold, FIPS-equivalent)
-	_ "github.com/luxfi/precompile/frost"   // FROST threshold Schnorr
-	_ "github.com/luxfi/precompile/pulsar"  // 0x012204 Pulsar (Module-LWE threshold FIPS 204)
-
-	// ============================================
-	// ZK Proofs (0x0900-0x09FF)
-	// ============================================
-	_ "github.com/luxfi/precompile/kzg4844" // KZG commitments (EIP-4844)
-	_ "github.com/luxfi/precompile/zk"      // ZK proof verification (Groth16, PLONK, Halo2)
-
-	// ============================================
-	// Curves (0x0A00-0x0AFF)
-	// ============================================
-	_ "github.com/luxfi/precompile/secp256r1" // P-256/secp256r1 verification
-
-	// ============================================
-	// AI Mining (0x0300-0x03FF)
-	// ============================================
-	_ "github.com/luxfi/precompile/ai"            // AI mining + atomic cross-chain mint (0x0300..00)
-	_ "github.com/luxfi/precompile/inference"     // Deterministic on-chain int8 inference (0x0300..03)
-	_ "github.com/luxfi/precompile/modelregistry" // Versioned model-commitment registry (0x0300..02)
-
-	// ============================================
-	// DEX (LP-9xxx) - QuantumSwap Native DEX
-	// ============================================
-	_ "github.com/luxfi/precompile/dex" // Native DEX settlement money path (LP-9999) + views (9998/9997/9996) + router (9012)
-
-	// ============================================
-	// Graph/Query Layer (0x0500-0x05FF)
-	// ============================================
-	_ "github.com/luxfi/precompile/graph" // GraphQL query interface
-
-	// ============================================
-	// Hashing (0x0504)
-	// ============================================
-	_ "github.com/luxfi/precompile/blake3" // Blake3 hash function
-
-	// ============================================
-	// Dead Address Routing
-	// ============================================
-	_ "github.com/luxfi/precompile/dead" // Dead/burn address handlers (0x0, 0xdead)
-
-	// ============================================
-	// Quasar Edition rollout — net-new precompiles activated at
-	// blockTimestamp 1766708400 per ~/work/lux/genesis/configs/mainnet/upgrade.json.
-	// Each must be side-effect imported here so its init() registers the
-	// configKey with modules.RegisteredModules before luxd parses
-	// upgrade.json — without this the parser rejects the activation with
-	// "unknown precompile config".
-	// ============================================
-	_ "github.com/luxfi/precompile/attestation" // attestationConfig
-	_ "github.com/luxfi/precompile/babyjubjub"  // babyjubjubConfig
-	_ "github.com/luxfi/precompile/bls12381"    // bls12381{G1,G2}{Add,Mul,MSM}Config + bls12381PairingConfig
-	_ "github.com/luxfi/precompile/bridge"      // bridgeRegistrarConfig
-	_ "github.com/luxfi/precompile/compute"     // computeMarketConfig
-	_ "github.com/luxfi/precompile/curve25519"  // curve25519Config
-	_ "github.com/luxfi/precompile/ed25519"     // ed25519Config
-	_ "github.com/luxfi/precompile/math"        // fixedPointMathConfig
-	_ "github.com/luxfi/precompile/pasta"       // pastaConfig
-	_ "github.com/luxfi/precompile/pedersen"    // pedersenConfig
-	_ "github.com/luxfi/precompile/poseidon"    // poseidonConfig
-	_ "github.com/luxfi/precompile/sr25519"     // sr25519Verify
-	_ "github.com/luxfi/precompile/stableswap"  // stableSwapConfig
-	_ "github.com/luxfi/precompile/vrf"         // vrfConfig
-	_ "github.com/luxfi/precompile/x25519"      // x25519Config
-	_ "github.com/luxfi/precompile/xwing"       // xwingConfig
+	// Every precompile in the Lux suite, by importing the suite's OWN registry
+	// rather than listing its packages here.
+	//
+	// A precompile is only dispatchable if its init() has run, and luxd rejects
+	// an upgrade.json activation for a configKey it has never seen with "unknown
+	// precompile config". This file used to name 41 suite packages one by one to
+	// make that happen, which made it a second record of what the suite contains
+	// — and it had drifted: aivmbridge, swap and v3 were registered in the suite
+	// and absent here, so no Lux chain could activate them however its genesis
+	// was written.
+	//
+	// The suite's registry derives its set from the packages that actually
+	// register, so importing it cannot drift from what the suite holds. One
+	// record, in the repository that owns the thing being recorded.
+	_ "github.com/luxfi/precompile/registry"
 )
 
 // LP-ALIGNED ADDRESSING (LP-9015):
