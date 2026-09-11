@@ -15,7 +15,7 @@ require (
 	github.com/holiman/billy v0.0.0-20250707135307-f2f9b9aae7db
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
-	github.com/luxfi/cache v1.3.1
+	github.com/luxfi/cache v1.3.5
 	github.com/luxfi/chains v1.7.38
 	github.com/luxfi/consensus v1.36.81
 	github.com/luxfi/constants v1.6.2
