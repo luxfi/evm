@@ -1,6 +1,6 @@
 module github.com/luxfi/evm
 
-go 1.26.4
+go 1.26.8
 
 exclude github.com/luxfi/geth v1.16.1
 
@@ -33,7 +33,7 @@ require (
 	github.com/luxfi/math/safe v0.0.1
 	github.com/luxfi/metric v1.8.1
 	github.com/luxfi/p2p v1.22.1
-	github.com/luxfi/precompile v0.19.21
+	github.com/luxfi/precompile v0.19.22
 	github.com/luxfi/runtime v1.3.1
 	github.com/luxfi/sys v0.1.0
 	github.com/luxfi/timer v1.1.1
