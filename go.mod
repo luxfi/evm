@@ -17,13 +17,13 @@ require (
 	github.com/holiman/uint256 v1.3.2
 	github.com/luxfi/cache v1.3.1
 	github.com/luxfi/chains v1.7.7
-	github.com/luxfi/consensus v1.36.2
+	github.com/luxfi/consensus v1.36.57
 	github.com/luxfi/constants v1.6.2
 	github.com/luxfi/crypto v1.20.2
-	github.com/luxfi/database v1.21.1
+	github.com/luxfi/database v1.21.5
 	github.com/luxfi/dex v1.14.2
 	github.com/luxfi/filesystem v0.0.1
-	github.com/luxfi/geth v1.20.1
+	github.com/luxfi/geth v1.20.2
 	github.com/luxfi/go-bip39 v1.1.2
 	github.com/luxfi/gpu v1.1.2
 	github.com/luxfi/ids v1.3.2
@@ -107,7 +107,10 @@ require (
 	github.com/gtank/merlin v0.1.1 // indirect
 	github.com/gtank/ristretto255 v0.2.0 // indirect
 	github.com/hanzoai/vfs v0.4.3 // indirect
+	github.com/hanzos3/crc64nvme v1.1.2 // indirect
+	github.com/hanzos3/go v1.0.2 // indirect
 	github.com/hanzos3/go-sdk v1.0.2 // indirect
+	github.com/hanzos3/md5-simd v1.1.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
@@ -119,7 +122,7 @@ require (
 	github.com/luxfi/bft v0.1.5 // indirect
 	github.com/luxfi/compress v0.1.1 // indirect
 	github.com/luxfi/concurrent v0.1.1 // indirect
-	github.com/luxfi/container v0.2.1 // indirect
+	github.com/luxfi/container v0.2.2 // indirect
 	github.com/luxfi/corona v0.10.4 // indirect
 	github.com/luxfi/crypto/ipa v1.2.4 // indirect
 	github.com/luxfi/fhe v1.11.1 // indirect
@@ -131,7 +134,7 @@ require (
 	github.com/luxfi/resource v0.1.1 // indirect
 	github.com/luxfi/threshold v1.12.3 // indirect
 	github.com/luxfi/zap v1.2.6 // indirect
-	github.com/luxfi/zapdb v1.10.1 // indirect
+	github.com/luxfi/zapdb v1.10.6 // indirect
 	github.com/miekg/dns v1.1.72 // indirect
 	github.com/mimoo/StrobeGo v0.0.0-20220103164710-9a04d6ca976b // indirect
 	github.com/minio/crc64nvme v1.1.1 // indirect
