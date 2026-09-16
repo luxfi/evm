@@ -1,0 +1,60 @@
+{
+	"Golang errors": {},
+	"Issues": [
+		{
+			"severity": "HIGH",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G703",
+			"details": "Path traversal via taint analysis",
+			"file": "/home/z/runners-org/luxfi/_work/evm/evm/cmd/precompilegen/main.go",
+			"code": "176: \t// Write the ABI to the output folder\n177: \tif err := os.WriteFile(abipath, abi, 0o600); err != nil {\n178: \t\tutils.Fatalf(\"Failed to write ABI: %v\", err)\n",
+			"line": "177",
+			"column": "24",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G703",
+			"details": "Path traversal via taint analysis",
+			"file": "/home/z/runners-org/luxfi/_work/evm/evm/cmd/ghash/main.go",
+			"code": "19: \t}()\n20: \tdata, err := os.ReadFile(path)\n21: \tif err != nil {\n",
+			"line": "20",
+			"column": "26",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G703",
+			"details": "Path traversal via taint analysis",
+			"file": "/home/z/runners-org/luxfi/_work/evm/evm/cmd/abigen/main.go",
+			"code": "237: \t}\n238: \tif err := os.WriteFile(c.String(outFlag.Name), []byte(code), 0600); err != nil {\n239: \t\tutils.Fatalf(\"Failed to write ABI binding: %v\", err)\n",
+			"line": "238",
+			"column": "24",
+			"nosec": false,
+			"suppressions": null
+		}
+	],
+	"Stats": {
+		"files": 443,
+		"lines": 88533,
+		"nosec": 0,
+		"found": 3
+	},
+	"GosecVersion": "dev"
+}
