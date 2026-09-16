@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   verify:
-    runs-on: [lux-build-linux-amd64]
+    runs-on: [linux-amd64]
     timeout-minutes: 60
     env:
       GOWORK: off

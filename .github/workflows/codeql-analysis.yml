@@ -25,7 +25,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: lux-build-amd64
+    runs-on: linux-amd64
     permissions:
       actions: read
       contents: read
