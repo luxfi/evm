@@ -1,6 +1,6 @@
 module github.com/luxfi/evm
 
-go 1.26.8
+go 1.27.1
 
 exclude github.com/luxfi/geth v1.16.1
 
