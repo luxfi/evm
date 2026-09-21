@@ -109,7 +109,7 @@ jobs:
         with:
           go-version-file: "go.mod"
       - name: Use Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "20.13"
       - name: NPM Clean Install
@@ -151,7 +151,7 @@ jobs:
         with:
           go-version-file: "go.mod"
       - name: Use Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "20.13"
       - name: NPM Clean Install
