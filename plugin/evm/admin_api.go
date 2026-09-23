@@ -608,6 +608,12 @@ func importBlocksFromFile(chain *core.BlockChain, file string, batch int, afterC
 		lastInsertedBlock := blocks[n-1]
 		currentHeight := lastInsertedBlock.NumberU64()
 
+		// Accept each inserted block's indices and state as consensus Accept would:
+		// in archive mode this is what puts every height's state on disk.
+		if err := chain.AcceptImported(blocks[:n]); err != nil {
+			return totalImported, common.Hash{}, 0, fmt.Errorf("batch %d: accept failed: %w", batch, err)
+		}
+
 		// Update last accepted so RPC can query imported blocks
 		if err := chain.SetLastAcceptedBlockDirect(lastInsertedBlock); err != nil {
 			return totalImported, common.Hash{}, 0, fmt.Errorf("batch %d: failed to set last accepted: %w", batch, err)

@@ -697,16 +697,8 @@ func (bc *BlockChain) startAcceptor() {
 			log.Crit("failed to write accepted block effects", "err", err)
 		}
 
-		if err := bc.flattenSnapshot(func() error {
-			return bc.stateManager.AcceptTrie(next)
-		}, next.Hash()); err != nil {
-			// "not supported" means the triedb backend (e.g. pathdb) doesn't implement Cap().
-			// This is non-fatal during fast-follow sync — log a warning and continue.
-			if strings.Contains(err.Error(), "not supported") {
-				log.Warn("snapshot flatten not supported by backend, skipping", "blockHash", next.Hash(), "err", err)
-			} else {
-				log.Crit("unable to flatten snapshot from acceptor", "blockHash", next.Hash(), "err", err)
-			}
+		if err := bc.acceptState(next); err != nil {
+			log.Crit("unable to flatten snapshot from acceptor", "blockHash", next.Hash(), "err", err)
 		}
 
 		// Ensure [hc.acceptedNumberCache] and [acceptedLogsCache] have latest content
@@ -1450,21 +1442,44 @@ func (bc *BlockChain) SetLastAcceptedBlockDirect(block *types.Block) error {
 	return nil
 }
 
-// AcceptImportedState accepts and commits the state for imported blocks.
-// This should be called after importing blocks via InsertChain to ensure
-// the state trie is persisted to disk. Without calling this, imported
-// blocks will have their state in memory but it won't be committed,
-// causing "required historical state unavailable" errors on restart.
-func (bc *BlockChain) AcceptImportedState(block *types.Block) error {
-	log.Info("Accepting imported state", "block", block.NumberU64(), "root", block.Root())
-
-	// Accept the trie for the imported block
-	if err := bc.stateManager.AcceptTrie(block); err != nil {
-		return fmt.Errorf("failed to accept trie for block %d: %w", block.NumberU64(), err)
+// AcceptImported does for blocks InsertChain has validated what the acceptor
+// does for blocks consensus accepts: it indexes each block's transactions and
+// hands each block's trie to the state manager, in order. An import reaches its
+// tip through SetLastAcceptedBlockDirect rather than Accept, so without this an
+// archive node commits no imported block's state and indexes no imported
+// transaction: only the roots the import force-commits at round ends reach disk,
+// and a restart finds every other height's state and every other lookup gone.
+func (bc *BlockChain) AcceptImported(blocks []*types.Block) error {
+	batch := bc.db.NewBatch()
+	for _, b := range blocks {
+		if err := bc.batchBlockAcceptedIndices(batch, b); err != nil {
+			return err
+		}
 	}
-
-	log.Info("Successfully committed imported state", "block", block.NumberU64())
+	if err := batch.Write(); err != nil {
+		return fmt.Errorf("%w: failed to write imported indices entries batch", err)
+	}
+	for _, b := range blocks {
+		if err := bc.acceptState(b); err != nil {
+			return fmt.Errorf("failed to accept imported state for block %s:%d: %w", b.Hash(), b.NumberU64(), err)
+		}
+	}
 	return nil
+}
+
+// acceptState flattens b's snapshot layer and hands its trie to the state
+// manager, which commits it in archive mode and at the commit interval when
+// pruning. A triedb backend without Cap (pathdb) answers "not supported", which
+// does not fail the accept.
+func (bc *BlockChain) acceptState(b *types.Block) error {
+	err := bc.flattenSnapshot(func() error {
+		return bc.stateManager.AcceptTrie(b)
+	}, b.Hash())
+	if err != nil && strings.Contains(err.Error(), "not supported") {
+		log.Warn("snapshot flatten not supported by backend, skipping", "blockHash", b.Hash(), "err", err)
+		return nil
+	}
+	return err
 }
 
 // ForceCommitState commits the state trie for the given block directly to disk.
