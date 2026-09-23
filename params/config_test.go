@@ -260,13 +260,9 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	require.Equal(GetExtra(c).AllowFeeRecipients, GetExtra(c2).AllowFeeRecipients)
 }
 
+// Each Rules says which precompiles are on at the time it was evaluated at,
+// whatever Rules were evaluated after it.
 func TestActivePrecompiles(t *testing.T) {
-	// TODO: This test relies on complex global state management for RulesExtra
-	// which needs to be refactored. The activePrecompiles map is populated
-	// through a chain of global state (lastRulesContext -> GetExtra -> GetExtrasRules)
-	// that doesn't work reliably in unit tests. Skip for now.
-	t.Skip("Skipping due to complex state management - needs refactoring")
-
 	config := WithExtra(
 		&ChainConfig{},
 		&extras.ChainConfig{
@@ -283,10 +279,11 @@ func TestActivePrecompiles(t *testing.T) {
 		},
 	)
 
-	// Create rules for timestamp 0 and 1
-	// Rules(blockNum *big.Int, isMerge bool, timestamp uint64)
-	rules0 := config.Rules(&big.Int{}, false, 0)
-	rules1 := config.Rules(&big.Int{}, false, 1)
+	// Rules for timestamp 0 and 1. RulesAt carries the config and time each was
+	// evaluated at, which core's rules hook does for every Rules where core is
+	// linked; this package's tests do not link it.
+	rules0 := RulesAt(config, &big.Int{}, false, 0)
+	rules1 := RulesAt(config, &big.Int{}, false, 1)
 
 	require.True(t, GetRulesExtra(rules0).IsPrecompileEnabled(nativeminter.Module.Address))
 

@@ -28,12 +28,10 @@ func init() {
 	gethparams.SetRulesHook(precompileHook)
 }
 
-// precompileHook populates Rules.Payload with the LuxPrecompileOverrider
+// precompileHook populates Rules.Payload with the LuxPrecompileOverrider,
+// which carries the chain config and timestamp these Rules were evaluated at:
+// params.GetRulesExtra reads them from there.
 func precompileHook(c *gethparams.ChainConfig, rules *gethparams.Rules, num *big.Int, isMerge bool, timestamp uint64) {
-	// Store context for GetRulesExtra to use
-	params.SetRulesContext(rules, c, timestamp)
-
-	// Set the payload to our PrecompileOverrider
 	rules.Payload = &LuxPrecompileOverrider{
 		chainConfig: c,
 		timestamp:   timestamp,
@@ -47,29 +45,30 @@ type LuxPrecompileOverrider struct {
 	timestamp   uint64
 }
 
+// RulesContext is the chain config and timestamp the Rules carrying this
+// overrider were evaluated at, which params.GetRulesExtra derives their Lux
+// rules from.
+func (o *LuxPrecompileOverrider) RulesContext() (*gethparams.ChainConfig, uint64) {
+	return o.chainConfig, o.timestamp
+}
+
 // PrecompileOverride returns the precompile at the given address if it's
 // an active Lux custom precompile.
 //
 // The enabled-set decision is computed from THIS overrider's OWN per-EVM fields
-// (o.chainConfig + o.timestamp, set in precompileHook at the EVM's construction),
-// NOT from the process-global lastRulesContext that params.GetRulesExtra(Rules{})
-// would read. The geth EVM invokes PrecompileOverride lazily during opcode
-// execution (when a CALL targets a precompile address), which is a DIFFERENT
-// point in time than when precompileHook ran. Reading the last-writer-wins global
-// here is a consensus-divergence bug for any TIMESTAMP-GATED precompile (genesis
-// precompiles, precompileUpgrades): a concurrent eth_call/estimateGas/worker
-// goroutine can rewrite the global timestamp between this EVM's construction and its
-// tx dispatch, so a replayed block could see a different enabled set than it built
-// against. Binding the decision to o.timestamp makes every replay of a given block
+// (o.chainConfig + o.timestamp, set in precompileHook at the EVM's construction).
+// The geth EVM invokes PrecompileOverride lazily during opcode execution (when a
+// CALL targets a precompile address), a different point in time than when
+// precompileHook ran, and other goroutines evaluate Rules for other timestamps in
+// between. Binding the decision to o.timestamp makes every replay of a given block
 // produce the SAME enabled set on every validator, regardless of concurrent activity.
 //
-// The DEX settlement money path 0x9999 is AlwaysOn (FIRST-RUN, no dated fork): it is
-// in the enabled set at EVERY timestamp, so it is immune to timestamp/global skew by
-// construction — present from genesis on, on every replay. params.GetExtrasRules is a
-// pure function of its arguments (it does NOT read the global) and injects the
-// AlwaysOn modules unconditionally, so 0x9999 resolves here identically with no racy
-// read. params.ChainConfig is a type alias of geth's ChainConfig, so o.chainConfig is
-// passed directly.
+// The DEX settlement money path 0x9999 is AlwaysOn: it needs no per-network config,
+// and it enters the enabled set at its protocol ActivationTime
+// (registry.DexSettleActivationTime), like a dated fork. params.GetExtrasRules is a
+// pure function of its arguments and decides that from o.timestamp, so every replay of
+// a given block resolves 0x9999 identically. params.ChainConfig is a type alias of
+// geth's ChainConfig, so o.chainConfig is passed directly.
 func (o *LuxPrecompileOverrider) PrecompileOverride(addr common.Address) (vm.PrecompiledContract, bool) {
 	extrasRules := params.GetExtrasRules(gethparams.Rules{}, o.chainConfig, o.timestamp)
 	if cfg, ok := extrasRules.Precompiles[addr]; !ok || cfg.IsDisabled() {

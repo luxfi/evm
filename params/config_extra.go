@@ -38,15 +38,25 @@ var (
 	// Simple map-based replacement for libevm payloads system
 	chainConfigExtras = make(map[*ChainConfig]*extras.ChainConfig)
 	chainConfigMutex  sync.RWMutex
-
-	// Last Rules context - workaround since Rules is passed by value
-	// This assumes single-threaded test execution
-	lastRulesContext struct {
-		chainConfig *ChainConfig
-		timestamp   uint64
-	}
-	lastRulesContextMutex sync.RWMutex
 )
+
+// rulesContext is what a Rules value carries in its Payload: the chain config
+// and timestamp it was evaluated at, which is what its Lux rules follow from.
+// core's rules hook gives every Rules that ChainConfig.Rules makes a Payload
+// that answers it, so each Rules names its own and GetRulesExtra reads nothing
+// that another evaluation can change.
+type rulesContext interface {
+	RulesContext() (*ChainConfig, uint64)
+}
+
+// evaluatedAt is the rulesContext RulesAt attaches to a Rules that carries none:
+// one made where core's rules hook is not linked.
+type evaluatedAt struct {
+	config    *ChainConfig
+	timestamp uint64
+}
+
+func (e evaluatedAt) RulesContext() (*ChainConfig, uint64) { return e.config, e.timestamp }
 
 // getPrecompileAddress returns the address for a precompile config
 func getPrecompileAddress(config precompileconfig.Config) common.Address {
@@ -305,21 +315,17 @@ func SetNetworkUpgradeDefaults(c *ChainConfig) {
 	GetExtra(c).SetDefaults(emptyUpgradeConfig)
 }
 
-// SetRulesContext associates a Rules instance with its ChainConfig and timestamp
-func SetRulesContext(r *Rules, c *ChainConfig, timestamp uint64) {
-	lastRulesContextMutex.Lock()
-	lastRulesContext.chainConfig = c
-	lastRulesContext.timestamp = timestamp
-	lastRulesContextMutex.Unlock()
-}
-
-// GetRulesExtra returns the RulesExtra for the given Rules
+// GetRulesExtra returns the RulesExtra for the given Rules: the Lux rules of
+// the chain config and timestamp those Rules were evaluated at, which they
+// carry in their Payload. Rules that carry none get the default RulesExtra.
 func GetRulesExtra(rules Rules) RulesExtra {
-	// Use the last stored context - this is a workaround since Rules is passed by value
-	lastRulesContextMutex.RLock()
-	chainConfig := lastRulesContext.chainConfig
-	timestamp := lastRulesContext.timestamp
-	lastRulesContextMutex.RUnlock()
+	var (
+		chainConfig *ChainConfig
+		timestamp   uint64
+	)
+	if rc, ok := rules.Payload.(rulesContext); ok {
+		chainConfig, timestamp = rc.RulesContext()
+	}
 
 	if chainConfig == nil {
 		// No context found, return default RulesExtra

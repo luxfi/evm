@@ -256,12 +256,15 @@ var (
 	TestRules = TestChainConfig.Rules(new(big.Int), IsMergeTODO, 0)
 )
 
-// RulesAt returns the Rules for the given ChainConfig at the specified timestamp
-// This is a helper that properly sets up the RulesExtra with precompile information
+// RulesAt returns the Rules for the given ChainConfig at the specified
+// timestamp, carrying that config and timestamp for GetRulesExtra. With core
+// linked, ChainConfig.Rules already carries them (core's rules hook); RulesAt
+// attaches them where nothing did.
 func RulesAt(c *ChainConfig, blockNum *big.Int, isMerge bool, timestamp uint64) Rules {
 	rules := c.Rules(blockNum, isMerge, timestamp)
-	// Store the context for GetRulesExtra to use
-	SetRulesContext(&rules, c, timestamp)
+	if _, ok := rules.Payload.(rulesContext); !ok {
+		rules.Payload = evaluatedAt{config: c, timestamp: timestamp}
+	}
 	return rules
 }
 

@@ -427,7 +427,7 @@ func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writ
 
 // verifyPredicates verifies the predicates in the block are valid according to predicateContext.
 func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateContext) error {
-	// Use RulesAt to properly set up the RulesExtra context for precompile checks
+	// The block's rules: GetRulesExtra reads the config and time they carry.
 	rules := params.RulesAt(b.vm.chainConfig, b.ethBlock.Number(), params.IsMergeTODO, b.ethBlock.Time())
 	rulesExtra := params.GetRulesExtra(rules)
 

@@ -1134,6 +1134,9 @@ func (p *BlobPool) validateTx(tx *types.Transaction) error {
 	// Ensure the transaction adheres to the stateful pool filters (nonce, balance)
 	stateOpts := &txpool.ValidationOptionsWithState{
 		State: p.state,
+		// The head's rules, which ValidateTransaction above evaluated too:
+		// GetRulesExtra reads the config and time they carry.
+		Rules: params.RulesAt(p.chain.Config(), p.head.Number, params.IsMergeTODO, p.head.Time),
 
 		FirstNonceGap: func(addr common.Address) uint64 {
 			// Nonce gaps are not permitted in the blob pool, the first gap will

@@ -725,7 +725,7 @@ func (pool *LegacyPool) validateTx(tx *types.Transaction, local bool) error {
 	head := pool.currentHead.Load()
 	opts := &txpool.ValidationOptionsWithState{
 		State: pool.currentState,
-		// Use RulesAt to properly set up the RulesExtra context for precompile checks
+		// The head's rules: GetRulesExtra reads the config and time they carry.
 		Rules:      params.RulesAt(pool.chainconfig, head.Number, params.IsMergeTODO, head.Time),
 		MinimumFee: pool.minimumFee,
 

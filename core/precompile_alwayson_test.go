@@ -165,23 +165,23 @@ func TestDexSettle_GenesisBuilders_Skip9999(t *testing.T) {
 
 // TestDexSettle_PrecompileOverride_GatedByActivation asserts the dispatch gate
 // (LuxPrecompileOverrider.PrecompileOverride) returns the wrapped 0x9999 settlement
-// contract at/after activation and ABSENT before it, and is immune to the process-global
-// lastRulesContext by construction (the decision is bound to the overrider's OWN
-// timestamp field). We POISON the global first; the override still answers from its field.
+// contract at/after activation and ABSENT before it, bound to the overrider's OWN
+// timestamp field. Rules evaluated at the other side of activation first do not move
+// the answer.
 func TestDexSettle_PrecompileOverride_GatedByActivation(t *testing.T) {
 	cfg := params.WithExtra(&params.ChainConfig{}, &extras.ChainConfig{})
-	// Poison the global with a post-activation timestamp — a pre-activation override must
-	// still answer ABSENT from its own field.
-	params.SetRulesContext(&params.Rules{}, cfg, activation+1_000_000)
+	// Evaluate post-activation Rules first — a pre-activation override must still
+	// answer ABSENT from its own field.
+	_ = cfg.Rules(new(big.Int), params.IsMergeTODO, activation+1_000_000)
 
 	for _, ts := range []uint64{0, 1, activation - 1} {
 		o := &LuxPrecompileOverrider{chainConfig: cfg, timestamp: ts}
 		_, ok := o.PrecompileOverride(settleAddr9999)
 		require.Falsef(t, ok, "0x9999 must NOT dispatch at ts=%d (< activation)", ts)
 	}
-	// Poison with a pre-activation timestamp — a post-activation override must still
+	// Evaluate pre-activation Rules first — a post-activation override must still
 	// answer PRESENT from its own field.
-	params.SetRulesContext(&params.Rules{}, cfg, 0)
+	_ = cfg.Rules(new(big.Int), params.IsMergeTODO, 0)
 	for _, ts := range []uint64{activation, activation + 1, ^uint64(0)} {
 		o := &LuxPrecompileOverrider{chainConfig: cfg, timestamp: ts}
 		c, ok := o.PrecompileOverride(settleAddr9999)
@@ -193,9 +193,9 @@ func TestDexSettle_PrecompileOverride_GatedByActivation(t *testing.T) {
 // TestDexSettle_PrecompileOverride_NoGlobalRace is the -race regression for the
 // activation model. It reproduces the relaunch scenario: a verify goroutine replaying a
 // post-activation block concurrently with an eth_call/estimateGas/worker goroutine that
-// rewrites the last-writer-wins global timestamp. Both overriders are pinned to their OWN
+// evaluates Rules at other timestamps. Both overriders are pinned to their OWN
 // post-activation timestamps, so both MUST deterministically see 0x9999 PRESENT on every
-// iteration — presence cannot depend on who wrote the global last.
+// iteration — presence cannot depend on what another goroutine evaluated last.
 //
 // Run with: go test -race -run NoGlobalRace ./core/
 func TestDexSettle_PrecompileOverride_NoGlobalRace(t *testing.T) {
@@ -208,14 +208,13 @@ func TestDexSettle_PrecompileOverride_NoGlobalRace(t *testing.T) {
 	done := make(chan struct{})
 
 	go func() {
-		r := &params.Rules{}
 		for {
 			select {
 			case <-done:
 				return
 			default:
-				params.SetRulesContext(r, cfg, activation+1)
-				params.SetRulesContext(r, cfg, 0) // pre-activation clobber
+				_ = cfg.Rules(new(big.Int), params.IsMergeTODO, activation+1)
+				_ = cfg.Rules(new(big.Int), params.IsMergeTODO, 0) // pre-activation
 			}
 		}
 	}()
@@ -229,7 +228,7 @@ func TestDexSettle_PrecompileOverride_NoGlobalRace(t *testing.T) {
 			for i := 0; i < iters; i++ {
 				if _, ok := o.PrecompileOverride(settleAddr9999); !ok {
 					t.Errorf("0x9999 override saw ABSENT at iter %d — a post-activation override must be "+
-						"present on every replay regardless of the concurrent global timestamp", i)
+						"present on every replay regardless of the Rules other goroutines evaluate", i)
 					return
 				}
 			}
