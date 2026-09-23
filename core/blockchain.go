@@ -691,14 +691,8 @@ func (bc *BlockChain) startAcceptor() {
 		start := time.Now()
 		acceptorQueueGauge.Dec(1)
 
-		// Update acceptor tip and transaction lookup index
-		// Write this prior to state changes to allow easier reconstruction in `reprocessState`.
-		if err := bc.writeBlockAcceptedIndices(next); err != nil {
-			log.Crit("failed to write accepted block effects", "err", err)
-		}
-
-		if err := bc.acceptState(next); err != nil {
-			log.Crit("unable to flatten snapshot from acceptor", "blockHash", next.Hash(), "err", err)
+		if err := bc.acceptDurably(next); err != nil {
+			log.Crit("unable to write accepted block", "blockHash", next.Hash(), "err", err)
 		}
 
 		// Ensure [hc.acceptedNumberCache] and [acceptedLogsCache] have latest content
@@ -1443,35 +1437,30 @@ func (bc *BlockChain) SetLastAcceptedBlockDirect(block *types.Block) error {
 }
 
 // AcceptImported does for blocks InsertChain has validated what the acceptor
-// does for blocks consensus accepts: it indexes each block's transactions and
-// hands each block's trie to the state manager, in order. An import reaches its
-// tip through SetLastAcceptedBlockDirect rather than Accept, so without this an
-// archive node commits no imported block's state and indexes no imported
-// transaction: only the roots the import force-commits at round ends reach disk,
-// and a restart finds every other height's state and every other lookup gone.
+// does for blocks consensus accepts, one block at a time and in order. An import
+// reaches its tip through SetLastAcceptedBlockDirect rather than Accept, so
+// without this an archive node commits no imported block's state and indexes no
+// imported transaction: only the roots the import force-commits at round ends
+// reach disk, and a restart finds every other height's state and lookup gone.
 func (bc *BlockChain) AcceptImported(blocks []*types.Block) error {
-	batch := bc.db.NewBatch()
 	for _, b := range blocks {
-		if err := bc.batchBlockAcceptedIndices(batch, b); err != nil {
-			return err
-		}
-	}
-	if err := batch.Write(); err != nil {
-		return fmt.Errorf("%w: failed to write imported indices entries batch", err)
-	}
-	for _, b := range blocks {
-		if err := bc.acceptState(b); err != nil {
-			return fmt.Errorf("failed to accept imported state for block %s:%d: %w", b.Hash(), b.NumberU64(), err)
+		if err := bc.acceptDurably(b); err != nil {
+			return fmt.Errorf("failed to accept imported block %s:%d: %w", b.Hash(), b.NumberU64(), err)
 		}
 	}
 	return nil
 }
 
-// acceptState flattens b's snapshot layer and hands its trie to the state
-// manager, which commits it in archive mode and at the commit interval when
-// pruning. A triedb backend without Cap (pathdb) answers "not supported", which
-// does not fail the accept.
-func (bc *BlockChain) acceptState(b *types.Block) error {
+// acceptDurably writes what accepting b leaves on disk. Its transaction lookups
+// and the acceptor tip go first, so a crash leaves at most the block the tip
+// names without its trie, which reprocessState re-executes. Then its trie goes
+// to the state manager, which commits it in archive mode and at the commit
+// interval when pruning. A triedb backend without Cap (pathdb) answers "not
+// supported", which does not fail the accept.
+func (bc *BlockChain) acceptDurably(b *types.Block) error {
+	if err := bc.writeBlockAcceptedIndices(b); err != nil {
+		return err
+	}
 	err := bc.flattenSnapshot(func() error {
 		return bc.stateManager.AcceptTrie(b)
 	}, b.Hash())
@@ -2488,6 +2477,23 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 		return fmt.Errorf("%w: unable to get Acceptor tip", err)
 	}
 	log.Info("Loaded Acceptor tip", "hash", acceptorTip)
+
+	// An acceptor tip above [current] names blocks the accepted pointer does not
+	// cover: an import that died partway through accepting a round, before
+	// recording it. Every block at or below [current] was accepted before the tip
+	// passed it, so recovery starts at [current], and the tip moves back to it.
+	// Re-executing forward from a tip above [current] reaches nothing, and its
+	// trie is the one most likely to be missing.
+	if acceptorTip != (common.Hash{}) && acceptorTip != current.Hash() {
+		if tip := bc.GetBlockByHash(acceptorTip); tip != nil && tip.NumberU64() > origin {
+			log.Warn("Acceptor tip is above the last accepted block; moving it back",
+				"tip", acceptorTip, "tipHeight", tip.NumberU64(), "accepted", current.Hash(), "acceptedHeight", origin)
+			if err := customrawdb.WriteAcceptorTip(bc.db, current.Hash()); err != nil {
+				return fmt.Errorf("%w: failed to move the acceptor tip back to %s", err, current.Hash())
+			}
+			acceptorTip = current.Hash()
+		}
+	}
 
 	// The acceptor tip is up to date either if it matches the current hash, or it has not been
 	// initialized (i.e., this node has not accepted any blocks asynchronously).
