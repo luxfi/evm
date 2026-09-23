@@ -41,7 +41,7 @@ require (
 	github.com/luxfi/upgrade v1.0.3
 	github.com/luxfi/util v1.3.4
 	github.com/luxfi/validators v1.3.1
-	github.com/luxfi/version v1.0.1
+	github.com/luxfi/version v1.1.2
 	github.com/luxfi/vm v1.3.16
 	github.com/luxfi/warp v1.24.1
 	github.com/mattn/go-colorable v0.1.15
