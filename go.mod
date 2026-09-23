@@ -15,8 +15,8 @@ require (
 	github.com/holiman/billy v0.0.0-20250707135307-f2f9b9aae7db
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.2
-	github.com/luxfi/cache v1.3.1
-	github.com/luxfi/chains v1.7.38
+	github.com/luxfi/cache v1.3.5
+	github.com/luxfi/chains v1.7.43
 	github.com/luxfi/consensus v1.36.81
 	github.com/luxfi/constants v1.6.2
 	github.com/luxfi/crypto v1.20.5
@@ -41,8 +41,8 @@ require (
 	github.com/luxfi/upgrade v1.0.3
 	github.com/luxfi/util v1.3.4
 	github.com/luxfi/validators v1.3.1
-	github.com/luxfi/version v1.0.1
-	github.com/luxfi/vm v1.3.16
+	github.com/luxfi/version v1.1.2
+	github.com/luxfi/vm v1.3.17
 	github.com/luxfi/warp v1.24.1
 	github.com/mattn/go-colorable v0.1.15
 	github.com/mattn/go-isatty v0.0.22
@@ -131,7 +131,7 @@ require (
 	github.com/luxfi/proto v1.4.2 // indirect
 	github.com/luxfi/resource v0.1.1 // indirect
 	github.com/luxfi/threshold v1.12.6 // indirect
-	github.com/luxfi/utils v1.3.1 // indirect
+	github.com/luxfi/utils v1.3.3 // indirect
 	github.com/luxfi/zap v1.2.6 // indirect
 	github.com/luxfi/zapdb v1.10.6 // indirect
 	github.com/miekg/dns v1.1.72 // indirect
